@@ -1,0 +1,175 @@
+import { v } from 'convex/values';
+import { mutation, query } from './_generated/server';
+
+// Add a new item
+export const add = mutation({
+	args: {
+		type: v.union(v.literal('url'), v.literal('image'), v.literal('text')),
+		title: v.optional(v.string()),
+		description: v.optional(v.string()),
+		url: v.optional(v.string()),
+		content: v.optional(v.string()),
+		imageId: v.optional(v.id('_storage')),
+		collections: v.optional(v.array(v.id('collections')))
+	},
+	handler: async (ctx, args) => {
+		const now = Date.now();
+		return await ctx.db.insert('items', {
+			type: args.type,
+			title: args.title,
+			description: args.description,
+			url: args.url,
+			content: args.content,
+			imageId: args.imageId,
+			collections: args.collections ?? [],
+			dateAdded: now,
+			dateModified: now
+		});
+	}
+});
+
+// Update an existing item
+export const update = mutation({
+	args: {
+		id: v.id('items'),
+		title: v.optional(v.string()),
+		description: v.optional(v.string()),
+		url: v.optional(v.string()),
+		content: v.optional(v.string()),
+		collections: v.optional(v.array(v.id('collections')))
+	},
+	handler: async (ctx, args) => {
+		const { id, ...updates } = args;
+		const existing = await ctx.db.get(id);
+		if (!existing) throw new Error('Item not found');
+
+		await ctx.db.patch(id, {
+			...updates,
+			dateModified: Date.now()
+		});
+	}
+});
+
+// Delete an item
+export const remove = mutation({
+	args: { id: v.id('items') },
+	handler: async (ctx, args) => {
+		const item = await ctx.db.get(args.id);
+		if (!item) throw new Error('Item not found');
+
+		// Delete associated image from storage if exists
+		if (item.imageId) {
+			await ctx.storage.delete(item.imageId);
+		}
+
+		await ctx.db.delete(args.id);
+	}
+});
+
+// Add item to a collection
+export const addToCollection = mutation({
+	args: {
+		itemId: v.id('items'),
+		collectionId: v.id('collections')
+	},
+	handler: async (ctx, args) => {
+		const item = await ctx.db.get(args.itemId);
+		if (!item) throw new Error('Item not found');
+
+		if (!item.collections.includes(args.collectionId)) {
+			await ctx.db.patch(args.itemId, {
+				collections: [...item.collections, args.collectionId],
+				dateModified: Date.now()
+			});
+		}
+	}
+});
+
+// Remove item from a collection
+export const removeFromCollection = mutation({
+	args: {
+		itemId: v.id('items'),
+		collectionId: v.id('collections')
+	},
+	handler: async (ctx, args) => {
+		const item = await ctx.db.get(args.itemId);
+		if (!item) throw new Error('Item not found');
+
+		await ctx.db.patch(args.itemId, {
+			collections: item.collections.filter((c) => c !== args.collectionId),
+			dateModified: Date.now()
+		});
+	}
+});
+
+// Get all items
+export const list = query({
+	args: {},
+	handler: async (ctx) => {
+		const items = await ctx.db.query('items').order('desc').collect();
+		// Get image URLs for items with images
+		return Promise.all(
+			items.map(async (item) => ({
+				...item,
+				imageUrl: item.imageId ? await ctx.storage.getUrl(item.imageId) : null
+			}))
+		);
+	}
+});
+
+// Get a single item
+export const get = query({
+	args: { id: v.id('items') },
+	handler: async (ctx, args) => {
+		const item = await ctx.db.get(args.id);
+		if (!item) return null;
+		return {
+			...item,
+			imageUrl: item.imageId ? await ctx.storage.getUrl(item.imageId) : null
+		};
+	}
+});
+
+// Get items in a specific collection
+export const listByCollection = query({
+	args: { collectionId: v.id('collections') },
+	handler: async (ctx, args) => {
+		const items = await ctx.db.query('items').order('desc').collect();
+		const filtered = items.filter((item) => item.collections.includes(args.collectionId));
+		return Promise.all(
+			filtered.map(async (item) => ({
+				...item,
+				imageUrl: item.imageId ? await ctx.storage.getUrl(item.imageId) : null
+			}))
+		);
+	}
+});
+
+// Search items by title/description
+export const search = query({
+	args: { query: v.string() },
+	handler: async (ctx, args) => {
+		if (!args.query.trim()) {
+			return [];
+		}
+		const results = await ctx.db
+			.query('items')
+			.withSearchIndex('search_items', (q) => q.search('title', args.query))
+			.collect();
+
+		return Promise.all(
+			results.map(async (item) => ({
+				...item,
+				imageUrl: item.imageId ? await ctx.storage.getUrl(item.imageId) : null
+			}))
+		);
+	}
+});
+
+// Generate upload URL for images
+export const generateUploadUrl = mutation({
+	args: {},
+	handler: async (ctx) => {
+		return await ctx.storage.generateUploadUrl();
+	}
+});

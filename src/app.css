@@ -1,0 +1,18 @@
+* {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family: system-ui, sans-serif;
+	line-height: 1.5;
+}
+
+a {
+	color: inherit;
+}
+
+button {
+	cursor: pointer;
+}
