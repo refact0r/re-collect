@@ -8,7 +8,8 @@ export default defineSchema({
 		description: v.optional(v.string()),
 		url: v.optional(v.string()),
 		content: v.optional(v.string()), // For text items
-		imageId: v.optional(v.id('_storage')), // For uploaded images
+		imageKey: v.optional(v.string()), // R2 object key for uploaded images
+		imageId: v.optional(v.id('_storage')), // Legacy: Convex storage ID (deprecated)
 		collections: v.array(v.id('collections')),
 		dateAdded: v.number(),
 		dateModified: v.number()

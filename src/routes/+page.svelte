@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { useQuery, useConvexClient } from 'convex-svelte';
+	import { useUploadFile } from '@convex-dev/r2/svelte';
 	import { api } from '../convex/_generated/api.js';
 	import type { Id } from '../convex/_generated/dataModel.js';
 
 	const client = useConvexClient();
 	const items = useQuery(api.items.list, {});
+	const uploadFile = useUploadFile(api.r2);
 
 	let inputValue = $state('');
 	let isAdding = $state(false);
@@ -33,8 +35,7 @@
 			} else {
 				await client.mutation(api.items.add, {
 					type: 'text',
-					content: value,
-					title: value.slice(0, 50)
+					content: value
 				});
 			}
 			inputValue = '';
@@ -50,17 +51,13 @@
 
 		isAdding = true;
 		try {
-			const uploadUrl = await client.mutation(api.items.generateUploadUrl, {});
-			const response = await fetch(uploadUrl, {
-				method: 'POST',
-				headers: { 'Content-Type': file.type },
-				body: file
-			});
-			const { storageId } = await response.json();
+			// Upload to R2 and get the key
+			const key = await uploadFile(file);
 
+			// Create the item with the R2 key
 			await client.mutation(api.items.add, {
 				type: 'image',
-				imageId: storageId,
+				imageKey: key,
 				title: file.name
 			});
 			input.value = '';
@@ -126,7 +123,7 @@
 						<div class="card-title">{item.title}</div>
 					{/if}
 					<div class="card-actions">
-						<a href="/item/{item._id}">edit</a>
+						<a href="?item={item._id}">edit</a>
 						<button onclick={() => handleDelete(item._id)}>delete</button>
 					</div>
 				</div>
@@ -197,11 +194,13 @@
 		gap: 0.5rem;
 		font-size: 0.875rem;
 	}
-	.card-actions button {
+	.card-actions button,
+	.card-actions a {
 		background: none;
 		border: none;
 		padding: 0;
 		text-decoration: underline;
 		font-size: inherit;
+		cursor: pointer;
 	}
 </style>

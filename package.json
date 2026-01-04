@@ -39,6 +39,7 @@
 		"vitest-browser-svelte": "^2.0.1"
 	},
 	"dependencies": {
+		"@convex-dev/r2": "^0.8.1",
 		"convex": "^1.31.2",
 		"convex-svelte": "^0.0.12"
 	}

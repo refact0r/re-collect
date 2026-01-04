@@ -54,7 +54,7 @@
 						<div class="card-title">{item.title}</div>
 					{/if}
 					<div class="card-actions">
-						<a href="/item/{item._id}">edit</a>
+						<a href="?item={item._id}">edit</a>
 						<button onclick={() => handleDelete(item._id)}>delete</button>
 					</div>
 				</div>
@@ -115,7 +115,8 @@
 		gap: 0.5rem;
 		font-size: 0.875rem;
 	}
-	.card-actions button {
+	.card-actions button,
+	.card-actions a {
 		background: none;
 		border: none;
 		padding: 0;

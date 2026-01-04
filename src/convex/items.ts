@@ -1,5 +1,21 @@
 import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import { mutation, query, type QueryCtx } from './_generated/server';
+import type { Doc } from './_generated/dataModel';
+import { r2 } from './r2';
+
+// Helper to get image URL from either R2 (imageKey) or legacy Convex storage (imageId)
+async function getImageUrl(
+	ctx: QueryCtx,
+	item: Doc<'items'>
+): Promise<string | null> {
+	if (item.imageKey) {
+		return await r2.getUrl(item.imageKey);
+	}
+	if (item.imageId) {
+		return await ctx.storage.getUrl(item.imageId);
+	}
+	return null;
+}
 
 // Add a new item
 export const add = mutation({
@@ -9,7 +25,7 @@ export const add = mutation({
 		description: v.optional(v.string()),
 		url: v.optional(v.string()),
 		content: v.optional(v.string()),
-		imageId: v.optional(v.id('_storage')),
+		imageKey: v.optional(v.string()),
 		collections: v.optional(v.array(v.id('collections')))
 	},
 	handler: async (ctx, args) => {
@@ -20,7 +36,7 @@ export const add = mutation({
 			description: args.description,
 			url: args.url,
 			content: args.content,
-			imageId: args.imageId,
+			imageKey: args.imageKey,
 			collections: args.collections ?? [],
 			dateAdded: now,
 			dateModified: now
@@ -57,8 +73,10 @@ export const remove = mutation({
 		const item = await ctx.db.get(args.id);
 		if (!item) throw new Error('Item not found');
 
-		// Delete associated image from storage if exists
-		if (item.imageId) {
+		// Delete associated image from R2 or legacy Convex storage
+		if (item.imageKey) {
+			await r2.deleteObject(ctx, item.imageKey);
+		} else if (item.imageId) {
 			await ctx.storage.delete(item.imageId);
 		}
 
@@ -111,7 +129,7 @@ export const list = query({
 		return Promise.all(
 			items.map(async (item) => ({
 				...item,
-				imageUrl: item.imageId ? await ctx.storage.getUrl(item.imageId) : null
+				imageUrl: await getImageUrl(ctx, item)
 			}))
 		);
 	}
@@ -125,7 +143,7 @@ export const get = query({
 		if (!item) return null;
 		return {
 			...item,
-			imageUrl: item.imageId ? await ctx.storage.getUrl(item.imageId) : null
+			imageUrl: await getImageUrl(ctx, item)
 		};
 	}
 });
@@ -139,7 +157,7 @@ export const listByCollection = query({
 		return Promise.all(
 			filtered.map(async (item) => ({
 				...item,
-				imageUrl: item.imageId ? await ctx.storage.getUrl(item.imageId) : null
+				imageUrl: await getImageUrl(ctx, item)
 			}))
 		);
 	}
@@ -160,16 +178,8 @@ export const search = query({
 		return Promise.all(
 			results.map(async (item) => ({
 				...item,
-				imageUrl: item.imageId ? await ctx.storage.getUrl(item.imageId) : null
+				imageUrl: await getImageUrl(ctx, item)
 			}))
 		);
-	}
-});
-
-// Generate upload URL for images
-export const generateUploadUrl = mutation({
-	args: {},
-	handler: async (ctx) => {
-		return await ctx.storage.generateUploadUrl();
 	}
 });
