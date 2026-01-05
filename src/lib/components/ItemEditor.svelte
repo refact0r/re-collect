@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { useQuery, useConvexClient } from 'convex-svelte';
+	import { getContext } from 'svelte';
+	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 
@@ -13,8 +14,20 @@
 	let { itemId, onSave, onDelete, onCancel }: Props = $props();
 
 	const client = useConvexClient();
-	const item = useQuery(api.items.get, () => ({ id: itemId }));
-	const collections = useQuery(api.collections.list, {});
+	const allItems = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('items');
+	const collections = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
+
+	// Find the specific item from context
+	const item = $derived.by(() => {
+		if (allItems.isLoading || allItems.error || !allItems.data) {
+			return { isLoading: allItems.isLoading, error: allItems.error, data: null };
+		}
+		return {
+			isLoading: false,
+			error: null,
+			data: allItems.data.find((i: any) => i._id === itemId) ?? null
+		};
+	});
 
 	let title = $state('');
 	let description = $state('');

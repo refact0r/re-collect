@@ -1,15 +1,25 @@
 <script lang="ts">
 	import { PUBLIC_CONVEX_URL } from '$env/static/public';
-	import { setupConvex } from 'convex-svelte';
+	import { setupConvex, useQuery } from 'convex-svelte';
+	import { setContext } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import favicon from '$lib/assets/favicon.svg';
 	import ItemModal from '$lib/components/ItemModal.svelte';
 	import type { Id } from '../convex/_generated/dataModel.js';
+	import { api } from '../convex/_generated/api.js';
 	import '../app.css';
 
 	let { children } = $props();
 	setupConvex(PUBLIC_CONVEX_URL);
+
+	// Fetch all items and collections on load (with real-time sync)
+	const items = useQuery(api.items.list, {});
+	const collections = useQuery(api.collections.listWithCounts, {});
+
+	// Make available to all child routes via context
+	setContext('items', items);
+	setContext('collections', collections);
 
 	const editItemId = $derived(page.url.searchParams.get('item') as Id<'items'> | null);
 

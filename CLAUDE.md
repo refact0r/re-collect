@@ -80,6 +80,11 @@ A personal web application for collecting, organizing, and rediscovering design 
 
 ## Development Guidelines
 
+### Svelte & SvelteKit
+
+- Use Svelte 5 and SvelteKit conventions
+- DO NOT use deprecated Svelte features
+
 ### CSS & Styling
 
 - Write simple, minimal CSS

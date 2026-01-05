@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { useQuery, useConvexClient } from 'convex-svelte';
+	import { getContext } from 'svelte';
+	import { useConvexClient } from 'convex-svelte';
 	import { useUploadFile } from '@convex-dev/r2/svelte';
 	import { api } from '../convex/_generated/api.js';
-	import type { Id } from '../convex/_generated/dataModel.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
 
 	const client = useConvexClient();
-	const items = useQuery(api.items.list, {});
+	const items = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('items');
 	const uploadFile = useUploadFile(api.r2);
 
 	let inputValue = $state('');

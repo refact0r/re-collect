@@ -34,6 +34,10 @@ textarea {
 	background: var(--bg-2);
 	color: var(--txt-1);
 	border: 1px solid var(--border);
+
+	&:focus {
+		outline: none;
+	}
 }
 
 button {

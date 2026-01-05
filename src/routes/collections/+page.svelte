@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { useQuery, useConvexClient } from 'convex-svelte';
+	import { getContext } from 'svelte';
+	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import CollectionCreateModal from '$lib/components/CollectionCreateModal.svelte';
 
 	const client = useConvexClient();
-	const collections = useQuery(api.collections.listWithCounts, {});
+	const collections = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
 
 	let showCreateModal = $state(false);
 

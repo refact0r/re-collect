@@ -1,14 +1,38 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { useQuery, useConvexClient } from 'convex-svelte';
+	import { getContext } from 'svelte';
+	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../../convex/_generated/api.js';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
 
 	const client = useConvexClient();
 	const collectionId = $derived(page.params.id as Id<'collections'>);
-	const collection = useQuery(api.collections.get, () => ({ id: collectionId }));
-	const items = useQuery(api.items.listByCollection, () => ({ collectionId }));
+	const allCollections = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
+	const allItems = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('items');
+
+	// Derive collection and items from context
+	const collection = $derived.by(() => {
+		if (allCollections.isLoading || allCollections.error || !allCollections.data) {
+			return { isLoading: allCollections.isLoading, error: allCollections.error, data: null };
+		}
+		return {
+			isLoading: false,
+			error: null,
+			data: allCollections.data.find((c: any) => c._id === collectionId) ?? null
+		};
+	});
+
+	const items = $derived.by(() => {
+		if (allItems.isLoading || allItems.error || !allItems.data) {
+			return { isLoading: allItems.isLoading, error: allItems.error, data: [] };
+		}
+		return {
+			isLoading: false,
+			error: null,
+			data: allItems.data.filter((item: any) => item.collections.includes(collectionId))
+		};
+	});
 
 	let isEditing = $state(false);
 	let editName = $state('');
