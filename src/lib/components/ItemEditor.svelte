@@ -120,8 +120,8 @@
 
 		<div class="actions">
 			<button onclick={handleSave}>Save</button>
-			<button onclick={handleDelete} class="delete">Delete</button>
-			<button onclick={onCancel} class="cancel">Cancel</button>
+			<button onclick={handleDelete} class="danger">Delete</button>
+			<button onclick={onCancel}>Cancel</button>
 		</div>
 
 		<div class="meta">
@@ -147,13 +147,8 @@
 		flex-direction: column;
 		gap: 0.25rem;
 	}
-	input,
-	textarea {
-		padding: 0.5rem;
-		font-size: 1rem;
-	}
 	.collections-section {
-		border: 1px solid #ddd;
+		border: 1px solid var(--border);
 		padding: 1rem;
 	}
 	.collections-section h3 {
@@ -173,18 +168,8 @@
 		display: flex;
 		gap: 0.5rem;
 	}
-	button {
-		padding: 0.5rem 1rem;
-	}
-	.delete {
-		background: #fee;
-		border-color: #fcc;
-	}
-	.cancel {
-		background: #eee;
-	}
 	.meta {
 		font-size: 0.875rem;
-		color: #666;
+		color: var(--txt-3);
 	}
 </style>

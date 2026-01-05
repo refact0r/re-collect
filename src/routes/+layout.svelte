@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { PUBLIC_CONVEX_URL } from '$env/static/public';
 	import { setupConvex } from 'convex-svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import favicon from '$lib/assets/favicon.svg';
 	import ItemModal from '$lib/components/ItemModal.svelte';
@@ -11,10 +11,10 @@
 	let { children } = $props();
 	setupConvex(PUBLIC_CONVEX_URL);
 
-	const editItemId = $derived($page.url.searchParams.get('item') as Id<'items'> | null);
+	const editItemId = $derived(page.url.searchParams.get('item') as Id<'items'> | null);
 
 	function closeModal() {
-		const url = new URL($page.url);
+		const url = new URL(page.url);
 		url.searchParams.delete('item');
 		goto(url.pathname + url.search, { replaceState: false });
 	}
@@ -43,7 +43,7 @@
 <style>
 	header {
 		padding: 1rem;
-		border-bottom: 1px solid #eee;
+		border-bottom: 1px solid var(--border);
 	}
 	nav {
 		display: flex;

@@ -1,3 +1,15 @@
+:root {
+	--bg-1: oklch(16% 0 0);
+	--bg-2: oklch(21% 0 0);
+	--bg-3: oklch(26% 0 0);
+	--txt-3: oklch(50% 0 0);
+	--txt-2: oklch(80% 0 0);
+	--txt-1: oklch(90% 0 0);
+	--border: var(--bg-3);
+	--danger-bg: oklch(30% 0.05 20);
+	--danger-border: oklch(40% 0.08 20);
+}
+
 * {
 	box-sizing: border-box;
 	margin: 0;
@@ -7,12 +19,46 @@
 body {
 	font-family: system-ui, sans-serif;
 	line-height: 1.5;
+	background: var(--bg-1);
+	color: var(--txt-2);
 }
 
 a {
 	color: inherit;
 }
 
+input,
+textarea {
+	padding: 0.5rem;
+	font-size: 1rem;
+	background: var(--bg-2);
+	color: var(--txt-1);
+	border: 1px solid var(--border);
+}
+
 button {
 	cursor: pointer;
+	color: inherit;
+	background: var(--bg-2);
+	border: 1px solid var(--border);
+	padding: 0.5rem 1rem;
+	font-size: 1rem;
+}
+
+button:hover {
+	background: var(--bg-3);
+}
+
+button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+button.danger {
+	background: var(--danger-bg);
+	border-color: var(--danger-border);
+}
+
+button.danger:hover {
+	background: var(--danger-border);
 }

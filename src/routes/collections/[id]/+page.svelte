@@ -1,21 +1,45 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { useQuery, useConvexClient } from 'convex-svelte';
 	import { api } from '../../../convex/_generated/api.js';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
+	import ItemGrid from '$lib/components/ItemGrid.svelte';
 
 	const client = useConvexClient();
-	const collectionId = $derived($page.params.id as Id<'collections'>);
+	const collectionId = $derived(page.params.id as Id<'collections'>);
 	const collection = useQuery(api.collections.get, () => ({ id: collectionId }));
 	const items = useQuery(api.items.listByCollection, () => ({ collectionId }));
 
-	async function handleRemoveFromCollection(itemId: Id<'items'>) {
-		await client.mutation(api.items.removeFromCollection, { itemId, collectionId });
+	let isEditing = $state(false);
+	let editName = $state('');
+	let editDescription = $state('');
+
+	function startEditing() {
+		if (collection.data) {
+			editName = collection.data.name;
+			editDescription = collection.data.description ?? '';
+			isEditing = true;
+		}
 	}
 
-	async function handleDelete(id: Id<'items'>) {
-		if (confirm('Delete this item completely?')) {
-			await client.mutation(api.items.remove, { id });
+	function cancelEditing() {
+		isEditing = false;
+	}
+
+	async function saveEdits() {
+		if (!editName.trim()) return;
+		await client.mutation(api.collections.update, {
+			id: collectionId,
+			name: editName.trim(),
+			description: editDescription.trim() || undefined
+		});
+		isEditing = false;
+	}
+
+	async function handleDeleteCollection() {
+		if (confirm('Delete this collection? Items will not be deleted.')) {
+			await client.mutation(api.collections.remove, { id: collectionId });
+			window.location.href = '/collections';
 		}
 	}
 </script>
@@ -29,11 +53,25 @@
 {:else}
 	<div class="container">
 		<div class="header">
-			<h1>{collection.data.name}</h1>
-			{#if collection.data.description}
-				<p class="description">{collection.data.description}</p>
+			{#if isEditing}
+				<div class="edit-form">
+					<input type="text" bind:value={editName} placeholder="Collection name" />
+					<textarea bind:value={editDescription} rows="2" placeholder="Description (optional)"></textarea>
+					<div class="edit-actions">
+						<button onclick={saveEdits} disabled={!editName.trim()}>Save</button>
+						<button onclick={cancelEditing}>Cancel</button>
+					</div>
+				</div>
+			{:else}
+				<h1>{collection.data.name}</h1>
+				{#if collection.data.description}
+					<p class="description">{collection.data.description}</p>
+				{/if}
+				<div class="header-actions">
+					<button onclick={startEditing}>Edit</button>
+					<button onclick={handleDeleteCollection} class="danger">Delete collection</button>
+				</div>
 			{/if}
-			<a href="/collections/{collectionId}/edit">Edit collection</a>
 		</div>
 
 		{#if items.isLoading}
@@ -41,31 +79,7 @@
 		{:else if items.data?.length === 0}
 			<p>No items in this collection yet.</p>
 		{:else}
-			<div class="grid">
-				{#each items.data ?? [] as item (item._id)}
-					<div class="card">
-						{#if item.type === 'image' && item.imageUrl}
-							<img src={item.imageUrl} alt={item.title ?? 'Image'} />
-						{:else if item.type === 'url'}
-							<div class="url-card">
-								<a href={item.url} target="_blank" rel="noopener">{item.url}</a>
-							</div>
-						{:else if item.type === 'text'}
-							<div class="text-card">
-								<p>{item.content}</p>
-							</div>
-						{/if}
-						{#if item.title}
-							<div class="card-title">{item.title}</div>
-						{/if}
-						<div class="card-actions">
-							<a href="?item={item._id}">edit</a>
-							<button onclick={() => handleRemoveFromCollection(item._id)}>remove</button>
-							<button onclick={() => handleDelete(item._id)}>delete</button>
-						</div>
-					</div>
-				{/each}
-			</div>
+			<ItemGrid items={items.data ?? []} />
 		{/if}
 	</div>
 {/if}
@@ -79,46 +93,22 @@
 		margin-bottom: 2rem;
 	}
 	.description {
-		color: #666;
+		color: var(--txt-3);
+		margin: 0.5rem 0;
 	}
-	.grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-		gap: 1rem;
-	}
-	.card {
-		border: 1px solid #ddd;
-		padding: 0.5rem;
-	}
-	.card img {
-		width: 100%;
-		display: block;
-	}
-	.url-card,
-	.text-card {
-		padding: 1rem;
-		background: #f9f9f9;
-		word-break: break-all;
-	}
-	.card-title {
-		padding: 0.5rem 0;
-		font-size: 0.875rem;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-	.card-actions {
+	.header-actions {
 		display: flex;
 		gap: 0.5rem;
-		font-size: 0.875rem;
+		margin-top: 1rem;
 	}
-	.card-actions button,
-	.card-actions a {
-		background: none;
-		border: none;
-		padding: 0;
-		text-decoration: underline;
-		cursor: pointer;
-		font-size: inherit;
+	.edit-form {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		max-width: 600px;
+	}
+	.edit-actions {
+		display: flex;
+		gap: 0.5rem;
 	}
 </style>

@@ -1,23 +1,12 @@
 # re-collect
 
-## Overview
-
 A personal web application for collecting, organizing, and rediscovering design inspiration, web screenshots, articles, and visual references. Similar to Are.na.
 
 ## Core User Flows
 
 ### Adding Items
 
-- Multi-purpose input box
-- When URL is pasted or typed:
-  - Automatically extract page title
-  - Generate a screenshot of the webpage
-- When image is uploaded/pasted:
-  - Accept the image as-is
-  - Use the title of the image file
-- When text is typed:
-  - Use the text as primary content
-
+- Multi-purpose input box, supporting 3 main item types: URL, image, text
 - Besides their primary content type, items can also have:
   - Title
   - URL (if not already set)
@@ -30,7 +19,7 @@ A personal web application for collecting, organizing, and rediscovering design 
 - **Collections**: Named groups of items
   - Create, edit, delete collections
   - Add items to multiple collections simultaneously
-  - Each collection has optional description
+  - Has optional description
 - **Manual ordering**: Drag and drop to reorder items within a collection
 - **Sorting options**:
   - Manual order (default, respects drag-drop)
@@ -43,26 +32,16 @@ A personal web application for collecting, organizing, and rediscovering design 
 - **Primary view**: Masonry/grid layout
   - Show images prominently for visual items
   - Show text or url in a card format for non-visual items
-  - Hover/tap to see item details without leaving grid
+  - Click on an item to open item details
 - **List view**: Alternative compact view
-  - Shows title, small image, URL, date in rows
-  - Better for text-heavy collections
-- **Individual item view**:
-  - Full-size image (if present)
-  - Complete title, description, URL
-  - All collections displayed
-  - Edit/delete controls
-  - Metadata (date added, date modified)
+- **Individual item view**: Shows full details, allows editing
 
 ### Searching
 
 - **Search bar** that searches across:
   - Item titles
-  - Descriptions/notes
-  - Tags
+  - Descriptions
   - URLs
-- Search should be fast and feel instant
-- Results highlight matching terms=
 
 ## Key Features (Priority Order)
 
@@ -98,6 +77,15 @@ A personal web application for collecting, organizing, and rediscovering design 
 - Social features
 - AI-powered anything (keep it simple initially)
 - Authentication/login (single user, personal use)
+
+## Development Guidelines
+
+### CSS & Styling
+
+- Write simple, minimal CSS
+- Take advantage of global styles defined in app.css whenever possible
+- Use existing colors (--bg-x, --txt-x) from app.css for consistency
+- Avoid inline styles; prefer scoped component styles
 
 ## Svelte MCP
 
