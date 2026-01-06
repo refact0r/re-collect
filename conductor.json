@@ -1,0 +1,6 @@
+{
+	"scripts": {
+		"setup": "pnpm i; pnpm exec convex dev",
+		"run": "pnpm run dev"
+	}
+}
