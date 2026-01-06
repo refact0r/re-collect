@@ -1,6 +1,6 @@
 {
-    "scripts": {
-        "setup": "pnpm install; cp $CONDUCTOR_ROOT_PATH/.env.local .env.local",
-        "run": "pnpm exec convex dev"
-    }
+	"scripts": {
+		"setup": "pnpm install; cp $CONDUCTOR_ROOT_PATH/.env.local .env.local",
+		"run": "pnpm dev:all"
+	}
 }
