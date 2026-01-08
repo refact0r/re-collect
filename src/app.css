@@ -17,7 +17,7 @@
 }
 
 body {
-	font-family: system-ui, sans-serif;
+	font-family: 'Funnel Sans', system-ui, sans-serif;
 	line-height: 1.5;
 	background: var(--bg-1);
 	color: var(--txt-2);

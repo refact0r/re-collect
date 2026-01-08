@@ -42,7 +42,7 @@
 
 	// Layout constants
 	const GAP = 16;
-	const MIN_COL_WIDTH = 250;
+	const MIN_COL_WIDTH = 320;
 	const MAX_COLS = 6;
 	const MIN_COLS = 1;
 
@@ -56,7 +56,7 @@
 	const IMAGE_FALLBACK_ASPECT = 0.75;
 	const TEXT_CARD_PADDING = 16;
 	const TEXT_LINE_HEIGHT = 24;
-	const TEXT_MAX_HEIGHT = TEXT_LINE_HEIGHT * 10;
+	const TEXT_MAX_LINES = 10; // Based on -webkit-line-clamp in CSS
 	const TEXT_CHAR_WIDTH = 7;
 	const DEFAULT_HEIGHT = 100;
 
@@ -102,11 +102,10 @@
 					totalLines += Math.ceil(line.length / charsPerLine);
 				}
 			}
-			console.log('Total lines for item', item._id, ':', totalLines);
-			const textHeight = Math.min(
-				TEXT_MAX_HEIGHT,
-				totalLines * TEXT_LINE_HEIGHT + TEXT_CARD_PADDING
-			);
+
+			// Cap at max lines to match CSS line-clamp
+			const displayLines = Math.min(totalLines, TEXT_MAX_LINES);
+			const textHeight = displayLines * TEXT_LINE_HEIGHT + TEXT_CARD_PADDING;
 			return textHeight + CARD_CHROME + titleHeight;
 		}
 
@@ -207,7 +206,9 @@
 	}
 
 	.text-card {
-		overflow: scroll;
+		overflow: auto;
+		scrollbar-width: thin; /* Firefox: thin scrollbar */
+		scrollbar-color: var(--bg-3) transparent; /* Firefox: thumb and track colors */
 	}
 
 	.text-card p {
@@ -215,6 +216,7 @@
 		-webkit-box-orient: vertical;
 		-webkit-line-clamp: 10;
 		margin: 0;
+		white-space: pre-wrap;
 	}
 
 	.url-text {
