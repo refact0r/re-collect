@@ -22,6 +22,21 @@
 		}
 	}
 
+	function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+		return new Promise((resolve) => {
+			const img = new Image();
+			img.onload = () => {
+				resolve({ width: img.naturalWidth, height: img.naturalHeight });
+				URL.revokeObjectURL(img.src);
+			};
+			img.onerror = () => {
+				resolve({ width: 0, height: 0 });
+				URL.revokeObjectURL(img.src);
+			};
+			img.src = URL.createObjectURL(file);
+		});
+	}
+
 	async function handleSubmit() {
 		const value = inputValue.trim();
 		if (!value) return;
@@ -52,13 +67,18 @@
 
 		isAdding = true;
 		try {
+			// Get dimensions before upload for masonry layout
+			const dimensions = await getImageDimensions(file);
+
 			// Upload to R2 and get the key
 			const key = await uploadFile(file);
 
-			// Create the item with the R2 key
+			// Create the item with the R2 key and dimensions
 			await client.mutation(api.items.add, {
 				type: 'image',
 				imageKey: key,
+				imageWidth: dimensions.width || undefined,
+				imageHeight: dimensions.height || undefined,
 				title: file.name
 			});
 			input.value = '';
@@ -95,10 +115,15 @@
 		if (file.type.startsWith('image/')) {
 			isAdding = true;
 			try {
+				// Get dimensions before upload for masonry layout
+				const dimensions = await getImageDimensions(file);
+
 				const key = await uploadFile(file);
 				await client.mutation(api.items.add, {
 					type: 'image',
 					imageKey: key,
+					imageWidth: dimensions.width || undefined,
+					imageHeight: dimensions.height || undefined,
 					title: file.name
 				});
 			} finally {

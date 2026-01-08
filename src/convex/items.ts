@@ -26,6 +26,8 @@ export const add = mutation({
 		url: v.optional(v.string()),
 		content: v.optional(v.string()),
 		imageKey: v.optional(v.string()),
+		imageWidth: v.optional(v.number()),
+		imageHeight: v.optional(v.number()),
 		collections: v.optional(v.array(v.id('collections')))
 	},
 	handler: async (ctx, args) => {
@@ -37,6 +39,8 @@ export const add = mutation({
 			url: args.url,
 			content: args.content,
 			imageKey: args.imageKey,
+			imageWidth: args.imageWidth,
+			imageHeight: args.imageHeight,
 			collections: args.collections ?? [],
 			dateAdded: now,
 			dateModified: now
