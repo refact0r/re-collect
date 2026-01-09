@@ -26,6 +26,28 @@ export default defineSchema({
 	collections: defineTable({
 		name: v.string(),
 		description: v.optional(v.string()),
-		dateCreated: v.number()
-	}).index('by_name', ['name'])
+		dateCreated: v.number(),
+		sortMode: v.optional(
+			v.union(
+				v.literal('manual'),
+				v.literal('dateAdded-desc'),
+				v.literal('dateAdded-asc'),
+				v.literal('dateModified-desc'),
+				v.literal('dateModified-asc'),
+				v.literal('alphabetical-asc'),
+				v.literal('alphabetical-desc')
+			)
+		) // Defaults to 'manual'
+	}).index('by_name', ['name']),
+
+	// Junction table for per-collection item ordering
+	itemCollectionPositions: defineTable({
+		itemId: v.id('items'),
+		collectionId: v.id('collections'),
+		position: v.string(), // Lexicographical: "a", "aM", "b", etc.
+		dateAdded: v.number()
+	})
+		.index('by_collection', ['collectionId', 'position'])
+		.index('by_item', ['itemId'])
+		.index('by_item_and_collection', ['itemId', 'collectionId'])
 });

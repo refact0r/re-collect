@@ -9,7 +9,9 @@
  */
 
 import type * as collections from "../collections.js";
+import type * as itemCollectionPositions from "../itemCollectionPositions.js";
 import type * as items from "../items.js";
+import type * as migrations_001_add_positions from "../migrations/001_add_positions.js";
 import type * as r2 from "../r2.js";
 
 import type {
@@ -20,7 +22,9 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   collections: typeof collections;
+  itemCollectionPositions: typeof itemCollectionPositions;
   items: typeof items;
+  "migrations/001_add_positions": typeof migrations_001_add_positions;
   r2: typeof r2;
 }>;
 
