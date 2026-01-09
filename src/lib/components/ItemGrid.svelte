@@ -46,9 +46,10 @@
 	const MIN_COL_WIDTH = 320;
 	const MAX_COLS = 6;
 	const MIN_COLS = 1;
-	const CARD_PADDING = 16;
-	const CARD_BORDER = 2;
-	const CARD_CHROME = CARD_PADDING + CARD_BORDER;
+	// Card has padding: 0.5rem (8px) on each side = 16px total, border: 1px on each side = 2px total
+	const CARD_PADDING = 16; // 8px * 2
+	const CARD_BORDER = 2; // 1px * 2
+	const CARD_CHROME = CARD_PADDING + CARD_BORDER; // 18px total vertical chrome
 	const TITLE_HEIGHT = 25;
 	const IMAGE_FALLBACK_ASPECT = 0.75;
 	const TEXT_CARD_PADDING = 16;
@@ -107,18 +108,21 @@
 
 	// ============ DRAG STATE ============
 	let draggedItem: Item | null = $state(null);
-	let draggedItemHeight = $state(0);
+	let draggedItemHeight = $state(0); // Actual measured height for display
+	let draggedItemCalculatedHeight = $state(0); // Predicted height for algorithm consistency
 	let dragPosition = $state({ x: 0, y: 0 });
 	let dragOffset = $state({ x: 0, y: 0 });
 
-	// The frozen column layout when drag started (items stay in these positions)
-	let frozenColumns: Item[][] | null = $state(null);
+	// The simulated layout during drag (null if current position is invalid)
+	type DisplayItem = Item | { _id: 'placeholder'; height: number };
+	let simulationResult: {
+		columns: DisplayItem[][];
+		beforeItem: Item | null;
+		afterItem: Item | null;
+	} | null = $state(null);
 
-	// Where the placeholder currently is: {colIndex, indexInColumn}
-	let placeholderPosition: { colIndex: number; index: number } | null = $state(null);
-
-	// Original position of the dragged item (to detect no-op drops)
-	let originalPosition: { colIndex: number; index: number } | null = $state(null);
+	// Original flat item order (excluding dragged item) for simulation
+	let itemsForSimulation: Item[] = $state([]);
 
 	// ============ MASONRY DISTRIBUTION ============
 	function distributeToColumns(itemsToDistribute: Item[]): Item[][] {
@@ -136,119 +140,125 @@
 	// Normal layout when not dragging
 	let normalColumns = $derived(distributeToColumns(items));
 
-	// ============ SLOT CALCULATION ============
-	interface Slot {
-		colIndex: number;
-		index: number; // Index in that column where placeholder would go
-		y: number;
-		centerY: number;
+	// ============ MASONRY SIMULATION WITH PLACEHOLDER ============
+
+	// Result of a successful simulation: columns layout + flat list neighbors
+	interface SimulationResult {
+		columns: DisplayItem[][];
+		beforeItem: Item | null; // Item placed before placeholder in flat order
+		afterItem: Item | null; // Item placed after placeholder in flat order
 	}
 
-	function calculateSlots(columns: Item[][], draggedId: Id<'items'>, draggedHeight: number): Slot[] {
-		const slots: Slot[] = [];
+	/**
+	 * Given items and a target position (column + slot), simulate the masonry fill
+	 * and try to insert a placeholder at that position.
+	 * Returns the resulting columns and flat-list neighbors if valid, or null if unreachable.
+	 */
+	function simulateMasonryWithPlaceholder(
+		itemsToPlace: Item[],
+		targetCol: number,
+		targetSlot: number,
+		placeholderHeight: number
+	): SimulationResult | null {
+		if (columnCount === 0 || columnWidth === 0) return null;
 
-		for (let colIndex = 0; colIndex < columns.length; colIndex++) {
-			const column = columns[colIndex];
-			let y = 0;
+		const cols: DisplayItem[][] = Array.from({ length: columnCount }, () => []);
+		const heights = Array(columnCount).fill(0);
+		let placeholderPlaced = false;
+		let beforeItem: Item | null = null;
+		let afterItem: Item | null = null;
+		let lastPlacedItem: Item | null = null;
 
-			// Slot at top of column (index 0)
-			slots.push({
-				colIndex,
-				index: 0,
-				y: 0,
-				centerY: draggedHeight / 2
-			});
+		for (let i = 0; i < itemsToPlace.length; i++) {
+			const item = itemsToPlace[i];
 
-			for (let i = 0; i < column.length; i++) {
-				const item = column[i];
-				// Skip the dragged item when calculating positions
-				if (item._id === draggedId) continue;
+			// Find the shortest column
+			let shortest = heights.indexOf(Math.min(...heights));
 
-				y += getItemHeight(item) + GAP;
+			// Before placing this item, check if we should place placeholder
+			if (!placeholderPlaced && shortest === targetCol && cols[targetCol].length === targetSlot) {
+				// Place placeholder here
+				cols[targetCol].push({ _id: 'placeholder', height: placeholderHeight });
+				heights[targetCol] += placeholderHeight + GAP;
+				placeholderPlaced = true;
 
-				// Slot after this item
-				slots.push({
-					colIndex,
-					index: i + 1,
-					y,
-					centerY: y + draggedHeight / 2
-				});
+				// Record the flat-order neighbors
+				beforeItem = lastPlacedItem;
+				afterItem = item; // This item comes after the placeholder
+
+				// Recalculate shortest since we just added placeholder
+				shortest = heights.indexOf(Math.min(...heights));
+			}
+
+			// Place the item
+			cols[shortest].push(item);
+			heights[shortest] += getItemHeight(item) + GAP;
+			lastPlacedItem = item;
+		}
+
+		// After all items, try to place placeholder if not yet placed
+		if (!placeholderPlaced) {
+			const shortest = heights.indexOf(Math.min(...heights));
+			if (shortest === targetCol && cols[targetCol].length === targetSlot) {
+				cols[targetCol].push({ _id: 'placeholder', height: placeholderHeight });
+				placeholderPlaced = true;
+				beforeItem = lastPlacedItem;
+				afterItem = null; // Placeholder is at the end
 			}
 		}
 
-		return slots;
+		return placeholderPlaced ? { columns: cols, beforeItem, afterItem } : null;
 	}
 
-	function findNearestSlot(
-		slots: Slot[],
-		cursorX: number,
-		cursorY: number,
-		containerRect: DOMRect
-	): Slot | null {
-		if (slots.length === 0) return null;
-
-		let nearest: Slot | null = null;
-		let nearestDist = Infinity;
-
+	/**
+	 * Determine which column the cursor is over based on X position
+	 */
+	function getColumnFromCursorX(cursorX: number, containerRect: DOMRect): number {
 		const relativeX = cursorX - containerRect.left;
+		const colWidth = columnWidth + GAP;
+		const col = Math.floor(relativeX / colWidth);
+		return Math.max(0, Math.min(columnCount - 1, col));
+	}
+
+	/**
+	 * Determine which slot in a column the cursor wants based on Y position.
+	 * Uses the current displayed column to calculate slot boundaries.
+	 */
+	function getSlotFromCursorY(
+		cursorY: number,
+		containerRect: DOMRect,
+		displayedColumn: DisplayItem[]
+	): number {
 		const relativeY = cursorY - containerRect.top;
 
-		for (const slot of slots) {
-			const slotCenterX = slot.colIndex * (columnWidth + GAP) + columnWidth / 2;
-			const dx = relativeX - slotCenterX;
-			const dy = relativeY - slot.centerY;
-			const dist = Math.sqrt(dx * dx + dy * dy);
+		// Calculate cumulative heights to find slot boundaries
+		let y = 0;
+		for (let i = 0; i < displayedColumn.length; i++) {
+			const item = displayedColumn[i];
+			const itemHeight =
+				item._id === 'placeholder'
+					? (item as { _id: 'placeholder'; height: number }).height
+					: getItemHeight(item as Item);
 
-			if (dist < nearestDist) {
-				nearestDist = dist;
-				nearest = slot;
+			const slotMidpoint = y + itemHeight / 2;
+
+			if (relativeY < slotMidpoint) {
+				return i; // Insert before this item
 			}
+
+			y += itemHeight + GAP;
 		}
 
-		return nearest;
+		// Cursor is below all items - insert at the end
+		return displayedColumn.length;
 	}
 
 	// ============ DISPLAY LAYOUT ============
-	// Build the layout to display: either normal, or frozen with placeholder
-	type DisplayItem = Item | { _id: 'placeholder'; height: number };
-
 	let displayColumns = $derived.by((): DisplayItem[][] => {
-		// Not dragging - use normal layout
-		if (!frozenColumns || !placeholderPosition || !draggedItem) {
-			return normalColumns;
+		if (draggedItem && simulationResult) {
+			return simulationResult.columns;
 		}
-
-		// Dragging - build layout from frozen columns with placeholder
-		const result: DisplayItem[][] = [];
-
-		for (let colIndex = 0; colIndex < frozenColumns.length; colIndex++) {
-			const sourceColumn = frozenColumns[colIndex];
-			const destColumn: DisplayItem[] = [];
-
-			// Filter out the dragged item from this column
-			const itemsWithoutDragged = sourceColumn.filter((item) => item._id !== draggedItem!._id);
-
-			// If this is the column where placeholder goes, insert it
-			if (colIndex === placeholderPosition.colIndex) {
-				const insertAt = Math.min(placeholderPosition.index, itemsWithoutDragged.length);
-				for (let i = 0; i < itemsWithoutDragged.length; i++) {
-					if (i === insertAt) {
-						destColumn.push({ _id: 'placeholder', height: draggedItemHeight });
-					}
-					destColumn.push(itemsWithoutDragged[i]);
-				}
-				// If inserting at the end
-				if (insertAt >= itemsWithoutDragged.length) {
-					destColumn.push({ _id: 'placeholder', height: draggedItemHeight });
-				}
-			} else {
-				destColumn.push(...itemsWithoutDragged);
-			}
-
-			result.push(destColumn);
-		}
-
-		return result;
+		return normalColumns;
 	});
 
 	// ============ DRAG HANDLERS ============
@@ -257,22 +267,41 @@
 		e.preventDefault();
 
 		const target = e.currentTarget as HTMLElement;
-		const rect = target.getBoundingClientRect();
+		// Get the card-wrapper element (the button's parent)
+		const cardWrapper = target.closest('.card-wrapper') as HTMLElement;
+		const rect = cardWrapper.getBoundingClientRect();
 
 		draggedItem = item;
-		draggedItemHeight = getItemHeight(item);
+		// Use actual measured height for display, calculated height for algorithm
+		draggedItemHeight = rect.height;
+		draggedItemCalculatedHeight = getItemHeight(item);
 		dragOffset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
 		dragPosition = { x: e.clientX, y: e.clientY };
 
-		// Freeze the current layout
-		frozenColumns = normalColumns.map((col) => [...col]);
+		// Store items excluding the dragged one for simulation
+		itemsForSimulation = items.filter((i) => i._id !== item._id);
 
-		// Find where the item currently is and set initial placeholder there
-		for (let colIndex = 0; colIndex < frozenColumns.length; colIndex++) {
-			const index = frozenColumns[colIndex].findIndex((i) => i._id === item._id);
+		// Find original position and create initial simulation
+		for (let colIndex = 0; colIndex < normalColumns.length; colIndex++) {
+			const index = normalColumns[colIndex].findIndex((i) => i._id === item._id);
 			if (index !== -1) {
-				placeholderPosition = { colIndex, index };
-				originalPosition = { colIndex, index };
+				const initialSim = simulateMasonryWithPlaceholder(
+					itemsForSimulation,
+					colIndex,
+					index,
+					draggedItemCalculatedHeight
+				);
+				if (initialSim) {
+					// Update placeholder display height
+					for (const col of initialSim.columns) {
+						for (let i = 0; i < col.length; i++) {
+							if (col[i]._id === 'placeholder') {
+								(col[i] as { _id: 'placeholder'; height: number }).height = draggedItemHeight;
+							}
+						}
+					}
+					simulationResult = initialSim;
+				}
 				break;
 			}
 		}
@@ -284,56 +313,86 @@
 	}
 
 	function handleDragMove(e: PointerEvent) {
-		if (!draggedItem || !containerElement || !frozenColumns) return;
+		if (!draggedItem || !containerElement) return;
 
 		dragPosition = { x: e.clientX, y: e.clientY };
 
 		const containerRect = containerElement.getBoundingClientRect();
-		const slots = calculateSlots(frozenColumns, draggedItem._id, draggedItemHeight);
-		const nearest = findNearestSlot(slots, e.clientX, e.clientY, containerRect);
 
-		if (nearest) {
-			placeholderPosition = { colIndex: nearest.colIndex, index: nearest.index };
+		// Determine target column from cursor X
+		const targetCol = getColumnFromCursorX(e.clientX, containerRect);
+
+		// Use the ORIGINAL layout (normalColumns with dragged item) to determine slot
+		// This gives us stable slot positions that match what the user sees
+		const originalColumn = normalColumns[targetCol] || [];
+
+		// Determine target slot from cursor Y based on original column layout
+		const targetSlot = getSlotFromCursorY(e.clientY, containerRect, originalColumn);
+
+		// Try to simulate with placeholder at this position
+		// Use calculated height for algorithm consistency, but the result will display with measured height
+		const newSimulation = simulateMasonryWithPlaceholder(
+			itemsForSimulation,
+			targetCol,
+			targetSlot,
+			draggedItemCalculatedHeight
+		);
+
+		// If valid, update the placeholder's display height to the measured height
+		if (newSimulation) {
+			for (const col of newSimulation.columns) {
+				for (let i = 0; i < col.length; i++) {
+					if (col[i]._id === 'placeholder') {
+						(col[i] as { _id: 'placeholder'; height: number }).height = draggedItemHeight;
+					}
+				}
+			}
 		}
+
+		// Update simulation (will be null if position is invalid)
+		simulationResult = newSimulation;
 	}
 
 	function handleDragEnd() {
-		if (!draggedItem || !placeholderPosition || !onReorder || !frozenColumns || !originalPosition) {
+		if (!draggedItem || !onReorder) {
 			cleanup();
 			return;
 		}
 
-		// Check if position actually changed
-		const samePosition =
-			placeholderPosition.colIndex === originalPosition.colIndex &&
-			placeholderPosition.index === originalPosition.index;
-
-		if (samePosition) {
-			// No change - just cleanup
+		// If no valid drop position, just revert
+		if (!simulationResult) {
 			cleanup();
 			return;
 		}
 
-		// Find neighbors in the display layout to calculate new position
-		const targetColumn = displayColumns[placeholderPosition.colIndex];
-
-		let beforeItem: Item | null = null;
-		let afterItem: Item | null = null;
-
-		// Find placeholder index in the display column
-		const placeholderIdx = targetColumn.findIndex((item) => item._id === 'placeholder');
-
-		if (placeholderIdx > 0) {
-			const before = targetColumn[placeholderIdx - 1];
-			if (before._id !== 'placeholder') beforeItem = before as Item;
-		}
-		if (placeholderIdx < targetColumn.length - 1) {
-			const after = targetColumn[placeholderIdx + 1];
-			if (after._id !== 'placeholder') afterItem = after as Item;
-		}
+		// Use the flat-list neighbors from the simulation result
+		const { beforeItem, afterItem } = simulationResult;
 
 		const beforePos = beforeItem?.position ?? null;
 		const afterPos = afterItem?.position ?? null;
+
+		// Check if the item's current neighbors are the same as the target neighbors
+		// If so, no reorder is needed
+		const currentIndex = items.findIndex((i) => i._id === draggedItem!._id);
+		const currentBefore = currentIndex > 0 ? items[currentIndex - 1] : null;
+		const currentAfter = currentIndex < items.length - 1 ? items[currentIndex + 1] : null;
+
+		const samePosition =
+			beforeItem?._id === currentBefore?._id && afterItem?._id === currentAfter?._id;
+
+		if (samePosition) {
+			// Item is already in the right spot, no need to reorder
+			cleanup();
+			return;
+		}
+
+		// Validate that beforePos < afterPos (required by fractional-indexing)
+		if (beforePos !== null && afterPos !== null && beforePos >= afterPos) {
+			// Invalid state - just revert
+			cleanup();
+			return;
+		}
+
 		const newPosition = generateKeyBetween(beforePos, afterPos);
 
 		const itemId = draggedItem._id;
@@ -344,10 +403,10 @@
 
 	function cleanup() {
 		draggedItem = null;
-		frozenColumns = null;
-		placeholderPosition = null;
-		originalPosition = null;
+		simulationResult = null;
+		itemsForSimulation = [];
 		draggedItemHeight = 0;
+		draggedItemCalculatedHeight = 0;
 		document.removeEventListener('pointermove', handleDragMove);
 		document.removeEventListener('pointerup', handleDragEnd);
 		document.body.style.cursor = '';
@@ -369,7 +428,7 @@
 		<div class="column">
 			{#each column as item (item._id)}
 				{#if item._id === 'placeholder'}
-					<div class="placeholder" style:height="{(item as {height: number}).height}px"></div>
+					<div class="placeholder" style:height="{(item as { height: number }).height}px"></div>
 				{:else}
 					{@const realItem = item as Item}
 					{@const isDragging = draggedItem?._id === realItem._id}
@@ -400,8 +459,8 @@
 							<button
 								class="drag-handle"
 								title="Drag to reorder"
-								onpointerdown={(e) => handleDragStart(realItem, e)}
-							>⠿</button>
+								onpointerdown={(e) => handleDragStart(realItem, e)}>⠿</button
+							>
 						{/if}
 					</div>
 				{/if}
@@ -541,10 +600,11 @@
 	}
 
 	.placeholder {
-		border: 2px dashed var(--txt-3);
+		border: 1px dashed var(--txt-3);
 		border-radius: 4px;
 		background: var(--bg-2);
 		opacity: 0.5;
+		box-sizing: border-box;
 	}
 
 	.drag-preview {
