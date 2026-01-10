@@ -212,10 +212,13 @@ export const listByCollection = query({
 		const filtered = items.filter((item) => item.collections.includes(args.collectionId));
 
 		// Sort by position (items without position go to the end)
+		// Use simple string comparison (not localeCompare) to match fractional-indexing's expected ordering
 		filtered.sort((a, b) => {
-			const posA = positionMap.get(a._id) ?? 'zzz';
-			const posB = positionMap.get(b._id) ?? 'zzz';
-			return posA.localeCompare(posB);
+			const posA = positionMap.get(a._id) ?? '\uffff'; // Use high Unicode char for items without position
+			const posB = positionMap.get(b._id) ?? '\uffff';
+			if (posA < posB) return -1;
+			if (posA > posB) return 1;
+			return 0;
 		});
 
 		return Promise.all(
