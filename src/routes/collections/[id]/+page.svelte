@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { getContext } from 'svelte';
-	import { useConvexClient } from 'convex-svelte';
+	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../../convex/_generated/api.js';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
@@ -9,9 +9,11 @@
 	const client = useConvexClient();
 	const collectionId = $derived(page.params.id as Id<'collections'>);
 	const allCollections = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
-	const allItems = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('items');
 
-	// Derive collection and items from context
+	// Use dedicated query for collection items (ordered by position)
+	const items = useQuery(api.items.listByCollection, () => ({ collectionId }));
+
+	// Derive collection from context
 	const collection = $derived.by(() => {
 		if (allCollections.isLoading || allCollections.error || !allCollections.data) {
 			return { isLoading: allCollections.isLoading, error: allCollections.error, data: null };
@@ -23,16 +25,14 @@
 		};
 	});
 
-	const items = $derived.by(() => {
-		if (allItems.isLoading || allItems.error || !allItems.data) {
-			return { isLoading: allItems.isLoading, error: allItems.error, data: [] };
-		}
-		return {
-			isLoading: false,
-			error: null,
-			data: allItems.data.filter((item: any) => item.collections.includes(collectionId))
-		};
-	});
+	// Reorder handler for drag-drop
+	async function handleReorder(itemId: Id<'items'>, newPosition: string) {
+		await client.mutation(api.itemCollectionPositions.reorderItem, {
+			itemId,
+			collectionId,
+			newPosition
+		});
+	}
 
 	let isEditing = $state(false);
 	let editName = $state('');
@@ -103,7 +103,7 @@
 		{:else if items.data?.length === 0}
 			<p>No items in this collection yet.</p>
 		{:else}
-			<ItemGrid items={items.data ?? []} />
+			<ItemGrid items={items.data ?? []} {collectionId} onReorder={handleReorder} />
 		{/if}
 	</div>
 {/if}

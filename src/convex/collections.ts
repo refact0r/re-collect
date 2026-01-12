@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
+import { deleteAllPositionsForCollection } from './itemCollectionPositions';
 
 // Create a new collection
 export const create = mutation({
@@ -38,6 +39,9 @@ export const remove = mutation({
 	handler: async (ctx, args) => {
 		const collection = await ctx.db.get(args.id);
 		if (!collection) throw new Error('Collection not found');
+
+		// Delete all position records for this collection
+		await deleteAllPositionsForCollection(ctx, args.id);
 
 		// Remove this collection from all items that reference it
 		const items = await ctx.db.query('items').collect();

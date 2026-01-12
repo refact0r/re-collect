@@ -1,7 +1,13 @@
 import { v } from 'convex/values';
 import { mutation, query, type QueryCtx } from './_generated/server';
-import type { Doc } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { r2 } from './r2';
+import {
+	addItemToCollectionWithPosition,
+	removeItemFromCollectionWithPosition,
+	deleteAllPositionsForItem,
+	getPositionsByCollection
+} from './itemCollectionPositions';
 
 // Helper to get image URL from either R2 (imageKey) or legacy Convex storage (imageId)
 async function getImageUrl(
@@ -26,21 +32,34 @@ export const add = mutation({
 		url: v.optional(v.string()),
 		content: v.optional(v.string()),
 		imageKey: v.optional(v.string()),
+		imageWidth: v.optional(v.number()),
+		imageHeight: v.optional(v.number()),
 		collections: v.optional(v.array(v.id('collections')))
 	},
 	handler: async (ctx, args) => {
 		const now = Date.now();
-		return await ctx.db.insert('items', {
+		const collections = args.collections ?? [];
+
+		const itemId = await ctx.db.insert('items', {
 			type: args.type,
 			title: args.title,
 			description: args.description,
 			url: args.url,
 			content: args.content,
 			imageKey: args.imageKey,
-			collections: args.collections ?? [],
+			imageWidth: args.imageWidth,
+			imageHeight: args.imageHeight,
+			collections,
 			dateAdded: now,
 			dateModified: now
 		});
+
+		// Create position records for each collection (item appears at top)
+		for (const collectionId of collections) {
+			await addItemToCollectionWithPosition(ctx, itemId, collectionId);
+		}
+
+		return itemId;
 	}
 });
 
@@ -55,12 +74,33 @@ export const update = mutation({
 		collections: v.optional(v.array(v.id('collections')))
 	},
 	handler: async (ctx, args) => {
-		const { id, ...updates } = args;
+		const { id, collections, ...updates } = args;
 		const existing = await ctx.db.get(id);
 		if (!existing) throw new Error('Item not found');
 
+		// Handle collection changes if collections array is provided
+		if (collections !== undefined) {
+			const oldCollections = new Set(existing.collections);
+			const newCollections = new Set(collections);
+
+			// Add positions for newly added collections
+			for (const collectionId of newCollections) {
+				if (!oldCollections.has(collectionId)) {
+					await addItemToCollectionWithPosition(ctx, id, collectionId);
+				}
+			}
+
+			// Remove positions for removed collections
+			for (const collectionId of oldCollections) {
+				if (!newCollections.has(collectionId)) {
+					await removeItemFromCollectionWithPosition(ctx, id, collectionId);
+				}
+			}
+		}
+
 		await ctx.db.patch(id, {
 			...updates,
+			...(collections !== undefined && { collections }),
 			dateModified: Date.now()
 		});
 	}
@@ -72,6 +112,9 @@ export const remove = mutation({
 	handler: async (ctx, args) => {
 		const item = await ctx.db.get(args.id);
 		if (!item) throw new Error('Item not found');
+
+		// Delete all position records for this item
+		await deleteAllPositionsForItem(ctx, args.id);
 
 		// Delete associated image from R2 or legacy Convex storage
 		if (item.imageKey) {
@@ -95,6 +138,9 @@ export const addToCollection = mutation({
 		if (!item) throw new Error('Item not found');
 
 		if (!item.collections.includes(args.collectionId)) {
+			// Create position record (item appears at top)
+			await addItemToCollectionWithPosition(ctx, args.itemId, args.collectionId);
+
 			await ctx.db.patch(args.itemId, {
 				collections: [...item.collections, args.collectionId],
 				dateModified: Date.now()
@@ -112,6 +158,9 @@ export const removeFromCollection = mutation({
 	handler: async (ctx, args) => {
 		const item = await ctx.db.get(args.itemId);
 		if (!item) throw new Error('Item not found');
+
+		// Delete position record
+		await removeItemFromCollectionWithPosition(ctx, args.itemId, args.collectionId);
 
 		await ctx.db.patch(args.itemId, {
 			collections: item.collections.filter((c) => c !== args.collectionId),
@@ -148,16 +197,35 @@ export const get = query({
 	}
 });
 
-// Get items in a specific collection
+// Get items in a specific collection, ordered by position
 export const listByCollection = query({
 	args: { collectionId: v.id('collections') },
 	handler: async (ctx, args) => {
-		const items = await ctx.db.query('items').order('desc').collect();
+		// Get positions ordered by position (lexicographically)
+		const positions = await getPositionsByCollection(ctx, args.collectionId);
+
+		// Create a map for quick position lookup
+		const positionMap = new Map(positions.map((p) => [p.itemId as Id<'items'>, p.position]));
+
+		// Get all items in this collection
+		const items = await ctx.db.query('items').collect();
 		const filtered = items.filter((item) => item.collections.includes(args.collectionId));
+
+		// Sort by position (items without position go to the end)
+		// Use simple string comparison (not localeCompare) to match fractional-indexing's expected ordering
+		filtered.sort((a, b) => {
+			const posA = positionMap.get(a._id) ?? '\uffff'; // Use high Unicode char for items without position
+			const posB = positionMap.get(b._id) ?? '\uffff';
+			if (posA < posB) return -1;
+			if (posA > posB) return 1;
+			return 0;
+		});
+
 		return Promise.all(
 			filtered.map(async (item) => ({
 				...item,
-				imageUrl: await getImageUrl(ctx, item)
+				imageUrl: await getImageUrl(ctx, item),
+				position: positionMap.get(item._id)
 			}))
 		);
 	}

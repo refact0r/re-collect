@@ -17,6 +17,9 @@ importers:
       convex-svelte:
         specifier: ^0.0.12
         version: 0.0.12(convex@1.31.2(react@19.2.3))(svelte@5.46.1)
+      fractional-indexing:
+        specifier: ^3.2.0
+        version: 3.2.0
     devDependencies:
       '@eslint/compat':
         specifier: ^1.4.0
@@ -1483,6 +1486,10 @@ packages:
 
   flatted@3.3.3:
     resolution: {integrity: sha512-GX+ysw4PBCz0PzosHDepZGANEuFCMLrnRTiEy9McGjmkCQYwRq4A/X786G/fjM/+OjsWSU1ZrY5qyARZmO/uwg==}
+
+  fractional-indexing@3.2.0:
+    resolution: {integrity: sha512-PcOxmqwYCW7O2ovKRU8OoQQj2yqTfEB/yeTYk4gPid6dN5ODRfU1hXd9tTVZzax/0NkO7AxpHykvZnT1aYp/BQ==}
+    engines: {node: ^14.13.1 || >=16.0.0}
 
   fsevents@2.3.2:
     resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
@@ -3884,6 +3891,8 @@ snapshots:
       keyv: 4.5.4
 
   flatted@3.3.3: {}
+
+  fractional-indexing@3.2.0: {}
 
   fsevents@2.3.2:
     optional: true
