@@ -539,8 +539,6 @@
 
 	.text-card {
 		overflow: auto;
-		scrollbar-width: thin;
-		scrollbar-color: var(--bg-3) transparent;
 	}
 
 	.text-card p {
