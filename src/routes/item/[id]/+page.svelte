@@ -17,9 +17,6 @@
 </div>
 
 <style>
-	.container {
-		max-width: 600px;
-	}
 	h1 {
 		margin-bottom: 1rem;
 	}

@@ -6,6 +6,7 @@
 	import { goto } from '$app/navigation';
 	import favicon from '$lib/assets/favicon.svg';
 	import ItemModal from '$lib/components/ItemModal.svelte';
+	import Sidebar from '$lib/components/Sidebar.svelte';
 	import type { Id } from '../convex/_generated/dataModel.js';
 	import { api } from '../convex/_generated/api.js';
 	import '../app.css';
@@ -42,9 +43,12 @@
 	</nav>
 </header>
 
-<main>
-	{@render children()}
-</main>
+<div class="layout">
+	<Sidebar />
+	<main>
+		{@render children()}
+	</main>
+</div>
 
 {#if editItemId}
 	<ItemModal itemId={editItemId} onClose={closeModal} />
@@ -52,17 +56,29 @@
 
 <style>
 	header {
-		padding: 1rem;
+		padding: 1rem 1.5rem;
 		border-bottom: 1px solid var(--border);
 	}
 	nav {
 		display: flex;
 		gap: 1rem;
 	}
-	nav a:first-child {
-		font-weight: bold;
+	nav a {
+		text-decoration: none;
+	}
+	.layout {
+		display: flex;
+		height: calc(100vh - 57px);
+	}
+	.layout :global(aside) {
+		position: sticky;
+		top: 0;
+		height: calc(100vh - 57px);
+		overflow-y: auto;
 	}
 	main {
+		flex: 1;
 		padding: 1rem;
+		overflow-y: auto;
 	}
 </style>

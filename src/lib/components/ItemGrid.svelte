@@ -424,7 +424,7 @@
 							{#if realItem.type === 'image' && realItem.imageUrl}
 								<img
 									src={urlCache.get(realItem._id) ?? realItem.imageUrl}
-									alt={realItem.title ?? 'Image'}
+									alt={realItem.title ?? 'image'}
 									width={realItem.imageWidth}
 									height={realItem.imageHeight}
 									decoding="async"
@@ -445,7 +445,7 @@
 						{#if isDraggable}
 							<button
 								class="drag-handle"
-								title="Drag to reorder"
+								title="drag to reorder"
 								onpointerdown={(e) => handleDragStart(realItem, e)}>⠿</button
 							>
 						{/if}
@@ -467,7 +467,7 @@
 			{#if draggedItem.type === 'image' && draggedItem.imageUrl}
 				<img
 					src={urlCache.get(draggedItem._id) ?? draggedItem.imageUrl}
-					alt={draggedItem.title ?? 'Image'}
+					alt={draggedItem.title ?? 'image'}
 					width={draggedItem.imageWidth}
 					height={draggedItem.imageHeight}
 					decoding="async"
@@ -521,7 +521,7 @@
 	}
 
 	.card:hover {
-		border-color: var(--txt-2);
+		border-color: var(--txt-3);
 	}
 
 	.card img {
@@ -544,9 +544,7 @@
 	}
 
 	.text-card p {
-		display: -webkit-box;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 10;
+		max-height: calc(1.5rem * 10 - 0.125rem);
 		margin: 0;
 		white-space: pre-wrap;
 	}
@@ -587,11 +585,9 @@
 	}
 
 	.placeholder {
-		border: 1px dashed var(--txt-3);
-		border-radius: 4px;
+		border: 2px dashed var(--txt-3);
 		background: var(--bg-2);
 		opacity: 0.5;
-		box-sizing: border-box;
 	}
 
 	.drag-preview {

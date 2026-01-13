@@ -6,7 +6,8 @@
 	import CollectionCreateModal from '$lib/components/CollectionCreateModal.svelte';
 
 	const client = useConvexClient();
-	const collections = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
+	const collections =
+		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
 
 	let showCreateModal = $state(false);
 
@@ -18,17 +19,17 @@
 </script>
 
 <div class="container">
-	<div class="header">
-		<h1>Collections</h1>
-		<button onclick={() => (showCreateModal = true)}>New Collection</button>
+	<div class="page-header">
+		<h1>collections</h1>
+		<button onclick={() => (showCreateModal = true)}>new collection</button>
 	</div>
 
 	{#if collections.isLoading}
-		<p>Loading...</p>
+		<p>loading...</p>
 	{:else if collections.error}
-		<p>Error: {collections.error.message}</p>
+		<p>error: {collections.error.message}</p>
 	{:else if collections.data?.length === 0}
-		<p>No collections yet. Click "New Collection" to create your first one!</p>
+		<p>no collections yet. click "new collection" to create your first one!</p>
 	{:else}
 		<div class="list">
 			{#each collections.data ?? [] as collection (collection._id)}
@@ -38,11 +39,9 @@
 						{#if collection.description}
 							<p class="description">{collection.description}</p>
 						{/if}
-						<p class="count">{collection.itemCount} items</p>
+						<p class="count">{collection.itemCount} item(s)</p>
 					</a>
-					<div class="actions">
-						<button onclick={() => handleDelete(collection._id)}>delete</button>
-					</div>
+					<button class="link" onclick={() => handleDelete(collection._id)}>delete</button>
 				</div>
 			{/each}
 		</div>
@@ -54,18 +53,7 @@
 {/if}
 
 <style>
-	.container {
-		max-width: 800px;
-	}
-	.header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 2rem;
-	}
-	.header h1 {
-		margin: 0;
-	}
+	/* Uses global .page-header, .card, button.link styles from app.css */
 	.list {
 		display: flex;
 		flex-direction: column;
@@ -93,18 +81,5 @@
 		font-size: 0.875rem;
 		color: var(--txt-3);
 		margin: 0;
-	}
-	.actions {
-		display: flex;
-		gap: 0.5rem;
-		font-size: 0.875rem;
-	}
-	.actions button {
-		background: none;
-		border: none;
-		padding: 0;
-		text-decoration: underline;
-		cursor: pointer;
-		font-size: inherit;
 	}
 </style>

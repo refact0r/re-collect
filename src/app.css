@@ -8,16 +8,21 @@
 	--border: var(--bg-3);
 	--danger-bg: oklch(30% 0.05 20);
 	--danger-border: oklch(40% 0.08 20);
+	--font: 'DM Sans', system-ui, sans-serif;
+	--font-weight: 400;
 }
 
 * {
 	box-sizing: border-box;
 	margin: 0;
 	padding: 0;
+	scrollbar-width: thin;
+	scrollbar-color: var(--bg-3) transparent;
 }
 
 body {
-	font-family: 'Funnel Sans', system-ui, sans-serif;
+	font-family: var(--font);
+	font-weight: var(--font-weight);
 	line-height: 1.5;
 	background: var(--bg-1);
 	color: var(--txt-2);
@@ -27,21 +32,46 @@ a {
 	color: inherit;
 }
 
+h1,
+h2,
+h3 {
+	font-family: 'DM Sans';
+	font-weight: 600;
+	letter-spacing: -0.02ch;
+}
+
+/* ============================================
+   Form Elements
+   ============================================ */
+
 input,
 textarea {
 	padding: 0.5rem;
 	font-size: 1rem;
+	font-family: var(--font);
+	font-weight: var(--font-weight);
+	border: 1px solid var(--border);
 	background: var(--bg-2);
 	color: var(--txt-1);
-	border: 1px solid var(--border);
+	line-height: 1.5;
 
 	&:focus {
 		outline: none;
+		border-color: var(--txt-3);
+	}
+
+	&::placeholder {
+		font-family: var(--font);
+		font-weight: var(--font-weight);
+		color: var(--txt-3);
 	}
 }
 
+/* Buttons */
 button {
 	cursor: pointer;
+	font-family: var(--font);
+	font-weight: var(--font-weight);
 	color: inherit;
 	background: var(--bg-2);
 	border: 1px solid var(--border);
@@ -65,4 +95,182 @@ button.danger {
 
 button.danger:hover {
 	background: var(--danger-border);
+}
+
+/* Icon button - no background, minimal styling */
+button.icon {
+	background: none;
+	border: none;
+	padding: 0.25rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+button.icon:hover {
+	background: var(--bg-2);
+}
+
+/* Link-style button - looks like a text link */
+button.link {
+	background: none;
+	border: none;
+	padding: 0;
+	text-decoration: underline;
+	font-size: inherit;
+}
+
+button.link:hover {
+	background: none;
+	color: var(--txt-1);
+}
+
+/* ============================================
+   Forms
+   ============================================ */
+
+.form {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.form label {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+/* Horizontal label (for checkboxes) */
+.form label.horizontal {
+	flex-direction: row;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.form .actions {
+	display: flex;
+	gap: 0.5rem;
+}
+
+/* ============================================
+   Input container - bordered wrapper for inputs
+   ============================================ */
+
+.input-container {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	border: 1px solid var(--border);
+	background: var(--bg-2);
+	transition: border-color 0.2s;
+	margin-bottom: 1rem;
+}
+
+.input-container:focus-within {
+	border-color: var(--txt-3);
+}
+
+.input-container input,
+.input-container textarea {
+	border: none;
+	background: transparent;
+}
+
+.input-container input:focus,
+.input-container textarea:focus {
+	border-color: transparent;
+}
+
+/* ============================================
+   Modal/Dialog
+   ============================================ */
+
+.backdrop {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: oklch(from var(--bg-1) l c h / 0.9);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+}
+
+.modal {
+	background: var(--bg-1);
+	border: 1px solid var(--border);
+	padding: 1.5rem;
+	max-width: 50rem;
+	width: 90%;
+	max-height: 90vh;
+	overflow-y: auto;
+	position: relative;
+}
+
+.modal .close-btn {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	background: none;
+	border: none;
+	font-size: 1.5rem;
+	padding: 0.25rem 0.5rem;
+}
+
+/* ============================================
+   Status Messages
+   ============================================ */
+
+.status-text {
+	font-size: 0.875rem;
+	color: var(--txt-3);
+}
+
+.meta {
+	font-size: 0.875rem;
+	color: var(--txt-3);
+}
+
+/* ============================================
+   Page Headers
+   ============================================ */
+
+.page-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 2rem;
+}
+
+.page-header h1 {
+	margin: 0;
+}
+
+/* ============================================
+   Cards
+   ============================================ */
+
+.card {
+	border: 1px solid var(--border);
+	padding: 1rem;
+}
+
+.card:hover {
+	border-color: var(--txt-3);
+}
+
+/* ============================================
+   Sections
+   ============================================ */
+
+.section {
+	border: 1px solid var(--border);
+	padding: 1rem;
+}
+
+.section h3 {
+	margin: 0 0 0.5rem 0;
 }

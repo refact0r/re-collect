@@ -8,34 +8,29 @@
 </script>
 
 <div class="container">
-	<h1>Search</h1>
+	<h1>search</h1>
 
 	<div class="search-box">
-		<input
-			type="text"
-			bind:value={searchQuery}
-			placeholder="Search items by title..."
-			autofocus
-		/>
+		<input type="text" bind:value={searchQuery} placeholder="search items by title..." autofocus />
 	</div>
 
 	{#if !searchQuery.trim()}
-		<p class="hint">Type to search across your items</p>
+		<p class="status-text">type to search across your items</p>
 	{:else if searchResults.isLoading}
-		<p>Searching...</p>
+		<p class="status-text">searching...</p>
 	{:else if searchResults.error}
-		<p>Error: {searchResults.error.message}</p>
+		<p>error: {searchResults.error.message}</p>
 	{:else if searchResults.data?.length === 0}
-		<p>No items found for "{searchQuery}"</p>
+		<p class="status-text">no items found for "{searchQuery}"</p>
 	{:else}
-		<p class="result-count">{searchResults.data?.length} result(s)</p>
+		<p class="status-text result-count">{searchResults.data?.length} result(s)</p>
 		<ItemGrid items={searchResults.data ?? []} />
 	{/if}
 </div>
 
 <style>
+	/* Uses global .status-text styles from app.css */
 	.container {
-		max-width: 1200px;
 		margin: 0 auto;
 	}
 	.search-box {
@@ -43,14 +38,8 @@
 	}
 	.search-box input {
 		width: 100%;
-		padding: 0.75rem;
-		font-size: 1rem;
-	}
-	.hint {
-		color: var(--txt-3);
 	}
 	.result-count {
 		margin-bottom: 1rem;
-		color: var(--txt-3);
 	}
 </style>

@@ -39,35 +39,5 @@
 </div>
 
 <style>
-	.backdrop {
-		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: oklch(from var(--bg-1) l c h / 0.9);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 1000;
-	}
-	.modal {
-		background: var(--bg-1);
-		border: 1px solid var(--border);
-		padding: 1.5rem;
-		max-width: 600px;
-		width: 90%;
-		max-height: 90vh;
-		overflow-y: auto;
-		position: relative;
-	}
-	.close-btn {
-		position: absolute;
-		top: 0.5rem;
-		right: 0.5rem;
-		background: none;
-		border: none;
-		font-size: 1.5rem;
-		padding: 0.25rem 0.5rem;
-	}
+	/* Uses global .backdrop, .modal, .close-btn styles from app.css */
 </style>

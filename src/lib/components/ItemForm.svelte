@@ -61,51 +61,51 @@
 </script>
 
 {#if item.isLoading}
-	<p>Loading...</p>
+	<p>loading...</p>
 {:else if item.error}
-	<p>Error: {item.error.message}</p>
+	<p>error: {item.error.message}</p>
 {:else if !item.data}
-	<p>Item not found</p>
+	<p>item not found</p>
 {:else}
 	{#if item.data.type === 'image' && item.data.imageUrl}
-		<img src={item.data.imageUrl} alt={item.data.title ?? 'Image'} class="preview" />
+		<img src={item.data.imageUrl} alt={item.data.title ?? 'image'} class="preview" />
 	{/if}
 
 	<div class="form">
 		<label>
-			Title
+			title
 			<input type="text" bind:value={title} />
 		</label>
 
 		<label>
-			Description
+			description
 			<textarea bind:value={description} rows="3"></textarea>
 		</label>
 
 		{#if item.data.type === 'url'}
 			<label>
-				URL
+				url
 				<input type="url" bind:value={url} />
 			</label>
 		{/if}
 
 		{#if item.data.type === 'text'}
 			<label>
-				Content
+				content
 				<textarea bind:value={content} rows="5"></textarea>
 			</label>
 		{/if}
 
-		<div class="collections-section">
-			<h3>Collections</h3>
+		<div class="section">
+			<h3>collections</h3>
 			{#if collections.isLoading}
-				<p>Loading collections...</p>
+				<p class="status-text">loading collections...</p>
 			{:else if collections.data?.length === 0}
-				<p>No collections yet.</p>
+				<p class="status-text">no collections yet.</p>
 			{:else}
 				<div class="collection-list">
 					{#each collections.data ?? [] as collection (collection._id)}
-						<label class="collection-item">
+						<label class="horizontal">
 							<input
 								type="checkbox"
 								checked={item.data.collections.includes(collection._id)}
@@ -119,59 +119,30 @@
 		</div>
 
 		<div class="actions">
-			<button onclick={handleSave}>Save</button>
-			<button onclick={handleDelete} class="danger">Delete</button>
+			<button onclick={handleSave}>save</button>
+			<button onclick={handleDelete} class="danger">delete</button>
 			{#if onCancel}
-				<button onclick={onCancel}>Cancel</button>
+				<button onclick={onCancel}>cancel</button>
 			{/if}
 		</div>
 
 		<div class="meta">
-			<p>Added: {new Date(item.data.dateAdded).toLocaleString()}</p>
-			<p>Modified: {new Date(item.data.dateModified).toLocaleString()}</p>
+			<p>added: {new Date(item.data.dateAdded).toLocaleString()}</p>
+			<p>modified: {new Date(item.data.dateModified).toLocaleString()}</p>
 		</div>
 	</div>
 {/if}
 
 <style>
+	/* Uses global .form, .section, .meta, .status-text styles from app.css */
 	.preview {
 		max-width: 100%;
 		max-height: 300px;
 		margin-bottom: 1rem;
 	}
-	.form {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-	label {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-	.collections-section {
-		border: 1px solid var(--border);
-		padding: 1rem;
-	}
-	.collections-section h3 {
-		margin: 0 0 0.5rem 0;
-	}
 	.collection-list {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
-	}
-	.collection-item {
-		flex-direction: row;
-		align-items: center;
-		gap: 0.5rem;
-	}
-	.actions {
-		display: flex;
-		gap: 0.5rem;
-	}
-	.meta {
-		font-size: 0.875rem;
-		color: var(--txt-3);
 	}
 </style>
