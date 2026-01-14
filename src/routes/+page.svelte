@@ -7,7 +7,9 @@
 </script>
 
 <div class="container">
-	<ItemInput />
+	<div class="input-wrapper">
+		<ItemInput />
+	</div>
 
 	{#if items.isLoading}
 		<p>loading...</p>
@@ -21,4 +23,7 @@
 </div>
 
 <style>
+	.input-wrapper {
+		margin-bottom: 1rem;
+	}
 </style>

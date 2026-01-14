@@ -8,7 +8,9 @@
 </script>
 
 <div class="container">
-	<h1>search</h1>
+	<div class="page-header">
+		<h1>search</h1>
+	</div>
 
 	<div class="search-box">
 		<input type="text" bind:value={searchQuery} placeholder="search items by title..." autofocus />
@@ -23,23 +25,23 @@
 	{:else if searchResults.data?.length === 0}
 		<p class="status-text">no items found for "{searchQuery}"</p>
 	{:else}
-		<p class="status-text result-count">{searchResults.data?.length} result(s)</p>
+		<p class="status-text result-count">
+			{searchResults.data?.length}
+			{searchResults.data?.length === 1 ? 'result' : 'results'}
+		</p>
 		<ItemGrid items={searchResults.data ?? []} />
 	{/if}
 </div>
 
 <style>
-	/* Uses global .status-text styles from app.css */
-	.container {
-		margin: 0 auto;
-	}
+	/* Uses global .page-header, .status-text styles from app.css */
 	.search-box {
-		margin-bottom: 1rem;
+		margin-bottom: 2rem;
 	}
 	.search-box input {
 		width: 100%;
 	}
 	.result-count {
-		margin-bottom: 1rem;
+		margin-bottom: 1.5rem;
 	}
 </style>

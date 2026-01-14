@@ -164,7 +164,6 @@ button.link:hover {
 	border: 1px solid var(--border);
 	background: var(--bg-2);
 	transition: border-color 0.2s;
-	margin-bottom: 1rem;
 }
 
 .input-container:focus-within {
@@ -242,7 +241,7 @@ button.link:hover {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	margin-bottom: 2rem;
+	margin-bottom: 1rem;
 }
 
 .page-header h1 {

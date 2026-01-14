@@ -101,7 +101,9 @@
 			{/if}
 		</header>
 
-		<ItemInput {collectionId} />
+		<div class="input-wrapper">
+			<ItemInput {collectionId} />
+		</div>
 
 		{#if items.isLoading}
 			<p class="status-text">loading items...</p>
@@ -115,9 +117,6 @@
 
 <style>
 	/* Uses global .form, .actions, .status-text styles from app.css */
-	.container {
-		margin: 0 auto;
-	}
 	header {
 		margin-bottom: 2rem;
 	}
@@ -127,5 +126,8 @@
 	}
 	.actions {
 		margin-top: 1rem;
+	}
+	.input-wrapper {
+		margin-bottom: 1rem;
 	}
 </style>

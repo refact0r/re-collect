@@ -39,7 +39,10 @@
 						{#if collection.description}
 							<p class="description">{collection.description}</p>
 						{/if}
-						<p class="count">{collection.itemCount} item(s)</p>
+						<p class="count">
+						{collection.itemCount}
+						{collection.itemCount === 1 ? 'item' : 'items'}
+					</p>
 					</a>
 					<button class="link" onclick={() => handleDelete(collection._id)}>delete</button>
 				</div>
