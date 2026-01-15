@@ -36,12 +36,12 @@
 <style>
 	/* Uses global .page-header, .status-text styles from app.css */
 	.search-box {
-		margin-bottom: 2rem;
+		margin-bottom: 1rem;
 	}
 	.search-box input {
 		width: 100%;
 	}
 	.result-count {
-		margin-bottom: 1.5rem;
+		margin-bottom: 0.5rem;
 	}
 </style>

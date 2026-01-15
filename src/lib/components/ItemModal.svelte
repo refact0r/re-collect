@@ -32,12 +32,14 @@
 	aria-modal="true"
 	tabindex="-1"
 >
-	<div class="modal">
+	<div class="modal modal-wide">
 		<button class="close-btn" onclick={onClose}>×</button>
 		<ItemEditor {itemId} onSave={onClose} onDelete={onClose} onCancel={onClose} />
 	</div>
 </div>
 
 <style>
-	/* Uses global .backdrop, .modal, .close-btn styles from app.css */
+	.modal {
+		height: calc(100vh - 4rem);
+	}
 </style>

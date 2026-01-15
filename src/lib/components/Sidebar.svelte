@@ -9,29 +9,49 @@
 </script>
 
 <aside class:collapsed>
-	{#if !collapsed}
-		<nav class="collections">
+	<nav class="collections">
+		{#if collapsed}
 			{#if collections.isLoading}
-				<p class="status-text">loading...</p>
+				<div class="collapsed-indicator">...</div>
 			{:else if collections.error}
-				<p class="status-text">error loading</p>
-			{:else if collections.data?.length === 0}
-				<p class="status-text">no collections</p>
+				<div class="collapsed-indicator">!</div>
 			{:else}
 				<ul>
 					{#each collections.data ?? [] as collection (collection._id)}
 						{@const isActive = page.url.pathname === `/collections/${collection._id}`}
 						<li>
-							<a href="/collections/{collection._id}" class:active={isActive}>
-								<span class="name">{collection.name}</span>
-								<span class="count">{collection.itemCount}</span>
+							<a
+								href="/collections/{collection._id}"
+								class:active={isActive}
+								title={collection.name}
+								class="collapsed-link"
+							>
+								{collection.name.charAt(0)}
 							</a>
 						</li>
 					{/each}
 				</ul>
 			{/if}
-		</nav>
-	{/if}
+		{:else if collections.isLoading}
+			<p class="status-text">loading...</p>
+		{:else if collections.error}
+			<p class="status-text">error loading</p>
+		{:else if collections.data?.length === 0}
+			<p class="status-text">no collections</p>
+		{:else}
+			<ul>
+				{#each collections.data ?? [] as collection (collection._id)}
+					{@const isActive = page.url.pathname === `/collections/${collection._id}`}
+					<li>
+						<a href="/collections/{collection._id}" class:active={isActive}>
+							<span class="name">{collection.name}</span>
+							<span class="count">{collection.itemCount}</span>
+						</a>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</nav>
 	<button
 		class="icon toggle"
 		onclick={() => (collapsed = !collapsed)}
@@ -54,6 +74,7 @@
 		min-width: 15rem;
 		border-right: 1px solid var(--border);
 		padding: 1rem;
+		padding-bottom: 3.5rem;
 		display: flex;
 		flex-direction: column;
 		transition:
@@ -65,6 +86,7 @@
 		width: 3rem;
 		min-width: 3rem;
 		padding: 1rem 0.5rem;
+		padding-bottom: 3.5rem;
 	}
 
 	/* Uses global button.icon styles from app.css */
@@ -119,5 +141,27 @@
 		color: var(--txt-3);
 		flex-shrink: 0;
 		margin-left: 0.5rem;
+	}
+
+	.collapsed-link {
+		padding: 0.5rem;
+		font-weight: 500;
+		justify-content: center;
+	}
+
+	.collapsed-indicator {
+		text-align: center;
+		font-size: 0.875rem;
+		color: var(--txt-3);
+		padding: 0.5rem;
+	}
+
+	.collapsed ul {
+		align-items: center;
+	}
+
+	.collapsed li {
+		display: flex;
+		justify-content: center;
 	}
 </style>

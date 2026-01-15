@@ -26,6 +26,10 @@ body {
 	line-height: 1.5;
 	background: var(--bg-1);
 	color: var(--txt-2);
+	display: flex;
+	flex-direction: column;
+	height: 100vh;
+	overflow: hidden;
 }
 
 a {
@@ -201,12 +205,16 @@ button.link:hover {
 .modal {
 	background: var(--bg-1);
 	border: 1px solid var(--border);
-	padding: 1.5rem;
-	max-width: 50rem;
-	width: 90%;
-	max-height: 90vh;
+	padding: 1rem;
+	max-width: 32rem;
+	width: 100%;
+	max-height: calc(100vh - 4rem);
 	overflow-y: auto;
 	position: relative;
+}
+
+.modal-wide {
+	max-width: calc(100vw - 4rem);
 }
 
 .modal .close-btn {

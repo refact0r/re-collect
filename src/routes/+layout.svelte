@@ -58,6 +58,7 @@
 	header {
 		padding: 1rem 1.5rem;
 		border-bottom: 1px solid var(--border);
+		flex-shrink: 0;
 	}
 	nav {
 		display: flex;
@@ -68,12 +69,13 @@
 	}
 	.layout {
 		display: flex;
-		height: calc(100vh - 57px);
+		flex: 1;
+		min-height: 0;
 	}
 	.layout :global(aside) {
 		position: sticky;
 		top: 0;
-		height: calc(100vh - 57px);
+		height: 100%;
 		overflow-y: auto;
 	}
 	main {
