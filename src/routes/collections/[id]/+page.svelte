@@ -6,6 +6,7 @@
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
 	import ItemInput from '$lib/components/ItemInput.svelte';
+	import { setCurrentItems } from '$lib/stores/currentItems.svelte';
 
 	const client = useConvexClient();
 	const collectionId = $derived(page.params.id as Id<'collections'>);
@@ -14,6 +15,13 @@
 
 	// Use dedicated query for collection items (ordered by position)
 	const items = useQuery(api.items.listByCollection, () => ({ collectionId }));
+
+	// Update the current items when data changes
+	$effect(() => {
+		if (items.data) {
+			setCurrentItems(items.data);
+		}
+	});
 
 	// Derive collection from context
 	const collection = $derived.by(() => {

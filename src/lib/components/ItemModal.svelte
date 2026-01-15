@@ -1,11 +1,9 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { useQuery } from 'convex-svelte';
-	import { api } from '../../convex/_generated/api.js';
 	import ItemEditor from './ItemEditor.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
+	import { getCurrentItems } from '$lib/stores/currentItems.svelte';
 
 	interface Props {
 		itemId: Id<'items'>;
@@ -16,40 +14,8 @@
 
 	let saveFunction: (() => Promise<void>) | undefined = $state();
 
-	// Get all items from context
-	const allItems = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('items');
-
-	// Determine the current context
-	const currentPath = $derived(page.url.pathname);
-	const searchQuery = $derived(page.url.searchParams.get('q') ?? '');
-	const collectionMatch = $derived(currentPath.match(/^\/collections\/(.+)$/));
-	const collectionId = $derived(collectionMatch ? (collectionMatch[1] as Id<'collections'>) : null);
-
-	// Get collection items if we're in a collection view
-	const collectionItems = useQuery(
-		api.items.listByCollection,
-		() => (collectionId ? { collectionId } : 'skip')
-	);
-
-	// Get search results if we're in search view with a query
-	const searchResults = useQuery(
-		api.items.search,
-		() => (searchQuery.trim() ? { query: searchQuery } : 'skip')
-	);
-
-	// Determine which items list to use
-	const currentItems = $derived.by(() => {
-		// Search results take priority
-		if (searchQuery.trim() && !searchResults.isLoading && searchResults.data) {
-			return searchResults.data;
-		}
-		// Then collection items
-		if (collectionId && !collectionItems.isLoading && collectionItems.data) {
-			return collectionItems.data;
-		}
-		// Default to all items
-		return allItems.data ?? [];
-	});
+	// Get current items from the store (set by the active page)
+	const currentItems = $derived(getCurrentItems());
 
 	function handleSaveReady(saveFn: () => Promise<void>) {
 		saveFunction = saveFn;

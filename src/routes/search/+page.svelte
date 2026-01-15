@@ -4,6 +4,7 @@
 	import { useQuery } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
+	import { setCurrentItems } from '$lib/stores/currentItems.svelte';
 
 	// Get search query from URL
 	let searchQuery = $state(page.url.searchParams.get('q') ?? '');
@@ -35,6 +36,13 @@
 	}
 
 	const searchResults = useQuery(api.items.search, () => ({ query: searchQuery }));
+
+	// Update the current items when search results change
+	$effect(() => {
+		if (searchResults.data) {
+			setCurrentItems(searchResults.data);
+		}
+	});
 </script>
 
 <div class="container">

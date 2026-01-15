@@ -2,8 +2,16 @@
 	import { getContext } from 'svelte';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
 	import ItemInput from '$lib/components/ItemInput.svelte';
+	import { setCurrentItems } from '$lib/stores/currentItems.svelte';
 
 	const items = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('items');
+
+	// Update the current items when data changes
+	$effect(() => {
+		if (items.data) {
+			setCurrentItems(items.data);
+		}
+	});
 </script>
 
 <div class="container">
