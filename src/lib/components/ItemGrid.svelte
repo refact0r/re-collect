@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { SvelteMap } from 'svelte/reactivity';
 	import { generateKeyBetween } from 'fractional-indexing';
+	import { page } from '$app/state';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 
 	interface Item {
@@ -400,6 +401,12 @@
 		document.body.style.userSelect = '';
 	}
 
+	function getItemUrl(itemId: Id<'items'>): string {
+		const params = new URLSearchParams(page.url.searchParams);
+		params.set('item', itemId);
+		return `${page.url.pathname}?${params}`;
+	}
+
 	$effect(() => {
 		if (!containerElement) return;
 		const observer = new ResizeObserver((entries) => {
@@ -420,7 +427,7 @@
 					{@const realItem = item as Item}
 					{@const isDragging = draggedItem?._id === realItem._id}
 					<div class="card-wrapper" class:dragging={isDragging}>
-						<a href="?item={realItem._id}" class="card">
+						<a href={getItemUrl(realItem._id)} class="card">
 							{#if realItem.type === 'image' && realItem.imageUrl}
 								<img
 									src={urlCache.get(realItem._id) ?? realItem.imageUrl}
