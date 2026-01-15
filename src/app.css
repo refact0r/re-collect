@@ -168,7 +168,6 @@ button.link:hover {
 	gap: 0.5rem;
 	border: 1px solid var(--border);
 	background: var(--bg-2);
-	transition: border-color 0.2s;
 }
 
 .input-container:focus-within {

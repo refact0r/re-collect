@@ -198,12 +198,12 @@
 		width: 2rem;
 		height: 2rem;
 		cursor: pointer;
-		color: var(--txt-3);
 		flex-shrink: 0;
+		margin-right: 0.25rem;
 	}
 
 	.upload-btn:hover {
-		color: var(--txt-2);
+		background: var(--bg-3);
 	}
 
 	.upload-btn input {

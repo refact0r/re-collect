@@ -249,9 +249,6 @@
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
-		transition:
-			background-color 0.15s,
-			border-color 0.15s;
 	}
 
 	.checkbox-label:hover .checkbox {

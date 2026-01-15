@@ -19,8 +19,9 @@
 	// Get all items from context
 	const allItems = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('items');
 
-	// Determine if we're in a collection view
+	// Determine the current context
 	const currentPath = $derived(page.url.pathname);
+	const searchQuery = $derived(page.url.searchParams.get('q') ?? '');
 	const collectionMatch = $derived(currentPath.match(/^\/collections\/(.+)$/));
 	const collectionId = $derived(collectionMatch ? (collectionMatch[1] as Id<'collections'>) : null);
 
@@ -30,11 +31,23 @@
 		() => (collectionId ? { collectionId } : 'skip')
 	);
 
+	// Get search results if we're in search view with a query
+	const searchResults = useQuery(
+		api.items.search,
+		() => (searchQuery.trim() ? { query: searchQuery } : 'skip')
+	);
+
 	// Determine which items list to use
 	const currentItems = $derived.by(() => {
+		// Search results take priority
+		if (searchQuery.trim() && !searchResults.isLoading && searchResults.data) {
+			return searchResults.data;
+		}
+		// Then collection items
 		if (collectionId && !collectionItems.isLoading && collectionItems.data) {
 			return collectionItems.data;
 		}
+		// Default to all items
 		return allItems.data ?? [];
 	});
 

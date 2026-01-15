@@ -1,9 +1,39 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
 
-	let searchQuery = $state('');
+	// Get search query from URL
+	let searchQuery = $state(page.url.searchParams.get('q') ?? '');
+	let lastUrlQuery = $state(page.url.searchParams.get('q') ?? '');
+
+	// Sync URL changes to search query
+	$effect(() => {
+		const currentUrlQuery = page.url.searchParams.get('q') ?? '';
+		if (currentUrlQuery !== lastUrlQuery) {
+			searchQuery = currentUrlQuery;
+			lastUrlQuery = currentUrlQuery;
+		}
+	});
+
+	// Update URL when search query changes (debounced via input)
+	function updateSearchUrl(query: string) {
+		const params = new URLSearchParams(page.url.searchParams);
+		if (query.trim()) {
+			params.set('q', query);
+		} else {
+			params.delete('q');
+		}
+		const itemParam = params.get('item');
+		if (itemParam) {
+			params.delete('item'); // Clear item selection when search changes
+		}
+		goto(`/search?${params}`, { replaceState: true, keepFocus: true });
+		lastUrlQuery = query;
+	}
+
 	const searchResults = useQuery(api.items.search, () => ({ query: searchQuery }));
 </script>
 
@@ -13,7 +43,13 @@
 	</div>
 
 	<div class="search-box">
-		<input type="text" bind:value={searchQuery} placeholder="search items by title..." autofocus />
+		<input
+			type="text"
+			bind:value={searchQuery}
+			oninput={() => updateSearchUrl(searchQuery)}
+			placeholder="search items by title..."
+			autofocus
+		/>
 	</div>
 
 	{#if !searchQuery.trim()}

@@ -566,7 +566,6 @@
 		padding: 0.25rem;
 		cursor: grab;
 		opacity: 0;
-		transition: opacity 0.15s;
 		background: var(--bg-1);
 		border: 1px solid var(--border);
 		font-size: 1rem;
