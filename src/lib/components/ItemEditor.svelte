@@ -8,10 +8,10 @@
 		itemId: Id<'items'>;
 		onSave: () => void;
 		onDelete: () => void;
-		onCancel: () => void;
+		onReady?: (save: () => Promise<void>) => void;
 	}
 
-	let { itemId, onSave, onDelete, onCancel }: Props = $props();
+	let { itemId, onSave, onDelete, onReady }: Props = $props();
 
 	const client = useConvexClient();
 	const allItems = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('items');
@@ -43,6 +43,12 @@
 			url = item.data.url ?? '';
 			content = item.data.content ?? '';
 			initialized = true;
+		}
+	});
+
+	$effect(() => {
+		if (onReady) {
+			onReady(handleSave);
 		}
 	});
 
@@ -94,7 +100,6 @@
 				<textarea class="text-content" bind:value={content}></textarea>
 			{/if}
 		</div>
-
 		<!-- Properties & Controls -->
 		<div class="form">
 			<label>
@@ -107,12 +112,21 @@
 				<textarea bind:value={description} rows="3"></textarea>
 			</label>
 
-			{#if item.data.type === 'url'}
-				<label>
-					url
+			<label>
+				{item.data.type === 'url' ? 'url' : 'source url'}
+				<div class="url-input-row">
 					<input type="url" bind:value={url} />
-				</label>
-			{/if}
+					<button
+						type="button"
+						class="open-url"
+						onclick={() => window.open(url, '_blank')}
+						disabled={!url}
+						title="Open URL"
+					>
+						↗
+					</button>
+				</div>
+			</label>
 
 			<div class="section">
 				<h3>collections</h3>
@@ -123,12 +137,13 @@
 				{:else}
 					<div class="collection-list">
 						{#each collections.data ?? [] as collection (collection._id)}
-							<label class="horizontal">
+							<label class="checkbox-label">
 								<input
 									type="checkbox"
 									checked={item.data.collections.includes(collection._id)}
 									onchange={() => toggleCollection(collection._id)}
 								/>
+								<span class="checkbox"></span>
 								{collection.name}
 							</label>
 						{/each}
@@ -136,15 +151,14 @@
 				{/if}
 			</div>
 
-			<div class="actions">
-				<button onclick={handleSave}>save</button>
-				<button onclick={handleDelete} class="danger">delete</button>
-				<button onclick={onCancel}>cancel</button>
-			</div>
-
 			<div class="meta">
 				<p>added: {new Date(item.data.dateAdded).toLocaleString()}</p>
 				<p>modified: {new Date(item.data.dateModified).toLocaleString()}</p>
+			</div>
+
+			<div class="actions">
+				<button onclick={handleDelete} class="danger">delete</button>
+				<button onclick={handleSave}>save</button>
 			</div>
 		</div>
 	</div>
@@ -211,5 +225,68 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
+	}
+
+	.checkbox-label {
+		flex-direction: row;
+		align-items: center;
+		gap: 1rem;
+		cursor: pointer;
+	}
+
+	.checkbox-label input {
+		position: absolute;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.checkbox {
+		width: 1.125rem;
+		height: 1.125rem;
+		border: 1px solid var(--border);
+		background: var(--bg-2);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		transition:
+			background-color 0.15s,
+			border-color 0.15s;
+	}
+
+	.checkbox-label:hover .checkbox {
+		border-color: var(--txt-3);
+	}
+
+	.checkbox-label input:checked + .checkbox {
+		background: var(--txt-2);
+		border-color: var(--txt-2);
+	}
+
+	.checkbox-label input:checked + .checkbox::after {
+		content: '✓';
+		color: var(--bg-1);
+		font-size: 0.75rem;
+		font-weight: 600;
+	}
+
+	.url-input-row {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.url-input-row input {
+		flex: 1;
+	}
+
+	.open-url {
+		padding: 0.5rem 0.75rem;
+		flex-shrink: 0;
+	}
+	.actions {
+		margin-top: auto;
+	}
+	.actions button {
+		flex: 1;
 	}
 </style>

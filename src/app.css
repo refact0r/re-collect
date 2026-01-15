@@ -58,6 +58,7 @@ textarea {
 	background: var(--bg-2);
 	color: var(--txt-1);
 	line-height: 1.5;
+	resize: vertical;
 
 	&:focus {
 		outline: none;
@@ -219,12 +220,12 @@ button.link:hover {
 
 .modal .close-btn {
 	position: absolute;
-	top: 0.5rem;
-	right: 0.5rem;
+	top: 0rem;
+	right: 0rem;
 	background: none;
 	border: none;
-	font-size: 1.5rem;
-	padding: 0.25rem 0.5rem;
+	font-size: 1.25rem;
+	padding: 0.5rem 1rem;
 }
 
 /* ============================================

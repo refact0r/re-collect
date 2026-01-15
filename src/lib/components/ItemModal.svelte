@@ -9,15 +9,29 @@
 
 	let { itemId, onClose }: Props = $props();
 
+	let saveFunction: (() => Promise<void>) | undefined = $state();
+
+	function handleSaveReady(saveFn: () => Promise<void>) {
+		saveFunction = saveFn;
+	}
+
+	async function handleClose() {
+		if (saveFunction) {
+			await saveFunction();
+		} else {
+			onClose();
+		}
+	}
+
 	function handleBackdropClick(event: MouseEvent) {
 		if (event.target === event.currentTarget) {
-			onClose();
+			handleClose();
 		}
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
-			onClose();
+			handleClose();
 		}
 	}
 </script>
@@ -33,8 +47,8 @@
 	tabindex="-1"
 >
 	<div class="modal modal-wide">
-		<button class="close-btn" onclick={onClose}>×</button>
-		<ItemEditor {itemId} onSave={onClose} onDelete={onClose} onCancel={onClose} />
+		<button class="close-btn" onclick={handleClose}>×</button>
+		<ItemEditor {itemId} onSave={onClose} onDelete={onClose} onReady={handleSaveReady} />
 	</div>
 </div>
 

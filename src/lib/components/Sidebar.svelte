@@ -120,6 +120,7 @@
 		align-items: center;
 		padding: 0.5rem;
 		text-decoration: none;
+		border: 1px solid transparent;
 	}
 
 	li a:hover {
@@ -127,7 +128,8 @@
 	}
 
 	li a.active {
-		background: var(--bg-3);
+		background: var(--bg-2);
+		border: 1px solid var(--border);
 	}
 
 	.name {
