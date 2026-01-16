@@ -15,6 +15,7 @@ interface ScreenshotResponse {
 	imageKey: string;
 	width: number;
 	height: number;
+	captureTimeMs: number;
 }
 
 interface ErrorResponse {
@@ -22,9 +23,12 @@ interface ErrorResponse {
 }
 
 // Viewport settings
-const VIEWPORT_WIDTH = 1200;
-const VIEWPORT_HEIGHT = 800;
-const SCREENSHOT_TIMEOUT = 30000; // 30 seconds
+const VIEWPORT_WIDTH = 1440;
+const VIEWPORT_HEIGHT = 900;
+const NAVIGATION_TIMEOUT = 15000; // 15 seconds for initial navigation
+const NETWORKIDLE_TIMEOUT = 10000; // 10 seconds to wait for network idle
+const FALLBACK_DELAY = 2000; // 2 seconds extra wait if network doesn't idle
+const FORCED_DELAY = 5000; // forced wait before screenshot (for loading screens, client-side rendering)
 
 // Validate URL is safe to screenshot
 function isValidUrl(url: string): boolean {
@@ -110,15 +114,16 @@ export default {
 		let browser: puppeteer.Browser | null = null;
 
 		try {
-			console.log('Starting screenshot for URL:', url);
+			const startTime = Date.now();
+			console.log(`[${startTime}] Starting screenshot for URL:`, url);
 
 			// Launch browser
-			console.log('Launching browser...');
+			console.log(`[${Date.now()}] Launching browser...`);
 			browser = await puppeteer.launch(env.BROWSER);
-			console.log('Browser launched');
+			console.log(`[${Date.now()}] Browser launched`);
 
 			const page = await browser.newPage();
-			console.log('New page created');
+			console.log(`[${Date.now()}] New page created`);
 
 			// Set viewport
 			await page.setViewport({
@@ -126,11 +131,51 @@ export default {
 				height: VIEWPORT_HEIGHT
 			});
 
-			// Navigate to URL with timeout
-			await page.goto(url, {
-				waitUntil: 'networkidle0',
-				timeout: SCREENSHOT_TIMEOUT
+			// Set headers to appear more like a real browser
+			await page.setExtraHTTPHeaders({
+				'Accept-Language': 'en-US,en;q=0.9',
+				Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+				'Accept-Encoding': 'gzip, deflate, br'
 			});
+
+			// Set a realistic user agent
+			await page.setUserAgent(
+				'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+			);
+
+			// Navigate to URL - two phase approach:
+			// 1. First ensure the page loads (domcontentloaded)
+			// 2. Then try to wait for network idle, but don't fail if it times out
+			console.log(`[${Date.now()}] Navigating to URL...`);
+			await page.goto(url, {
+				waitUntil: 'domcontentloaded',
+				timeout: NAVIGATION_TIMEOUT
+			});
+			console.log(`[${Date.now()}] DOM content loaded`);
+
+			// Try to wait for network idle, but take screenshot anyway if it times out
+			try {
+				await page.waitForNetworkIdle({
+					idleTime: 500,
+					timeout: NETWORKIDLE_TIMEOUT
+				});
+				console.log(`[${Date.now()}] Network idle achieved`);
+			} catch (e) {
+				// Network didn't fully idle - wait a bit more and proceed anyway
+				console.log(`[${Date.now()}] Network idle timeout, proceeding with screenshot after delay`);
+				await new Promise((resolve) => setTimeout(resolve, FALLBACK_DELAY));
+			}
+
+			// Always wait a bit more to allow for loading screens and client-side rendering
+			console.log(`[${Date.now()}] Waiting for loading screens to complete...`);
+			await new Promise((resolve) => setTimeout(resolve, FORCED_DELAY));
+
+			// Hide scrollbars for cleaner screenshots
+			await page.addStyleTag({
+				content: `*::-webkit-scrollbar { display: none !important; }`
+			});
+
+			console.log(`[${Date.now()}] Taking screenshot`);
 
 			// Take screenshot as WebP
 			const screenshotBuffer = await page.screenshot({
@@ -150,10 +195,14 @@ export default {
 			});
 
 			// Return success response
+			const captureTimeMs = Date.now() - startTime;
+			console.log(`[${Date.now()}] Screenshot complete in ${captureTimeMs}ms`);
+
 			const response: ScreenshotResponse = {
 				imageKey,
 				width: VIEWPORT_WIDTH,
-				height: VIEWPORT_HEIGHT
+				height: VIEWPORT_HEIGHT,
+				captureTimeMs
 			};
 
 			return new Response(JSON.stringify(response), {
@@ -171,7 +220,13 @@ export default {
 			let statusCode = 500;
 			let userMessage = 'Failed to capture screenshot';
 
-			if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
+			if (errorMessage.includes('net::ERR_NAME_NOT_RESOLVED')) {
+				statusCode = 502;
+				userMessage = 'Domain not found';
+			} else if (errorMessage.includes('net::ERR_CONNECTION_REFUSED')) {
+				statusCode = 502;
+				userMessage = 'Connection refused';
+			} else if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
 				statusCode = 504;
 				userMessage = 'Page load timeout';
 			} else if (errorMessage.includes('net::ERR_') || errorMessage.includes('Navigation')) {
