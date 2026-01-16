@@ -1,56 +1,96 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { getContext } from 'svelte';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
 
-	let searchQuery = $state('');
+	const currentItemsContext = getContext<{
+		items: any[];
+		setItems: (items: any[]) => void;
+	}>('currentItems');
+
+	// Get search query from URL
+	let searchQuery = $state(page.url.searchParams.get('q') ?? '');
+	let lastUrlQuery = $state(page.url.searchParams.get('q') ?? '');
+
+	// Sync URL changes to search query
+	$effect(() => {
+		const currentUrlQuery = page.url.searchParams.get('q') ?? '';
+		if (currentUrlQuery !== lastUrlQuery) {
+			searchQuery = currentUrlQuery;
+			lastUrlQuery = currentUrlQuery;
+		}
+	});
+
+	// Update URL when search query changes (debounced via input)
+	function updateSearchUrl(query: string) {
+		const params = new URLSearchParams(page.url.searchParams);
+		if (query.trim()) {
+			params.set('q', query);
+		} else {
+			params.delete('q');
+		}
+		const itemParam = params.get('item');
+		if (itemParam) {
+			params.delete('item'); // Clear item selection when search changes
+		}
+		goto(`/search?${params}`, { replaceState: true, keepFocus: true });
+		lastUrlQuery = query;
+	}
+
 	const searchResults = useQuery(api.items.search, () => ({ query: searchQuery }));
+
+	// Update the current items when search results change
+	$effect(() => {
+		if (searchResults.data) {
+			currentItemsContext.setItems(searchResults.data);
+		}
+	});
 </script>
 
 <div class="container">
-	<h1>Search</h1>
+	<div class="page-header">
+		<h1>search</h1>
+	</div>
 
 	<div class="search-box">
 		<input
 			type="text"
 			bind:value={searchQuery}
-			placeholder="Search items by title..."
+			oninput={() => updateSearchUrl(searchQuery)}
+			placeholder="search items by title..."
 			autofocus
 		/>
 	</div>
 
 	{#if !searchQuery.trim()}
-		<p class="hint">Type to search across your items</p>
+		<p class="status-text">type to search across your items</p>
 	{:else if searchResults.isLoading}
-		<p>Searching...</p>
+		<p class="status-text">searching...</p>
 	{:else if searchResults.error}
-		<p>Error: {searchResults.error.message}</p>
+		<p>error: {searchResults.error.message}</p>
 	{:else if searchResults.data?.length === 0}
-		<p>No items found for "{searchQuery}"</p>
+		<p class="status-text">no items found for "{searchQuery}"</p>
 	{:else}
-		<p class="result-count">{searchResults.data?.length} result(s)</p>
+		<p class="status-text result-count">
+			{searchResults.data?.length}
+			{searchResults.data?.length === 1 ? 'result' : 'results'}
+		</p>
 		<ItemGrid items={searchResults.data ?? []} />
 	{/if}
 </div>
 
 <style>
-	.container {
-		max-width: 1200px;
-		margin: 0 auto;
-	}
+	/* Uses global .page-header, .status-text styles from app.css */
 	.search-box {
 		margin-bottom: 1rem;
 	}
 	.search-box input {
 		width: 100%;
-		padding: 0.75rem;
-		font-size: 1rem;
-	}
-	.hint {
-		color: var(--txt-3);
 	}
 	.result-count {
-		margin-bottom: 1rem;
-		color: var(--txt-3);
+		margin-bottom: 0.5rem;
 	}
 </style>

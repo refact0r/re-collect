@@ -5,13 +5,26 @@
 	import { api } from '../../../convex/_generated/api.js';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
+	import ItemInput from '$lib/components/ItemInput.svelte';
 
 	const client = useConvexClient();
 	const collectionId = $derived(page.params.id as Id<'collections'>);
-	const allCollections = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
+	const allCollections =
+		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
+	const currentItemsContext = getContext<{
+		items: any[];
+		setItems: (items: any[]) => void;
+	}>('currentItems');
 
 	// Use dedicated query for collection items (ordered by position)
 	const items = useQuery(api.items.listByCollection, () => ({ collectionId }));
+
+	// Update the current items when data changes
+	$effect(() => {
+		if (items.data) {
+			currentItemsContext.setItems(items.data);
+		}
+	});
 
 	// Derive collection from context
 	const collection = $derived.by(() => {
@@ -69,21 +82,22 @@
 </script>
 
 {#if collection.isLoading}
-	<p>Loading...</p>
+	<p>loading...</p>
 {:else if collection.error}
-	<p>Error: {collection.error.message}</p>
+	<p>error: {collection.error.message}</p>
 {:else if !collection.data}
-	<p>Collection not found</p>
+	<p>collection not found</p>
 {:else}
 	<div class="container">
-		<div class="header">
+		<header>
 			{#if isEditing}
-				<div class="edit-form">
-					<input type="text" bind:value={editName} placeholder="Collection name" />
-					<textarea bind:value={editDescription} rows="2" placeholder="Description (optional)"></textarea>
-					<div class="edit-actions">
-						<button onclick={saveEdits} disabled={!editName.trim()}>Save</button>
-						<button onclick={cancelEditing}>Cancel</button>
+				<div class="form edit-form">
+					<input type="text" bind:value={editName} placeholder="collection name" />
+					<textarea bind:value={editDescription} rows="2" placeholder="description (optional)"
+					></textarea>
+					<div class="actions">
+						<button onclick={saveEdits} disabled={!editName.trim()}>save</button>
+						<button onclick={cancelEditing}>cancel</button>
 					</div>
 				</div>
 			{:else}
@@ -91,17 +105,21 @@
 				{#if collection.data.description}
 					<p class="description">{collection.data.description}</p>
 				{/if}
-				<div class="header-actions">
-					<button onclick={startEditing}>Edit</button>
-					<button onclick={handleDeleteCollection} class="danger">Delete collection</button>
+				<div class="actions">
+					<button onclick={startEditing}>edit</button>
+					<button onclick={handleDeleteCollection} class="danger">delete</button>
 				</div>
 			{/if}
+		</header>
+
+		<div class="input-wrapper">
+			<ItemInput {collectionId} />
 		</div>
 
 		{#if items.isLoading}
-			<p>Loading items...</p>
+			<p class="status-text">loading items...</p>
 		{:else if items.data?.length === 0}
-			<p>No items in this collection yet.</p>
+			<p class="status-text">no items in this collection yet.</p>
 		{:else}
 			<ItemGrid items={items.data ?? []} {collectionId} onReorder={handleReorder} />
 		{/if}
@@ -109,30 +127,18 @@
 {/if}
 
 <style>
-	.container {
-		max-width: 1200px;
-		margin: 0 auto;
-	}
-	.header {
+	/* Uses global .form, .actions, .status-text styles from app.css */
+	header {
 		margin-bottom: 2rem;
 	}
 	.description {
 		color: var(--txt-3);
 		margin: 0.5rem 0;
 	}
-	.header-actions {
-		display: flex;
-		gap: 0.5rem;
+	.actions {
 		margin-top: 1rem;
 	}
-	.edit-form {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		max-width: 600px;
-	}
-	.edit-actions {
-		display: flex;
-		gap: 0.5rem;
+	.input-wrapper {
+		margin-bottom: 1rem;
 	}
 </style>

@@ -8,14 +8,15 @@
 		itemId: Id<'items'>;
 		onSave: () => void;
 		onDelete: () => void;
-		onCancel: () => void;
+		onReady?: (save: () => Promise<void>) => void;
 	}
 
-	let { itemId, onSave, onDelete, onCancel }: Props = $props();
+	let { itemId, onSave, onDelete, onReady }: Props = $props();
 
 	const client = useConvexClient();
 	const allItems = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('items');
-	const collections = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
+	const collections =
+		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
 
 	// Find the specific item from context
 	const item = $derived.by(() => {
@@ -45,10 +46,16 @@
 		}
 	});
 
+	$effect(() => {
+		if (onReady) {
+			onReady(handleSave);
+		}
+	});
+
 	async function handleSave() {
 		await client.mutation(api.items.update, {
 			id: itemId,
-			title: title || undefined,
+			title,
 			description: description || undefined,
 			url: url || undefined,
 			content: content || undefined
@@ -74,115 +81,209 @@
 </script>
 
 {#if item.isLoading}
-	<p>Loading...</p>
+	<p>loading...</p>
 {:else if item.error}
-	<p>Error: {item.error.message}</p>
+	<p>error: {item.error.message}</p>
 {:else if !item.data}
-	<p>Item not found</p>
+	<p>item not found</p>
 {:else}
-	{#if item.data.type === 'image' && item.data.imageUrl}
-		<img src={item.data.imageUrl} alt={item.data.title ?? 'Image'} class="preview" />
-	{/if}
-
-	<div class="form">
-		<label>
-			Title
-			<input type="text" bind:value={title} />
-		</label>
-
-		<label>
-			Description
-			<textarea bind:value={description} rows="3"></textarea>
-		</label>
-
-		{#if item.data.type === 'url'}
-			<label>
-				URL
-				<input type="url" bind:value={url} />
-			</label>
-		{/if}
-
-		{#if item.data.type === 'text'}
-			<label>
-				Content
-				<textarea bind:value={content} rows="5"></textarea>
-			</label>
-		{/if}
-
-		<div class="collections-section">
-			<h3>Collections</h3>
-			{#if collections.isLoading}
-				<p>Loading collections...</p>
-			{:else if collections.data?.length === 0}
-				<p>No collections yet. <a href="/collections">Create one</a></p>
-			{:else}
-				<div class="collection-list">
-					{#each collections.data ?? [] as collection (collection._id)}
-						<label class="collection-item">
-							<input
-								type="checkbox"
-								checked={item.data.collections.includes(collection._id)}
-								onchange={() => toggleCollection(collection._id)}
-							/>
-							{collection.name}
-						</label>
-					{/each}
+	<div class="editor-layout">
+		<!-- Content Preview -->
+		<div class="content-preview">
+			{#if item.data.type === 'image' && item.data.imageUrl}
+				<img src={item.data.imageUrl} alt={item.data.title ?? 'image'} />
+			{:else if item.data.type === 'url'}
+				<div class="url-preview">
+					<p class="url-text">{url || item.data.url}</p>
 				</div>
+			{:else if item.data.type === 'text'}
+				<textarea class="text-content" bind:value={content}></textarea>
 			{/if}
 		</div>
+		<!-- Properties & Controls -->
+		<div class="form">
+			<label>
+				title
+				<input type="text" bind:value={title} />
+			</label>
 
-		<div class="actions">
-			<button onclick={handleSave}>Save</button>
-			<button onclick={handleDelete} class="danger">Delete</button>
-			<button onclick={onCancel}>Cancel</button>
-		</div>
+			<label>
+				description
+				<textarea bind:value={description} rows="3"></textarea>
+			</label>
 
-		<div class="meta">
-			<p>Added: {new Date(item.data.dateAdded).toLocaleString()}</p>
-			<p>Modified: {new Date(item.data.dateModified).toLocaleString()}</p>
+			<label>
+				{item.data.type === 'url' ? 'url' : 'source url'}
+				<div class="url-input-row">
+					<input type="url" bind:value={url} />
+					<button
+						type="button"
+						class="open-url"
+						onclick={() => window.open(url, '_blank')}
+						disabled={!url}
+						title="Open URL"
+					>
+						↗
+					</button>
+				</div>
+			</label>
+
+			<div class="section">
+				<h3>collections</h3>
+				{#if collections.isLoading}
+					<p class="status-text">loading collections...</p>
+				{:else if collections.data?.length === 0}
+					<p class="status-text">no collections yet. <a href="/collections">create one</a></p>
+				{:else}
+					<div class="collection-list">
+						{#each collections.data ?? [] as collection (collection._id)}
+							<label class="checkbox-label">
+								<input
+									type="checkbox"
+									checked={item.data.collections.includes(collection._id)}
+									onchange={() => toggleCollection(collection._id)}
+								/>
+								<span class="checkbox"></span>
+								{collection.name}
+							</label>
+						{/each}
+					</div>
+				{/if}
+			</div>
+
+			<div class="meta">
+				<p>added: {new Date(item.data.dateAdded).toLocaleString()}</p>
+				<p>modified: {new Date(item.data.dateModified).toLocaleString()}</p>
+			</div>
+
+			<div class="actions">
+				<button onclick={handleDelete} class="danger">delete</button>
+				<button onclick={handleSave}>save</button>
+			</div>
 		</div>
 	</div>
 {/if}
 
 <style>
-	.preview {
-		max-width: 100%;
-		max-height: 300px;
-		margin-bottom: 1rem;
-	}
-	.form {
+	/* Uses global .form, .section, .meta, .status-text styles from app.css */
+
+	.editor-layout {
 		display: flex;
-		flex-direction: column;
 		gap: 1rem;
+		align-items: stretch;
+		min-height: 0;
+		height: 100%;
 	}
-	label {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
+
+	.content-preview {
+		position: sticky;
+		top: 0;
+		display: grid;
+		place-items: center;
+		flex: 1;
+		min-height: 0;
+		container-type: size;
 	}
-	.collections-section {
+
+	.form {
+		width: 25rem;
+	}
+
+	.content-preview img {
+		width: 100cqw;
+		height: 100cqh;
+		object-fit: contain;
+	}
+
+	.url-preview {
+		width: 100%;
+		padding: 0.5rem;
 		border: 1px solid var(--border);
-		padding: 1rem;
+		background: var(--bg-2);
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
-	.collections-section h3 {
-		margin: 0 0 0.5rem 0;
+
+	.url-preview .url-text {
+		color: var(--txt-3);
+		word-break: break-all;
+		text-align: center;
 	}
+
+	.text-content {
+		width: 100%;
+		height: 100%;
+		flex: 1;
+		/* min-height: 25rem; */
+		resize: vertical;
+		font-family: var(--font);
+		font-size: 1rem;
+	}
+
 	.collection-list {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
 	}
-	.collection-item {
+
+	.checkbox-label {
 		flex-direction: row;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 1rem;
+		cursor: pointer;
 	}
-	.actions {
+
+	.checkbox-label input {
+		position: absolute;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.checkbox {
+		width: 1.125rem;
+		height: 1.125rem;
+		border: 1px solid var(--border);
+		background: var(--bg-2);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+
+	.checkbox-label:hover .checkbox {
+		border-color: var(--txt-3);
+	}
+
+	.checkbox-label input:checked + .checkbox {
+		background: var(--txt-2);
+		border-color: var(--txt-2);
+	}
+
+	.checkbox-label input:checked + .checkbox::after {
+		content: '✓';
+		color: var(--bg-1);
+		font-size: 0.75rem;
+		font-weight: 600;
+	}
+
+	.url-input-row {
 		display: flex;
 		gap: 0.5rem;
 	}
-	.meta {
-		font-size: 0.875rem;
-		color: var(--txt-3);
+
+	.url-input-row input {
+		flex: 1;
+	}
+
+	.open-url {
+		padding: 0.5rem 0.75rem;
+		flex-shrink: 0;
+	}
+	.actions {
+		margin-top: auto;
+	}
+	.actions button {
+		flex: 1;
 	}
 </style>

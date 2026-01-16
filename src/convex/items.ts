@@ -15,7 +15,8 @@ async function getImageUrl(
 	item: Doc<'items'>
 ): Promise<string | null> {
 	if (item.imageKey) {
-		return await r2.getUrl(item.imageKey);
+		// Set expiration to 24 hours to reduce URL regeneration
+		return await r2.getUrl(item.imageKey, { expiresIn: 60 * 60 * 24 });
 	}
 	if (item.imageId) {
 		return await ctx.storage.getUrl(item.imageId);

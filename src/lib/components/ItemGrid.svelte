@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { SvelteMap } from 'svelte/reactivity';
 	import { generateKeyBetween } from 'fractional-indexing';
+	import { page } from '$app/state';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 
 	interface Item {
@@ -400,6 +401,12 @@
 		document.body.style.userSelect = '';
 	}
 
+	function getItemUrl(itemId: Id<'items'>): string {
+		const params = new URLSearchParams(page.url.searchParams);
+		params.set('item', itemId);
+		return `${page.url.pathname}?${params}`;
+	}
+
 	$effect(() => {
 		if (!containerElement) return;
 		const observer = new ResizeObserver((entries) => {
@@ -420,11 +427,11 @@
 					{@const realItem = item as Item}
 					{@const isDragging = draggedItem?._id === realItem._id}
 					<div class="card-wrapper" class:dragging={isDragging}>
-						<a href="?item={realItem._id}" class="card">
+						<a href={getItemUrl(realItem._id)} class="card">
 							{#if realItem.type === 'image' && realItem.imageUrl}
 								<img
 									src={urlCache.get(realItem._id) ?? realItem.imageUrl}
-									alt={realItem.title ?? 'Image'}
+									alt={realItem.title ?? 'image'}
 									width={realItem.imageWidth}
 									height={realItem.imageHeight}
 									decoding="async"
@@ -445,7 +452,7 @@
 						{#if isDraggable}
 							<button
 								class="drag-handle"
-								title="Drag to reorder"
+								title="drag to reorder"
 								onpointerdown={(e) => handleDragStart(realItem, e)}>⠿</button
 							>
 						{/if}
@@ -467,7 +474,7 @@
 			{#if draggedItem.type === 'image' && draggedItem.imageUrl}
 				<img
 					src={urlCache.get(draggedItem._id) ?? draggedItem.imageUrl}
-					alt={draggedItem.title ?? 'Image'}
+					alt={draggedItem.title ?? 'image'}
 					width={draggedItem.imageWidth}
 					height={draggedItem.imageHeight}
 					decoding="async"
@@ -521,7 +528,7 @@
 	}
 
 	.card:hover {
-		border-color: var(--txt-2);
+		border-color: var(--txt-3);
 	}
 
 	.card img {
@@ -539,14 +546,10 @@
 
 	.text-card {
 		overflow: auto;
-		scrollbar-width: thin;
-		scrollbar-color: var(--bg-3) transparent;
 	}
 
 	.text-card p {
-		display: -webkit-box;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 10;
+		max-height: calc(1.5rem * 10 - 0.125rem);
 		margin: 0;
 		white-space: pre-wrap;
 	}
@@ -570,7 +573,6 @@
 		padding: 0.25rem;
 		cursor: grab;
 		opacity: 0;
-		transition: opacity 0.15s;
 		background: var(--bg-1);
 		border: 1px solid var(--border);
 		font-size: 1rem;
@@ -587,11 +589,9 @@
 	}
 
 	.placeholder {
-		border: 1px dashed var(--txt-3);
-		border-radius: 4px;
+		border: 2px dashed var(--txt-3);
 		background: var(--bg-2);
 		opacity: 0.5;
-		box-sizing: border-box;
 	}
 
 	.drag-preview {
