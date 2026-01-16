@@ -93,9 +93,13 @@
 			{#if item.data.type === 'image' && item.data.imageUrl}
 				<img src={item.data.imageUrl} alt={item.data.title ?? 'image'} />
 			{:else if item.data.type === 'url'}
-				<div class="url-preview">
-					<p class="url-text">{url || item.data.url}</p>
-				</div>
+				{#if item.data.screenshotStatus === 'completed' && item.data.imageUrl}
+					<img src={item.data.imageUrl} alt={item.data.title ?? item.data.url ?? 'screenshot'} />
+				{:else}
+					<div class="url-preview">
+						<p class="url-text">{url || item.data.url}</p>
+					</div>
+				{/if}
 			{:else if item.data.type === 'text'}
 				<textarea class="text-content" bind:value={content}></textarea>
 			{/if}

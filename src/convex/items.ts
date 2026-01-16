@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 import { mutation, query, type QueryCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
+import { internal } from './_generated/api';
 import { r2 } from './r2';
 import {
 	addItemToCollectionWithPosition,
@@ -41,6 +42,12 @@ export const add = mutation({
 		const now = Date.now();
 		const collections = args.collections ?? [];
 
+		// For URL items, set initial screenshot status to pending
+		const screenshotFields =
+			args.type === 'url' && args.url
+				? { screenshotStatus: 'pending' as const, screenshotRetries: 0 }
+				: {};
+
 		const itemId = await ctx.db.insert('items', {
 			type: args.type,
 			title: args.title,
@@ -50,6 +57,7 @@ export const add = mutation({
 			imageKey: args.imageKey,
 			imageWidth: args.imageWidth,
 			imageHeight: args.imageHeight,
+			...screenshotFields,
 			collections,
 			dateAdded: now,
 			dateModified: now
@@ -58,6 +66,14 @@ export const add = mutation({
 		// Create position records for each collection (item appears at top)
 		for (const collectionId of collections) {
 			await addItemToCollectionWithPosition(ctx, itemId, collectionId);
+		}
+
+		// Trigger screenshot generation for URL items
+		if (args.type === 'url' && args.url) {
+			await ctx.scheduler.runAfter(0, internal.screenshots.generateScreenshot, {
+				itemId,
+				url: args.url
+			});
 		}
 
 		return itemId;

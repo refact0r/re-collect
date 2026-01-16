@@ -13,6 +13,7 @@ import type * as itemCollectionPositions from "../itemCollectionPositions.js";
 import type * as items from "../items.js";
 import type * as migrations_001_add_positions from "../migrations/001_add_positions.js";
 import type * as r2 from "../r2.js";
+import type * as screenshots from "../screenshots.js";
 
 import type {
   ApiFromModules,
@@ -26,6 +27,7 @@ declare const fullApi: ApiFromModules<{
   items: typeof items;
   "migrations/001_add_positions": typeof migrations_001_add_positions;
   r2: typeof r2;
+  screenshots: typeof screenshots;
 }>;
 
 /**

@@ -47,6 +47,11 @@
 		});
 	}
 
+	// Retry handler for failed screenshots
+	async function handleRetryScreenshot(itemId: Id<'items'>) {
+		await client.mutation(api.screenshots.retryScreenshot, { itemId });
+	}
+
 	let isEditing = $state(false);
 	let editName = $state('');
 	let editDescription = $state('');
@@ -121,7 +126,7 @@
 		{:else if items.data?.length === 0}
 			<p class="status-text">no items in this collection yet.</p>
 		{:else}
-			<ItemGrid items={items.data ?? []} {collectionId} onReorder={handleReorder} />
+			<ItemGrid items={items.data ?? []} {collectionId} onReorder={handleReorder} onRetryScreenshot={handleRetryScreenshot} />
 		{/if}
 	</div>
 {/if}

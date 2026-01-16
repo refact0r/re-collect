@@ -14,15 +14,19 @@
 		imageWidth?: number;
 		imageHeight?: number;
 		position?: string;
+		// Screenshot fields for URL items
+		screenshotStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+		screenshotError?: string;
 	}
 
 	interface Props {
 		items: Item[];
 		collectionId?: Id<'collections'>;
 		onReorder?: (itemId: Id<'items'>, newPosition: string) => void;
+		onRetryScreenshot?: (itemId: Id<'items'>) => void;
 	}
 
-	let { items, collectionId, onReorder }: Props = $props();
+	let { items, collectionId, onReorder, onRetryScreenshot }: Props = $props();
 
 	const isDraggable = $derived(!!collectionId && !!onReorder);
 
@@ -36,8 +40,12 @@
 			if (!currentIds.has(id)) urlCache.delete(id);
 		}
 		for (const item of items) {
-			if (item.type === 'image' && item.imageUrl && !urlCache.has(item._id)) {
-				urlCache.set(item._id, item.imageUrl);
+			// Cache image URLs for image items and URL items with completed screenshots
+			const hasImage =
+				(item.type === 'image' || (item.type === 'url' && item.screenshotStatus === 'completed')) &&
+				item.imageUrl;
+			if (hasImage && !urlCache.has(item._id)) {
+				urlCache.set(item._id, item.imageUrl!);
 			}
 		}
 	});
@@ -78,6 +86,15 @@
 		const titleHeight = item.title ? TITLE_HEIGHT : 0;
 
 		if (item.type === 'image') {
+			if (item.imageWidth && item.imageHeight) {
+				const imageHeight = columnWidth * (item.imageHeight / item.imageWidth);
+				return imageHeight + CARD_CHROME + titleHeight;
+			}
+			return columnWidth * IMAGE_FALLBACK_ASPECT + CARD_CHROME + titleHeight;
+		}
+
+		// URL items with completed screenshots display like images
+		if (item.type === 'url' && item.screenshotStatus === 'completed') {
 			if (item.imageWidth && item.imageHeight) {
 				const imageHeight = columnWidth * (item.imageHeight / item.imageWidth);
 				return imageHeight + CARD_CHROME + titleHeight;
@@ -437,9 +454,58 @@
 									decoding="async"
 								/>
 							{:else if realItem.type === 'url'}
-								<div class="url-card">
-									<span class="url-text">{realItem.url}</span>
-								</div>
+								{#if realItem.screenshotStatus === 'completed' && realItem.imageUrl}
+									<img
+										src={urlCache.get(realItem._id) ?? realItem.imageUrl}
+										alt={realItem.title ?? realItem.url ?? 'screenshot'}
+										width={realItem.imageWidth}
+										height={realItem.imageHeight}
+										decoding="async"
+									/>
+								{:else if realItem.screenshotStatus === 'pending' || realItem.screenshotStatus === 'processing'}
+									<div class="url-card url-loading">
+										<div class="loading-icon">
+											<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+												<circle cx="12" cy="12" r="10" />
+												<path d="M12 6v6l4 2" />
+											</svg>
+										</div>
+										<span class="url-text">{realItem.url}</span>
+									</div>
+								{:else if realItem.screenshotStatus === 'failed'}
+									<div class="url-card url-failed">
+										<div class="failed-content">
+											<div class="failed-icon">
+												<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+													<circle cx="12" cy="12" r="10" />
+													<line x1="12" y1="8" x2="12" y2="12" />
+													<line x1="12" y1="16" x2="12.01" y2="16" />
+												</svg>
+											</div>
+											<span class="url-text">{realItem.url}</span>
+											{#if realItem.screenshotError}
+												<span class="error-text" title={realItem.screenshotError}>Screenshot failed</span>
+											{/if}
+										</div>
+										{#if onRetryScreenshot}
+											<button
+												class="retry-button"
+												title="Retry screenshot"
+												onclick={(e) => {
+													e.preventDefault();
+													e.stopPropagation();
+													onRetryScreenshot(realItem._id);
+												}}
+											>
+												Retry
+											</button>
+										{/if}
+									</div>
+								{:else}
+									<div class="url-card">
+										<span class="url-text">{realItem.url}</span>
+									</div>
+								{/if}
 							{:else if realItem.type === 'text'}
 								<div class="text-card">
 									<p>{realItem.content}</p>
@@ -480,9 +546,19 @@
 					decoding="async"
 				/>
 			{:else if draggedItem.type === 'url'}
-				<div class="url-card">
-					<span class="url-text">{draggedItem.url}</span>
-				</div>
+				{#if draggedItem.screenshotStatus === 'completed' && draggedItem.imageUrl}
+					<img
+						src={urlCache.get(draggedItem._id) ?? draggedItem.imageUrl}
+						alt={draggedItem.title ?? draggedItem.url ?? 'screenshot'}
+						width={draggedItem.imageWidth}
+						height={draggedItem.imageHeight}
+						decoding="async"
+					/>
+				{:else}
+					<div class="url-card">
+						<span class="url-text">{draggedItem.url}</span>
+					</div>
+				{/if}
 			{:else if draggedItem.type === 'text'}
 				<div class="text-card">
 					<p>{draggedItem.content}</p>
@@ -556,6 +632,84 @@
 
 	.url-text {
 		color: var(--txt-2);
+	}
+
+	/* Loading state for URL items */
+	.url-loading {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+		min-height: 120px;
+		justify-content: center;
+	}
+
+	.loading-icon {
+		width: 2rem;
+		height: 2rem;
+		color: var(--txt-3);
+		animation: pulse 2s ease-in-out infinite;
+	}
+
+	.loading-icon svg {
+		width: 100%;
+		height: 100%;
+	}
+
+	@keyframes pulse {
+		0%,
+		100% {
+			opacity: 0.4;
+		}
+		50% {
+			opacity: 1;
+		}
+	}
+
+	/* Failed state for URL items */
+	.url-failed {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		min-height: 120px;
+	}
+
+	.failed-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+		flex: 1;
+		justify-content: center;
+	}
+
+	.failed-icon {
+		width: 2rem;
+		height: 2rem;
+		color: var(--txt-3);
+	}
+
+	.failed-icon svg {
+		width: 100%;
+		height: 100%;
+	}
+
+	.error-text {
+		font-size: 0.75rem;
+		color: var(--txt-3);
+	}
+
+	.retry-button {
+		padding: 0.25rem 0.5rem;
+		font-size: 0.75rem;
+		background: var(--bg-1);
+		border: 1px solid var(--border);
+		cursor: pointer;
+		color: var(--txt-2);
+	}
+
+	.retry-button:hover {
+		border-color: var(--txt-3);
 	}
 
 	.card-title {

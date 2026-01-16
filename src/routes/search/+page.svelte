@@ -2,10 +2,12 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { getContext } from 'svelte';
-	import { useQuery } from 'convex-svelte';
+	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
+	import type { Id } from '../../convex/_generated/dataModel.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
 
+	const client = useConvexClient();
 	const currentItemsContext = getContext<{
 		items: any[];
 		setItems: (items: any[]) => void;
@@ -48,6 +50,11 @@
 			currentItemsContext.setItems(searchResults.data);
 		}
 	});
+
+	// Retry handler for failed screenshots
+	async function handleRetryScreenshot(itemId: Id<'items'>) {
+		await client.mutation(api.screenshots.retryScreenshot, { itemId });
+	}
 </script>
 
 <div class="container">
@@ -78,7 +85,7 @@
 			{searchResults.data?.length}
 			{searchResults.data?.length === 1 ? 'result' : 'results'}
 		</p>
-		<ItemGrid items={searchResults.data ?? []} />
+		<ItemGrid items={searchResults.data ?? []} onRetryScreenshot={handleRetryScreenshot} />
 	{/if}
 </div>
 

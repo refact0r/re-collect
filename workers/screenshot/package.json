@@ -1,0 +1,16 @@
+{
+	"name": "screenshot-worker",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy",
+		"tail": "wrangler tail"
+	},
+	"devDependencies": {
+		"@cloudflare/puppeteer": "^1.0.4",
+		"@cloudflare/workers-types": "^4.20260116.0",
+		"typescript": "^5.9.3",
+		"wrangler": "^4.59.2"
+	}
+}
