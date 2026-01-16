@@ -12,12 +12,13 @@
 </script>
 
 <div class="container">
-	<h1>Edit Item</h1>
-	<ItemEditor {itemId} onSave={handleClose} onDelete={handleClose} onCancel={handleClose} />
+	<ItemEditor {itemId} onSave={handleClose} onDelete={handleClose} />
 </div>
 
 <style>
-	h1 {
-		margin-bottom: 1rem;
+	.container {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
 	}
 </style>

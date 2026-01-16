@@ -1,10 +1,15 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { getContext } from 'svelte';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
-	import { setCurrentItems } from '$lib/stores/currentItems.svelte';
+
+	const currentItemsContext = getContext<{
+		items: any[];
+		setItems: (items: any[]) => void;
+	}>('currentItems');
 
 	// Get search query from URL
 	let searchQuery = $state(page.url.searchParams.get('q') ?? '');
@@ -40,7 +45,7 @@
 	// Update the current items when search results change
 	$effect(() => {
 		if (searchResults.data) {
-			setCurrentItems(searchResults.data);
+			currentItemsContext.setItems(searchResults.data);
 		}
 	});
 </script>

@@ -18,9 +18,20 @@
 	const items = useQuery(api.items.list, {});
 	const collections = useQuery(api.collections.listWithCounts, {});
 
+	// State for current items being displayed (set by active page)
+	let currentItems = $state<any[]>([]);
+
 	// Make available to all child routes via context
 	setContext('items', items);
 	setContext('collections', collections);
+	setContext('currentItems', {
+		get items() {
+			return currentItems;
+		},
+		setItems(newItems: any[]) {
+			currentItems = newItems;
+		}
+	});
 
 	const editItemId = $derived(page.url.searchParams.get('item') as Id<'items'> | null);
 

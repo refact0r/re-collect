@@ -1,9 +1,9 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import ItemEditor from './ItemEditor.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { getCurrentItems } from '$lib/stores/currentItems.svelte';
 
 	interface Props {
 		itemId: Id<'items'>;
@@ -14,8 +14,13 @@
 
 	let saveFunction: (() => Promise<void>) | undefined = $state();
 
-	// Get current items from the store (set by the active page)
-	const currentItems = $derived(getCurrentItems());
+	// Get current items from context (set by the active page)
+	const currentItemsContext = getContext<{
+		items: any[];
+		setItems: (items: any[]) => void;
+	}>('currentItems');
+
+	const currentItems = $derived(currentItemsContext.items);
 
 	function handleSaveReady(saveFn: () => Promise<void>) {
 		saveFunction = saveFn;
