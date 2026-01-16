@@ -121,7 +121,7 @@
 						class="open-url"
 						onclick={() => window.open(url, '_blank')}
 						disabled={!url}
-						title="Open URL"
+						title="open url"
 					>
 						↗
 					</button>
