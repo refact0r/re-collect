@@ -126,7 +126,12 @@
 		{:else if items.data?.length === 0}
 			<p class="status-text">no items in this collection yet.</p>
 		{:else}
-			<ItemGrid items={items.data ?? []} {collectionId} onReorder={handleReorder} onRetryScreenshot={handleRetryScreenshot} />
+			<ItemGrid
+				items={items.data ?? []}
+				{collectionId}
+				onReorder={handleReorder}
+				onRetryScreenshot={handleRetryScreenshot}
+			/>
 		{/if}
 	</div>
 {/if}
@@ -142,6 +147,8 @@
 	}
 	.actions {
 		margin-top: 1rem;
+		display: flex;
+		gap: 0.5rem;
 	}
 	.input-wrapper {
 		margin-bottom: 1rem;

@@ -143,6 +143,38 @@ export default {
 				'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 			);
 
+			// Enable request interception to block tracking/analytics
+			await page.setRequestInterception(true);
+			page.on('request', (request) => {
+				const url = request.url();
+				const resourceType = request.resourceType();
+
+				// Block tracking, analytics, and ads that prevent network idle
+				if (
+					// Analytics & tracking services
+					url.includes('google-analytics.com') ||
+					url.includes('googletagmanager.com') ||
+					url.includes('facebook.com/tr') ||
+					url.includes('doubleclick.net') ||
+					url.includes('analytics') ||
+					url.includes('hotjar') ||
+					url.includes('segment.') ||
+					url.includes('mixpanel') ||
+					// Ad networks
+					url.includes('googlesyndication.com') ||
+					url.includes('adservice') ||
+					url.includes('adsystem') ||
+					url.includes('advertising') ||
+					// Resource types that keep network busy
+					resourceType === 'beacon' ||
+					resourceType === 'websocket'
+				) {
+					request.abort();
+				} else {
+					request.continue();
+				}
+			});
+
 			// Navigate to URL - two phase approach:
 			// 1. First ensure the page loads (domcontentloaded)
 			// 2. Then try to wait for network idle, but don't fail if it times out

@@ -2,8 +2,6 @@ import { v } from 'convex/values';
 import { internalAction, internalMutation, mutation } from './_generated/server';
 import { internal } from './_generated/api';
 
-const MAX_RETRIES = 3;
-
 // Internal mutation to update screenshot status to processing
 export const setProcessing = internalMutation({
 	args: { itemId: v.id('items') },
@@ -139,9 +137,6 @@ export const retryScreenshot = mutation({
 		}
 
 		const retries = (item.screenshotRetries ?? 0) + 1;
-		if (retries > MAX_RETRIES) {
-			throw new Error('Maximum retry attempts exceeded');
-		}
 
 		// Reset to pending and schedule screenshot generation
 		await ctx.db.patch(args.itemId, {

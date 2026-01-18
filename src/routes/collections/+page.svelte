@@ -40,11 +40,11 @@
 							<p class="description">{collection.description}</p>
 						{/if}
 						<p class="count">
-						{collection.itemCount}
-						{collection.itemCount === 1 ? 'item' : 'items'}
-					</p>
+							{collection.itemCount}
+							{collection.itemCount === 1 ? 'item' : 'items'}
+						</p>
 					</a>
-					<button class="link" onclick={() => handleDelete(collection._id)}>delete</button>
+					<button class="danger" onclick={() => handleDelete(collection._id)}>delete</button>
 				</div>
 			{/each}
 		</div>
@@ -68,6 +68,10 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
+		gap: 1rem;
+	}
+	.collection-card button {
+		flex-shrink: 0;
 	}
 	.collection-link {
 		text-decoration: none;
@@ -83,6 +87,6 @@
 	.count {
 		font-size: 0.875rem;
 		color: var(--txt-3);
-		margin: 0;
+		margin: 0.25rem 0 0 0;
 	}
 </style>
