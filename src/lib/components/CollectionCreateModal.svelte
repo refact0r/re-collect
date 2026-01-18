@@ -21,7 +21,7 @@
 		try {
 			await client.mutation(api.collections.create, {
 				name: name.trim(),
-				description: description.trim() || undefined
+				description: description.trim()
 			});
 			onClose();
 		} finally {

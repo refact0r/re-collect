@@ -73,7 +73,7 @@
 		await client.mutation(api.collections.update, {
 			id: collectionId,
 			name: editName.trim(),
-			description: editDescription.trim() || undefined
+			description: editDescription.trim()
 		});
 		isEditing = false;
 	}
@@ -94,28 +94,30 @@
 	<p>collection not found</p>
 {:else}
 	<div class="container">
-		<header>
-			{#if isEditing}
-				<div class="form edit-form">
-					<input type="text" bind:value={editName} placeholder="collection name" />
-					<textarea bind:value={editDescription} rows="2" placeholder="description (optional)"
-					></textarea>
-					<div class="actions">
-						<button onclick={saveEdits} disabled={!editName.trim()}>save</button>
-						<button onclick={cancelEditing}>cancel</button>
-					</div>
+		{#if isEditing}
+			<div class="form edit-form">
+				<input type="text" bind:value={editName} placeholder="collection name" />
+				<textarea bind:value={editDescription} rows="2" placeholder="description (optional)"
+				></textarea>
+				<div class="actions">
+					<button onclick={saveEdits} disabled={!editName.trim()}>save</button>
+					<button onclick={cancelEditing}>cancel</button>
 				</div>
-			{:else}
-				<h1>{collection.data.name}</h1>
-				{#if collection.data.description}
-					<p class="description">{collection.data.description}</p>
-				{/if}
+			</div>
+		{:else}
+			<div class="page-header with-description">
+				<div class="header-content">
+					<h1>{collection.data.name}</h1>
+					{#if collection.data.description}
+						<p class="description">{collection.data.description}</p>
+					{/if}
+				</div>
 				<div class="actions">
 					<button onclick={startEditing}>edit</button>
 					<button onclick={handleDeleteCollection} class="danger">delete</button>
 				</div>
-			{/if}
-		</header>
+			</div>
+		{/if}
 
 		<div class="input-wrapper">
 			<ItemInput {collectionId} />
@@ -137,19 +139,34 @@
 {/if}
 
 <style>
-	/* Uses global .form, .actions, .status-text styles from app.css */
-	header {
-		margin-bottom: 2rem;
+	/* Uses global .page-header, .form, .actions, .status-text styles from app.css */
+
+	/* Override alignment for headers with descriptions */
+	.page-header.with-description {
+		align-items: flex-start;
 	}
+
+	.edit-form {
+		margin-bottom: 1rem;
+	}
+
+	.header-content {
+		flex: 1;
+	}
+
+	.header-content h1 {
+		margin: 0;
+	}
+
 	.description {
 		color: var(--txt-3);
-		margin: 0.5rem 0;
+		margin: 0.5rem 0 0 0;
 	}
+
 	.actions {
-		margin-top: 1rem;
-		display: flex;
-		gap: 0.5rem;
+		flex-shrink: 0;
 	}
+
 	.input-wrapper {
 		margin-bottom: 1rem;
 	}

@@ -132,27 +132,29 @@
 				</div>
 			</label>
 
-			<div class="section">
-				<h3>collections</h3>
-				{#if collections.isLoading}
-					<p class="status-text">loading collections...</p>
-				{:else if collections.data?.length === 0}
-					<p class="status-text">no collections yet. <a href="/collections">create one</a></p>
-				{:else}
-					<div class="collection-list">
-						{#each collections.data ?? [] as collection (collection._id)}
-							<label class="checkbox-label">
-								<input
-									type="checkbox"
-									checked={item.data.collections.includes(collection._id)}
-									onchange={() => toggleCollection(collection._id)}
-								/>
-								<span class="checkbox"></span>
-								{collection.name}
-							</label>
-						{/each}
-					</div>
-				{/if}
+			<div class="collections-field">
+				<div class="field-label">collections</div>
+				<div class="collections-container">
+					{#if collections.isLoading}
+						<p class="status-text">loading collections...</p>
+					{:else if collections.data?.length === 0}
+						<p class="status-text">no collections yet. <a href="/collections">create one</a></p>
+					{:else}
+						<div class="collection-list">
+							{#each collections.data ?? [] as collection (collection._id)}
+								<label class="checkbox-label">
+									<input
+										type="checkbox"
+										checked={item.data.collections.includes(collection._id)}
+										onchange={() => toggleCollection(collection._id)}
+									/>
+									<span class="checkbox"></span>
+									{collection.name}
+								</label>
+							{/each}
+						</div>
+					{/if}
+				</div>
 			</div>
 
 			<div class="meta">
@@ -223,6 +225,23 @@
 		resize: vertical;
 		font-family: var(--font);
 		font-size: 1rem;
+	}
+
+	.collections-field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.field-label {
+		font-size: 1rem;
+	}
+
+	.collections-container {
+		border: 1px solid var(--border);
+		padding: 1rem;
+		max-height: 12rem;
+		overflow-y: auto;
 	}
 
 	.collection-list {

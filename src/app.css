@@ -44,6 +44,16 @@ h3 {
 	letter-spacing: -0.02ch;
 }
 
+h1 {
+	font-size: 1.75rem;
+}
+h2 {
+	font-size: 1.5rem;
+}
+h3 {
+	font-size: 1.125rem;
+}
+
 /* ============================================
    Form Elements
    ============================================ */
@@ -80,7 +90,7 @@ button {
 	color: inherit;
 	background: var(--bg-2);
 	border: 1px solid var(--border);
-	padding: 0.5rem 1rem;
+	padding: 0.5rem 0.75rem;
 	font-size: 1rem;
 }
 
