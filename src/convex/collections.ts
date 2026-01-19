@@ -5,13 +5,11 @@ import { deleteAllPositionsForCollection } from './itemCollectionPositions';
 // Create a new collection
 export const create = mutation({
 	args: {
-		name: v.string(),
-		description: v.optional(v.string())
+		name: v.string()
 	},
 	handler: async (ctx, args) => {
 		return await ctx.db.insert('collections', {
 			name: args.name,
-			description: args.description,
 			dateCreated: Date.now()
 		});
 	}
@@ -21,8 +19,7 @@ export const create = mutation({
 export const update = mutation({
 	args: {
 		id: v.id('collections'),
-		name: v.optional(v.string()),
-		description: v.optional(v.string())
+		name: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
 		const { id, ...updates } = args;

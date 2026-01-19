@@ -36,9 +36,6 @@
 				<div class="collection-card">
 					<a href="/collections/{collection._id}" class="collection-link">
 						<h3>{collection.name}</h3>
-						{#if collection.description}
-							<p class="description">{collection.description}</p>
-						{/if}
 						<p class="count">
 							{collection.itemCount}
 							{collection.itemCount === 1 ? 'item' : 'items'}
@@ -79,10 +76,6 @@
 	}
 	.collection-link h3 {
 		margin: 0;
-	}
-	.description {
-		color: var(--txt-3);
-		margin: 0.25rem 0;
 	}
 	.count {
 		font-size: 0.875rem;

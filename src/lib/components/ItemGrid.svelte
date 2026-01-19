@@ -484,7 +484,9 @@
 											</div>
 											<span class="url-text">{realItem.url}</span>
 											{#if realItem.screenshotError}
-												<span class="error-text" title={realItem.screenshotError}>Screenshot failed</span>
+												<span class="error-text" title={realItem.screenshotError}
+													>Screenshot failed</span
+												>
 											{/if}
 										</div>
 										{#if onRetryScreenshot}
@@ -743,7 +745,7 @@
 	}
 
 	.placeholder {
-		border: 2px dashed var(--txt-3);
+		border: 2px dashed var(--border);
 		background: var(--bg-2);
 		opacity: 0.5;
 	}

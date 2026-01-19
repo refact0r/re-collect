@@ -11,7 +11,6 @@
 	const client = useConvexClient();
 
 	let name = $state('');
-	let description = $state('');
 	let isCreating = $state(false);
 
 	async function handleCreate() {
@@ -20,8 +19,7 @@
 		isCreating = true;
 		try {
 			await client.mutation(api.collections.create, {
-				name: name.trim(),
-				description: description.trim()
+				name: name.trim()
 			});
 			onClose();
 		} finally {
@@ -59,11 +57,6 @@
 			<label>
 				name
 				<input type="text" bind:value={name} placeholder="collection name" disabled={isCreating} />
-			</label>
-			<label>
-				description (optional)
-				<textarea bind:value={description} rows="3" placeholder="description" disabled={isCreating}
-				></textarea>
 			</label>
 			<div class="actions">
 				<button onclick={handleCreate} disabled={isCreating || !name.trim()}>create</button>

@@ -36,7 +36,6 @@ export default defineSchema({
 
 	collections: defineTable({
 		name: v.string(),
-		description: v.optional(v.string()),
 		dateCreated: v.number(),
 		sortMode: v.optional(
 			v.union(

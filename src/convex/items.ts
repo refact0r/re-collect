@@ -11,10 +11,7 @@ import {
 } from './itemCollectionPositions';
 
 // Helper to get image URL from either R2 (imageKey) or legacy Convex storage (imageId)
-async function getImageUrl(
-	ctx: QueryCtx,
-	item: Doc<'items'>
-): Promise<string | null> {
+async function getImageUrl(ctx: QueryCtx, item: Doc<'items'>): Promise<string | null> {
 	if (item.imageKey) {
 		// Set expiration to 24 hours to reduce URL regeneration
 		return await r2.getUrl(item.imageKey, { expiresIn: 60 * 60 * 24 });
@@ -214,10 +211,25 @@ export const get = query({
 	}
 });
 
-// Get items in a specific collection, ordered by position
+// Get items in a specific collection, ordered by position or other sort options
 export const listByCollection = query({
-	args: { collectionId: v.id('collections') },
+	args: {
+		collectionId: v.id('collections'),
+		sortBy: v.optional(
+			v.union(
+				v.literal('manual'),
+				v.literal('dateAddedNewest'),
+				v.literal('dateAddedOldest'),
+				v.literal('dateModifiedNewest'),
+				v.literal('dateModifiedOldest'),
+				v.literal('titleAsc'),
+				v.literal('titleDesc')
+			)
+		)
+	},
 	handler: async (ctx, args) => {
+		const sortBy = args.sortBy ?? 'manual';
+
 		// Get positions ordered by position (lexicographically)
 		const positions = await getPositionsByCollection(ctx, args.collectionId);
 
@@ -228,15 +240,60 @@ export const listByCollection = query({
 		const items = await ctx.db.query('items').collect();
 		const filtered = items.filter((item) => item.collections.includes(args.collectionId));
 
-		// Sort by position (items without position go to the end)
-		// Use simple string comparison (not localeCompare) to match fractional-indexing's expected ordering
-		filtered.sort((a, b) => {
-			const posA = positionMap.get(a._id) ?? '\uffff'; // Use high Unicode char for items without position
-			const posB = positionMap.get(b._id) ?? '\uffff';
-			if (posA < posB) return -1;
-			if (posA > posB) return 1;
-			return 0;
-		});
+		// Apply sorting based on sortBy option
+		switch (sortBy) {
+			case 'manual':
+				// Sort by position (items without position go to the end)
+				// Use simple string comparison (not localeCompare) to match fractional-indexing's expected ordering
+				filtered.sort((a, b) => {
+					const posA = positionMap.get(a._id) ?? '\uffff'; // Use high Unicode char for items without position
+					const posB = positionMap.get(b._id) ?? '\uffff';
+					if (posA < posB) return -1;
+					if (posA > posB) return 1;
+					return 0;
+				});
+				break;
+			case 'dateAddedNewest':
+				filtered.sort((a, b) => b.dateAdded - a.dateAdded);
+				break;
+			case 'dateAddedOldest':
+				filtered.sort((a, b) => a.dateAdded - b.dateAdded);
+				break;
+			case 'dateModifiedNewest':
+				filtered.sort((a, b) => b.dateModified - a.dateModified);
+				break;
+			case 'dateModifiedOldest':
+				filtered.sort((a, b) => a.dateModified - b.dateModified);
+				break;
+			case 'titleAsc':
+				filtered.sort((a, b) => {
+					const titleA = (a.title ?? a.url ?? '').toLowerCase();
+					const titleB = (b.title ?? b.url ?? '').toLowerCase();
+					const titleCompare = titleA.localeCompare(titleB);
+					if (titleCompare !== 0) return titleCompare;
+					// Fall back to manual order for items with same title
+					const posA = positionMap.get(a._id) ?? '\uffff';
+					const posB = positionMap.get(b._id) ?? '\uffff';
+					if (posA < posB) return -1;
+					if (posA > posB) return 1;
+					return 0;
+				});
+				break;
+			case 'titleDesc':
+				filtered.sort((a, b) => {
+					const titleA = (a.title ?? a.url ?? '').toLowerCase();
+					const titleB = (b.title ?? b.url ?? '').toLowerCase();
+					const titleCompare = titleB.localeCompare(titleA);
+					if (titleCompare !== 0) return titleCompare;
+					// Fall back to manual order for items with same title
+					const posA = positionMap.get(a._id) ?? '\uffff';
+					const posB = positionMap.get(b._id) ?? '\uffff';
+					if (posA < posB) return -1;
+					if (posA > posB) return 1;
+					return 0;
+				});
+				break;
+		}
 
 		return Promise.all(
 			filtered.map(async (item) => ({

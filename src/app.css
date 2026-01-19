@@ -43,7 +43,6 @@ h3 {
 	font-weight: 500;
 	letter-spacing: -0.02ch;
 }
-
 h1 {
 	font-size: 1.75rem;
 }
@@ -54,12 +53,30 @@ h3 {
 	font-size: 1.125rem;
 }
 
+.h1,
+.h2,
+.h3 {
+	font-family: 'DM Sans' !important;
+	font-weight: 500 !important;
+	letter-spacing: -0.02ch !important;
+}
+.h1 {
+	font-size: 1.75rem !important;
+}
+.h2 {
+	font-size: 1.5rem !important;
+}
+.h3 {
+	font-size: 1.125rem !important;
+}
+
 /* ============================================
    Form Elements
    ============================================ */
 
 input,
-textarea {
+textarea,
+select {
 	padding: 0.5rem;
 	font-size: 1rem;
 	font-family: var(--font);
@@ -79,6 +96,15 @@ textarea {
 		font-family: var(--font);
 		font-weight: var(--font-weight);
 		color: var(--txt-3);
+	}
+}
+
+select {
+	cursor: pointer;
+	color: var(--txt-2);
+
+	&:hover {
+		background-color: var(--bg-3);
 	}
 }
 
