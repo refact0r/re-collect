@@ -11,6 +11,12 @@ importers:
       '@convex-dev/r2':
         specifier: ^0.8.1
         version: 0.8.1(@standard-schema/spec@1.1.0)(convex-svelte@0.0.12(convex@1.31.2(react@19.2.3))(svelte@5.46.1))(convex@1.31.2(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(svelte@5.46.1)(typescript@5.9.3)(zod@3.25.76)
+      '@fontsource/dm-mono':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource/dm-sans':
+        specifier: ^5.2.8
+        version: 5.2.8
       convex:
         specifier: ^1.31.2
         version: 1.31.2(react@19.2.3)
@@ -882,6 +888,12 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@fontsource/dm-mono@5.2.7':
+    resolution: {integrity: sha512-Ma1az2atTVgQWuOWwjuxx26p/6A6CU9HBNKq1CFV6YKpKhpswnf9ry9Ql4+T6bTZzkdtSfS6tjJvqZOljVzIFQ==}
+
+  '@fontsource/dm-sans@5.2.8':
+    resolution: {integrity: sha512-tlovG42m9ESG28WiHpLq3F5umAlm64rv0RkqTbYowRn70e9OlRr5a3yTJhrhrY+k5lftR/OFJjPzOLQzk8EfCA==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -3688,6 +3700,10 @@ snapshots:
     dependencies:
       '@eslint/core': 0.17.0
       levn: 0.4.1
+
+  '@fontsource/dm-mono@5.2.7': {}
+
+  '@fontsource/dm-sans@5.2.8': {}
 
   '@humanfs/core@0.19.1': {}
 

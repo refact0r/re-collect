@@ -1,4 +1,5 @@
 <script lang="ts">
+	import '@fontsource/dm-sans';
 	import { PUBLIC_CONVEX_URL } from '$env/static/public';
 	import { setupConvex, useQuery } from 'convex-svelte';
 	import { setContext } from 'svelte';
