@@ -1,5 +1,6 @@
 packages:
-  - 'workers/*'
+  - "."
+  - "workers/*"
 
 onlyBuiltDependencies:
   - esbuild
