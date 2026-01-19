@@ -1,6 +1,8 @@
 import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import { mutation, query, type QueryCtx } from './_generated/server';
+import type { Id } from './_generated/dataModel';
 import { deleteAllPositionsForCollection } from './itemCollectionPositions';
+import { getImageUrl } from './items';
 
 // Create a new collection
 export const create = mutation({
@@ -76,6 +78,52 @@ export const get = query({
 	}
 });
 
+// Helper to fetch preview images for a collection
+async function getCollectionPreviews(
+	ctx: QueryCtx,
+	collectionId: Id<'collections'>,
+	limit: number = 4
+): Promise<Array<{ _id: Id<'items'>; imageUrl: string; type: 'image' | 'url' }>> {
+	// Get all items in this collection via itemCollectionPositions
+	const positions = await ctx.db
+		.query('itemCollectionPositions')
+		.withIndex('by_collection', (q) => q.eq('collectionId', collectionId))
+		.collect();
+
+	// Fetch items and filter for displayable images
+	const items = [];
+	for (const position of positions) {
+		const item = await ctx.db.get(position.itemId);
+		if (!item) continue;
+
+		// Include if: image type with image data, OR url type with completed screenshot
+		const hasImage = item.type === 'image' && (item.imageKey || item.imageId);
+		const hasScreenshot = item.type === 'url' && item.screenshotStatus === 'completed';
+
+		if (hasImage || hasScreenshot) {
+			items.push(item);
+		}
+	}
+
+	// Sort by dateAdded descending (most recent first)
+	items.sort((a, b) => b.dateAdded - a.dateAdded);
+
+	// Take first N items and generate image URLs
+	const previews = [];
+	for (const item of items.slice(0, limit)) {
+		const imageUrl = await getImageUrl(ctx, item);
+		if (imageUrl) {
+			previews.push({
+				_id: item._id,
+				imageUrl,
+				type: item.type as 'image' | 'url'
+			});
+		}
+	}
+
+	return previews;
+}
+
 // Get collection with item count
 export const listWithCounts = query({
 	args: {},
@@ -83,6 +131,7 @@ export const listWithCounts = query({
 		const collections = await ctx.db.query('collections').order('desc').collect();
 
 		const countsMap = new Map();
+		const previewsMap = new Map();
 
 		for (const collection of collections) {
 			const positions = await ctx.db
@@ -90,11 +139,16 @@ export const listWithCounts = query({
 				.withIndex('by_collection', (q) => q.eq('collectionId', collection._id))
 				.collect();
 			countsMap.set(collection._id, positions.length);
+
+			// Fetch preview images
+			const previews = await getCollectionPreviews(ctx, collection._id, 4);
+			previewsMap.set(collection._id, previews);
 		}
 
 		return collections.map((collection) => ({
 			...collection,
-			itemCount: countsMap.get(collection._id) ?? 0
+			itemCount: countsMap.get(collection._id) ?? 0,
+			previews: previewsMap.get(collection._id) ?? []
 		}));
 	}
 });
