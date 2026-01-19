@@ -3,6 +3,7 @@
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
+	import { imageCache } from '$lib/imageCache.svelte.js';
 
 	interface Props {
 		itemId: Id<'items'>;
@@ -52,6 +53,13 @@
 		}
 	});
 
+	// Cache image URL when available
+	$effect(() => {
+		if (item.data?.imageUrl && !imageCache.get(itemId)) {
+			imageCache.set(itemId, item.data.imageUrl);
+		}
+	});
+
 	async function handleSave() {
 		await client.mutation(api.items.update, {
 			id: itemId,
@@ -91,11 +99,18 @@
 		<!-- Content Preview -->
 		<div class="content-preview">
 			{#if item.data.type === 'image' && item.data.imageUrl}
-				<img src={item.data.imageUrl} alt={item.data.title ?? 'image'} />
+				<img src={imageCache.get(itemId) ?? item.data.imageUrl} alt={item.data.title ?? 'image'} />
 			{:else if item.data.type === 'url'}
-				<div class="url-preview">
-					<p class="url-text">{url || item.data.url}</p>
-				</div>
+				{#if item.data.screenshotStatus === 'completed' && item.data.imageUrl}
+					<img
+						src={imageCache.get(itemId) ?? item.data.imageUrl}
+						alt={item.data.title ?? item.data.url ?? 'screenshot'}
+					/>
+				{:else}
+					<div class="url-preview">
+						<p class="url-text">{url || item.data.url}</p>
+					</div>
+				{/if}
 			{:else if item.data.type === 'text'}
 				<textarea class="text-content" bind:value={content}></textarea>
 			{/if}
@@ -116,39 +131,41 @@
 				{item.data.type === 'url' ? 'url' : 'source url'}
 				<div class="url-input-row">
 					<input type="url" bind:value={url} />
-					<button
-						type="button"
+					<a
+						href={url}
+						target="_blank"
+						rel="noopener noreferrer"
 						class="open-url"
-						onclick={() => window.open(url, '_blank')}
-						disabled={!url}
-						title="Open URL"
+						aria-label="open url"
 					>
 						↗
-					</button>
+					</a>
 				</div>
 			</label>
 
-			<div class="section">
-				<h3>collections</h3>
-				{#if collections.isLoading}
-					<p class="status-text">loading collections...</p>
-				{:else if collections.data?.length === 0}
-					<p class="status-text">no collections yet. <a href="/collections">create one</a></p>
-				{:else}
-					<div class="collection-list">
-						{#each collections.data ?? [] as collection (collection._id)}
-							<label class="checkbox-label">
-								<input
-									type="checkbox"
-									checked={item.data.collections.includes(collection._id)}
-									onchange={() => toggleCollection(collection._id)}
-								/>
-								<span class="checkbox"></span>
-								{collection.name}
-							</label>
-						{/each}
-					</div>
-				{/if}
+			<div class="collections-field">
+				<div class="field-label">collections</div>
+				<div class="collections-container">
+					{#if collections.isLoading}
+						<p class="status-text">loading collections...</p>
+					{:else if collections.data?.length === 0}
+						<p class="status-text">no collections yet. <a href="/collections">create one</a></p>
+					{:else}
+						<div class="collection-list">
+							{#each collections.data ?? [] as collection (collection._id)}
+								<label class="checkbox-label">
+									<input
+										type="checkbox"
+										checked={item.data.collections.includes(collection._id)}
+										onchange={() => toggleCollection(collection._id)}
+									/>
+									<span class="checkbox"></span>
+									{collection.name}
+								</label>
+							{/each}
+						</div>
+					{/if}
+				</div>
 			</div>
 
 			<div class="meta">
@@ -221,6 +238,23 @@
 		font-size: 1rem;
 	}
 
+	.collections-field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.field-label {
+		font-size: 1rem;
+	}
+
+	.collections-container {
+		border: 1px solid var(--border);
+		padding: 1rem;
+		max-height: 12rem;
+		overflow-y: auto;
+	}
+
 	.collection-list {
 		display: flex;
 		flex-direction: column;
@@ -279,6 +313,16 @@
 	.open-url {
 		padding: 0.5rem 0.75rem;
 		flex-shrink: 0;
+		background: var(--bg-2);
+		border: 1px solid var(--border);
+		text-decoration: none;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.open-url:hover {
+		background: var(--bg-3);
 	}
 	.actions {
 		margin-top: auto;

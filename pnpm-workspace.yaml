@@ -1,2 +1,5 @@
+packages:
+  - "workers/screenshot"
+
 onlyBuiltDependencies:
   - esbuild

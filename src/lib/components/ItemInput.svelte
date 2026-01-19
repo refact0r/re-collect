@@ -17,11 +17,24 @@
 	let isAdding = $state(false);
 	let isDragging = $state(false);
 	let textareaEl: HTMLTextAreaElement;
+	let resizeFrame: number | null = null;
 
 	function autoResize() {
 		if (!textareaEl) return;
-		textareaEl.style.height = 'auto';
-		textareaEl.style.height = textareaEl.scrollHeight + 'px';
+
+		// Cancel any pending resize
+		if (resizeFrame) cancelAnimationFrame(resizeFrame);
+
+		// Batch DOM operations in a single animation frame to avoid layout thrashing
+		resizeFrame = requestAnimationFrame(() => {
+			if (!textareaEl) return;
+			// Read phase
+			const scrollHeight = textareaEl.scrollHeight;
+			// Write phase
+			textareaEl.style.height = 'auto';
+			textareaEl.style.height = scrollHeight + 'px';
+			resizeFrame = null;
+		});
 	}
 
 	function isUrl(str: string): boolean {

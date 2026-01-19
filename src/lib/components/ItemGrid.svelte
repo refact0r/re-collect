@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { SvelteMap } from 'svelte/reactivity';
 	import { generateKeyBetween } from 'fractional-indexing';
 	import { page } from '$app/state';
 	import type { Id } from '../../convex/_generated/dataModel.js';
+	import { imageCache } from '$lib/imageCache.svelte.js';
 
 	interface Item {
 		_id: Id<'items'>;
@@ -14,30 +14,35 @@
 		imageWidth?: number;
 		imageHeight?: number;
 		position?: string;
+		// Screenshot fields for URL items
+		screenshotStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+		screenshotError?: string;
 	}
 
 	interface Props {
 		items: Item[];
 		collectionId?: Id<'collections'>;
 		onReorder?: (itemId: Id<'items'>, newPosition: string) => void;
+		onRetryScreenshot?: (itemId: Id<'items'>) => void;
+		onDelete?: (itemId: Id<'items'>) => void;
 	}
 
-	let { items, collectionId, onReorder }: Props = $props();
+	let { items, collectionId, onReorder, onRetryScreenshot, onDelete }: Props = $props();
 
 	const isDraggable = $derived(!!collectionId && !!onReorder);
 
 	let containerElement: HTMLDivElement | undefined = $state();
 	let containerWidth = $state(0);
-	let urlCache = new SvelteMap<Id<'items'>, string>();
 
 	$effect(() => {
 		const currentIds = new Set(items.map((i) => i._id));
-		for (const id of urlCache.keys()) {
-			if (!currentIds.has(id)) urlCache.delete(id);
-		}
+		// Clean up cache for items that are no longer present
+		imageCache.cleanup(currentIds);
+
 		for (const item of items) {
-			if (item.type === 'image' && item.imageUrl && !urlCache.has(item._id)) {
-				urlCache.set(item._id, item.imageUrl);
+			// Cache image URLs for all items that display as images
+			if (shouldDisplayAsImage(item) && !imageCache.get(item._id)) {
+				imageCache.set(item._id, item.imageUrl!);
 			}
 		}
 	});
@@ -74,15 +79,34 @@
 			: (containerWidth - (columnCount - MIN_COLS) * GAP) / columnCount
 	);
 
+	function shouldDisplayAsImage(item: Item, overrideStatus?: Item['screenshotStatus']): boolean {
+		const status = overrideStatus !== undefined ? overrideStatus : item.screenshotStatus;
+		return (
+			(item.type === 'image' || (item.type === 'url' && status === 'completed')) && !!item.imageUrl
+		);
+	}
+
 	function estimateHeight(item: Item): number {
 		const titleHeight = item.title ? TITLE_HEIGHT : 0;
 
-		if (item.type === 'image') {
+		// All items with images display the same way
+		if (shouldDisplayAsImage(item)) {
 			if (item.imageWidth && item.imageHeight) {
 				const imageHeight = columnWidth * (item.imageHeight / item.imageWidth);
 				return imageHeight + CARD_CHROME + titleHeight;
 			}
 			return columnWidth * IMAGE_FALLBACK_ASPECT + CARD_CHROME + titleHeight;
+		}
+
+		// URL items in pending/processing/failed state use screenshot aspect ratio (1440x900)
+		if (
+			item.type === 'url' &&
+			(item.screenshotStatus === 'pending' ||
+				item.screenshotStatus === 'processing' ||
+				item.screenshotStatus === 'failed')
+		) {
+			const screenshotHeight = columnWidth * (900 / 1440);
+			return screenshotHeight + CARD_CHROME + titleHeight;
 		}
 
 		if (item.type === 'url' || item.type === 'text') {
@@ -428,18 +452,76 @@
 					{@const isDragging = draggedItem?._id === realItem._id}
 					<div class="card-wrapper" class:dragging={isDragging}>
 						<a href={getItemUrl(realItem._id)} class="card">
-							{#if realItem.type === 'image' && realItem.imageUrl}
+							{#if shouldDisplayAsImage(realItem)}
 								<img
-									src={urlCache.get(realItem._id) ?? realItem.imageUrl}
-									alt={realItem.title ?? 'image'}
+									src={imageCache.get(realItem._id) ?? realItem.imageUrl}
+									alt={realItem.title ?? realItem.url ?? 'image'}
 									width={realItem.imageWidth}
 									height={realItem.imageHeight}
 									decoding="async"
 								/>
 							{:else if realItem.type === 'url'}
-								<div class="url-card">
-									<span class="url-text">{realItem.url}</span>
-								</div>
+								{#if realItem.screenshotStatus === 'pending' || realItem.screenshotStatus === 'processing'}
+									<div class="url-card url-loading">
+										<div class="loading-icon">
+											<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+												<circle cx="12" cy="12" r="10" />
+												<path d="M12 6v6l4 2" />
+											</svg>
+										</div>
+										<span class="url-text">{realItem.url}</span>
+									</div>
+								{:else if realItem.screenshotStatus === 'failed'}
+									<div class="url-card url-failed">
+										<div class="failed-content">
+											<div class="failed-icon">
+												<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+													<circle cx="12" cy="12" r="10" />
+													<line x1="12" y1="8" x2="12" y2="12" />
+													<line x1="12" y1="16" x2="12.01" y2="16" />
+												</svg>
+											</div>
+											<span class="url-text">{realItem.url}</span>
+											{#if realItem.screenshotError}
+												<span class="error-text" title={realItem.screenshotError}
+													>Screenshot failed</span
+												>
+											{/if}
+										</div>
+										<div class="failed-actions">
+											{#if onRetryScreenshot}
+												<button
+													class="retry-button"
+													title="Retry screenshot"
+													onclick={(e) => {
+														e.preventDefault();
+														e.stopPropagation();
+														onRetryScreenshot(realItem._id);
+													}}
+												>
+													retry
+												</button>
+											{/if}
+											{#if onDelete}
+												<button
+													class="delete-button"
+													title="Delete item"
+													onclick={(e) => {
+														e.preventDefault();
+														e.stopPropagation();
+														onDelete(realItem._id);
+													}}
+												>
+													delete
+												</button>
+											{/if}
+										</div>
+									</div>
+								{:else}
+									<div class="url-card">
+										<span class="url-text">{realItem.url}</span>
+									</div>
+								{/if}
 							{:else if realItem.type === 'text'}
 								<div class="text-card">
 									<p>{realItem.content}</p>
@@ -471,10 +553,10 @@
 		style:width="{columnWidth}px"
 	>
 		<div class="card">
-			{#if draggedItem.type === 'image' && draggedItem.imageUrl}
+			{#if shouldDisplayAsImage(draggedItem)}
 				<img
-					src={urlCache.get(draggedItem._id) ?? draggedItem.imageUrl}
-					alt={draggedItem.title ?? 'image'}
+					src={imageCache.get(draggedItem._id) ?? draggedItem.imageUrl}
+					alt={draggedItem.title ?? draggedItem.url ?? 'image'}
 					width={draggedItem.imageWidth}
 					height={draggedItem.imageHeight}
 					decoding="async"
@@ -537,14 +619,10 @@
 		height: auto;
 	}
 
-	.url-card,
 	.text-card {
 		padding: 0.5rem;
 		background: var(--bg-2);
 		word-break: break-all;
-	}
-
-	.text-card {
 		overflow: auto;
 	}
 
@@ -555,11 +633,88 @@
 	}
 
 	.url-text {
+		color: var(--txt-3);
+	}
+
+	/* Loading state for URL items */
+	.url-loading {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+		aspect-ratio: 1440 / 900;
+		justify-content: center;
+	}
+
+	.loading-icon,
+	.failed-icon {
+		width: 2rem;
+		height: 2rem;
+	}
+
+	.loading-icon {
+		color: var(--bg-3);
+		animation: pulse 2s ease-in-out infinite;
+	}
+
+	.failed-icon {
+		color: var(--txt-3);
+	}
+
+	.loading-icon svg,
+	.failed-icon svg {
+		width: 100%;
+		height: 100%;
+	}
+
+	@keyframes pulse {
+		0%,
+		100% {
+			color: var(--bg-3);
+		}
+		50% {
+			color: var(--txt-3);
+		}
+	}
+
+	/* Failed state for URL items */
+	.url-failed {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		aspect-ratio: 1440 / 900;
+	}
+
+	.failed-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+		flex: 1;
+		justify-content: center;
+	}
+
+	.failed-actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.retry-button,
+	.delete-button {
+		flex: 1;
+		padding: 0.25rem 0.5rem;
+		font-size: 0.875rem;
+		cursor: pointer;
 		color: var(--txt-2);
 	}
 
+	.retry-button:hover,
+	.delete-button:hover {
+		border-color: var(--txt-3);
+	}
+
 	.card-title {
-		padding: 0.25rem 0 0 0;
+		padding-top: 0.25rem;
 		font-size: 0.875rem;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -589,7 +744,7 @@
 	}
 
 	.placeholder {
-		border: 2px dashed var(--txt-3);
+		border: 2px dashed var(--border);
 		background: var(--bg-2);
 		opacity: 0.5;
 	}

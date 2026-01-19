@@ -2,29 +2,34 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { getContext } from 'svelte';
-	import { useQuery } from 'convex-svelte';
+	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
+	import type { Id } from '../../convex/_generated/dataModel.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
 
+	const client = useConvexClient();
 	const currentItemsContext = getContext<{
 		items: any[];
 		setItems: (items: any[]) => void;
 	}>('currentItems');
 
 	// Get search query from URL
-	let searchQuery = $state(page.url.searchParams.get('q') ?? '');
+	let searchInput = $state(page.url.searchParams.get('q') ?? '');
+	let debouncedQuery = $state(page.url.searchParams.get('q') ?? '');
 	let lastUrlQuery = $state(page.url.searchParams.get('q') ?? '');
+	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-	// Sync URL changes to search query
+	// Sync URL changes to search input
 	$effect(() => {
 		const currentUrlQuery = page.url.searchParams.get('q') ?? '';
 		if (currentUrlQuery !== lastUrlQuery) {
-			searchQuery = currentUrlQuery;
+			searchInput = currentUrlQuery;
+			debouncedQuery = currentUrlQuery;
 			lastUrlQuery = currentUrlQuery;
 		}
 	});
 
-	// Update URL when search query changes (debounced via input)
+	// Update URL when search query changes (debounced)
 	function updateSearchUrl(query: string) {
 		const params = new URLSearchParams(page.url.searchParams);
 		if (query.trim()) {
@@ -40,7 +45,16 @@
 		lastUrlQuery = query;
 	}
 
-	const searchResults = useQuery(api.items.search, () => ({ query: searchQuery }));
+	// Debounced handler for input changes
+	function handleSearchInput() {
+		if (debounceTimer) clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(() => {
+			debouncedQuery = searchInput;
+			updateSearchUrl(searchInput);
+		}, 300);
+	}
+
+	const searchResults = useQuery(api.items.search, () => ({ query: debouncedQuery }));
 
 	// Update the current items when search results change
 	$effect(() => {
@@ -48,6 +62,16 @@
 			currentItemsContext.setItems(searchResults.data);
 		}
 	});
+
+	// Retry handler for failed screenshots
+	async function handleRetryScreenshot(itemId: Id<'items'>) {
+		await client.mutation(api.screenshots.retryScreenshot, { itemId });
+	}
+
+	// Delete handler
+	async function handleDeleteItem(itemId: Id<'items'>) {
+		await client.mutation(api.items.remove, { id: itemId });
+	}
 </script>
 
 <div class="container">
@@ -58,27 +82,27 @@
 	<div class="search-box">
 		<input
 			type="text"
-			bind:value={searchQuery}
-			oninput={() => updateSearchUrl(searchQuery)}
+			bind:value={searchInput}
+			oninput={handleSearchInput}
 			placeholder="search items by title..."
 			autofocus
 		/>
 	</div>
 
-	{#if !searchQuery.trim()}
+	{#if !debouncedQuery.trim()}
 		<p class="status-text">type to search across your items</p>
 	{:else if searchResults.isLoading}
 		<p class="status-text">searching...</p>
 	{:else if searchResults.error}
 		<p>error: {searchResults.error.message}</p>
 	{:else if searchResults.data?.length === 0}
-		<p class="status-text">no items found for "{searchQuery}"</p>
+		<p class="status-text">no items found for "{debouncedQuery}"</p>
 	{:else}
 		<p class="status-text result-count">
 			{searchResults.data?.length}
 			{searchResults.data?.length === 1 ? 'result' : 'results'}
 		</p>
-		<ItemGrid items={searchResults.data ?? []} />
+		<ItemGrid items={searchResults.data ?? []} onRetryScreenshot={handleRetryScreenshot} onDelete={handleDeleteItem} />
 	{/if}
 </div>
 

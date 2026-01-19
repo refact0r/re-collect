@@ -16,8 +16,19 @@
 		setItems: (items: any[]) => void;
 	}>('currentItems');
 
-	// Use dedicated query for collection items (ordered by position)
-	const items = useQuery(api.items.listByCollection, () => ({ collectionId }));
+	// Sort state
+	type SortOption =
+		| 'manual'
+		| 'dateAddedNewest'
+		| 'dateAddedOldest'
+		| 'dateModifiedNewest'
+		| 'dateModifiedOldest'
+		| 'titleAsc'
+		| 'titleDesc';
+	let sortBy = $state<SortOption>('manual');
+
+	// Use dedicated query for collection items with sort option
+	const items = useQuery(api.items.listByCollection, () => ({ collectionId, sortBy }));
 
 	// Update the current items when data changes
 	$effect(() => {
@@ -47,36 +58,54 @@
 		});
 	}
 
+	// Retry handler for failed screenshots
+	async function handleRetryScreenshot(itemId: Id<'items'>) {
+		await client.mutation(api.screenshots.retryScreenshot, { itemId });
+	}
+
+	// Delete handler
+	async function handleDeleteItem(itemId: Id<'items'>) {
+		await client.mutation(api.items.remove, { id: itemId });
+	}
+
 	let isEditing = $state(false);
 	let editName = $state('');
-	let editDescription = $state('');
+	let inputElement: HTMLInputElement | undefined = $state();
 
 	function startEditing() {
 		if (collection.data) {
 			editName = collection.data.name;
-			editDescription = collection.data.description ?? '';
 			isEditing = true;
+			// Focus the input after it's rendered
+			setTimeout(() => inputElement?.select(), 0);
 		}
 	}
 
 	function cancelEditing() {
 		isEditing = false;
+		editName = '';
 	}
 
 	async function saveEdits() {
-		if (!editName.trim()) return;
+		const trimmed = editName.trim();
+		if (!trimmed || trimmed === collection.data?.name) {
+			cancelEditing();
+			return;
+		}
 		await client.mutation(api.collections.update, {
 			id: collectionId,
-			name: editName.trim(),
-			description: editDescription.trim() || undefined
+			name: trimmed
 		});
 		isEditing = false;
 	}
 
-	async function handleDeleteCollection() {
-		if (confirm('Delete this collection? Items will not be deleted.')) {
-			await client.mutation(api.collections.remove, { id: collectionId });
-			window.location.href = '/collections';
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			saveEdits();
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			cancelEditing();
 		}
 	}
 </script>
@@ -89,28 +118,36 @@
 	<p>collection not found</p>
 {:else}
 	<div class="container">
-		<header>
-			{#if isEditing}
-				<div class="form edit-form">
-					<input type="text" bind:value={editName} placeholder="collection name" />
-					<textarea bind:value={editDescription} rows="2" placeholder="description (optional)"
-					></textarea>
-					<div class="actions">
-						<button onclick={saveEdits} disabled={!editName.trim()}>save</button>
-						<button onclick={cancelEditing}>cancel</button>
-					</div>
-				</div>
-			{:else}
-				<h1>{collection.data.name}</h1>
-				{#if collection.data.description}
-					<p class="description">{collection.data.description}</p>
+		<div class="page-header">
+			<h1>
+				{#if isEditing}
+					<input
+						bind:this={inputElement}
+						bind:value={editName}
+						onblur={saveEdits}
+						onkeydown={handleKeydown}
+						class="title-input h1"
+						type="text"
+						placeholder="collection name"
+					/>
+				{:else}
+					<button class="title-button h1" onclick={startEditing}>
+						{collection.data.name}
+					</button>
 				{/if}
-				<div class="actions">
-					<button onclick={startEditing}>edit</button>
-					<button onclick={handleDeleteCollection} class="danger">delete</button>
-				</div>
-			{/if}
-		</header>
+			</h1>
+			<div class="header-controls">
+				<select bind:value={sortBy}>
+					<option value="manual">manual</option>
+					<option value="dateAddedNewest">added (new)</option>
+					<option value="dateAddedOldest">added (old)</option>
+					<option value="dateModifiedNewest">modified (new)</option>
+					<option value="dateModifiedOldest">modified (old)</option>
+					<option value="titleAsc">title (a-z)</option>
+					<option value="titleDesc">title (z-a)</option>
+				</select>
+			</div>
+		</div>
 
 		<div class="input-wrapper">
 			<ItemInput {collectionId} />
@@ -121,24 +158,51 @@
 		{:else if items.data?.length === 0}
 			<p class="status-text">no items in this collection yet.</p>
 		{:else}
-			<ItemGrid items={items.data ?? []} {collectionId} onReorder={handleReorder} />
+			<ItemGrid
+				items={items.data ?? []}
+				{collectionId}
+				onReorder={sortBy === 'manual' ? handleReorder : undefined}
+				onRetryScreenshot={handleRetryScreenshot}
+				onDelete={handleDeleteItem}
+			/>
 		{/if}
 	</div>
 {/if}
 
 <style>
-	/* Uses global .form, .actions, .status-text styles from app.css */
-	header {
-		margin-bottom: 2rem;
-	}
-	.description {
-		color: var(--txt-3);
-		margin: 0.5rem 0;
-	}
-	.actions {
-		margin-top: 1rem;
-	}
+	/* Uses global .page-header, .status-text styles from app.css */
+
 	.input-wrapper {
 		margin-bottom: 1rem;
+	}
+
+	.header-controls {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.page-header h1 {
+		margin: 0;
+		padding: 0;
+		font-size: inherit;
+		font-weight: inherit;
+	}
+
+	.title-button {
+		all: unset;
+	}
+
+	.title-button:hover,
+	.title-button:focus {
+		color: var(--txt-3);
+	}
+
+	.title-input {
+		all: unset;
+		border: 1px solid var(--border);
+		padding: 0.25rem 0.5rem;
+		width: 100%;
+		max-width: 600px;
 	}
 </style>

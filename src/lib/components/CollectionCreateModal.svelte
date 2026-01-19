@@ -11,7 +11,6 @@
 	const client = useConvexClient();
 
 	let name = $state('');
-	let description = $state('');
 	let isCreating = $state(false);
 
 	async function handleCreate() {
@@ -20,8 +19,7 @@
 		isCreating = true;
 		try {
 			await client.mutation(api.collections.create, {
-				name: name.trim(),
-				description: description.trim() || undefined
+				name: name.trim()
 			});
 			onClose();
 		} finally {
@@ -54,17 +52,9 @@
 >
 	<div class="modal">
 		<button class="close-btn" onclick={onClose}>×</button>
-		<h2>create new collection</h2>
+		<h2>new collection</h2>
 		<div class="form">
-			<label>
-				name
-				<input type="text" bind:value={name} placeholder="collection name" disabled={isCreating} />
-			</label>
-			<label>
-				description (optional)
-				<textarea bind:value={description} rows="3" placeholder="description" disabled={isCreating}
-				></textarea>
-			</label>
+			<input type="text" bind:value={name} placeholder="collection name" disabled={isCreating} />
 			<div class="actions">
 				<button onclick={handleCreate} disabled={isCreating || !name.trim()}>create</button>
 				<button onclick={onClose} disabled={isCreating}>cancel</button>

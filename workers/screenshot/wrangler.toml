@@ -1,0 +1,32 @@
+name = "screenshot-worker"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Browser Rendering binding
+[browser]
+binding = "BROWSER"
+
+# R2 bucket binding - update bucket_name with your actual bucket name
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "re-collect"
+
+[vars]
+# Set API_KEY in Cloudflare dashboard as a secret
+# wrangler secret put API_KEY
+
+[observability]
+enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1

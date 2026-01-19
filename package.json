@@ -20,6 +20,7 @@
 		"@eslint/compat": "^1.4.0",
 		"@eslint/js": "^9.39.1",
 		"@sveltejs/adapter-auto": "^7.0.0",
+		"@sveltejs/adapter-cloudflare": "^7.2.5",
 		"@sveltejs/kit": "^2.49.1",
 		"@sveltejs/vite-plugin-svelte": "^6.2.1",
 		"@types/node": "^22",
@@ -38,10 +39,13 @@
 		"typescript-eslint": "^8.48.1",
 		"vite": "^7.2.6",
 		"vitest": "^4.0.15",
-		"vitest-browser-svelte": "^2.0.1"
+		"vitest-browser-svelte": "^2.0.1",
+		"wrangler": "^4.59.2"
 	},
 	"dependencies": {
 		"@convex-dev/r2": "^0.8.1",
+		"@fontsource/dm-mono": "^5.2.7",
+		"@fontsource/dm-sans": "^5.2.8",
 		"convex": "^1.31.2",
 		"convex-svelte": "^0.0.12",
 		"fractional-indexing": "^3.2.0"

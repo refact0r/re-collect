@@ -33,19 +33,25 @@
 	{:else}
 		<div class="list">
 			{#each collections.data ?? [] as collection (collection._id)}
-				<div class="collection-card">
-					<a href="/collections/{collection._id}" class="collection-link">
+				<a href="/collections/{collection._id}" class="collection-card">
+					<div class="collection-info">
 						<h3>{collection.name}</h3>
-						{#if collection.description}
-							<p class="description">{collection.description}</p>
-						{/if}
 						<p class="count">
-						{collection.itemCount}
-						{collection.itemCount === 1 ? 'item' : 'items'}
-					</p>
-					</a>
-					<button class="link" onclick={() => handleDelete(collection._id)}>delete</button>
-				</div>
+							{collection.itemCount}
+							{collection.itemCount === 1 ? 'item' : 'items'}
+						</p>
+					</div>
+					<button
+						class="danger"
+						onclick={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							handleDelete(collection._id);
+						}}
+					>
+						delete
+					</button>
+				</a>
 			{/each}
 		</div>
 	{/if}
@@ -68,21 +74,25 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
-	}
-	.collection-link {
+		gap: 1rem;
 		text-decoration: none;
+		color: inherit;
+	}
+	.collection-card:hover:not(:has(button:hover)) {
+		background-color: var(--bg-2);
+	}
+	.collection-card button {
+		flex-shrink: 0;
+	}
+	.collection-info {
 		flex: 1;
 	}
-	.collection-link h3 {
+	.collection-info h3 {
 		margin: 0;
-	}
-	.description {
-		color: var(--txt-3);
-		margin: 0.25rem 0;
 	}
 	.count {
 		font-size: 0.875rem;
 		color: var(--txt-3);
-		margin: 0;
+		margin: 0.25rem 0 0 0;
 	}
 </style>
