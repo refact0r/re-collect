@@ -131,15 +131,15 @@
 				{item.data.type === 'url' ? 'url' : 'source url'}
 				<div class="url-input-row">
 					<input type="url" bind:value={url} />
-					<button
-						type="button"
+					<a
+						href={url}
+						target="_blank"
+						rel="noopener noreferrer"
 						class="open-url"
-						onclick={() => window.open(url, '_blank')}
-						disabled={!url}
-						title="open url"
+						aria-label="open url"
 					>
 						↗
-					</button>
+					</a>
 				</div>
 			</label>
 
@@ -313,6 +313,16 @@
 	.open-url {
 		padding: 0.5rem 0.75rem;
 		flex-shrink: 0;
+		background: var(--bg-2);
+		border: 1px solid var(--border);
+		text-decoration: none;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.open-url:hover {
+		background: var(--bg-3);
 	}
 	.actions {
 		margin-top: auto;

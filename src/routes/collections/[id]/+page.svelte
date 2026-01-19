@@ -63,6 +63,11 @@
 		await client.mutation(api.screenshots.retryScreenshot, { itemId });
 	}
 
+	// Delete handler
+	async function handleDeleteItem(itemId: Id<'items'>) {
+		await client.mutation(api.items.remove, { id: itemId });
+	}
+
 	let isEditing = $state(false);
 	let editName = $state('');
 	let inputElement: HTMLInputElement | undefined = $state();
@@ -158,6 +163,7 @@
 				{collectionId}
 				onReorder={sortBy === 'manual' ? handleReorder : undefined}
 				onRetryScreenshot={handleRetryScreenshot}
+				onDelete={handleDeleteItem}
 			/>
 		{/if}
 	</div>

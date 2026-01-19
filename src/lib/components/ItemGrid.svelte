@@ -24,9 +24,10 @@
 		collectionId?: Id<'collections'>;
 		onReorder?: (itemId: Id<'items'>, newPosition: string) => void;
 		onRetryScreenshot?: (itemId: Id<'items'>) => void;
+		onDelete?: (itemId: Id<'items'>) => void;
 	}
 
-	let { items, collectionId, onReorder, onRetryScreenshot }: Props = $props();
+	let { items, collectionId, onReorder, onRetryScreenshot, onDelete }: Props = $props();
 
 	const isDraggable = $derived(!!collectionId && !!onReorder);
 
@@ -39,11 +40,8 @@
 		imageCache.cleanup(currentIds);
 
 		for (const item of items) {
-			// Cache image URLs for image items and URL items with completed screenshots
-			const hasImage =
-				(item.type === 'image' || (item.type === 'url' && item.screenshotStatus === 'completed')) &&
-				item.imageUrl;
-			if (hasImage && !imageCache.get(item._id)) {
+			// Cache image URLs for all items that display as images
+			if (shouldDisplayAsImage(item) && !imageCache.get(item._id)) {
 				imageCache.set(item._id, item.imageUrl!);
 			}
 		}
@@ -81,10 +79,18 @@
 			: (containerWidth - (columnCount - MIN_COLS) * GAP) / columnCount
 	);
 
+	function shouldDisplayAsImage(item: Item, overrideStatus?: Item['screenshotStatus']): boolean {
+		const status = overrideStatus !== undefined ? overrideStatus : item.screenshotStatus;
+		return (
+			(item.type === 'image' || (item.type === 'url' && status === 'completed')) && !!item.imageUrl
+		);
+	}
+
 	function estimateHeight(item: Item): number {
 		const titleHeight = item.title ? TITLE_HEIGHT : 0;
 
-		if (item.type === 'image') {
+		// All items with images display the same way
+		if (shouldDisplayAsImage(item)) {
 			if (item.imageWidth && item.imageHeight) {
 				const imageHeight = columnWidth * (item.imageHeight / item.imageWidth);
 				return imageHeight + CARD_CHROME + titleHeight;
@@ -92,13 +98,15 @@
 			return columnWidth * IMAGE_FALLBACK_ASPECT + CARD_CHROME + titleHeight;
 		}
 
-		// URL items with completed screenshots display like images
-		if (item.type === 'url' && item.screenshotStatus === 'completed') {
-			if (item.imageWidth && item.imageHeight) {
-				const imageHeight = columnWidth * (item.imageHeight / item.imageWidth);
-				return imageHeight + CARD_CHROME + titleHeight;
-			}
-			return columnWidth * IMAGE_FALLBACK_ASPECT + CARD_CHROME + titleHeight;
+		// URL items in pending/processing/failed state use screenshot aspect ratio (1440x900)
+		if (
+			item.type === 'url' &&
+			(item.screenshotStatus === 'pending' ||
+				item.screenshotStatus === 'processing' ||
+				item.screenshotStatus === 'failed')
+		) {
+			const screenshotHeight = columnWidth * (900 / 1440);
+			return screenshotHeight + CARD_CHROME + titleHeight;
 		}
 
 		if (item.type === 'url' || item.type === 'text') {
@@ -444,24 +452,16 @@
 					{@const isDragging = draggedItem?._id === realItem._id}
 					<div class="card-wrapper" class:dragging={isDragging}>
 						<a href={getItemUrl(realItem._id)} class="card">
-							{#if realItem.type === 'image' && realItem.imageUrl}
+							{#if shouldDisplayAsImage(realItem)}
 								<img
 									src={imageCache.get(realItem._id) ?? realItem.imageUrl}
-									alt={realItem.title ?? 'image'}
+									alt={realItem.title ?? realItem.url ?? 'image'}
 									width={realItem.imageWidth}
 									height={realItem.imageHeight}
 									decoding="async"
 								/>
 							{:else if realItem.type === 'url'}
-								{#if realItem.screenshotStatus === 'completed' && realItem.imageUrl}
-									<img
-										src={imageCache.get(realItem._id) ?? realItem.imageUrl}
-										alt={realItem.title ?? realItem.url ?? 'screenshot'}
-										width={realItem.imageWidth}
-										height={realItem.imageHeight}
-										decoding="async"
-									/>
-								{:else if realItem.screenshotStatus === 'pending' || realItem.screenshotStatus === 'processing'}
+								{#if realItem.screenshotStatus === 'pending' || realItem.screenshotStatus === 'processing'}
 									<div class="url-card url-loading">
 										<div class="loading-icon">
 											<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -488,19 +488,34 @@
 												>
 											{/if}
 										</div>
-										{#if onRetryScreenshot}
-											<button
-												class="retry-button"
-												title="Retry screenshot"
-												onclick={(e) => {
-													e.preventDefault();
-													e.stopPropagation();
-													onRetryScreenshot(realItem._id);
-												}}
-											>
-												Retry
-											</button>
-										{/if}
+										<div class="failed-actions">
+											{#if onRetryScreenshot}
+												<button
+													class="retry-button"
+													title="Retry screenshot"
+													onclick={(e) => {
+														e.preventDefault();
+														e.stopPropagation();
+														onRetryScreenshot(realItem._id);
+													}}
+												>
+													retry
+												</button>
+											{/if}
+											{#if onDelete}
+												<button
+													class="delete-button"
+													title="Delete item"
+													onclick={(e) => {
+														e.preventDefault();
+														e.stopPropagation();
+														onDelete(realItem._id);
+													}}
+												>
+													delete
+												</button>
+											{/if}
+										</div>
 									</div>
 								{:else}
 									<div class="url-card">
@@ -538,28 +553,18 @@
 		style:width="{columnWidth}px"
 	>
 		<div class="card">
-			{#if draggedItem.type === 'image' && draggedItem.imageUrl}
+			{#if shouldDisplayAsImage(draggedItem)}
 				<img
 					src={imageCache.get(draggedItem._id) ?? draggedItem.imageUrl}
-					alt={draggedItem.title ?? 'image'}
+					alt={draggedItem.title ?? draggedItem.url ?? 'image'}
 					width={draggedItem.imageWidth}
 					height={draggedItem.imageHeight}
 					decoding="async"
 				/>
 			{:else if draggedItem.type === 'url'}
-				{#if draggedItem.screenshotStatus === 'completed' && draggedItem.imageUrl}
-					<img
-						src={imageCache.get(draggedItem._id) ?? draggedItem.imageUrl}
-						alt={draggedItem.title ?? draggedItem.url ?? 'screenshot'}
-						width={draggedItem.imageWidth}
-						height={draggedItem.imageHeight}
-						decoding="async"
-					/>
-				{:else}
-					<div class="url-card">
-						<span class="url-text">{draggedItem.url}</span>
-					</div>
-				{/if}
+				<div class="url-card">
+					<span class="url-text">{draggedItem.url}</span>
+				</div>
 			{:else if draggedItem.type === 'text'}
 				<div class="text-card">
 					<p>{draggedItem.content}</p>
@@ -614,14 +619,10 @@
 		height: auto;
 	}
 
-	.url-card,
 	.text-card {
 		padding: 0.5rem;
 		background: var(--bg-2);
 		word-break: break-all;
-	}
-
-	.text-card {
 		overflow: auto;
 	}
 
@@ -632,7 +633,7 @@
 	}
 
 	.url-text {
-		color: var(--txt-2);
+		color: var(--txt-3);
 	}
 
 	/* Loading state for URL items */
@@ -641,18 +642,27 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 0.5rem;
-		min-height: 120px;
+		aspect-ratio: 1440 / 900;
 		justify-content: center;
 	}
 
-	.loading-icon {
+	.loading-icon,
+	.failed-icon {
 		width: 2rem;
 		height: 2rem;
-		color: var(--txt-3);
+	}
+
+	.loading-icon {
+		color: var(--bg-3);
 		animation: pulse 2s ease-in-out infinite;
 	}
 
-	.loading-icon svg {
+	.failed-icon {
+		color: var(--txt-3);
+	}
+
+	.loading-icon svg,
+	.failed-icon svg {
 		width: 100%;
 		height: 100%;
 	}
@@ -660,10 +670,10 @@
 	@keyframes pulse {
 		0%,
 		100% {
-			opacity: 0.4;
+			color: var(--bg-3);
 		}
 		50% {
-			opacity: 1;
+			color: var(--txt-3);
 		}
 	}
 
@@ -672,7 +682,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
-		min-height: 120px;
+		aspect-ratio: 1440 / 900;
 	}
 
 	.failed-content {
@@ -684,37 +694,27 @@
 		justify-content: center;
 	}
 
-	.failed-icon {
-		width: 2rem;
-		height: 2rem;
-		color: var(--txt-3);
+	.failed-actions {
+		display: flex;
+		gap: 0.5rem;
 	}
 
-	.failed-icon svg {
-		width: 100%;
-		height: 100%;
-	}
-
-	.error-text {
-		font-size: 0.75rem;
-		color: var(--txt-3);
-	}
-
-	.retry-button {
+	.retry-button,
+	.delete-button {
+		flex: 1;
 		padding: 0.25rem 0.5rem;
-		font-size: 0.75rem;
-		background: var(--bg-1);
-		border: 1px solid var(--border);
+		font-size: 0.875rem;
 		cursor: pointer;
 		color: var(--txt-2);
 	}
 
-	.retry-button:hover {
+	.retry-button:hover,
+	.delete-button:hover {
 		border-color: var(--txt-3);
 	}
 
 	.card-title {
-		padding: 0.25rem 0 0 0;
+		padding-top: 0.25rem;
 		font-size: 0.875rem;
 		overflow: hidden;
 		text-overflow: ellipsis;

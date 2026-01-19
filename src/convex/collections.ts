@@ -41,9 +41,15 @@ export const remove = mutation({
 		await deleteAllPositionsForCollection(ctx, args.id);
 
 		// Remove this collection from all items that reference it
-		const items = await ctx.db.query('items').collect();
-		for (const item of items) {
-			if (item.collections.includes(args.id)) {
+		// Use the junction table index to find only items in this collection
+		const positions = await ctx.db
+			.query('itemCollectionPositions')
+			.withIndex('by_collection', (q) => q.eq('collectionId', args.id))
+			.collect();
+
+		for (const position of positions) {
+			const item = await ctx.db.get(position.itemId);
+			if (item) {
 				await ctx.db.patch(item._id, {
 					collections: item.collections.filter((c) => c !== args.id)
 				});
@@ -75,11 +81,20 @@ export const listWithCounts = query({
 	args: {},
 	handler: async (ctx) => {
 		const collections = await ctx.db.query('collections').order('desc').collect();
-		const items = await ctx.db.query('items').collect();
+
+		const countsMap = new Map();
+
+		for (const collection of collections) {
+			const positions = await ctx.db
+				.query('itemCollectionPositions')
+				.withIndex('by_collection', (q) => q.eq('collectionId', collection._id))
+				.collect();
+			countsMap.set(collection._id, positions.length);
+		}
 
 		return collections.map((collection) => ({
 			...collection,
-			itemCount: items.filter((item) => item.collections.includes(collection._id)).length
+			itemCount: countsMap.get(collection._id) ?? 0
 		}));
 	}
 });
