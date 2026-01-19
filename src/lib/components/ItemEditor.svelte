@@ -3,6 +3,7 @@
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
+	import { imageCache } from '$lib/imageCache.svelte.js';
 
 	interface Props {
 		itemId: Id<'items'>;
@@ -52,6 +53,13 @@
 		}
 	});
 
+	// Cache image URL when available
+	$effect(() => {
+		if (item.data?.imageUrl && !imageCache.get(itemId)) {
+			imageCache.set(itemId, item.data.imageUrl);
+		}
+	});
+
 	async function handleSave() {
 		await client.mutation(api.items.update, {
 			id: itemId,
@@ -91,10 +99,13 @@
 		<!-- Content Preview -->
 		<div class="content-preview">
 			{#if item.data.type === 'image' && item.data.imageUrl}
-				<img src={item.data.imageUrl} alt={item.data.title ?? 'image'} />
+				<img src={imageCache.get(itemId) ?? item.data.imageUrl} alt={item.data.title ?? 'image'} />
 			{:else if item.data.type === 'url'}
 				{#if item.data.screenshotStatus === 'completed' && item.data.imageUrl}
-					<img src={item.data.imageUrl} alt={item.data.title ?? item.data.url ?? 'screenshot'} />
+					<img
+						src={imageCache.get(itemId) ?? item.data.imageUrl}
+						alt={item.data.title ?? item.data.url ?? 'screenshot'}
+					/>
 				{:else}
 					<div class="url-preview">
 						<p class="url-text">{url || item.data.url}</p>

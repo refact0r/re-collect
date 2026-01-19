@@ -52,12 +52,9 @@
 >
 	<div class="modal">
 		<button class="close-btn" onclick={onClose}>×</button>
-		<h2>create new collection</h2>
+		<h2>new collection</h2>
 		<div class="form">
-			<label>
-				name
-				<input type="text" bind:value={name} placeholder="collection name" disabled={isCreating} />
-			</label>
+			<input type="text" bind:value={name} placeholder="collection name" disabled={isCreating} />
 			<div class="actions">
 				<button onclick={handleCreate} disabled={isCreating || !name.trim()}>create</button>
 				<button onclick={onClose} disabled={isCreating}>cancel</button>

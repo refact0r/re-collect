@@ -231,7 +231,8 @@ button.link:hover {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	background: oklch(from var(--bg-1) l c h / 0.9);
+	background: oklch(from var(--bg-1) l c h / 0.5);
+	backdrop-filter: blur(5px);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -261,6 +262,10 @@ button.link:hover {
 	border: none;
 	font-size: 1.25rem;
 	padding: 0.5rem 1rem;
+	color: var(--txt-3);
+}
+.modal .close-btn:hover {
+	color: var(--txt-2);
 }
 
 /* ============================================

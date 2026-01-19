@@ -33,16 +33,25 @@
 	{:else}
 		<div class="list">
 			{#each collections.data ?? [] as collection (collection._id)}
-				<div class="collection-card">
-					<a href="/collections/{collection._id}" class="collection-link">
+				<a href="/collections/{collection._id}" class="collection-card">
+					<div class="collection-info">
 						<h3>{collection.name}</h3>
 						<p class="count">
 							{collection.itemCount}
 							{collection.itemCount === 1 ? 'item' : 'items'}
 						</p>
-					</a>
-					<button class="danger" onclick={() => handleDelete(collection._id)}>delete</button>
-				</div>
+					</div>
+					<button
+						class="danger"
+						onclick={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							handleDelete(collection._id);
+						}}
+					>
+						delete
+					</button>
+				</a>
 			{/each}
 		</div>
 	{/if}
@@ -66,15 +75,19 @@
 		justify-content: space-between;
 		align-items: flex-start;
 		gap: 1rem;
+		text-decoration: none;
+		color: inherit;
+	}
+	.collection-card:hover:not(:has(button:hover)) {
+		background-color: var(--bg-2);
 	}
 	.collection-card button {
 		flex-shrink: 0;
 	}
-	.collection-link {
-		text-decoration: none;
+	.collection-info {
 		flex: 1;
 	}
-	.collection-link h3 {
+	.collection-info h3 {
 		margin: 0;
 	}
 	.count {

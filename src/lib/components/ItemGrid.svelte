@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { SvelteMap } from 'svelte/reactivity';
 	import { generateKeyBetween } from 'fractional-indexing';
 	import { page } from '$app/state';
 	import type { Id } from '../../convex/_generated/dataModel.js';
+	import { imageCache } from '$lib/imageCache.svelte.js';
 
 	interface Item {
 		_id: Id<'items'>;
@@ -32,20 +32,19 @@
 
 	let containerElement: HTMLDivElement | undefined = $state();
 	let containerWidth = $state(0);
-	let urlCache = new SvelteMap<Id<'items'>, string>();
 
 	$effect(() => {
 		const currentIds = new Set(items.map((i) => i._id));
-		for (const id of urlCache.keys()) {
-			if (!currentIds.has(id)) urlCache.delete(id);
-		}
+		// Clean up cache for items that are no longer present
+		imageCache.cleanup(currentIds);
+
 		for (const item of items) {
 			// Cache image URLs for image items and URL items with completed screenshots
 			const hasImage =
 				(item.type === 'image' || (item.type === 'url' && item.screenshotStatus === 'completed')) &&
 				item.imageUrl;
-			if (hasImage && !urlCache.has(item._id)) {
-				urlCache.set(item._id, item.imageUrl!);
+			if (hasImage && !imageCache.get(item._id)) {
+				imageCache.set(item._id, item.imageUrl!);
 			}
 		}
 	});
@@ -447,7 +446,7 @@
 						<a href={getItemUrl(realItem._id)} class="card">
 							{#if realItem.type === 'image' && realItem.imageUrl}
 								<img
-									src={urlCache.get(realItem._id) ?? realItem.imageUrl}
+									src={imageCache.get(realItem._id) ?? realItem.imageUrl}
 									alt={realItem.title ?? 'image'}
 									width={realItem.imageWidth}
 									height={realItem.imageHeight}
@@ -456,7 +455,7 @@
 							{:else if realItem.type === 'url'}
 								{#if realItem.screenshotStatus === 'completed' && realItem.imageUrl}
 									<img
-										src={urlCache.get(realItem._id) ?? realItem.imageUrl}
+										src={imageCache.get(realItem._id) ?? realItem.imageUrl}
 										alt={realItem.title ?? realItem.url ?? 'screenshot'}
 										width={realItem.imageWidth}
 										height={realItem.imageHeight}
@@ -541,7 +540,7 @@
 		<div class="card">
 			{#if draggedItem.type === 'image' && draggedItem.imageUrl}
 				<img
-					src={urlCache.get(draggedItem._id) ?? draggedItem.imageUrl}
+					src={imageCache.get(draggedItem._id) ?? draggedItem.imageUrl}
 					alt={draggedItem.title ?? 'image'}
 					width={draggedItem.imageWidth}
 					height={draggedItem.imageHeight}
@@ -550,7 +549,7 @@
 			{:else if draggedItem.type === 'url'}
 				{#if draggedItem.screenshotStatus === 'completed' && draggedItem.imageUrl}
 					<img
-						src={urlCache.get(draggedItem._id) ?? draggedItem.imageUrl}
+						src={imageCache.get(draggedItem._id) ?? draggedItem.imageUrl}
 						alt={draggedItem.title ?? draggedItem.url ?? 'screenshot'}
 						width={draggedItem.imageWidth}
 						height={draggedItem.imageHeight}
