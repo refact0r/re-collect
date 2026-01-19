@@ -1,4 +1,3 @@
-import { SvelteMap } from 'svelte/reactivity';
 import type { Id } from '../convex/_generated/dataModel';
 
 interface CacheEntry {
@@ -10,9 +9,12 @@ interface CacheEntry {
  * Global in-memory cache for R2 image URLs.
  * Stores URLs with expiration timestamps to avoid unnecessary reloading.
  * URLs are cached for 24 hours (matching the R2 presigned URL expiration).
+ *
+ * Uses a regular Map (not SvelteMap) since the cache doesn't need to be reactive.
+ * Components check the cache when rendering, not when it changes.
  */
 class ImageCache {
-	private cache = new SvelteMap<Id<'items'>, CacheEntry>();
+	private cache = new Map<Id<'items'>, CacheEntry>();
 	private readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 	/**
@@ -71,3 +73,23 @@ class ImageCache {
 
 // Export a singleton instance
 export const imageCache = new ImageCache();
+
+/**
+ * Get an image URL with automatic caching.
+ * If the URL is already cached and valid, returns the cached version.
+ * Otherwise, caches the URL and returns it.
+ *
+ * This is the primary interface for accessing images - components should
+ * use this instead of directly accessing the cache.
+ */
+export function getImage(itemId: Id<'items'>, imageUrl: string | null | undefined): string | undefined {
+	if (!imageUrl) return undefined;
+
+	// Check cache first
+	const cached = imageCache.get(itemId);
+	if (cached) return cached;
+
+	// Not in cache - add it and return
+	imageCache.set(itemId, imageUrl);
+	return imageUrl;
+}

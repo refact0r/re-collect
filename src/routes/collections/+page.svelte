@@ -4,6 +4,7 @@
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import CollectionCreateModal from '$lib/components/CollectionCreateModal.svelte';
+	import { getImage } from '../../lib/imageCache.svelte.ts';
 
 	const client = useConvexClient();
 	const collections =
@@ -34,23 +35,42 @@
 		<div class="list">
 			{#each collections.data ?? [] as collection (collection._id)}
 				<a href="/collections/{collection._id}" class="collection-card">
-					<div class="collection-info">
-						<h3>{collection.name}</h3>
-						<p class="count">
-							{collection.itemCount}
-							{collection.itemCount === 1 ? 'item' : 'items'}
-						</p>
+					<div class="info-row">
+						<div class="collection-info">
+							<h3>{collection.name}</h3>
+							<p class="count">
+								{collection.itemCount}
+								{collection.itemCount === 1 ? 'item' : 'items'}
+							</p>
+						</div>
+						<button
+							class="danger"
+							onclick={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								handleDelete(collection._id);
+							}}
+						>
+							delete
+						</button>
 					</div>
-					<button
-						class="danger"
-						onclick={(e) => {
-							e.preventDefault();
-							e.stopPropagation();
-							handleDelete(collection._id);
-						}}
-					>
-						delete
-					</button>
+					{#if collection.previews?.length > 0}
+						<div class="preview-row">
+							{#each collection.previews as preview (preview._id)}
+								<div class="thumb-wrapper">
+									<img
+										src={getImage(preview._id, preview.imageUrl)}
+										alt=""
+										class="preview-thumb"
+										loading="lazy"
+									/>
+								</div>
+							{/each}
+							{#each Array(Math.max(0, 4 - (collection.previews?.length || 0))) as _, i (i)}
+								<div class="thumb-wrapper placeholder"></div>
+							{/each}
+						</div>
+					{/if}
 				</a>
 			{/each}
 		</div>
@@ -64,28 +84,26 @@
 <style>
 	/* Uses global .page-header, .card, button.link styles from app.css */
 	.list {
-		display: flex;
-		flex-direction: column;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
 		gap: 1rem;
 	}
 	.collection-card {
 		border: 1px solid var(--border);
 		padding: 1rem;
 		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
+		flex-direction: column;
 		gap: 1rem;
 		text-decoration: none;
-		color: inherit;
 	}
 	.collection-card:hover:not(:has(button:hover)) {
 		background-color: var(--bg-2);
 	}
-	.collection-card button {
-		flex-shrink: 0;
-	}
-	.collection-info {
-		flex: 1;
+	.info-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1rem;
 	}
 	.collection-info h3 {
 		margin: 0;
@@ -94,5 +112,25 @@
 		font-size: 0.875rem;
 		color: var(--txt-3);
 		margin: 0.25rem 0 0 0;
+	}
+	.preview-row {
+		display: flex;
+		gap: 0.5rem;
+		overflow: hidden;
+	}
+	.thumb-wrapper {
+		display: flex;
+		aspect-ratio: 1 / 1;
+		flex: 1;
+	}
+	.thumb-wrapper.placeholder {
+		border: 1px solid var(--border);
+	}
+	.preview-thumb {
+		max-width: 100%;
+		width: 100%;
+		object-fit: cover;
+		background: var(--bg-2);
+		flex-shrink: 0;
 	}
 </style>

@@ -2,7 +2,7 @@
 	import { generateKeyBetween } from 'fractional-indexing';
 	import { page } from '$app/state';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { imageCache } from '$lib/imageCache.svelte.js';
+	import { getImage } from '$lib/imageCache.svelte.js';
 
 	interface Item {
 		_id: Id<'items'>;
@@ -33,19 +33,6 @@
 
 	let containerElement: HTMLDivElement | undefined = $state();
 	let containerWidth = $state(0);
-
-	$effect(() => {
-		const currentIds = new Set(items.map((i) => i._id));
-		// Clean up cache for items that are no longer present
-		imageCache.cleanup(currentIds);
-
-		for (const item of items) {
-			// Cache image URLs for all items that display as images
-			if (shouldDisplayAsImage(item) && !imageCache.get(item._id)) {
-				imageCache.set(item._id, item.imageUrl!);
-			}
-		}
-	});
 
 	// Layout constants
 	const GAP = 16;
@@ -454,7 +441,7 @@
 						<a href={getItemUrl(realItem._id)} class="card">
 							{#if shouldDisplayAsImage(realItem)}
 								<img
-									src={imageCache.get(realItem._id) ?? realItem.imageUrl}
+									src={getImage(realItem._id, realItem.imageUrl)}
 									alt={realItem.title ?? realItem.url ?? 'image'}
 									width={realItem.imageWidth}
 									height={realItem.imageHeight}
@@ -555,7 +542,7 @@
 		<div class="card">
 			{#if shouldDisplayAsImage(draggedItem)}
 				<img
-					src={imageCache.get(draggedItem._id) ?? draggedItem.imageUrl}
+					src={getImage(draggedItem._id, draggedItem.imageUrl)}
 					alt={draggedItem.title ?? draggedItem.url ?? 'image'}
 					width={draggedItem.imageWidth}
 					height={draggedItem.imageHeight}
