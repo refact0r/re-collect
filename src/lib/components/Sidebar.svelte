@@ -146,6 +146,7 @@
 	}
 
 	.collapsed-link {
+		width: 2rem;
 		padding: 0.5rem;
 		font-weight: 500;
 		justify-content: center;
