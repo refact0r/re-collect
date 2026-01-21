@@ -10,6 +10,15 @@ import {
 	getPositionsByCollection
 } from './itemCollectionPositions';
 
+// Build combined search text from title, description, and URL
+function buildSearchText(fields: {
+	title?: string;
+	description?: string;
+	url?: string;
+}): string {
+	return [fields.title, fields.description, fields.url].filter(Boolean).join(' ');
+}
+
 // Helper to get image URL from either R2 (imageKey) or legacy Convex storage (imageId)
 export async function getImageUrl(ctx: QueryCtx, item: Doc<'items'>): Promise<string | null> {
 	if (item.imageKey) {
@@ -55,6 +64,11 @@ export const add = mutation({
 			imageWidth: args.imageWidth,
 			imageHeight: args.imageHeight,
 			...screenshotFields,
+			searchText: buildSearchText({
+				title: args.title,
+				description: args.description,
+				url: args.url
+			}),
 			collections,
 			dateAdded: now,
 			dateModified: now
@@ -112,9 +126,18 @@ export const update = mutation({
 			}
 		}
 
+		const newTitle = args.title ?? existing.title;
+		const newDescription = args.description ?? existing.description;
+		const newUrl = args.url ?? existing.url;
+
 		await ctx.db.patch(id, {
 			...updates,
 			...(collections !== undefined && { collections }),
+			searchText: buildSearchText({
+				title: newTitle,
+				description: newDescription,
+				url: newUrl
+			}),
 			dateModified: Date.now()
 		});
 	}
@@ -314,7 +337,7 @@ export const search = query({
 		}
 		const results = await ctx.db
 			.query('items')
-			.withSearchIndex('search_items', (q) => q.search('title', args.query))
+			.withSearchIndex('search_items', (q) => q.search('searchText', args.query))
 			.collect();
 
 		return Promise.all(

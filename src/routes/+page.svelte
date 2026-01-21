@@ -23,10 +23,6 @@
 	async function handleRetryScreenshot(itemId: Id<'items'>) {
 		await client.mutation(api.screenshots.retryScreenshot, { itemId });
 	}
-
-	async function handleDeleteItem(itemId: Id<'items'>) {
-		await client.mutation(api.items.remove, { id: itemId });
-	}
 </script>
 
 <div class="container">
@@ -41,7 +37,7 @@
 	{:else if items.data?.length === 0}
 		<p>no items yet. add your first one above!</p>
 	{:else}
-		<ItemGrid items={items.data ?? []} onRetryScreenshot={handleRetryScreenshot} onDelete={handleDeleteItem} />
+		<ItemGrid items={items.data ?? []} onRetryScreenshot={handleRetryScreenshot} />
 	{/if}
 </div>
 

@@ -67,11 +67,6 @@
 	async function handleRetryScreenshot(itemId: Id<'items'>) {
 		await client.mutation(api.screenshots.retryScreenshot, { itemId });
 	}
-
-	// Delete handler
-	async function handleDeleteItem(itemId: Id<'items'>) {
-		await client.mutation(api.items.remove, { id: itemId });
-	}
 </script>
 
 <div class="container">
@@ -84,7 +79,7 @@
 			type="text"
 			bind:value={searchInput}
 			oninput={handleSearchInput}
-			placeholder="search items by title..."
+			placeholder="search items..."
 			autofocus
 		/>
 	</div>
@@ -102,7 +97,10 @@
 			{searchResults.data?.length}
 			{searchResults.data?.length === 1 ? 'result' : 'results'}
 		</p>
-		<ItemGrid items={searchResults.data ?? []} onRetryScreenshot={handleRetryScreenshot} onDelete={handleDeleteItem} />
+		<ItemGrid
+			items={searchResults.data ?? []}
+			onRetryScreenshot={handleRetryScreenshot}
+		/>
 	{/if}
 </div>
 

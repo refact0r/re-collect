@@ -41,6 +41,17 @@
 		url.searchParams.delete('item');
 		goto(url.pathname + url.search, { replaceState: false });
 	}
+
+	let searchQuery = $state('');
+
+	function handleSearch(e: Event) {
+		e.preventDefault();
+		if (searchQuery.trim()) {
+			goto(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+		} else {
+			goto('/search');
+		}
+	}
 </script>
 
 <svelte:head>
@@ -49,9 +60,14 @@
 
 <header>
 	<nav>
-		<a href="/">re-collect</a>
-		<a href="/collections">collections</a>
-		<a href="/search">search</a>
+		<div class="nav-links">
+			<a href="/">re-collect</a>
+			<a href="/collections">collections</a>
+			<a href="/search">search</a>
+		</div>
+		<form class="nav-search" onsubmit={handleSearch}>
+			<input type="text" bind:value={searchQuery} placeholder="search..." />
+		</form>
 	</nav>
 </header>
 
@@ -68,16 +84,30 @@
 
 <style>
 	header {
-		padding: 1rem 1.5rem;
+		padding: 0.5rem 1.5rem;
 		border-bottom: 1px solid var(--border);
 		flex-shrink: 0;
 	}
 	nav {
 		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1rem;
+	}
+	.nav-links {
+		display: flex;
 		gap: 1rem;
 	}
 	nav a {
 		text-decoration: none;
+	}
+	.nav-search {
+		display: flex;
+		margin: auto;
+	}
+	.nav-search input {
+		width: 20rem;
+		padding: 0.25rem 0.5rem;
 	}
 	.layout {
 		display: flex;
