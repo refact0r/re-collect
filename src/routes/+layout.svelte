@@ -63,7 +63,6 @@
 		<div class="nav-links">
 			<a href="/">re-collect</a>
 			<a href="/collections">collections</a>
-			<a href="/search">search</a>
 		</div>
 		<form class="nav-search" onsubmit={handleSearch}>
 			<input type="text" bind:value={searchQuery} placeholder="search..." />
@@ -84,7 +83,7 @@
 
 <style>
 	header {
-		padding: 0.5rem 1.5rem;
+		padding: 0.5rem 1rem 0.5rem 1.5rem;
 		border-bottom: 1px solid var(--border);
 		flex-shrink: 0;
 	}
@@ -103,7 +102,7 @@
 	}
 	.nav-search {
 		display: flex;
-		margin: auto;
+		/* margin: auto; */
 	}
 	.nav-search input {
 		width: 20rem;
