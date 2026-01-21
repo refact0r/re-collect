@@ -44,11 +44,7 @@
 			{searchResults.data?.length}
 			{searchResults.data?.length === 1 ? 'result' : 'results'}
 		</p>
-		<ItemGrid
-			items={searchResults.data ?? []}
-			onRetryScreenshot={handleRetryScreenshot}
-			onDelete={handleDeleteItem}
-		/>
+		<ItemGrid items={searchResults.data ?? []} onRetryScreenshot={handleRetryScreenshot} />
 	{/if}
 </div>
 
