@@ -42,16 +42,39 @@
 		goto(url.pathname + url.search, { replaceState: false });
 	}
 
-	let searchQuery = $state('');
+	let searchInputRef: HTMLInputElement;
+	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-	function handleSearch(e: Event) {
-		e.preventDefault();
-		if (searchQuery.trim()) {
-			goto(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-		} else {
-			goto('/search');
+	const searchQuery = $derived(page.url.searchParams.get('q') ?? '');
+
+	function handleSearchFocus() {
+		if (page.url.pathname !== '/search') {
+			goto('/search', { keepFocus: true });
 		}
 	}
+
+	function handleSearchInput(e: Event) {
+		const value = (e.target as HTMLInputElement).value;
+		if (page.url.pathname === '/search') {
+			if (debounceTimer) clearTimeout(debounceTimer);
+			debounceTimer = setTimeout(() => {
+				const params = new URLSearchParams(page.url.searchParams);
+				if (value.trim()) {
+					params.set('q', value);
+				} else {
+					params.delete('q');
+				}
+				params.delete('item');
+				goto(`/search?${params}`, { replaceState: true, keepFocus: true });
+			}, 300);
+		}
+	}
+
+	$effect(() => {
+		if (page.url.pathname === '/search' && searchInputRef) {
+			searchInputRef.focus();
+		}
+	});
 </script>
 
 <svelte:head>
@@ -64,9 +87,16 @@
 			<a href="/">re-collect</a>
 			<a href="/collections">collections</a>
 		</div>
-		<form class="nav-search" onsubmit={handleSearch}>
-			<input type="text" bind:value={searchQuery} placeholder="search..." />
-		</form>
+		<div class="nav-search">
+			<input
+				type="text"
+				bind:this={searchInputRef}
+				value={searchQuery}
+				onfocus={handleSearchFocus}
+				oninput={handleSearchInput}
+				placeholder="search..."
+			/>
+		</div>
 	</nav>
 </header>
 
