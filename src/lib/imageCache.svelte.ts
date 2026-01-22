@@ -81,15 +81,20 @@ export const imageCache = new ImageCache();
  *
  * This is the primary interface for accessing images - components should
  * use this instead of directly accessing the cache.
+ *
+ * Note: R2 presigned URLs have unique signatures each time they're generated,
+ * so we cache by itemId alone (not comparing URLs). This prevents unnecessary
+ * reloads when navigating between pages that fetch item data independently.
  */
 export function getImage(itemId: Id<'items'>, imageUrl: string | null | undefined): string | undefined {
 	if (!imageUrl) return undefined;
 
-	// Check cache first
+	// Check cache first - if we have a valid (non-expired) URL for this item, use it
+	// This prevents reloads when different queries return different presigned URLs
 	const cached = imageCache.get(itemId);
 	if (cached) return cached;
 
-	// Not in cache - add it and return
+	// Not in cache or expired - cache the new URL and return it
 	imageCache.set(itemId, imageUrl);
 	return imageUrl;
 }

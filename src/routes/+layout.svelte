@@ -2,7 +2,7 @@
 	import '@fontsource/dm-sans';
 	import { PUBLIC_CONVEX_URL } from '$env/static/public';
 	import { setupConvex, useQuery } from 'convex-svelte';
-	import { setContext } from 'svelte';
+	import { setContext, onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import favicon from '$lib/assets/favicon.svg';
@@ -44,6 +44,10 @@
 
 	let searchInputRef: HTMLInputElement;
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+	onDestroy(() => {
+		if (debounceTimer) clearTimeout(debounceTimer);
+	});
 
 	const searchQuery = $derived(page.url.searchParams.get('q') ?? '');
 

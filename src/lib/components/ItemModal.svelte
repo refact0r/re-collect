@@ -53,6 +53,20 @@
 	}
 
 	async function handleKeydown(event: KeyboardEvent) {
+		// Don't intercept arrow keys when typing in input fields
+		const target = event.target as HTMLElement;
+		if (
+			event.key === 'ArrowLeft' || event.key === 'ArrowRight'
+		) {
+			if (
+				target instanceof HTMLInputElement ||
+				target instanceof HTMLTextAreaElement ||
+				target.isContentEditable
+			) {
+				return;
+			}
+		}
+
 		if (event.key === 'Escape') {
 			handleClose();
 			return;
@@ -86,7 +100,6 @@
 <div
 	class="backdrop"
 	onclick={handleBackdropClick}
-	onkeydown={handleKeydown}
 	role="dialog"
 	aria-modal="true"
 	tabindex="-1"
