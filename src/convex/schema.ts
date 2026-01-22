@@ -23,6 +23,7 @@ export default defineSchema({
 		),
 		screenshotError: v.optional(v.string()),
 		screenshotRetries: v.optional(v.number()), // Track retry attempts
+		searchText: v.optional(v.string()), // Combined field for full-text search (title + description + url)
 		collections: v.array(v.id('collections')),
 		dateAdded: v.number(),
 		dateModified: v.number()
@@ -30,7 +31,7 @@ export default defineSchema({
 		.index('by_dateAdded', ['dateAdded'])
 		.index('by_dateModified', ['dateModified'])
 		.searchIndex('search_items', {
-			searchField: 'title',
+			searchField: 'searchText',
 			filterFields: ['collections']
 		}),
 

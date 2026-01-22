@@ -1,8 +1,12 @@
 <script lang="ts">
 	import { generateKeyBetween } from 'fractional-indexing';
 	import { page } from '$app/state';
+	import { useConvexClient } from 'convex-svelte';
+	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { getImage } from '$lib/imageCache.svelte.js';
+
+	const client = useConvexClient();
 
 	interface Item {
 		_id: Id<'items'>;
@@ -24,10 +28,13 @@
 		collectionId?: Id<'collections'>;
 		onReorder?: (itemId: Id<'items'>, newPosition: string) => void;
 		onRetryScreenshot?: (itemId: Id<'items'>) => void;
-		onDelete?: (itemId: Id<'items'>) => void;
 	}
 
-	let { items, collectionId, onReorder, onRetryScreenshot, onDelete }: Props = $props();
+	let { items, collectionId, onReorder, onRetryScreenshot }: Props = $props();
+
+	async function handleDeleteItem(itemId: Id<'items'>) {
+		await client.mutation(api.items.remove, { id: itemId });
+	}
 
 	const isDraggable = $derived(!!collectionId && !!onReorder);
 
@@ -489,19 +496,17 @@
 													retry
 												</button>
 											{/if}
-											{#if onDelete}
-												<button
-													class="delete-button"
-													title="Delete item"
-													onclick={(e) => {
-														e.preventDefault();
-														e.stopPropagation();
-														onDelete(realItem._id);
-													}}
-												>
-													delete
-												</button>
-											{/if}
+											<button
+												class="delete-button"
+												title="Delete item"
+												onclick={(e) => {
+													e.preventDefault();
+													e.stopPropagation();
+													handleDeleteItem(realItem._id);
+												}}
+											>
+												delete
+											</button>
 										</div>
 									</div>
 								{:else}
