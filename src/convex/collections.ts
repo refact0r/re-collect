@@ -97,11 +97,11 @@ async function getCollectionPreviews(
 	const itemPromises = positions.map((position) => ctx.db.get(position.itemId));
 	const allItems = await Promise.all(itemPromises);
 
-	const items = allItems.filter((item) => {
+	const items = allItems.filter((item): item is NonNullable<typeof item> => {
 		if (!item) return false;
 
 		// Include if: image type with image data, OR url type with completed screenshot
-		const hasImage = item.type === 'image' && (item.imageKey || item.imageId);
+		const hasImage = item.type === 'image' && !!(item.imageKey || item.imageId);
 		const hasScreenshot = item.type === 'url' && item.screenshotStatus === 'completed';
 
 		return hasImage || hasScreenshot;

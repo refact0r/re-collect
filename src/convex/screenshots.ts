@@ -63,8 +63,8 @@ export const generateScreenshot = internalAction({
 		itemId: v.id('items'),
 		url: v.string()
 	},
-	handler: async (ctx, args) => {
-		return ctx.runAction(internal.screenshots.generateScreenshotInternal, {
+	handler: async (ctx, args): Promise<void> => {
+		await ctx.runAction(internal.screenshots.generateScreenshotInternal, {
 			itemId: args.itemId,
 			url: args.url,
 			retryCount: 0
@@ -110,7 +110,7 @@ export const generateScreenshotInternal = internalAction({
 		url: v.string(),
 		retryCount: v.number()
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx, args): Promise<void> => {
 		const workerUrl = process.env.CLOUDFLARE_SCREENSHOT_URL;
 		const apiKey = process.env.CLOUDFLARE_SCREENSHOT_KEY;
 
