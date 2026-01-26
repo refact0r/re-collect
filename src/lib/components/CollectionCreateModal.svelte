@@ -45,7 +45,6 @@
 <div
 	class="backdrop"
 	onclick={handleBackdropClick}
-	onkeydown={handleKeydown}
 	role="dialog"
 	aria-modal="true"
 	tabindex="-1"

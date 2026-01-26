@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { generateKeyBetween } from 'fractional-indexing';
+	import { onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
@@ -432,6 +433,13 @@
 		});
 		observer.observe(containerElement);
 		return () => observer.disconnect();
+	});
+
+	// Cleanup drag listeners if component unmounts mid-drag
+	onDestroy(() => {
+		if (draggedItem) {
+			cleanup();
+		}
 	});
 </script>
 

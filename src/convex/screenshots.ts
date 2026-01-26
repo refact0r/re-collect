@@ -57,69 +57,18 @@ export const setFailed = internalMutation({
 });
 
 // Internal action to generate screenshot via Cloudflare Worker
+// Delegates to generateScreenshotInternal with retryCount: 0
 export const generateScreenshot = internalAction({
 	args: {
 		itemId: v.id('items'),
 		url: v.string()
 	},
-	handler: async (ctx, args) => {
-		const workerUrl = process.env.CLOUDFLARE_SCREENSHOT_URL;
-		const apiKey = process.env.CLOUDFLARE_SCREENSHOT_KEY;
-
-		if (!workerUrl || !apiKey) {
-			await ctx.runMutation(internal.screenshots.setFailed, {
-				itemId: args.itemId,
-				error: 'Screenshot service not configured',
-				retries: 0
-			});
-			return;
-		}
-
-		// Update status to processing
-		await ctx.runMutation(internal.screenshots.setProcessing, {
-			itemId: args.itemId
+	handler: async (ctx, args): Promise<void> => {
+		await ctx.runAction(internal.screenshots.generateScreenshotInternal, {
+			itemId: args.itemId,
+			url: args.url,
+			retryCount: 0
 		});
-
-		try {
-			const response = await fetch(workerUrl, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${apiKey}`
-				},
-				body: JSON.stringify({
-					url: args.url,
-					itemId: args.itemId
-				})
-			});
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				throw new Error(`Screenshot service error: ${response.status} - ${errorText}`);
-			}
-
-			const result = (await response.json()) as {
-				imageKey: string;
-				width: number;
-				height: number;
-			};
-
-			// Update item with screenshot data
-			await ctx.runMutation(internal.screenshots.setCompleted, {
-				itemId: args.itemId,
-				imageKey: result.imageKey,
-				imageWidth: result.width,
-				imageHeight: result.height
-			});
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-			await ctx.runMutation(internal.screenshots.setFailed, {
-				itemId: args.itemId,
-				error: errorMessage,
-				retries: 1
-			});
-		}
 	}
 });
 
@@ -161,7 +110,7 @@ export const generateScreenshotInternal = internalAction({
 		url: v.string(),
 		retryCount: v.number()
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx, args): Promise<void> => {
 		const workerUrl = process.env.CLOUDFLARE_SCREENSHOT_URL;
 		const apiKey = process.env.CLOUDFLARE_SCREENSHOT_KEY;
 

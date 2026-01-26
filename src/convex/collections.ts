@@ -39,25 +39,28 @@ export const remove = mutation({
 		const collection = await ctx.db.get(args.id);
 		if (!collection) throw new Error('Collection not found');
 
-		// Delete all position records for this collection
-		await deleteAllPositionsForCollection(ctx, args.id);
-
-		// Remove this collection from all items that reference it
-		// Use the junction table index to find only items in this collection
+		// First, query positions BEFORE deleting them
 		const positions = await ctx.db
 			.query('itemCollectionPositions')
 			.withIndex('by_collection', (q) => q.eq('collectionId', args.id))
 			.collect();
 
-		for (const position of positions) {
-			const item = await ctx.db.get(position.itemId);
-			if (item) {
-				await ctx.db.patch(item._id, {
-					collections: item.collections.filter((c) => c !== args.id)
-				});
-			}
-		}
+		// Remove this collection from all items that reference it
+		await Promise.all(
+			positions.map(async (position) => {
+				const item = await ctx.db.get(position.itemId);
+				if (item) {
+					await ctx.db.patch(item._id, {
+						collections: item.collections.filter((c) => c !== args.id)
+					});
+				}
+			})
+		);
 
+		// Now delete all position records for this collection
+		await deleteAllPositionsForCollection(ctx, args.id);
+
+		// Finally, delete the collection itself
 		await ctx.db.delete(args.id);
 	}
 });
@@ -91,19 +94,18 @@ async function getCollectionPreviews(
 		.collect();
 
 	// Fetch items and filter for displayable images
-	const items = [];
-	for (const position of positions) {
-		const item = await ctx.db.get(position.itemId);
-		if (!item) continue;
+	const itemPromises = positions.map((position) => ctx.db.get(position.itemId));
+	const allItems = await Promise.all(itemPromises);
+
+	const items = allItems.filter((item): item is NonNullable<typeof item> => {
+		if (!item) return false;
 
 		// Include if: image type with image data, OR url type with completed screenshot
-		const hasImage = item.type === 'image' && (item.imageKey || item.imageId);
+		const hasImage = item.type === 'image' && !!(item.imageKey || item.imageId);
 		const hasScreenshot = item.type === 'url' && item.screenshotStatus === 'completed';
 
-		if (hasImage || hasScreenshot) {
-			items.push(item);
-		}
-	}
+		return hasImage || hasScreenshot;
+	});
 
 	// Sort by dateAdded descending (most recent first)
 	items.sort((a, b) => b.dateAdded - a.dateAdded);

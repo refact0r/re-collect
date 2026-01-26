@@ -259,9 +259,12 @@ export const listByCollection = query({
 		// Create a map for quick position lookup
 		const positionMap = new Map(positions.map((p) => [p.itemId as Id<'items'>, p.position]));
 
-		// Get all items in this collection
-		const items = await ctx.db.query('items').collect();
-		const filtered = items.filter((item) => item.collections.includes(args.collectionId));
+		// Fetch only the items in this collection using their IDs from positions
+		const itemPromises = positions.map((p) => ctx.db.get(p.itemId));
+		const items = await Promise.all(itemPromises);
+
+		// Filter out null values (items that may have been deleted)
+		const filtered = items.filter((item): item is NonNullable<typeof item> => item !== null);
 
 		// Apply sorting based on sortBy option
 		switch (sortBy) {
