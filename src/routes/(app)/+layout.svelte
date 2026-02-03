@@ -10,6 +10,7 @@
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { api } from '../../convex/_generated/api.js';
 	import IconMenu from '~icons/material-symbols-light/menu';
+	import IconSearch from '~icons/material-symbols-light/search';
 
 	let { children } = $props();
 	setupConvex(PUBLIC_CONVEX_URL);
@@ -100,12 +101,14 @@
 			<IconMenu />
 		</button>
 		<div class="nav-links">
+			<div class="logo"><span>※</span></div>
 			<a href="/" class="nav-link" class:active={page.url.pathname === '/'}>re-collect</a>
 			<a href="/collections" class="nav-link" class:active={page.url.pathname === '/collections'}
 				>collections</a
 			>
 		</div>
 		<div class="nav-search">
+			<IconSearch />
 			<input
 				type="text"
 				bind:this={searchInputRef}
@@ -155,11 +158,42 @@
 		display: flex;
 		gap: 0.5rem;
 	}
+	.logo {
+		padding: 0 0.5rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.logo span {
+		font-size: 1.5rem;
+		font-weight: 300;
+		font-family: DM Mono;
+		line-height: 1.5rem;
+		margin-top: 0.125rem;
+	}
 	.nav-search {
 		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem;
+		border: 1px solid var(--border);
+		background: var(--bg-2);
+	}
+	.nav-search:focus-within {
+		border-color: var(--txt-3);
 	}
 	.nav-search input {
-		width: 30rem;
+		width: 33vw;
+		border: none;
+		padding: 0;
+		background: transparent;
+	}
+	.nav-search :global(svg) {
+		width: 1.5rem;
+		height: 1.5rem;
+	}
+	.nav-search input:focus {
+		outline: none;
 	}
 	.nav-actions {
 		display: flex;
@@ -201,9 +235,16 @@
 		}
 		.nav-search {
 			flex: 1;
+			padding: 0.25rem 0.25rem 0.25rem 0.5rem;
+			gap: 0.5rem;
+		}
+		.nav-search :global(svg) {
+			width: 1.375rem;
+			height: 1.375rem;
 		}
 		.nav-search input {
 			width: 100%;
+			min-width: 0;
 		}
 		.nav-actions {
 			display: none;

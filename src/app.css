@@ -119,6 +119,10 @@ select {
 		background-color: var(--bg-3);
 	}
 
+	&:focus {
+		border-color: var(--border);
+	}
+
 	&:disabled {
 		background: var(--bg-2);
 	}
