@@ -268,7 +268,7 @@
 		}
 		main {
 			padding: var(--spacing);
-			padding-bottom: calc(var(--spacing) + env(safe-area-inset-bottom, 0px));
+			padding-bottom: calc(var(--spacing) + 4rem);
 		}
 	}
 </style>
