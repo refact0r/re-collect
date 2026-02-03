@@ -21,7 +21,19 @@ export const create = mutation({
 export const update = mutation({
 	args: {
 		id: v.id('collections'),
-		name: v.optional(v.string())
+		name: v.optional(v.string()),
+		sortMode: v.optional(
+			v.union(
+				v.literal('manual'),
+				v.literal('dateAddedNewest'),
+				v.literal('dateAddedOldest'),
+				v.literal('dateModifiedNewest'),
+				v.literal('dateModifiedOldest'),
+				v.literal('titleAsc'),
+				v.literal('titleDesc')
+			)
+		),
+		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list')))
 	},
 	handler: async (ctx, args) => {
 		const { id, ...updates } = args;

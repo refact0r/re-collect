@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { getContext } from 'svelte';
+	import { getContext, untrack } from 'svelte';
 	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../../../convex/_generated/api.js';
 	import type { Id } from '../../../../convex/_generated/dataModel.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
-	import ItemInput from '$lib/components/ItemInput.svelte';
+	import ItemList from '$lib/components/ItemList.svelte';
+	import TopControls from '$lib/components/TopControls.svelte';
+	import { type ViewMode } from '$lib/components/ViewToggle.svelte';
 
 	const client = useConvexClient();
 	const collectionId = $derived(page.params.id as Id<'collections'>);
@@ -26,6 +28,13 @@
 		| 'titleAsc'
 		| 'titleDesc';
 	let sortBy = $state<SortOption>('manual');
+
+	// View mode state
+	let viewMode = $state<ViewMode>('grid');
+
+	// Track if we've initialized from stored preferences
+	let prefsInitialized = $state(false);
+	let lastCollectionId = $state<string | null>(null);
 
 	// Use dedicated query for collection items with sort option
 	const items = useQuery(api.items.listByCollection, () => ({ collectionId, sortBy }));
@@ -48,6 +57,42 @@
 			data: allCollections.data.find((c: any) => c._id === collectionId) ?? null
 		};
 	});
+
+	// Initialize preferences from stored collection data
+	$effect(() => {
+		const coll = collection.data;
+		const cid = collectionId;
+		if (coll && cid !== lastCollectionId) {
+			untrack(() => {
+				sortBy = (coll.sortMode as SortOption) ?? 'manual';
+				viewMode = (coll.viewMode as ViewMode) ?? 'grid';
+				prefsInitialized = true;
+				lastCollectionId = cid;
+			});
+		}
+	});
+
+	// Save sort preference when changed
+	async function handleSortChange(newSort: SortOption) {
+		sortBy = newSort;
+		if (prefsInitialized) {
+			await client.mutation(api.collections.update, {
+				id: collectionId,
+				sortMode: newSort
+			});
+		}
+	}
+
+	// Save view mode preference when changed
+	async function handleViewModeChange(newMode: ViewMode) {
+		viewMode = newMode;
+		if (prefsInitialized) {
+			await client.mutation(api.collections.update, {
+				id: collectionId,
+				viewMode: newMode
+			});
+		}
+	}
 
 	// Reorder handler for drag-drop
 	async function handleReorder(itemId: Id<'items'>, newPosition: string) {
@@ -106,52 +151,46 @@
 </script>
 
 {#if collection.isLoading}
-	<p>loading...</p>
+	<p class="status-text">loading...</p>
 {:else if collection.error}
-	<p>error: {collection.error.message}</p>
+	<p class="status-text">error: {collection.error.message}</p>
 {:else if !collection.data}
-	<p>collection not found</p>
+	<p class="status-text">collection not found</p>
 {:else}
 	<div class="container">
-		<div class="page-header">
-			<h1>
-				{#if isEditing}
-					<input
-						bind:this={inputElement}
-						bind:value={editName}
-						onblur={saveEdits}
-						onkeydown={handleKeydown}
-						class="title-input h1"
-						type="text"
-						placeholder="collection name"
-					/>
-				{:else}
-					<button class="title-button h1" onclick={startEditing}>
-						{collection.data.name}
-					</button>
-				{/if}
-			</h1>
-			<div class="header-controls">
-				<select bind:value={sortBy}>
-					<option value="manual">manual</option>
-					<option value="dateAddedNewest">added (new)</option>
-					<option value="dateAddedOldest">added (old)</option>
-					<option value="dateModifiedNewest">modified (new)</option>
-					<option value="dateModifiedOldest">modified (old)</option>
-					<option value="titleAsc">title (a-z)</option>
-					<option value="titleDesc">title (z-a)</option>
-				</select>
-			</div>
-		</div>
+		<h1>
+			{#if isEditing}
+				<input
+					bind:this={inputElement}
+					bind:value={editName}
+					onblur={saveEdits}
+					onkeydown={handleKeydown}
+					class="title-input h1"
+					type="text"
+					placeholder="collection name"
+				/>
+			{:else}
+				<button class="title-button h1" onclick={startEditing}>
+					{collection.data.name}
+				</button>
+			{/if}
+		</h1>
 
-		<div class="input-wrapper">
-			<ItemInput {collectionId} />
-		</div>
+		<TopControls
+			{collectionId}
+			{sortBy}
+			{viewMode}
+			showManualSort={true}
+			onSortChange={handleSortChange}
+			onViewModeChange={handleViewModeChange}
+		/>
 
 		{#if items.isLoading}
 			<p class="status-text">loading items...</p>
 		{:else if items.data?.length === 0}
 			<p class="status-text">no items in this collection yet.</p>
+		{:else if viewMode === 'list'}
+			<ItemList items={items.data ?? []} onRetryScreenshot={handleRetryScreenshot} />
 		{:else}
 			<ItemGrid
 				items={items.data ?? []}
@@ -164,18 +203,8 @@
 {/if}
 
 <style>
-	.input-wrapper {
-		margin-bottom: var(--spacing);
-	}
-
-	.header-controls {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.page-header h1 {
-		margin: 0;
+	h1 {
+		margin: 0 0 var(--spacing) 0;
 		padding: 0;
 		font-size: inherit;
 		font-weight: inherit;

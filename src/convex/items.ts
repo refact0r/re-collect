@@ -208,9 +208,52 @@ export const removeFromCollection = mutation({
 
 // Get all items
 export const list = query({
-	args: {},
-	handler: async (ctx) => {
-		const items = await ctx.db.query('items').order('desc').collect();
+	args: {
+		sortBy: v.optional(
+			v.union(
+				v.literal('dateAddedNewest'),
+				v.literal('dateAddedOldest'),
+				v.literal('dateModifiedNewest'),
+				v.literal('dateModifiedOldest'),
+				v.literal('titleAsc'),
+				v.literal('titleDesc')
+			)
+		)
+	},
+	handler: async (ctx, args) => {
+		const sortBy = args.sortBy ?? 'dateAddedNewest';
+		const items = await ctx.db.query('items').collect();
+
+		// Apply sorting based on sortBy option
+		switch (sortBy) {
+			case 'dateAddedNewest':
+				items.sort((a, b) => b.dateAdded - a.dateAdded);
+				break;
+			case 'dateAddedOldest':
+				items.sort((a, b) => a.dateAdded - b.dateAdded);
+				break;
+			case 'dateModifiedNewest':
+				items.sort((a, b) => b.dateModified - a.dateModified);
+				break;
+			case 'dateModifiedOldest':
+				items.sort((a, b) => a.dateModified - b.dateModified);
+				break;
+			case 'titleAsc':
+				items.sort((a, b) => {
+					const titleA = (a.title ?? a.url ?? '').toLowerCase();
+					const titleB = (b.title ?? b.url ?? '').toLowerCase();
+					return titleA.localeCompare(titleB);
+				});
+				break;
+			case 'titleDesc':
+				items.sort((a, b) => {
+					const titleA = (a.title ?? a.url ?? '').toLowerCase();
+					const titleB = (b.title ?? b.url ?? '').toLowerCase();
+					return titleB.localeCompare(titleA);
+				});
+				break;
+		}
+
 		// Get image URLs for items with images
 		return Promise.all(
 			items.map(async (item) => ({

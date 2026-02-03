@@ -204,7 +204,6 @@
 		}
 		.nav-search input {
 			width: 100%;
-			padding: 0.25rem 0.5rem;
 		}
 		.nav-actions {
 			display: none;

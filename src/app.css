@@ -111,6 +111,7 @@ textarea {
 }
 
 select {
+	padding: calc(0.5rem + 1.5px) 0.5rem;
 	cursor: pointer;
 	color: var(--txt-2);
 

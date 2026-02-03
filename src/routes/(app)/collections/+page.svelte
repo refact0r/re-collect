@@ -5,6 +5,7 @@
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import CollectionCreateModal from '$lib/components/CollectionCreateModal.svelte';
 	import { getImage } from '$lib/imageCache.svelte';
+	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
 
 	const client = useConvexClient();
 	const collections =
@@ -26,11 +27,11 @@
 	</div>
 
 	{#if collections.isLoading}
-		<p>loading...</p>
+		<p class="status-text">loading...</p>
 	{:else if collections.error}
-		<p>error: {collections.error.message}</p>
+		<p class="status-text">error: {collections.error.message}</p>
 	{:else if collections.data?.length === 0}
-		<p>no collections yet. click "new collection" to create your first one!</p>
+		<p class="status-text">no collections yet. click "new collection" to create your first one!</p>
 	{:else}
 		<div class="list">
 			{#each collections.data ?? [] as collection (collection._id)}
@@ -44,14 +45,14 @@
 							</p>
 						</div>
 						<button
-							class="danger"
+							class="icon danger"
 							onclick={(e) => {
 								e.preventDefault();
 								e.stopPropagation();
 								handleDelete(collection._id);
 							}}
 						>
-							delete
+							<IconDelete />
 						</button>
 					</div>
 					{#if collection.previews?.length > 0}
