@@ -113,7 +113,11 @@
 					<IconOpenInNew />
 				</button>
 			{/if}
-			<button class="icon" title="Delete item" onclick={(e) => handleDeleteItem(item._id, e)}>
+			<button
+				class="icon delete"
+				title="Delete item"
+				onclick={(e) => handleDeleteItem(item._id, e)}
+			>
 				<IconDelete />
 			</button>
 		</div>
@@ -226,6 +230,10 @@
 
 	.icon:hover {
 		background-color: var(--bg-3);
+	}
+
+	.icon.delete:hover {
+		background-color: var(--danger-bg);
 	}
 
 	.icon :global(svg) {

@@ -14,6 +14,7 @@
 
 <aside class:collapsed class:mobile-open={mobileOpen}>
 	<div class="mobile-header">
+		<div class="logo"><span>※</span></div>
 		<button class="icon close-mobile" onclick={() => (mobileOpen = false)} aria-label="close menu">
 			<IconClose />
 		</button>
@@ -100,8 +101,8 @@
 		display: flex;
 		flex-direction: column;
 		transition:
-			width 0.1s ease,
-			min-width 0.1s ease;
+			width 0.2s ease,
+			min-width 0.2s ease;
 	}
 
 	aside.collapsed {
@@ -127,7 +128,7 @@
 			bottom: 0;
 			z-index: 100;
 			transform: translateX(-100%);
-			transition: transform 0.3s ease;
+			transition: transform 0.2s ease;
 			background: var(--bg-1);
 			border-right: 1px solid var(--border);
 			padding: 0;
@@ -150,10 +151,26 @@
 
 		.mobile-header {
 			display: flex;
-			justify-content: flex-end;
+			justify-content: space-between;
+			align-items: center;
 			padding: 0.5rem;
 			border-bottom: 1px solid var(--border);
 			flex-shrink: 0;
+		}
+
+		.logo {
+			padding: 0 0.5rem;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.logo span {
+			font-size: 1.5rem;
+			font-weight: 300;
+			font-family: DM Mono;
+			line-height: 1.5rem;
+			margin-top: 0.125rem;
 		}
 
 		.main-nav {
