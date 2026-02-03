@@ -1,6 +1,6 @@
 # re-collect
 
-personal visual inspiration collection
+personal visual inspiration library
 
 sveltekit + convex + r2 + workers
 
