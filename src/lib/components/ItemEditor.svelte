@@ -4,6 +4,8 @@
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { getImage } from '$lib/imageCache.svelte.js';
+	import IconOpenInNew from '~icons/material-symbols/open-in-new-sharp';
+	import IconCheck from '~icons/material-symbols/check';
 
 	interface Props {
 		itemId: Id<'items'>;
@@ -131,7 +133,7 @@
 						class="open-url"
 						aria-label="open url"
 					>
-						↗
+						<IconOpenInNew />
 					</a>
 				</div>
 			</label>
@@ -152,7 +154,11 @@
 										checked={item.data.collections.includes(collection._id)}
 										onchange={() => toggleCollection(collection._id)}
 									/>
-									<span class="checkbox"></span>
+									<span class="checkbox">
+										{#if item.data.collections.includes(collection._id)}
+											<IconCheck />
+										{/if}
+									</span>
 									{collection.name}
 								</label>
 							{/each}
@@ -196,6 +202,7 @@
 	}
 
 	.form {
+		padding-top: 1rem;
 		width: 25rem;
 	}
 
@@ -225,7 +232,6 @@
 		width: 100%;
 		height: 100%;
 		flex: 1;
-		/* min-height: 25rem; */
 		resize: vertical;
 		font-family: var(--font);
 		font-size: 1rem;
@@ -285,13 +291,12 @@
 	.checkbox-label input:checked + .checkbox {
 		background: var(--txt-2);
 		border-color: var(--txt-2);
+		color: var(--bg-1);
 	}
 
-	.checkbox-label input:checked + .checkbox::after {
-		content: '✓';
-		color: var(--bg-1);
-		font-size: 0.75rem;
-		font-weight: 600;
+	.checkbox :global(svg) {
+		width: 0.875rem;
+		height: 0.875rem;
 	}
 
 	.url-input-row {
@@ -317,10 +322,50 @@
 	.open-url:hover {
 		background: var(--bg-3);
 	}
+
+	.open-url :global(svg) {
+		width: 1rem;
+		height: 1rem;
+	}
+
 	.actions {
 		margin-top: auto;
 	}
 	.actions button {
 		flex: 1;
+	}
+
+	@media (max-width: 768px) {
+		.editor-layout {
+			display: block;
+			height: auto;
+		}
+
+		.content-preview {
+			position: static;
+			display: block;
+			padding: 3rem 1rem 1rem 1rem;
+			container-type: normal;
+		}
+
+		.content-preview img {
+			width: 100%;
+			height: auto;
+			display: block;
+		}
+
+		.form {
+			width: 100%;
+			padding: 1rem;
+		}
+
+		.text-content {
+			min-height: 30vh;
+		}
+
+		.actions {
+			display: flex;
+			gap: 0.5rem;
+		}
 	}
 </style>

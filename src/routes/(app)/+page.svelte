@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 	import { useConvexClient } from 'convex-svelte';
-	import { api } from '../convex/_generated/api.js';
-	import type { Id } from '../convex/_generated/dataModel.js';
+	import { api } from '../../convex/_generated/api.js';
+	import type { Id } from '../../convex/_generated/dataModel.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
 	import ItemInput from '$lib/components/ItemInput.svelte';
 

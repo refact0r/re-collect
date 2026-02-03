@@ -3,6 +3,7 @@
 	import { useUploadFile } from '@convex-dev/r2/svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
+	import IconUpload from '~icons/material-symbols/upload-sharp';
 
 	interface Props {
 		collectionId?: Id<'collections'>;
@@ -110,6 +111,36 @@
 		}
 	}
 
+	async function handlePaste(event: ClipboardEvent) {
+		const items = event.clipboardData?.items;
+		if (!items) return;
+
+		for (const item of items) {
+			if (item.type.startsWith('image/')) {
+				event.preventDefault();
+				const file = item.getAsFile();
+				if (!file) return;
+
+				isAdding = true;
+				try {
+					const dimensions = await getImageDimensions(file);
+					const key = await uploadFile(file);
+					await client.mutation(api.items.add, {
+						type: 'image',
+						imageKey: key,
+						imageWidth: dimensions.width || undefined,
+						imageHeight: dimensions.height || undefined,
+						title: file.name || 'Pasted image',
+						collections: collectionId ? [collectionId] : undefined
+					});
+				} finally {
+					isAdding = false;
+				}
+				return;
+			}
+		}
+	}
+
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter' && !event.shiftKey) {
 			event.preventDefault();
@@ -168,23 +199,14 @@
 		bind:value={inputValue}
 		oninput={autoResize}
 		onkeydown={handleKeydown}
-		placeholder="paste a url, type text, or drag an image..."
+		onpaste={handlePaste}
+		placeholder="paste a url, image, or type text..."
 		disabled={isAdding}
 		rows="1"
 	></textarea>
 	<label class="upload-btn">
 		<input type="file" accept="image/*" onchange={handleFileUpload} disabled={isAdding} />
-		<svg
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linejoin="miter"
-			stroke-linecap="square"
-		>
-			<path d="M21 17v4H3v-4" />
-			<path d="M7 8l5-5 5 5M12 4v11" />
-		</svg>
+		<IconUpload />
 	</label>
 </div>
 
@@ -223,7 +245,7 @@
 		display: none;
 	}
 
-	.upload-btn svg {
+	.upload-btn :global(svg) {
 		width: 1.25rem;
 		height: 1.25rem;
 	}

@@ -85,7 +85,6 @@ select {
 	background: var(--bg-2);
 	color: var(--txt-1);
 	line-height: 1.5;
-	resize: vertical;
 
 	&:focus {
 		outline: none;
@@ -93,10 +92,12 @@ select {
 	}
 
 	&::placeholder {
-		font-family: var(--font);
-		font-weight: var(--font-weight);
 		color: var(--txt-3);
 	}
+}
+
+textarea {
+	resize: vertical;
 }
 
 select {
@@ -122,6 +123,7 @@ button {
 
 button:hover {
 	background: var(--bg-3);
+	color: var(--txt-1);
 }
 
 button:disabled {
@@ -150,6 +152,7 @@ button.icon {
 
 button.icon:hover {
 	background: var(--bg-2);
+	color: var(--txt-1);
 }
 
 /* Link-style button - looks like a text link */
@@ -216,11 +219,6 @@ button.link:hover {
 	background: transparent;
 }
 
-.input-container input:focus,
-.input-container textarea:focus {
-	border-color: transparent;
-}
-
 /* ============================================
    Modal/Dialog
    ============================================ */
@@ -256,12 +254,15 @@ button.link:hover {
 
 .modal .close-btn {
 	position: absolute;
-	top: 0rem;
-	right: 0rem;
+	top: 0;
+	right: 0;
 	background: none;
 	border: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	font-size: 1.25rem;
-	padding: 0.5rem 1rem;
+	padding: 0.75rem;
 	color: var(--txt-3);
 }
 .modal .close-btn:hover {

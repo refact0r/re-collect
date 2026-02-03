@@ -41,6 +41,16 @@ workers/screenshot/                 # Cloudflare Worker for screenshots
 └── src/                           # Screenshot generation logic
 ```
 
+## Reference Documentation
+
+The `/reference` folder contains technical documentation for maintaining the codebase:
+
+- `convex-r2.md` - Cloudflare R2 integration with Convex
+- `convex-setup.md` - Convex backend setup and configuration
+- `icons.md` - Icon system usage (unplugin-icons with Material Symbols Sharp)
+
+These docs are maintained for context and should be consulted when working with their respective systems.
+
 ## Core User Flows
 
 ### Adding Items
