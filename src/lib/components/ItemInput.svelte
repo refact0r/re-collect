@@ -184,6 +184,10 @@
 </script>
 
 <div class="input-wrapper">
+	<label class="icon-filled upload-btn">
+		<input type="file" accept="image/*" onchange={handleFileUpload} disabled={isAdding} />
+		<IconUpload />
+	</label>
 	<div
 		class="input-container"
 		class:dragging={isDragging}
@@ -204,10 +208,6 @@
 			rows="1"
 		></textarea>
 	</div>
-	<label class="icon-filled upload-btn">
-		<input type="file" accept="image/*" onchange={handleFileUpload} disabled={isAdding} />
-		<IconUpload />
-	</label>
 </div>
 
 <style>
@@ -251,6 +251,7 @@
 
 	.upload-btn {
 		flex-shrink: 0;
+		cursor: pointer;
 	}
 
 	.upload-btn input {

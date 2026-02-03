@@ -29,9 +29,8 @@
 	async function handleClose() {
 		if (saveFunction) {
 			await saveFunction();
-		} else {
-			onClose();
 		}
+		onClose();
 	}
 
 	async function navigateToItem(newItemId: Id<'items'>) {

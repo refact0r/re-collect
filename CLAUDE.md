@@ -78,6 +78,7 @@ These docs are maintained for context and should be consulted when working with 
   - URL items show screenshot (when available) or placeholder with status
   - Text items show content preview (max 10 lines)
   - Click any item to open modal editor
+  - Mobile-optimized with touch support and safe area insets
 - **Item modal**: Full-screen editor with keyboard navigation
   - Arrow keys navigate between items
   - Edit title, description, URL, content
@@ -86,7 +87,7 @@ These docs are maintained for context and should be consulted when working with 
 
 ### Searching
 
-- Search by **item title only** (full-text search via Convex)
+- Search by **title, description, and URL** (full-text search via Convex)
 - Results displayed in masonry grid
 - Debounced live search with URL sync
 
@@ -94,11 +95,9 @@ These docs are maintained for context and should be consulted when working with 
 
 ### Planned Features
 
-- Expand/improve search to include descriptions and URLs (not just titles)
 - List view (alternative to masonry grid)
 - Keyboard shortcuts (quick add, navigation)
 - Bulk operations and multi-select
-- Mobile-optimized interface
 - Improved styling and transitions/animations
 - Browser extension for one-click saving
 - PWA support

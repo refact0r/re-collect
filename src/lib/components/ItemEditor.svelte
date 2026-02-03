@@ -60,9 +60,9 @@
 		await client.mutation(api.items.update, {
 			id: itemId,
 			title,
-			description: description || undefined,
-			url: url || undefined,
-			content: content || undefined
+			description,
+			url,
+			content
 		});
 		onSave();
 	}
@@ -85,11 +85,11 @@
 </script>
 
 {#if item.isLoading}
-	<p>loading...</p>
+	<p class="status-text">loading...</p>
 {:else if item.error}
-	<p>error: {item.error.message}</p>
+	<p class="status-text">error: {item.error.message}</p>
 {:else if !item.data}
-	<p>item not found</p>
+	<p class="status-text">item not found</p>
 {:else}
 	<div class="editor-layout">
 		<!-- Content Preview -->

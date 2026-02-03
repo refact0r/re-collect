@@ -41,14 +41,15 @@ export default defineSchema({
 		sortMode: v.optional(
 			v.union(
 				v.literal('manual'),
-				v.literal('dateAdded-desc'),
-				v.literal('dateAdded-asc'),
-				v.literal('dateModified-desc'),
-				v.literal('dateModified-asc'),
-				v.literal('alphabetical-asc'),
-				v.literal('alphabetical-desc')
+				v.literal('dateAddedNewest'),
+				v.literal('dateAddedOldest'),
+				v.literal('dateModifiedNewest'),
+				v.literal('dateModifiedOldest'),
+				v.literal('titleAsc'),
+				v.literal('titleDesc')
 			)
-		) // Defaults to 'manual'
+		), // Defaults to 'manual'
+		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))) // Defaults to 'grid'
 	}).index('by_name', ['name']),
 
 	// Junction table for per-collection item ordering
