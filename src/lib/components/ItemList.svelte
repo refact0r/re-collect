@@ -243,7 +243,7 @@
 
 	@media (max-width: 768px) {
 		.list {
-			padding-bottom: calc(env(safe-area-inset-bottom, 0px));
+			padding-bottom: 4rem;
 		}
 
 		.item-title {

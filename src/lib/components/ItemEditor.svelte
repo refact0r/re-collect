@@ -341,7 +341,7 @@
 		.form {
 			width: 100%;
 			padding: 1rem;
-			padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+			padding-bottom: 5rem;
 		}
 
 		.text-content {
