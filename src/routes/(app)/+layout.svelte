@@ -241,6 +241,7 @@
 		}
 		main {
 			padding: 0.75rem;
+			padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
 		}
 	}
 </style>

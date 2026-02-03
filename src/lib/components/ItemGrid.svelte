@@ -760,7 +760,7 @@
 
 	@media (max-width: 768px) {
 		.masonry {
-			padding-bottom: 4rem;
+			padding-bottom: calc(env(safe-area-inset-bottom, 0px));
 		}
 	}
 </style>
