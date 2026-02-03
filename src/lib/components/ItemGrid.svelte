@@ -6,6 +6,8 @@
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { getImage } from '$lib/imageCache.svelte.js';
+	import IconSchedule from '~icons/material-symbols/schedule-sharp';
+	import IconError from '~icons/material-symbols/error-sharp';
 
 	const client = useConvexClient();
 
@@ -466,10 +468,7 @@
 								{#if realItem.screenshotStatus === 'pending' || realItem.screenshotStatus === 'processing'}
 									<div class="url-card url-loading">
 										<div class="loading-icon">
-											<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-												<circle cx="12" cy="12" r="10" />
-												<path d="M12 6v6l4 2" />
-											</svg>
+											<IconSchedule />
 										</div>
 										<span class="url-text">{realItem.url}</span>
 									</div>
@@ -477,11 +476,7 @@
 									<div class="url-card url-failed">
 										<div class="failed-content">
 											<div class="failed-icon">
-												<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-													<circle cx="12" cy="12" r="10" />
-													<line x1="12" y1="8" x2="12" y2="12" />
-													<line x1="12" y1="16" x2="12.01" y2="16" />
-												</svg>
+												<IconError />
 											</div>
 											<span class="url-text">{realItem.url}</span>
 											{#if realItem.screenshotError}
@@ -582,6 +577,7 @@
 		display: flex;
 		gap: 1rem;
 		width: 100%;
+		padding-bottom: 2rem;
 	}
 
 	.column {
@@ -661,8 +657,8 @@
 		color: var(--txt-3);
 	}
 
-	.loading-icon svg,
-	.failed-icon svg {
+	.loading-icon :global(svg),
+	.failed-icon :global(svg) {
 		width: 100%;
 		height: 100%;
 	}
@@ -760,5 +756,11 @@
 
 	.drag-preview .card {
 		background: var(--bg-1);
+	}
+
+	@media (max-width: 768px) {
+		.masonry {
+			padding-bottom: 4rem;
+		}
 	}
 </style>

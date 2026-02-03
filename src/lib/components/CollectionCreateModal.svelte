@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
+	import IconClose from '~icons/material-symbols/close-sharp';
 
 	interface Props {
 		onClose: () => void;
@@ -50,7 +51,9 @@
 	tabindex="-1"
 >
 	<div class="modal">
-		<button class="close-btn" onclick={onClose}>×</button>
+		<button class="close-btn" onclick={onClose}>
+			<IconClose />
+		</button>
 		<h2>new collection</h2>
 		<div class="form">
 			<input type="text" bind:value={name} placeholder="collection name" disabled={isCreating} />

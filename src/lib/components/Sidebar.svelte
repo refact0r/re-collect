@@ -1,14 +1,38 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 	import { page } from '$app/state';
+	import IconClose from '~icons/material-symbols/close-sharp';
+	import IconChevronLeft from '~icons/material-symbols/chevron-left-sharp';
+	import IconChevronRight from '~icons/material-symbols/chevron-right-sharp';
 
 	const collections =
 		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
 
 	let collapsed = $state(false);
+	let { mobileOpen = $bindable(false) } = $props();
 </script>
 
-<aside class:collapsed>
+<aside class:collapsed class:mobile-open={mobileOpen}>
+	<div class="mobile-header">
+		<button
+			class="icon close-mobile"
+			onclick={() => (mobileOpen = false)}
+			aria-label="close menu"
+		>
+			<IconClose />
+		</button>
+	</div>
+	<nav class="main-nav">
+		<a href="/" class:active={page.url.pathname === '/'} onclick={() => (mobileOpen = false)}
+			>re-collect</a
+		>
+		<a
+			href="/collections"
+			class:active={page.url.pathname === '/collections'}
+			onclick={() => (mobileOpen = false)}>collections</a
+		>
+		<a href="/logout" onclick={() => (mobileOpen = false)}>logout</a>
+	</nav>
 	<nav class="collections">
 		{#if collapsed}
 			{#if collections.isLoading}
@@ -57,13 +81,11 @@
 		onclick={() => (collapsed = !collapsed)}
 		aria-label={collapsed ? 'expand sidebar' : 'collapse sidebar'}
 	>
-		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-			{#if collapsed}
-				<path d="M9 18l6-6-6-6" />
-			{:else}
-				<path d="M15 18l-6-6 6-6" />
-			{/if}
-		</svg>
+		{#if collapsed}
+			<IconChevronRight />
+		{:else}
+			<IconChevronLeft />
+		{/if}
 	</button>
 </aside>
 
@@ -89,6 +111,87 @@
 		padding-bottom: 3.5rem;
 	}
 
+	.mobile-header {
+		display: none;
+	}
+
+	.main-nav {
+		display: none;
+	}
+
+	@media (max-width: 768px) {
+		aside {
+			position: fixed;
+			top: 0;
+			left: 0;
+			bottom: 0;
+			z-index: 100;
+			transform: translateX(-100%);
+			transition: transform 0.3s ease;
+			background: var(--bg-1);
+			border-right: 1px solid var(--border);
+			padding: 0;
+			overflow-y: auto;
+		}
+
+		aside.mobile-open {
+			transform: translateX(0);
+		}
+
+		aside.collapsed {
+			width: 15rem;
+			min-width: 15rem;
+			padding: 0;
+		}
+
+		.mobile-header {
+			display: flex;
+			justify-content: flex-end;
+			padding: 0.5rem 0.5rem 0.5rem 1rem;
+			border-bottom: 1px solid var(--border);
+			flex-shrink: 0;
+		}
+
+		.close-mobile :global(svg) {
+			width: 1.5rem;
+			height: 1.5rem;
+		}
+
+		.main-nav {
+			display: flex;
+			flex-direction: column;
+			padding: 1rem;
+			gap: 0.25rem;
+			border-bottom: 1px solid var(--border);
+			flex-shrink: 0;
+		}
+
+		.main-nav a {
+			padding: 0.5rem;
+			text-decoration: none;
+		}
+
+		.main-nav a:hover {
+			background: var(--bg-2);
+			color: var(--txt-1);
+		}
+
+		.main-nav a.active {
+			background: var(--bg-2);
+			color: var(--txt-1);
+		}
+
+		.collections {
+			padding: 1rem;
+			flex: 1;
+			overflow-y: auto;
+		}
+
+		.toggle {
+			display: none;
+		}
+	}
+
 	/* Uses global button.icon styles from app.css */
 	.toggle {
 		position: absolute;
@@ -102,7 +205,7 @@
 		margin: 0 auto;
 	}
 
-	.toggle svg {
+	.toggle :global(svg) {
 		width: 1.25rem;
 		height: 1.25rem;
 	}
@@ -125,11 +228,13 @@
 
 	li a:hover {
 		background: var(--bg-2);
+		color: var(--txt-1);
 	}
 
 	li a.active {
 		background: var(--bg-2);
 		border: 1px solid var(--border);
+		color: var(--txt-1);
 	}
 
 	.name {
