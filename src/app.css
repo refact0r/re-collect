@@ -10,6 +10,13 @@
 	--danger-border: oklch(40% 0.08 20);
 	--font: 'DM Sans', system-ui, sans-serif;
 	--font-weight: 400;
+	--spacing: 1rem;
+}
+
+@media (max-width: 768px) {
+	:root {
+		--spacing: 0.75rem;
+	}
 }
 
 * {
@@ -70,9 +77,7 @@ h3 {
 	font-size: 1.125rem !important;
 }
 
-/* ============================================
-   Form Elements
-   ============================================ */
+/* Form Elements */
 
 input,
 textarea,
@@ -83,7 +88,7 @@ select {
 	font-weight: var(--font-weight);
 	border: 1px solid var(--border);
 	background: var(--bg-2);
-	color: var(--txt-1);
+	color: var(--txt-2);
 	line-height: 1.5;
 
 	&:focus {
@@ -93,6 +98,11 @@ select {
 
 	&::placeholder {
 		color: var(--txt-3);
+	}
+
+	&:disabled {
+		color: var(--txt-3);
+		cursor: not-allowed;
 	}
 }
 
@@ -107,71 +117,206 @@ select {
 	&:hover {
 		background-color: var(--bg-3);
 	}
+
+	&:disabled {
+		background: var(--bg-2);
+	}
 }
 
 /* Buttons */
-button {
+button,
+.btn {
 	cursor: pointer;
 	font-family: var(--font);
 	font-weight: var(--font-weight);
 	color: inherit;
 	background: var(--bg-2);
 	border: 1px solid var(--border);
-	padding: 0.5rem 0.75rem;
+	padding: 0.5rem;
 	font-size: 1rem;
+	line-height: 1.5;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	text-decoration: none;
 }
 
-button:hover {
+button:hover,
+.btn:hover {
 	background: var(--bg-3);
 	color: var(--txt-1);
 }
 
-button:disabled {
-	opacity: 0.5;
+button:focus-visible,
+.btn:focus-visible {
+	outline: 1px solid var(--txt-3);
+	outline-offset: 1px;
+}
+
+button:disabled,
+.btn:disabled {
+	background: var(--bg-2);
+	color: var(--txt-3);
+	border-color: var(--border);
 	cursor: not-allowed;
 }
 
-button.danger {
-	background: var(--danger-bg);
-	border-color: var(--danger-border);
+button:disabled:hover,
+.btn:disabled:hover {
+	background: var(--bg-2);
+	color: var(--txt-3);
 }
 
-button.danger:hover {
-	background: var(--danger-border);
-}
+/* Icon Buttons (ghost style) */
 
-/* Icon button - no background, minimal styling */
-button.icon {
-	background: none;
-	border: none;
-	padding: 0.25rem;
-	display: flex;
+button.icon,
+a.icon,
+label.icon {
+	background: transparent;
+	border: 1px solid transparent;
+	padding: 0.5rem;
+	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	aspect-ratio: 1;
 }
 
-button.icon:hover {
+button.icon svg,
+a.icon svg,
+label.icon svg {
+	width: 1.5rem;
+	height: 1.5rem;
+}
+
+button.icon:hover,
+a.icon:hover,
+label.icon:hover {
 	background: var(--bg-2);
 	color: var(--txt-1);
 }
 
-/* Link-style button - looks like a text link */
-button.link {
-	background: none;
-	border: none;
-	padding: 0;
-	text-decoration: underline;
-	font-size: inherit;
+button.icon:focus-visible,
+a.icon:focus-visible,
+label.icon:focus-visible {
+	outline: 1px solid var(--txt-3);
+	outline-offset: 1px;
 }
 
-button.link:hover {
-	background: none;
+button.icon:disabled {
+	color: var(--txt-3);
+	cursor: not-allowed;
+}
+
+button.icon:disabled:hover {
+	background: transparent;
+	color: var(--txt-3);
+}
+
+a.icon,
+label.icon {
+	text-decoration: none;
+	cursor: pointer;
+}
+
+/* Icon Buttons (filled, for use next to standard buttons) */
+
+button.icon-filled,
+a.icon-filled,
+label.icon-filled {
+	background: var(--bg-2);
+	border: 1px solid var(--border);
+	padding: 0.5rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	aspect-ratio: 1;
+}
+
+button.icon-filled svg,
+a.icon-filled svg,
+label.icon-filled svg {
+	width: 1.5rem;
+	height: 1.5rem;
+}
+
+button.icon-filled:hover,
+a.icon-filled:hover,
+label.icon-filled:hover {
+	background: var(--bg-3);
 	color: var(--txt-1);
 }
 
-/* ============================================
-   Forms
-   ============================================ */
+/* Danger Buttons */
+
+button.danger,
+.btn.danger {
+	background: var(--danger-bg);
+	border-color: var(--danger-border);
+}
+
+button.danger:hover,
+.btn.danger:hover {
+	background: var(--danger-border);
+}
+
+button.danger:disabled,
+.btn.danger:disabled {
+	background: var(--danger-bg);
+	border-color: var(--danger-border);
+	color: var(--txt-3);
+}
+
+/* Nav Links */
+
+.nav-link {
+	display: flex;
+	align-items: center;
+	padding: 0.5rem;
+	text-decoration: none;
+	color: inherit;
+	background: transparent;
+	border: 1px solid transparent;
+	cursor: pointer;
+}
+
+.nav-link:hover {
+	background: var(--bg-2);
+	color: var(--txt-1);
+}
+
+.nav-link.active {
+	background: var(--bg-2);
+	border-color: var(--border);
+	color: var(--txt-1);
+}
+
+.nav-link:focus-visible {
+	outline: 1px solid var(--txt-3);
+	outline-offset: 1px;
+}
+
+/* Clickable Cards */
+
+.clickable {
+	display: block;
+	text-decoration: none;
+	color: inherit;
+	background: transparent;
+	border: 1px solid var(--border);
+	cursor: pointer;
+}
+
+.clickable:hover {
+	background: var(--bg-2);
+}
+
+.clickable:focus-visible {
+	outline: 1px solid var(--txt-3);
+	outline-offset: 1px;
+}
+
+/* Forms */
 
 .form {
 	display: flex;
@@ -185,7 +330,6 @@ button.link:hover {
 	gap: 0.25rem;
 }
 
-/* Horizontal label (for checkboxes) */
 .form label.horizontal {
 	flex-direction: row;
 	align-items: center;
@@ -197,31 +341,7 @@ button.link:hover {
 	gap: 0.5rem;
 }
 
-/* ============================================
-   Input container - bordered wrapper for inputs
-   ============================================ */
-
-.input-container {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	border: 1px solid var(--border);
-	background: var(--bg-2);
-}
-
-.input-container:focus-within {
-	border-color: var(--txt-3);
-}
-
-.input-container input,
-.input-container textarea {
-	border: none;
-	background: transparent;
-}
-
-/* ============================================
-   Modal/Dialog
-   ============================================ */
+/* Modal */
 
 .backdrop {
 	position: fixed;
@@ -256,22 +376,22 @@ button.link:hover {
 	position: absolute;
 	top: 0;
 	right: 0;
-	background: none;
-	border: none;
+	background: transparent;
+	border: 1px solid transparent;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	font-size: 1.25rem;
-	padding: 0.75rem;
+	padding: var(--spacing);
 	color: var(--txt-3);
 }
+
 .modal .close-btn:hover {
-	color: var(--txt-2);
+	background: var(--bg-2);
+	color: var(--txt-1);
 }
 
-/* ============================================
-   Status Messages
-   ============================================ */
+/* Status Messages */
 
 .status-text {
 	font-size: 0.875rem;
@@ -283,37 +403,27 @@ button.link:hover {
 	color: var(--txt-3);
 }
 
-/* ============================================
-   Page Headers
-   ============================================ */
+/* Page Headers */
 
 .page-header {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	margin-bottom: 1rem;
+	margin-bottom: var(--spacing);
 }
 
 .page-header h1 {
 	margin: 0;
 }
 
-/* ============================================
-   Cards
-   ============================================ */
+/* Cards */
 
 .card {
 	border: 1px solid var(--border);
 	padding: 1rem;
 }
 
-.card:hover {
-	border-color: var(--txt-3);
-}
-
-/* ============================================
-   Sections
-   ============================================ */
+/* Sections */
 
 .section {
 	border: 1px solid var(--border);

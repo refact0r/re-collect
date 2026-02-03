@@ -4,8 +4,9 @@
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { getImage } from '$lib/imageCache.svelte.js';
-	import IconOpenInNew from '~icons/material-symbols/open-in-new-sharp';
+	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
 	import IconCheck from '~icons/material-symbols/check';
+	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
 
 	interface Props {
 		itemId: Id<'items'>;
@@ -130,7 +131,7 @@
 						href={url}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="open-url"
+						class="icon-filled"
 						aria-label="open url"
 					>
 						<IconOpenInNew />
@@ -173,16 +174,16 @@
 			</div>
 
 			<div class="actions">
-				<button onclick={handleDelete} class="danger">delete</button>
-				<button onclick={handleSave}>save</button>
+				<button onclick={handleSave}>done</button>
+				<button onclick={handleDelete} class="icon-filled danger" aria-label="delete item">
+					<IconDelete />
+				</button>
 			</div>
 		</div>
 	</div>
 {/if}
 
 <style>
-	/* Uses global .form, .section, .meta, .status-text styles from app.css */
-
 	.editor-layout {
 		display: flex;
 		gap: 1rem;
@@ -202,7 +203,6 @@
 	}
 
 	.form {
-		padding-top: 1rem;
 		width: 25rem;
 	}
 
@@ -308,30 +308,14 @@
 		flex: 1;
 	}
 
-	.open-url {
-		padding: 0.5rem 0.75rem;
-		flex-shrink: 0;
-		background: var(--bg-2);
-		border: 1px solid var(--border);
-		text-decoration: none;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.open-url:hover {
-		background: var(--bg-3);
-	}
-
-	.open-url :global(svg) {
-		width: 1rem;
-		height: 1rem;
-	}
-
 	.actions {
 		margin-top: auto;
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
 	}
-	.actions button {
+
+	.actions button:first-child {
 		flex: 1;
 	}
 
@@ -344,7 +328,7 @@
 		.content-preview {
 			position: static;
 			display: block;
-			padding: 3rem 1rem 1rem 1rem;
+			padding: 1rem;
 			container-type: normal;
 		}
 

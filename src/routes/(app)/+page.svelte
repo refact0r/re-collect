@@ -43,6 +43,6 @@
 
 <style>
 	.input-wrapper {
-		margin-bottom: 1rem;
+		margin-bottom: var(--spacing);
 	}
 </style>

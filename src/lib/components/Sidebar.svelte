@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 	import { page } from '$app/state';
-	import IconClose from '~icons/material-symbols/close-sharp';
-	import IconChevronLeft from '~icons/material-symbols/chevron-left-sharp';
-	import IconChevronRight from '~icons/material-symbols/chevron-right-sharp';
+	import IconClose from '~icons/material-symbols-light/close';
+	import IconChevronLeft from '~icons/material-symbols-light/chevron-left';
+	import IconChevronRight from '~icons/material-symbols-light/chevron-right';
 
 	const collections =
 		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
@@ -14,24 +14,24 @@
 
 <aside class:collapsed class:mobile-open={mobileOpen}>
 	<div class="mobile-header">
-		<button
-			class="icon close-mobile"
-			onclick={() => (mobileOpen = false)}
-			aria-label="close menu"
-		>
+		<button class="icon close-mobile" onclick={() => (mobileOpen = false)} aria-label="close menu">
 			<IconClose />
 		</button>
 	</div>
 	<nav class="main-nav">
-		<a href="/" class:active={page.url.pathname === '/'} onclick={() => (mobileOpen = false)}
-			>re-collect</a
+		<a
+			href="/"
+			class="nav-link"
+			class:active={page.url.pathname === '/'}
+			onclick={() => (mobileOpen = false)}>re-collect</a
 		>
 		<a
 			href="/collections"
+			class="nav-link"
 			class:active={page.url.pathname === '/collections'}
 			onclick={() => (mobileOpen = false)}>collections</a
 		>
-		<a href="/logout" onclick={() => (mobileOpen = false)}>logout</a>
+		<a href="/logout" class="nav-link" onclick={() => (mobileOpen = false)}>logout</a>
 	</nav>
 	<nav class="collections">
 		{#if collapsed}
@@ -46,9 +46,9 @@
 						<li>
 							<a
 								href="/collections/{collection._id}"
+								class="nav-link collapsed-link"
 								class:active={isActive}
 								title={collection.name}
-								class="collapsed-link"
 							>
 								{collection.name.charAt(0)}
 							</a>
@@ -67,7 +67,7 @@
 				{#each collections.data ?? [] as collection (collection._id)}
 					{@const isActive = page.url.pathname === `/collections/${collection._id}`}
 					<li>
-						<a href="/collections/{collection._id}" class:active={isActive}>
+						<a href="/collections/{collection._id}" class="nav-link" class:active={isActive}>
 							<span class="name">{collection.name}</span>
 							<span class="count">{collection.itemCount}</span>
 						</a>
@@ -95,19 +95,19 @@
 		width: 15rem;
 		min-width: 15rem;
 		border-right: 1px solid var(--border);
-		padding: 1rem;
+		padding: var(--spacing);
 		padding-bottom: 3.5rem;
 		display: flex;
 		flex-direction: column;
 		transition:
-			width 0.2s ease,
-			min-width 0.2s ease;
+			width 0.1s ease,
+			min-width 0.1s ease;
 	}
 
 	aside.collapsed {
 		width: 3rem;
 		min-width: 3rem;
-		padding: 1rem 0.5rem;
+		padding: var(--spacing) 0.5rem;
 		padding-bottom: 3.5rem;
 	}
 
@@ -134,6 +134,10 @@
 			overflow-y: auto;
 		}
 
+		.close-mobile {
+			padding: 0.25rem;
+		}
+
 		aside.mobile-open {
 			transform: translateX(0);
 		}
@@ -147,42 +151,22 @@
 		.mobile-header {
 			display: flex;
 			justify-content: flex-end;
-			padding: 0.5rem 0.5rem 0.5rem 1rem;
+			padding: 0.5rem;
 			border-bottom: 1px solid var(--border);
 			flex-shrink: 0;
-		}
-
-		.close-mobile :global(svg) {
-			width: 1.5rem;
-			height: 1.5rem;
 		}
 
 		.main-nav {
 			display: flex;
 			flex-direction: column;
-			padding: 1rem;
+			padding: var(--spacing);
 			gap: 0.25rem;
 			border-bottom: 1px solid var(--border);
 			flex-shrink: 0;
 		}
 
-		.main-nav a {
-			padding: 0.5rem;
-			text-decoration: none;
-		}
-
-		.main-nav a:hover {
-			background: var(--bg-2);
-			color: var(--txt-1);
-		}
-
-		.main-nav a.active {
-			background: var(--bg-2);
-			color: var(--txt-1);
-		}
-
 		.collections {
-			padding: 1rem;
+			padding: var(--spacing);
 			flex: 1;
 			overflow-y: auto;
 		}
@@ -192,22 +176,21 @@
 		}
 	}
 
-	/* Uses global button.icon styles from app.css */
 	.toggle {
 		position: absolute;
 		bottom: 0.5rem;
 		right: 0.5rem;
+		padding: 0.25rem;
 		width: 2rem;
-		height: 2rem;
-	}
-
-	.collapsed .toggle {
-		margin: 0 auto;
 	}
 
 	.toggle :global(svg) {
 		width: 1.25rem;
 		height: 1.25rem;
+	}
+
+	.collapsed .toggle {
+		margin: 0 auto;
 	}
 
 	ul {
@@ -218,23 +201,7 @@
 	}
 
 	li a {
-		display: flex;
 		justify-content: space-between;
-		align-items: center;
-		padding: 0.5rem;
-		text-decoration: none;
-		border: 1px solid transparent;
-	}
-
-	li a:hover {
-		background: var(--bg-2);
-		color: var(--txt-1);
-	}
-
-	li a.active {
-		background: var(--bg-2);
-		border: 1px solid var(--border);
-		color: var(--txt-1);
 	}
 
 	.name {

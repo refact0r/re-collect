@@ -9,7 +9,7 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { api } from '../../convex/_generated/api.js';
-	import IconMenu from '~icons/material-symbols/menu-sharp';
+	import IconMenu from '~icons/material-symbols-light/menu';
 
 	let { children } = $props();
 	setupConvex(PUBLIC_CONVEX_URL);
@@ -100,8 +100,10 @@
 			<IconMenu />
 		</button>
 		<div class="nav-links">
-			<a href="/" class:active={page.url.pathname === '/'}>re-collect</a>
-			<a href="/collections" class:active={page.url.pathname === '/collections'}>collections</a>
+			<a href="/" class="nav-link" class:active={page.url.pathname === '/'}>re-collect</a>
+			<a href="/collections" class="nav-link" class:active={page.url.pathname === '/collections'}
+				>collections</a
+			>
 		</div>
 		<div class="nav-search">
 			<input
@@ -114,7 +116,7 @@
 			/>
 		</div>
 		<div class="nav-actions">
-			<a href="/logout" class="logout-link">logout</a>
+			<a href="/logout" class="nav-link">logout</a>
 		</div>
 	</nav>
 </header>
@@ -136,7 +138,7 @@
 
 <style>
 	header {
-		padding: 0.5rem 1rem 0.5rem 1.5rem;
+		padding: 0.5rem var(--spacing) 0.5rem var(--spacing);
 		border-bottom: 1px solid var(--border);
 		flex-shrink: 0;
 	}
@@ -144,47 +146,24 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: 1rem;
+		gap: var(--spacing);
 	}
 	.menu-btn {
 		display: none;
 	}
-	.menu-btn :global(svg) {
-		width: 1.5rem;
-		height: 1.5rem;
-	}
 	.nav-links {
 		display: flex;
-		gap: 1rem;
-	}
-	nav a {
-		text-decoration: none;
-	}
-	nav a:hover {
-		color: var(--txt-1);
-	}
-	nav a.active {
-		color: var(--txt-1);
+		gap: 0.5rem;
 	}
 	.nav-search {
 		display: flex;
-		/* margin: auto; */
 	}
 	.nav-search input {
-		width: 24rem;
-		padding: 0.25rem 0.5rem;
+		width: 30rem;
 	}
 	.nav-actions {
 		display: flex;
 		align-items: center;
-	}
-	.logout-link {
-		text-decoration: none;
-		color: var(--txt-2);
-		font-size: 0.875rem;
-	}
-	.logout-link:hover {
-		color: var(--txt-1);
 	}
 	.mobile-backdrop {
 		display: none;
@@ -202,22 +181,30 @@
 	}
 	main {
 		flex: 1;
-		padding: 1rem;
+		padding: var(--spacing);
 		overflow-y: auto;
 	}
 
 	@media (max-width: 768px) {
 		header {
-			padding: 0.5rem 0.75rem;
+			padding: 0.5rem var(--spacing) 0.5rem 0.5rem;
+		}
+		nav {
+			gap: 0.5rem;
 		}
 		.menu-btn {
 			display: flex;
+			padding: 0.25rem;
 		}
 		.nav-links {
 			display: none;
 		}
+		.nav-search {
+			flex: 1;
+		}
 		.nav-search input {
 			width: 100%;
+			padding: 0.25rem 0.5rem;
 		}
 		.nav-actions {
 			display: none;
@@ -240,8 +227,8 @@
 			position: fixed;
 		}
 		main {
-			padding: 0.75rem;
-			padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+			padding: var(--spacing);
+			padding-bottom: calc(var(--spacing) + env(safe-area-inset-bottom, 0px));
 		}
 	}
 </style>
