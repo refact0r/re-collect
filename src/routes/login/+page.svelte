@@ -48,13 +48,14 @@
 		align-items: center;
 		justify-content: center;
 		min-height: 100vh;
+		padding: var(--spacing);
 		background: var(--bg-1);
 	}
 
 	.login-box {
 		background: var(--bg-1);
 		border: 1px solid var(--border);
-		padding: 1rem;
+		padding: var(--spacing);
 		width: 100%;
 		max-width: 24rem;
 	}
@@ -65,6 +66,6 @@
 	}
 
 	button.error {
-		color: #ef4444;
+		color: var(--danger-border);
 	}
 </style>

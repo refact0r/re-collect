@@ -4,7 +4,6 @@
 	import { goto } from '$app/navigation';
 	import ItemEditor from './ItemEditor.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import IconClose from '~icons/material-symbols/close-sharp';
 
 	interface Props {
 		itemId: Id<'items'>;
@@ -106,9 +105,6 @@
 	tabindex="-1"
 >
 	<div class="modal modal-wide">
-		<button class="close-btn" onclick={handleClose}>
-			<IconClose />
-		</button>
 		{#key itemId}
 			<ItemEditor {itemId} onSave={onClose} onDelete={onClose} onReady={handleSaveReady} />
 		{/key}
@@ -132,10 +128,6 @@
 			max-width: 100vw;
 			border: none;
 			padding: 0;
-		}
-
-		.close-btn {
-			z-index: 10;
 		}
 	}
 </style>

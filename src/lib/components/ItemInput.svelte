@@ -3,7 +3,7 @@
 	import { useUploadFile } from '@convex-dev/r2/svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import IconUpload from '~icons/material-symbols/upload-sharp';
+	import IconUpload from '~icons/material-symbols-light/upload-sharp';
 
 	interface Props {
 		collectionId?: Id<'collections'>;
@@ -29,11 +29,9 @@
 		// Batch DOM operations in a single animation frame to avoid layout thrashing
 		resizeFrame = requestAnimationFrame(() => {
 			if (!textareaEl) return;
-			// Read phase
-			const scrollHeight = textareaEl.scrollHeight;
-			// Write phase
+			// Reset height first so scrollHeight recalculates
 			textareaEl.style.height = 'auto';
-			textareaEl.style.height = scrollHeight + 'px';
+			textareaEl.style.height = textareaEl.scrollHeight + 'px';
 			resizeFrame = null;
 		});
 	}
@@ -185,36 +183,61 @@
 	}
 </script>
 
-<div
-	class="input-container"
-	class:dragging={isDragging}
-	ondragover={handleDragOver}
-	ondragleave={handleDragLeave}
-	ondrop={handleDrop}
-	role="region"
-	aria-label="File drop zone"
->
-	<textarea
-		bind:this={textareaEl}
-		bind:value={inputValue}
-		oninput={autoResize}
-		onkeydown={handleKeydown}
-		onpaste={handlePaste}
-		placeholder="paste a url, image, or type text..."
-		disabled={isAdding}
-		rows="1"
-	></textarea>
-	<label class="upload-btn">
+<div class="input-wrapper">
+	<div
+		class="input-container"
+		class:dragging={isDragging}
+		ondragover={handleDragOver}
+		ondragleave={handleDragLeave}
+		ondrop={handleDrop}
+		role="region"
+		aria-label="File drop zone"
+	>
+		<textarea
+			bind:this={textareaEl}
+			bind:value={inputValue}
+			oninput={autoResize}
+			onkeydown={handleKeydown}
+			onpaste={handlePaste}
+			placeholder="paste a url, image, or type text..."
+			disabled={isAdding}
+			rows="1"
+		></textarea>
+	</div>
+	<label class="icon-filled upload-btn">
 		<input type="file" accept="image/*" onchange={handleFileUpload} disabled={isAdding} />
 		<IconUpload />
 	</label>
 </div>
 
 <style>
-	/* Uses global .input-container styles from app.css */
+	.input-wrapper {
+		display: flex;
+		gap: 0.5rem;
+		align-items: flex-start;
+	}
+
+	.input-container {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		border: 1px solid var(--border);
+		background: var(--bg-2);
+	}
+
+	.input-container:focus-within {
+		border-color: var(--txt-3);
+	}
+
 	.input-container.dragging {
 		border-color: var(--txt-2);
 		border-style: dashed;
+	}
+
+	.input-container textarea {
+		border: none;
+		background: transparent;
 	}
 
 	textarea {
@@ -227,26 +250,10 @@
 	}
 
 	.upload-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 2rem;
-		height: 2rem;
-		cursor: pointer;
 		flex-shrink: 0;
-		margin-right: 0.25rem;
-	}
-
-	.upload-btn:hover {
-		background: var(--bg-3);
 	}
 
 	.upload-btn input {
 		display: none;
-	}
-
-	.upload-btn :global(svg) {
-		width: 1.25rem;
-		height: 1.25rem;
 	}
 </style>

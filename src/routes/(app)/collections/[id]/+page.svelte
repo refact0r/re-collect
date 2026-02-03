@@ -164,10 +164,8 @@
 {/if}
 
 <style>
-	/* Uses global .page-header, .status-text styles from app.css */
-
 	.input-wrapper {
-		margin-bottom: 1rem;
+		margin-bottom: var(--spacing);
 	}
 
 	.header-controls {

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
-	import IconClose from '~icons/material-symbols/close-sharp';
 
 	interface Props {
 		onClose: () => void;
@@ -43,17 +42,8 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div
-	class="backdrop"
-	onclick={handleBackdropClick}
-	role="dialog"
-	aria-modal="true"
-	tabindex="-1"
->
+<div class="backdrop" onclick={handleBackdropClick} role="dialog" aria-modal="true" tabindex="-1">
 	<div class="modal">
-		<button class="close-btn" onclick={onClose}>
-			<IconClose />
-		</button>
 		<h2>new collection</h2>
 		<div class="form">
 			<input type="text" bind:value={name} placeholder="collection name" disabled={isCreating} />
@@ -68,5 +58,15 @@
 <style>
 	h2 {
 		margin: 0 0 1rem 0;
+	}
+
+	.actions {
+		display: flex;
+		gap: 0.5rem;
+		width: 100%;
+	}
+
+	.actions button {
+		flex: 1;
 	}
 </style>

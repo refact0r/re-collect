@@ -6,8 +6,8 @@
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { getImage } from '$lib/imageCache.svelte.js';
-	import IconSchedule from '~icons/material-symbols/schedule-sharp';
-	import IconError from '~icons/material-symbols/error-sharp';
+	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
+	import IconError from '~icons/material-symbols-light/error-outline';
 
 	const client = useConvexClient();
 
@@ -455,7 +455,7 @@
 					{@const realItem = item as Item}
 					{@const isDragging = draggedItem?._id === realItem._id}
 					<div class="card-wrapper" class:dragging={isDragging}>
-						<a href={getItemUrl(realItem._id)} class="card">
+						<a href={getItemUrl(realItem._id)} class="clickable card">
 							{#if shouldDisplayAsImage(realItem)}
 								<img
 									src={getImage(realItem._id, realItem.imageUrl)}
@@ -547,7 +547,7 @@
 		style:top="{dragPosition.y - dragOffset.y}px"
 		style:width="{columnWidth}px"
 	>
-		<div class="card">
+		<div class="clickable card">
 			{#if shouldDisplayAsImage(draggedItem)}
 				<img
 					src={getImage(draggedItem._id, draggedItem.imageUrl)}
@@ -575,7 +575,7 @@
 <style>
 	.masonry {
 		display: flex;
-		gap: 1rem;
+		gap: var(--spacing);
 		width: 100%;
 		padding-bottom: 2rem;
 	}
@@ -584,7 +584,7 @@
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: var(--spacing);
 		min-width: 0;
 	}
 
@@ -598,15 +598,7 @@
 	}
 
 	.card {
-		border: 1px solid var(--border);
 		padding: 0.5rem;
-		display: block;
-		text-decoration: none;
-		color: inherit;
-	}
-
-	.card:hover {
-		border-color: var(--txt-3);
 	}
 
 	.card img {
@@ -700,13 +692,6 @@
 		flex: 1;
 		padding: 0.25rem 0.5rem;
 		font-size: 0.875rem;
-		cursor: pointer;
-		color: var(--txt-2);
-	}
-
-	.retry-button:hover,
-	.delete-button:hover {
-		border-color: var(--txt-3);
 	}
 
 	.card-title {
@@ -760,7 +745,7 @@
 
 	@media (max-width: 768px) {
 		.masonry {
-			padding-bottom: 4rem;
+			padding-bottom: calc(env(safe-area-inset-bottom, 0px));
 		}
 	}
 </style>

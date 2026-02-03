@@ -34,7 +34,7 @@
 	{:else}
 		<div class="list">
 			{#each collections.data ?? [] as collection (collection._id)}
-				<a href="/collections/{collection._id}" class="collection-card">
+				<a href="/collections/{collection._id}" class="clickable collection-card">
 					<div class="info-row">
 						<div class="collection-info">
 							<h3>{collection.name}</h3>
@@ -82,28 +82,25 @@
 {/if}
 
 <style>
-	/* Uses global .page-header, .card, button.link styles from app.css */
 	.list {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
-		gap: 1rem;
+		gap: var(--spacing);
 	}
 	.collection-card {
-		border: 1px solid var(--border);
-		padding: 1rem;
+		padding: var(--spacing);
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
-		text-decoration: none;
+		gap: var(--spacing);
 	}
-	.collection-card:hover:not(:has(button:hover)) {
-		background-color: var(--bg-2);
+	.collection-card:has(button:hover) {
+		background-color: transparent;
 	}
 	.info-row {
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
-		gap: 1rem;
+		gap: var(--spacing);
 	}
 	.collection-info h3 {
 		margin: 0;
