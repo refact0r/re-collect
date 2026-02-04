@@ -8,8 +8,10 @@
 	import ItemList from '$lib/components/ItemList.svelte';
 	import TopControls from '$lib/components/TopControls.svelte';
 	import { type ViewMode } from '$lib/components/ViewToggle.svelte';
+	import { mutate } from '$lib/mutationHelper.js';
 
 	const client = useConvexClient();
+	const writeToken = getContext<string | null>('writeToken');
 	const collectionId = $derived(page.params.id as Id<'collections'>);
 	const allCollections =
 		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
@@ -76,10 +78,13 @@
 	async function handleSortChange(newSort: SortOption) {
 		sortBy = newSort;
 		if (prefsInitialized) {
-			await client.mutation(api.collections.update, {
-				id: collectionId,
-				sortMode: newSort
-			});
+			await mutate(writeToken, (token) =>
+				client.mutation(api.collections.update, {
+					id: collectionId,
+					sortMode: newSort,
+					token
+				})
+			);
 		}
 	}
 
@@ -87,25 +92,33 @@
 	async function handleViewModeChange(newMode: ViewMode) {
 		viewMode = newMode;
 		if (prefsInitialized) {
-			await client.mutation(api.collections.update, {
-				id: collectionId,
-				viewMode: newMode
-			});
+			await mutate(writeToken, (token) =>
+				client.mutation(api.collections.update, {
+					id: collectionId,
+					viewMode: newMode,
+					token
+				})
+			);
 		}
 	}
 
 	// Reorder handler for drag-drop
 	async function handleReorder(itemId: Id<'items'>, newPosition: string) {
-		await client.mutation(api.itemCollectionPositions.reorderItem, {
-			itemId,
-			collectionId,
-			newPosition
-		});
+		await mutate(writeToken, (token) =>
+			client.mutation(api.itemCollectionPositions.reorderItem, {
+				itemId,
+				collectionId,
+				newPosition,
+				token
+			})
+		);
 	}
 
 	// Retry handler for failed screenshots
 	async function handleRetryScreenshot(itemId: Id<'items'>) {
-		await client.mutation(api.screenshots.retryScreenshot, { itemId });
+		await mutate(writeToken, (token) =>
+			client.mutation(api.screenshots.retryScreenshot, { itemId, token })
+		);
 	}
 
 	let isEditing = $state(false);
@@ -132,11 +145,16 @@
 			cancelEditing();
 			return;
 		}
-		await client.mutation(api.collections.update, {
-			id: collectionId,
-			name: trimmed
-		});
-		isEditing = false;
+		const result = await mutate(writeToken, (token) =>
+			client.mutation(api.collections.update, {
+				id: collectionId,
+				name: trimmed,
+				token
+			})
+		);
+		if (result !== null) {
+			isEditing = false;
+		}
 	}
 
 	function handleKeydown(e: KeyboardEvent) {

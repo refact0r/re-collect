@@ -4,6 +4,7 @@
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { getImage } from '$lib/imageCache.svelte.js';
+	import { mutate } from '$lib/mutationHelper.js';
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
 	import IconCheck from '~icons/material-symbols/check';
 	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
@@ -21,6 +22,7 @@
 	const allItems = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('items');
 	const collections =
 		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
+	const writeToken = getContext<string | null>('writeToken');
 
 	// Find the specific item from context
 	const item = $derived.by(() => {
@@ -57,29 +59,44 @@
 	});
 
 	async function handleSave() {
-		await client.mutation(api.items.update, {
-			id: itemId,
-			title,
-			description,
-			url,
-			content
-		});
-		onSave();
+		const result = await mutate(writeToken, (token) =>
+			client.mutation(api.items.update, {
+				id: itemId,
+				title,
+				description,
+				url,
+				content,
+				token
+			})
+		);
+		if (result !== null) {
+			onSave();
+		}
 	}
 
 	async function handleDelete() {
 		if (confirm('Delete this item?')) {
-			await client.mutation(api.items.remove, { id: itemId });
+			// Close modal immediately to avoid showing "item not found" error
+			// as Convex updates the items list in real-time
 			onDelete();
+
+			// Delete in background
+			await mutate(writeToken, (token) =>
+				client.mutation(api.items.remove, { id: itemId, token })
+			);
 		}
 	}
 
 	async function toggleCollection(collectionId: Id<'collections'>) {
 		if (!item.data) return;
 		if (item.data.collections.includes(collectionId)) {
-			await client.mutation(api.items.removeFromCollection, { itemId, collectionId });
+			await mutate(writeToken, (token) =>
+				client.mutation(api.items.removeFromCollection, { itemId, collectionId, token })
+			);
 		} else {
-			await client.mutation(api.items.addToCollection, { itemId, collectionId });
+			await mutate(writeToken, (token) =>
+				client.mutation(api.items.addToCollection, { itemId, collectionId, token })
+			);
 		}
 	}
 </script>

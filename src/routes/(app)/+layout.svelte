@@ -12,8 +12,11 @@
 	import IconMenu from '~icons/material-symbols-light/menu';
 	import IconSearch from '~icons/material-symbols-light/search';
 
-	let { children } = $props();
+	let { children, data } = $props();
 	setupConvex(PUBLIC_CONVEX_URL);
+
+	// Auth state from server
+	const { isAuthenticated, writeToken } = data;
 
 	// Fetch all items and collections on load (with real-time sync)
 	const items = useQuery(api.items.list, {});
@@ -33,6 +36,8 @@
 			currentItems = newItems;
 		}
 	});
+	setContext('writeToken', writeToken);
+	setContext('isAuthenticated', isAuthenticated);
 
 	const editItemId = $derived(page.url.searchParams.get('item') as Id<'items'> | null);
 
@@ -95,6 +100,10 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
+{#if !writeToken}
+	<div class="read-only-banner">not logged in. read-only mode</div>
+{/if}
+
 <header>
 	<nav>
 		<button class="icon menu-btn" onclick={toggleMobileMenu} aria-label="toggle menu">
@@ -119,7 +128,11 @@
 			/>
 		</div>
 		<div class="nav-actions">
-			<a href="/logout" class="nav-link">logout</a>
+			{#if isAuthenticated}
+				<a href="/logout" class="nav-link">logout</a>
+			{:else}
+				<a href="/login" class="nav-link">login</a>
+			{/if}
 		</div>
 	</nav>
 </header>
@@ -201,6 +214,14 @@
 	}
 	.mobile-backdrop {
 		display: none;
+	}
+	.read-only-banner {
+		padding: 0.5rem var(--spacing);
+		background: var(--danger-bg);
+		border-bottom: 1px solid var(--danger-border);
+		text-align: center;
+		font-size: 0.875rem;
+		color: var(--txt-1);
 	}
 	.layout {
 		display: flex;

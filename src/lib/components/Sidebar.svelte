@@ -7,6 +7,7 @@
 
 	const collections =
 		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
+	const isAuthenticated = getContext<boolean>('isAuthenticated');
 
 	let collapsed = $state(false);
 	let { mobileOpen = $bindable(false) } = $props();
@@ -32,7 +33,11 @@
 			class:active={page.url.pathname === '/collections'}
 			onclick={() => (mobileOpen = false)}>collections</a
 		>
-		<a href="/logout" class="nav-link" onclick={() => (mobileOpen = false)}>logout</a>
+		{#if isAuthenticated}
+			<a href="/logout" class="nav-link" onclick={() => (mobileOpen = false)}>logout</a>
+		{:else}
+			<a href="/login" class="nav-link" onclick={() => (mobileOpen = false)}>login</a>
+		{/if}
 	</nav>
 	<nav class="collections">
 		{#if collapsed}

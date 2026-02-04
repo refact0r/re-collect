@@ -5,9 +5,11 @@
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import CollectionCreateModal from '$lib/components/CollectionCreateModal.svelte';
 	import { getImage } from '$lib/imageCache.svelte';
+	import { mutate } from '$lib/mutationHelper.js';
 	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
 
 	const client = useConvexClient();
+	const writeToken = getContext<string | null>('writeToken');
 	const collections =
 		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
 
@@ -15,7 +17,9 @@
 
 	async function handleDelete(id: Id<'collections'>) {
 		if (confirm('Delete this collection? Items will not be deleted.')) {
-			await client.mutation(api.collections.remove, { id });
+			await mutate(writeToken, (token) =>
+				client.mutation(api.collections.remove, { id, token })
+			);
 		}
 	}
 </script>

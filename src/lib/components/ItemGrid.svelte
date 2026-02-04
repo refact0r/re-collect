@@ -1,15 +1,17 @@
 <script lang="ts">
 	import { generateKeyBetween } from 'fractional-indexing';
-	import { onDestroy } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { getImage } from '$lib/imageCache.svelte.js';
+	import { mutate } from '$lib/mutationHelper.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
 	import IconError from '~icons/material-symbols-light/error-outline';
 
 	const client = useConvexClient();
+	const writeToken = getContext<string | null>('writeToken');
 
 	interface Item {
 		_id: Id<'items'>;
@@ -36,7 +38,7 @@
 	let { items, collectionId, onReorder, onRetryScreenshot }: Props = $props();
 
 	async function handleDeleteItem(itemId: Id<'items'>) {
-		await client.mutation(api.items.remove, { id: itemId });
+		await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
 	}
 
 	const isDraggable = $derived(!!collectionId && !!onReorder);

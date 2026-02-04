@@ -1,6 +1,7 @@
 import { v } from 'convex/values';
 import { internalAction, internalMutation, mutation } from './_generated/server';
 import { internal } from './_generated/api';
+import { requireAuth } from './auth';
 
 // Internal mutation to update screenshot status to processing
 export const setProcessing = internalMutation({
@@ -74,8 +75,9 @@ export const generateScreenshot = internalAction({
 
 // Public mutation to retry a failed screenshot
 export const retryScreenshot = mutation({
-	args: { itemId: v.id('items') },
+	args: { itemId: v.id('items'), token: v.optional(v.string()) },
 	handler: async (ctx, args) => {
+		requireAuth(args.token);
 		const item = await ctx.db.get(args.itemId);
 		if (!item) throw new Error('Item not found');
 		if (item.type !== 'url' || !item.url) {

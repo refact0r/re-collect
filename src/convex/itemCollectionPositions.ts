@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { generateKeyBetween } from 'fractional-indexing';
+import { requireAuth } from './auth';
 
 // Get position record for an item in a collection
 export async function getPositionRecord(
@@ -118,9 +119,11 @@ export const reorderItem = mutation({
 	args: {
 		itemId: v.id('items'),
 		collectionId: v.id('collections'),
-		newPosition: v.string()
+		newPosition: v.string(),
+		token: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
+		requireAuth(args.token);
 		const item = await ctx.db.get(args.itemId);
 		if (!item) throw new Error('Item not found');
 

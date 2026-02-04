@@ -9,6 +9,7 @@ import {
 	deleteAllPositionsForItem,
 	getPositionsByCollection
 } from './itemCollectionPositions';
+import { requireAuth } from './auth';
 
 // Build combined search text from title, description, and URL
 function buildSearchText(fields: {
@@ -42,9 +43,11 @@ export const add = mutation({
 		imageKey: v.optional(v.string()),
 		imageWidth: v.optional(v.number()),
 		imageHeight: v.optional(v.number()),
-		collections: v.optional(v.array(v.id('collections')))
+		collections: v.optional(v.array(v.id('collections'))),
+		token: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
+		requireAuth(args.token);
 		const now = Date.now();
 		const collections = args.collections ?? [];
 
@@ -99,10 +102,12 @@ export const update = mutation({
 		description: v.optional(v.string()),
 		url: v.optional(v.string()),
 		content: v.optional(v.string()),
-		collections: v.optional(v.array(v.id('collections')))
+		collections: v.optional(v.array(v.id('collections'))),
+		token: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
-		const { id, collections, ...updates } = args;
+		requireAuth(args.token);
+		const { id, collections, token, ...updates } = args;
 		const existing = await ctx.db.get(id);
 		if (!existing) throw new Error('Item not found');
 
@@ -145,8 +150,9 @@ export const update = mutation({
 
 // Delete an item
 export const remove = mutation({
-	args: { id: v.id('items') },
+	args: { id: v.id('items'), token: v.optional(v.string()) },
 	handler: async (ctx, args) => {
+		requireAuth(args.token);
 		const item = await ctx.db.get(args.id);
 		if (!item) throw new Error('Item not found');
 
@@ -168,9 +174,11 @@ export const remove = mutation({
 export const addToCollection = mutation({
 	args: {
 		itemId: v.id('items'),
-		collectionId: v.id('collections')
+		collectionId: v.id('collections'),
+		token: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
+		requireAuth(args.token);
 		const item = await ctx.db.get(args.itemId);
 		if (!item) throw new Error('Item not found');
 
@@ -190,9 +198,11 @@ export const addToCollection = mutation({
 export const removeFromCollection = mutation({
 	args: {
 		itemId: v.id('items'),
-		collectionId: v.id('collections')
+		collectionId: v.id('collections'),
+		token: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
+		requireAuth(args.token);
 		const item = await ctx.db.get(args.itemId);
 		if (!item) throw new Error('Item not found');
 

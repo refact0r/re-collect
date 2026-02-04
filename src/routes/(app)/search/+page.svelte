@@ -8,10 +8,12 @@
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
 	import ItemList from '$lib/components/ItemList.svelte';
 	import ViewToggle, { type ViewMode } from '$lib/components/ViewToggle.svelte';
+	import { mutate } from '$lib/mutationHelper.js';
 
 	const STORAGE_KEY = 'recollect:search-prefs';
 
 	const client = useConvexClient();
+	const writeToken = getContext<string | null>('writeToken');
 	const currentItemsContext = getContext<{
 		items: any[];
 		setItems: (items: any[]) => void;
@@ -53,11 +55,13 @@
 	});
 
 	async function handleRetryScreenshot(itemId: Id<'items'>) {
-		await client.mutation(api.screenshots.retryScreenshot, { itemId });
+		await mutate(writeToken, (token) =>
+			client.mutation(api.screenshots.retryScreenshot, { itemId, token })
+		);
 	}
 
 	async function handleDeleteItem(itemId: Id<'items'>) {
-		await client.mutation(api.items.remove, { id: itemId });
+		await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
 	}
 </script>
 

@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
 	import { useConvexClient } from 'convex-svelte';
 	import { useUploadFile } from '@convex-dev/r2/svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
+	import { mutate } from '$lib/mutationHelper.js';
 	import IconUpload from '~icons/material-symbols-light/upload-sharp';
 
 	interface Props {
@@ -13,6 +15,7 @@
 
 	const client = useConvexClient();
 	const uploadFile = useUploadFile(api.r2);
+	const writeToken = getContext<string | null>('writeToken');
 
 	let inputValue = $state('');
 	let isAdding = $state(false);
@@ -66,21 +69,27 @@
 
 		isAdding = true;
 		try {
-			if (isUrl(value)) {
-				await client.mutation(api.items.add, {
-					type: 'url',
-					url: value,
-					collections: collectionId ? [collectionId] : undefined
-				});
-			} else {
-				await client.mutation(api.items.add, {
-					type: 'text',
-					content: value,
-					collections: collectionId ? [collectionId] : undefined
-				});
+			const result = await mutate(writeToken, (token) => {
+				if (isUrl(value)) {
+					return client.mutation(api.items.add, {
+						type: 'url',
+						url: value,
+						collections: collectionId ? [collectionId] : undefined,
+						token
+					});
+				} else {
+					return client.mutation(api.items.add, {
+						type: 'text',
+						content: value,
+						collections: collectionId ? [collectionId] : undefined,
+						token
+					});
+				}
+			});
+			if (result !== null) {
+				inputValue = '';
+				if (textareaEl) textareaEl.style.height = 'auto';
 			}
-			inputValue = '';
-			if (textareaEl) textareaEl.style.height = 'auto';
 		} finally {
 			isAdding = false;
 		}
@@ -95,15 +104,20 @@
 		try {
 			const dimensions = await getImageDimensions(file);
 			const key = await uploadFile(file);
-			await client.mutation(api.items.add, {
-				type: 'image',
-				imageKey: key,
-				imageWidth: dimensions.width || undefined,
-				imageHeight: dimensions.height || undefined,
-				title: file.name,
-				collections: collectionId ? [collectionId] : undefined
-			});
-			input.value = '';
+			const result = await mutate(writeToken, (token) =>
+				client.mutation(api.items.add, {
+					type: 'image',
+					imageKey: key,
+					imageWidth: dimensions.width || undefined,
+					imageHeight: dimensions.height || undefined,
+					title: file.name,
+					collections: collectionId ? [collectionId] : undefined,
+					token
+				})
+			);
+			if (result !== null) {
+				input.value = '';
+			}
 		} finally {
 			isAdding = false;
 		}
@@ -123,14 +137,17 @@
 				try {
 					const dimensions = await getImageDimensions(file);
 					const key = await uploadFile(file);
-					await client.mutation(api.items.add, {
-						type: 'image',
-						imageKey: key,
-						imageWidth: dimensions.width || undefined,
-						imageHeight: dimensions.height || undefined,
-						title: file.name || 'Pasted image',
-						collections: collectionId ? [collectionId] : undefined
-					});
+					await mutate(writeToken, (token) =>
+						client.mutation(api.items.add, {
+							type: 'image',
+							imageKey: key,
+							imageWidth: dimensions.width || undefined,
+							imageHeight: dimensions.height || undefined,
+							title: file.name || 'Pasted image',
+							collections: collectionId ? [collectionId] : undefined,
+							token
+						})
+					);
 				} finally {
 					isAdding = false;
 				}
@@ -168,14 +185,17 @@
 			try {
 				const dimensions = await getImageDimensions(file);
 				const key = await uploadFile(file);
-				await client.mutation(api.items.add, {
-					type: 'image',
-					imageKey: key,
-					imageWidth: dimensions.width || undefined,
-					imageHeight: dimensions.height || undefined,
-					title: file.name,
-					collections: collectionId ? [collectionId] : undefined
-				});
+				await mutate(writeToken, (token) =>
+					client.mutation(api.items.add, {
+						type: 'image',
+						imageKey: key,
+						imageWidth: dimensions.width || undefined,
+						imageHeight: dimensions.height || undefined,
+						title: file.name,
+						collections: collectionId ? [collectionId] : undefined,
+						token
+					})
+				);
 			} finally {
 				isAdding = false;
 			}

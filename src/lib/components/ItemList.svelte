@@ -1,9 +1,11 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
 	import { page } from '$app/state';
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { getImage } from '$lib/imageCache.svelte.js';
+	import { mutate } from '$lib/mutationHelper.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
 	import IconError from '~icons/material-symbols-light/error-outline';
 	import IconDelete from '~icons/material-symbols-light/delete-outline';
@@ -13,6 +15,7 @@
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new';
 
 	const client = useConvexClient();
+	const writeToken = getContext<string | null>('writeToken');
 
 	interface Item {
 		_id: Id<'items'>;
@@ -39,7 +42,7 @@
 	async function handleDeleteItem(itemId: Id<'items'>, e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
-		await client.mutation(api.items.remove, { id: itemId });
+		await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
 	}
 
 	function handleOpenLink(url: string, e: MouseEvent) {
