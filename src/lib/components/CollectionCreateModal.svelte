@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
+	import { mutate } from '$lib/mutationHelper.js';
 
 	interface Props {
 		onClose: () => void;
@@ -9,6 +11,7 @@
 	let { onClose }: Props = $props();
 
 	const client = useConvexClient();
+	const writeToken = getContext<string | null>('writeToken');
 
 	let name = $state('');
 	let isCreating = $state(false);
@@ -18,10 +21,15 @@
 
 		isCreating = true;
 		try {
-			await client.mutation(api.collections.create, {
-				name: name.trim()
-			});
-			onClose();
+			const result = await mutate(writeToken, (token) =>
+				client.mutation(api.collections.create, {
+					name: name.trim(),
+					token
+				})
+			);
+			if (result !== null) {
+				onClose();
+			}
 		} finally {
 			isCreating = false;
 		}

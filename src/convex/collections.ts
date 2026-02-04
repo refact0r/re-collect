@@ -3,13 +3,16 @@ import { mutation, query, type QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { deleteAllPositionsForCollection } from './itemCollectionPositions';
 import { getImageUrl } from './items';
+import { requireAuth } from './auth';
 
 // Create a new collection
 export const create = mutation({
 	args: {
-		name: v.string()
+		name: v.string(),
+		token: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
+		requireAuth(args.token);
 		return await ctx.db.insert('collections', {
 			name: args.name,
 			dateCreated: Date.now()
@@ -33,10 +36,12 @@ export const update = mutation({
 				v.literal('titleDesc')
 			)
 		),
-		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list')))
+		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
+		token: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
-		const { id, ...updates } = args;
+		requireAuth(args.token);
+		const { id, token, ...updates } = args;
 		const existing = await ctx.db.get(id);
 		if (!existing) throw new Error('Collection not found');
 
@@ -46,8 +51,9 @@ export const update = mutation({
 
 // Delete a collection (also removes it from all items)
 export const remove = mutation({
-	args: { id: v.id('collections') },
+	args: { id: v.id('collections'), token: v.optional(v.string()) },
 	handler: async (ctx, args) => {
+		requireAuth(args.token);
 		const collection = await ctx.db.get(args.id);
 		if (!collection) throw new Error('Collection not found');
 
