@@ -4,7 +4,8 @@
 	import { setContext, onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import favicon from '$lib/assets/favicon.svg';
+
+	import Logo from '$lib/assets/logo.svelte';
 	import ItemModal from '$lib/components/ItemModal.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
@@ -96,10 +97,6 @@
 	}
 </script>
 
-<svelte:head>
-	<link rel="icon" href={favicon} />
-</svelte:head>
-
 {#if !isAuthenticated}
 	<div class="read-only-banner">not logged in. read-only mode</div>
 {/if}
@@ -110,7 +107,7 @@
 			<IconMenu />
 		</button>
 		<div class="nav-links">
-			<div class="logo"><span>※</span></div>
+			<div class="logo"><Logo /></div>
 			<a href="/" class="nav-link" class:active={page.url.pathname === '/'}>re-collect</a>
 			<a href="/collections" class="nav-link" class:active={page.url.pathname === '/collections'}
 				>collections</a
@@ -177,12 +174,9 @@
 		align-items: center;
 		justify-content: center;
 	}
-	.logo span {
-		font-size: 1.5rem;
-		font-weight: 300;
-		font-family: DM Mono;
-		line-height: 1.5rem;
-		margin-top: 0.125rem;
+	.logo :global(svg) {
+		width: 1.5rem;
+		height: 1.5rem;
 	}
 	.nav-search {
 		display: flex;

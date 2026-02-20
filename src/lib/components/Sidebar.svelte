@@ -4,6 +4,7 @@
 	import IconClose from '~icons/material-symbols-light/close';
 	import IconChevronLeft from '~icons/material-symbols-light/chevron-left';
 	import IconChevronRight from '~icons/material-symbols-light/chevron-right';
+	import Logo from '$lib/assets/logo.svelte';
 
 	const collections =
 		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
@@ -15,7 +16,7 @@
 
 <aside class:collapsed class:mobile-open={mobileOpen}>
 	<div class="mobile-header">
-		<div class="logo"><span>※</span></div>
+		<div class="logo"><Logo /></div>
 		<button class="icon close-mobile" onclick={() => (mobileOpen = false)} aria-label="close menu">
 			<IconClose />
 		</button>
@@ -170,12 +171,9 @@
 			justify-content: center;
 		}
 
-		.logo span {
-			font-size: 1.5rem;
-			font-weight: 300;
-			font-family: DM Mono;
-			line-height: 1.5rem;
-			margin-top: 0.125rem;
+		.logo :global(svg) {
+			width: 1.5rem;
+			height: 1.5rem;
 		}
 
 		.main-nav {
