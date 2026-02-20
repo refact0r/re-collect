@@ -100,7 +100,7 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{#if !writeToken}
+{#if !isAuthenticated}
 	<div class="read-only-banner">not logged in. read-only mode</div>
 {/if}
 
