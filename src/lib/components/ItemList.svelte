@@ -112,7 +112,7 @@
 				{/if}
 			</a>
 			{#if item.url}
-				<button class="icon link" title="Open link" onclick={(e) => handleOpenLink(item.url, e)}>
+				<button class="icon link" title="Open link" onclick={(e) => handleOpenLink(item.url!, e)}>
 					<IconOpenInNew />
 				</button>
 			{/if}

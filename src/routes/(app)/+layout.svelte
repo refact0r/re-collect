@@ -16,8 +16,9 @@
 	let { children, data } = $props();
 	setupConvex(PUBLIC_CONVEX_URL);
 
-	// Auth state from server
-	const { isAuthenticated, writeToken } = data;
+	// Auth state from server (static for the session)
+	const isAuthenticated = data.isAuthenticated;
+	const writeToken = data.writeToken;
 
 	// Fetch all items and collections on load (with real-time sync)
 	const items = useQuery(api.items.list, {});

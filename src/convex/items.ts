@@ -23,8 +23,7 @@ function buildSearchText(fields: {
 // Helper to get image URL from either R2 (imageKey) or legacy Convex storage (imageId)
 export async function getImageUrl(ctx: QueryCtx, item: Doc<'items'>): Promise<string | null> {
 	if (item.imageKey) {
-		// Set expiration to 24 hours to reduce URL regeneration
-		return await r2.getUrl(item.imageKey, { expiresIn: 60 * 60 * 24 });
+		return await r2.getUrl(item.imageKey, { expiresIn: 60 * 60 * 24 * 7 });
 	}
 	if (item.imageId) {
 		return await ctx.storage.getUrl(item.imageId);
