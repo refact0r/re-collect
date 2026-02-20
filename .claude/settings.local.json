@@ -1,11 +1,7 @@
 {
-  "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "svelte"
-  ],
-  "permissions": {
-    "allow": [
-      "mcp__ide__getDiagnostics"
-    ]
-  }
+	"permissions": {
+		"allow": []
+	},
+	"enableAllProjectMcpServers": true,
+	"enabledMcpjsonServers": ["svelte"]
 }
