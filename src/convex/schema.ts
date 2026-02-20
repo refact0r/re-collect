@@ -52,6 +52,23 @@ export default defineSchema({
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))) // Defaults to 'grid'
 	}).index('by_name', ['name']),
 
+	// View preferences for non-collection pages (home, search)
+	viewPreferences: defineTable({
+		key: v.string(), // "home", "search"
+		sortMode: v.optional(
+			v.union(
+				v.literal('dateAddedNewest'),
+				v.literal('dateAddedOldest'),
+				v.literal('dateModifiedNewest'),
+				v.literal('dateModifiedOldest'),
+				v.literal('titleAsc'),
+				v.literal('titleDesc')
+			)
+		),
+		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
+		filterCollectionIds: v.optional(v.array(v.id('collections')))
+	}).index('by_key', ['key']),
+
 	// Junction table for per-collection item ordering
 	itemCollectionPositions: defineTable({
 		itemId: v.id('items'),

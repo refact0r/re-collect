@@ -228,11 +228,18 @@ export const list = query({
 				v.literal('titleAsc'),
 				v.literal('titleDesc')
 			)
-		)
+		),
+		collectionIds: v.optional(v.array(v.id('collections')))
 	},
 	handler: async (ctx, args) => {
 		const sortBy = args.sortBy ?? 'dateAddedNewest';
-		const items = await ctx.db.query('items').collect();
+		let items = await ctx.db.query('items').collect();
+
+		// Filter by collections if specified
+		if (args.collectionIds && args.collectionIds.length > 0) {
+			const filterSet = new Set(args.collectionIds);
+			items = items.filter((item) => item.collections.some((c) => filterSet.has(c)));
+		}
 
 		// Apply sorting based on sortBy option
 		switch (sortBy) {

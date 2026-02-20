@@ -1,6 +1,6 @@
 <script lang="ts">
 	import IconGrid from '~icons/material-symbols-light/grid-view-outline';
-	import IconList from '~icons/material-symbols-light/view-list-outline';
+	import IconList from '~icons/material-symbols-light/view-list-outline-sharp';
 
 	export type ViewMode = 'grid' | 'list';
 

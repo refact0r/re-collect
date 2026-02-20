@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { getContext } from 'svelte';
-	import { browser } from '$app/environment';
+	import { getContext, untrack } from 'svelte';
 	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../../convex/_generated/api.js';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
@@ -10,8 +9,6 @@
 	import ViewToggle, { type ViewMode } from '$lib/components/ViewToggle.svelte';
 	import { mutate } from '$lib/mutationHelper.js';
 
-	const STORAGE_KEY = 'recollect:search-prefs';
-
 	const client = useConvexClient();
 	const writeToken = getContext<string | null>('writeToken');
 	const currentItemsContext = getContext<{
@@ -19,30 +16,32 @@
 		setItems: (items: any[]) => void;
 	}>('currentItems');
 
-	function loadViewMode(): ViewMode {
-		if (!browser) return 'grid';
-		try {
-			const saved = localStorage.getItem(STORAGE_KEY);
-			if (saved) {
-				const parsed = JSON.parse(saved);
-				return parsed.viewMode ?? 'grid';
-			}
-		} catch {
-			// Ignore parse errors
+	let viewMode = $state<ViewMode>('grid');
+	let prefsInitialized = $state(false);
+
+	// Load saved preferences
+	const savedPrefs = useQuery(api.viewPreferences.get, () => ({ key: 'search' }));
+
+	// Initialize preferences from DB once loaded
+	$effect(() => {
+		const prefs = savedPrefs.data;
+		if (prefs !== undefined && !prefsInitialized) {
+			untrack(() => {
+				if (prefs) {
+					viewMode = (prefs.viewMode as ViewMode) ?? 'grid';
+				}
+				prefsInitialized = true;
+			});
 		}
-		return 'grid';
-	}
-
-	function saveViewMode(mode: ViewMode) {
-		if (!browser) return;
-		localStorage.setItem(STORAGE_KEY, JSON.stringify({ viewMode: mode }));
-	}
-
-	let viewMode = $state<ViewMode>(loadViewMode());
+	});
 
 	function handleViewModeChange(newMode: ViewMode) {
 		viewMode = newMode;
-		saveViewMode(newMode);
+		if (prefsInitialized) {
+			mutate(writeToken, (token) =>
+				client.mutation(api.viewPreferences.set, { key: 'search', viewMode: newMode, token })
+			);
+		}
 	}
 
 	const searchQuery = $derived(page.url.searchParams.get('q') ?? '');

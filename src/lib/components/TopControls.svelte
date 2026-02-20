@@ -1,6 +1,8 @@
 <script lang="ts">
 	import ItemInput from './ItemInput.svelte';
 	import ViewToggle, { type ViewMode } from './ViewToggle.svelte';
+	import CollectionFilter from './CollectionFilter.svelte';
+	import SortDropdown from './SortDropdown.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 
 	type SortOption =
@@ -19,9 +21,22 @@
 		showManualSort?: boolean;
 		onSortChange: (sort: SortOption) => void;
 		onViewModeChange: (mode: ViewMode) => void;
+		collections?: { _id: Id<'collections'>; name: string }[];
+		filterCollectionIds?: Set<Id<'collections'>>;
+		onFilterChange?: (selected: Set<Id<'collections'>>) => void;
 	}
 
-	let { collectionId, sortBy, viewMode, showManualSort = false, onSortChange, onViewModeChange }: Props = $props();
+	let {
+		collectionId,
+		sortBy,
+		viewMode,
+		showManualSort = false,
+		onSortChange,
+		onViewModeChange,
+		collections,
+		filterCollectionIds,
+		onFilterChange
+	}: Props = $props();
 </script>
 
 <div class="top-row">
@@ -29,17 +44,10 @@
 		<ItemInput {collectionId} />
 	</div>
 	<div class="controls">
-		<select value={sortBy} onchange={(e) => onSortChange(e.currentTarget.value as SortOption)}>
-			{#if showManualSort}
-				<option value="manual">manual</option>
-			{/if}
-			<option value="dateAddedNewest">added (new)</option>
-			<option value="dateAddedOldest">added (old)</option>
-			<option value="dateModifiedNewest">modified (new)</option>
-			<option value="dateModifiedOldest">modified (old)</option>
-			<option value="titleAsc">title (a-z)</option>
-			<option value="titleDesc">title (z-a)</option>
-		</select>
+		{#if collections && filterCollectionIds && onFilterChange}
+			<CollectionFilter {collections} selected={filterCollectionIds} onchange={onFilterChange} />
+		{/if}
+		<SortDropdown value={sortBy} {showManualSort} onchange={onSortChange} />
 		<ViewToggle value={viewMode} onchange={onViewModeChange} />
 	</div>
 </div>
@@ -73,10 +81,6 @@
 
 		.controls {
 			flex: 1 1 100%;
-		}
-
-		.controls select {
-			flex: 1;
 		}
 	}
 </style>
