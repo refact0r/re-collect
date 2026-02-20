@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { getContext } from 'svelte';
 	import ItemEditor from './ItemEditor.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 
@@ -12,7 +12,7 @@
 
 	let { itemId, onClose }: Props = $props();
 
-	let saveFunction: (() => Promise<void>) | undefined = $state();
+	let editor = $state<ItemEditor>();
 
 	// Get current items from context (set by the active page)
 	const currentItemsContext = getContext<{
@@ -22,24 +22,14 @@
 
 	const currentItems = $derived(currentItemsContext.items);
 
-	function handleSaveReady(saveFn: () => Promise<void>) {
-		saveFunction = saveFn;
-	}
-
-	async function handleClose() {
-		if (saveFunction) {
-			await saveFunction();
-		}
+	function handleClose() {
+		editor?.save();
 		onClose();
 	}
 
 	async function navigateToItem(newItemId: Id<'items'>) {
-		// Save current item before navigating
-		if (saveFunction) {
-			await saveFunction();
-		}
+		editor?.save();
 
-		// Update URL to show new item
 		const params = new URLSearchParams(page.url.searchParams);
 		params.set('item', newItemId);
 		await goto(`${page.url.pathname}?${params}`, { replaceState: false, noScroll: true });
@@ -105,7 +95,7 @@
 >
 	<div class="modal modal-wide">
 		{#key itemId}
-			<ItemEditor {itemId} onSave={onClose} onDelete={onClose} onReady={handleSaveReady} />
+			<ItemEditor bind:this={editor} {itemId} onClose={onClose} onDelete={onClose} />
 		{/key}
 	</div>
 </div>

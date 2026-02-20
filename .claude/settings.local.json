@@ -1,7 +1,12 @@
 {
-	"permissions": {
-		"allow": []
-	},
-	"enableAllProjectMcpServers": true,
-	"enabledMcpjsonServers": ["svelte"]
+  "permissions": {
+    "allow": [
+      "mcp__svelte__svelte-autofixer",
+      "Bash(npx svelte-check:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "svelte"
+  ]
 }

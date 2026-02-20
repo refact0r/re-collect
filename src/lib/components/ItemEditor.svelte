@@ -11,12 +11,11 @@
 
 	interface Props {
 		itemId: Id<'items'>;
-		onSave: () => void;
+		onClose: () => void;
 		onDelete: () => void;
-		onReady?: (save: () => Promise<void>) => void;
 	}
 
-	let { itemId, onSave, onDelete, onReady }: Props = $props();
+	let { itemId, onClose, onDelete }: Props = $props();
 
 	const client = useConvexClient();
 	const allItems = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('items');
@@ -52,14 +51,8 @@
 		}
 	});
 
-	$effect(() => {
-		if (onReady) {
-			onReady(handleSave);
-		}
-	});
-
-	async function handleSave() {
-		const result = await mutate(writeToken, (token) =>
+	export async function save() {
+		await mutate(writeToken, (token) =>
 			client.mutation(api.items.update, {
 				id: itemId,
 				title,
@@ -69,9 +62,11 @@
 				token
 			})
 		);
-		if (result !== null) {
-			onSave();
-		}
+	}
+
+	function handleDone() {
+		save();
+		onClose();
 	}
 
 	async function handleDelete() {
@@ -191,7 +186,7 @@
 			</div>
 
 			<div class="actions">
-				<button onclick={handleSave}>done</button>
+				<button onclick={handleDone}>done</button>
 				<button onclick={handleDelete} class="icon-filled danger" aria-label="delete item">
 					<IconDelete />
 				</button>

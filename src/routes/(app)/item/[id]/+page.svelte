@@ -12,7 +12,7 @@
 </script>
 
 <div class="container">
-	<ItemEditor {itemId} onSave={handleClose} onDelete={handleClose} />
+	<ItemEditor {itemId} onClose={handleClose} onDelete={handleClose} />
 </div>
 
 <style>
