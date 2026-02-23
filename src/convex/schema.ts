@@ -9,7 +9,6 @@ export default defineSchema({
 		url: v.optional(v.string()),
 		content: v.optional(v.string()), // For text items
 		imageKey: v.optional(v.string()), // R2 object key for uploaded images
-		imageId: v.optional(v.id('_storage')), // Legacy: Convex storage ID (deprecated)
 		imageWidth: v.optional(v.number()), // Image dimensions for masonry layout
 		imageHeight: v.optional(v.number()),
 		// Screenshot generation status for URL items

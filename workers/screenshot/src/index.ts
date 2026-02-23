@@ -16,6 +16,7 @@ interface ScreenshotResponse {
 	width: number;
 	height: number;
 	captureTimeMs: number;
+	title?: string;
 }
 
 interface ErrorResponse {
@@ -216,6 +217,9 @@ export default {
 				fullPage: false
 			});
 
+			// Extract page title
+			const title = await page.title();
+
 			// Generate unique key for R2
 			const imageKey = generateImageKey(itemId);
 
@@ -234,7 +238,8 @@ export default {
 				imageKey,
 				width: VIEWPORT_WIDTH,
 				height: VIEWPORT_HEIGHT,
-				captureTimeMs
+				captureTimeMs,
+				title: title.trim() || undefined // Only include if non-empty
 			};
 
 			return new Response(JSON.stringify(response), {

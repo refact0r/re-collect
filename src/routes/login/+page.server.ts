@@ -15,7 +15,10 @@ export const actions = {
 				path: '/',
 				httpOnly: true,
 				secure: !dev,
-				sameSite: 'strict',
+				// NOTE: Using 'lax' in dev to allow cookies through ngrok (cross-site context).
+				// 'strict' blocks cookies when domain changes (localhost → ngrok).
+				// TODO: Decide if we want to keep 'lax' in dev or require local testing only.
+				sameSite: dev ? 'lax' : 'strict',
 				maxAge: 60 * 60 * 24 * 30
 			});
 

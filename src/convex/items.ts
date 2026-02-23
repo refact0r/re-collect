@@ -20,13 +20,10 @@ function buildSearchText(fields: {
 	return [fields.title, fields.description, fields.url].filter(Boolean).join(' ');
 }
 
-// Helper to get image URL from either R2 (imageKey) or legacy Convex storage (imageId)
+// Get image URL from R2
 export async function getImageUrl(ctx: QueryCtx, item: Doc<'items'>): Promise<string | null> {
 	if (item.imageKey) {
 		return await r2.getUrl(item.imageKey, { expiresIn: 60 * 60 * 24 * 7 });
-	}
-	if (item.imageId) {
-		return await ctx.storage.getUrl(item.imageId);
 	}
 	return null;
 }
@@ -158,11 +155,9 @@ export const remove = mutation({
 		// Delete all position records for this item
 		await deleteAllPositionsForItem(ctx, args.id);
 
-		// Delete associated image from R2 or legacy Convex storage
+		// Delete associated image from R2
 		if (item.imageKey) {
 			await r2.deleteObject(ctx, item.imageKey);
-		} else if (item.imageId) {
-			await ctx.storage.delete(item.imageId);
 		}
 
 		await ctx.db.delete(args.id);

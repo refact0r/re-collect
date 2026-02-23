@@ -15,7 +15,8 @@
 
 	const client = useConvexClient();
 	const uploadFile = useUploadFile(api.r2);
-	const writeToken = getContext<string | null>('writeToken');
+	const getWriteToken = getContext<() => string | null>('writeToken');
+	const writeToken = $derived(getWriteToken());
 
 	let inputValue = $state('');
 	let isAdding = $state(false);

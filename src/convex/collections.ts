@@ -119,7 +119,7 @@ async function getCollectionPreviews(
 		if (!item) return false;
 
 		// Include if: image type with image data, OR url type with completed screenshot
-		const hasImage = item.type === 'image' && !!(item.imageKey || item.imageId);
+		const hasImage = item.type === 'image' && !!item.imageKey;
 		const hasScreenshot = item.type === 'url' && item.screenshotStatus === 'completed';
 
 		return hasImage || hasScreenshot;

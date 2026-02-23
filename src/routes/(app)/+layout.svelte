@@ -16,10 +16,6 @@
 	let { children, data } = $props();
 	setupConvex(PUBLIC_CONVEX_URL);
 
-	// Auth state from server (static for the session)
-	const isAuthenticated = data.isAuthenticated;
-	const writeToken = data.writeToken;
-
 	// Fetch all items and collections on load (with real-time sync)
 	const items = useQuery(api.items.list, {});
 	const collections = useQuery(api.collections.listWithCounts, {});
@@ -38,8 +34,9 @@
 			currentItems = newItems;
 		}
 	});
-	setContext('writeToken', writeToken);
-	setContext('isAuthenticated', isAuthenticated);
+	// Pass auth as reactive getters so consumers always get current value
+	setContext('writeToken', () => data.writeToken);
+	setContext('isAuthenticated', () => data.isAuthenticated);
 
 	const editItemId = $derived(page.url.searchParams.get('item') as Id<'items'> | null);
 
@@ -98,7 +95,7 @@
 	}
 </script>
 
-{#if !isAuthenticated}
+{#if !data.isAuthenticated}
 	<div class="read-only-banner">not logged in. read-only mode</div>
 {/if}
 
@@ -126,7 +123,7 @@
 			/>
 		</div>
 		<div class="nav-actions">
-			{#if isAuthenticated}
+			{#if data.isAuthenticated}
 				<a href="/logout" class="nav-link">logout</a>
 			{:else}
 				<a href="/login" class="nav-link">login</a>

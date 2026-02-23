@@ -2,133 +2,21 @@
 
 A personal web application for collecting, organizing, and rediscovering design inspiration, web screenshots, articles, and visual references. Similar to Are.na.
 
-## Project Structure
+Consult `/reference` docs (R2 integration, Convex setup, icon system) when working with those systems.
 
-```
-src/
-├── routes/                          # SvelteKit routes (file-based routing)
-│   ├── +layout.svelte              # Root layout with sidebar
-│   ├── +page.svelte                # Home page (all items)
-│   ├── collections/                # Collections routes
-│   │   └── [id]/                   # Individual collection page
-│   ├── item/[id]/                  # Individual item detail page
-│   └── search/                     # Search results page
-│
-├── lib/
-│   ├── components/                 # Reusable Svelte components
-│   │   ├── ItemGrid.svelte        # Main masonry grid display
-│   │   ├── ItemInput.svelte       # Input box for adding items
-│   │   ├── ItemEditor.svelte      # Edit item details
-│   │   ├── ItemModal.svelte       # Item detail modal
-│   │   ├── Sidebar.svelte         # Navigation sidebar
-│   │   └── CollectionCreateModal.svelte
-│   ├── imageCache.svelte.ts       # Global client-side image caching
-│   └── assets/                    # Static assets
-│
-├── convex/                         # Convex backend (database + API)
-│   ├── schema.ts                  # Database schema definition
-│   ├── items.ts                   # Item CRUD operations
-│   ├── collections.ts             # Collection operations
-│   ├── itemCollectionPositions.ts # Manual ordering logic
-│   ├── screenshots.ts             # Screenshot generation integration
-│   └── r2.ts                      # Cloudflare R2 storage config
-│
-├── app.css                        # Global styles & CSS variables
-│                                  # (--bg-*, --txt-* color scheme)
-└── app.html                       # HTML template
+## Architecture & Conventions
 
-workers/screenshot/                 # Cloudflare Worker for screenshots
-└── src/                           # Screenshot generation logic
-```
-
-## Reference Documentation
-
-The `/reference` folder contains technical documentation for maintaining the codebase:
-
-- `convex-r2.md` - Cloudflare R2 integration with Convex
-- `convex-setup.md` - Convex backend setup and configuration
-- `icons.md` - Icon system usage (unplugin-icons with Material Symbols Sharp)
-
-These docs are maintained for context and should be consulted when working with their respective systems.
-
-## Core User Flows
-
-### Adding Items
-
-- Multi-purpose input box supporting 3 item types: **URL**, **image**, **text**
-- All items have: title, description, url, collections, timestamps (added/modified)
-- URL items automatically generate screenshots with status tracking
-
-### Organizing Items
-
-- **Collections**: Named groups of items with item counts
-  - Create, rename, delete collections
-  - Add items to multiple collections
-- **Manual ordering**: Drag-drop reordering within collections (manual sort mode only)
-- **Sorting options** (per-collection):
-  - Manual (default, respects drag-drop order)
-  - Date added (newest/oldest first)
-  - Date modified (newest/oldest first)
-  - Title (A-Z / Z-A)
-
-### Browsing & Viewing
-
-- **Masonry grid**: Responsive multi-column layout with auto-balancing
-  - Images display with proper aspect ratios
-  - URL items show screenshot (when available) or placeholder with status
-  - Text items show content preview (max 10 lines)
-  - Click any item to open modal editor
-  - Mobile-optimized with touch support and safe area insets
-- **Item modal**: Full-screen editor with keyboard navigation
-  - Arrow keys navigate between items
-  - Edit title, description, URL, content
-  - Toggle collection membership
-  - Delete item
-
-### Searching
-
-- Search by **title, description, and URL** (full-text search via Convex)
-- Results displayed in masonry grid
-- Debounced live search with URL sync
-
-## Roadmap
-
-### Planned Features
-
-- List view (alternative to masonry grid)
-- Keyboard shortcuts (quick add, navigation)
-- Bulk operations and multi-select
-- Improved styling and transitions/animations
-- Browser extension for one-click saving
-- PWA support
-
-### Out of Scope (for now)
-
-- Multi-user support / collaboration
-- Social features
-- AI-powered features
-- Authentication/login (single-user, personal use)
-
-## Development Guidelines
-
-### Svelte & SvelteKit
-
-- Use Svelte 5 and SvelteKit conventions
-- DO NOT use deprecated Svelte features
-
-### CSS & Styling
-
-- Write simple, minimal CSS
-- Use global styles from app.css whenever possible
-- Use existing colors (--bg-x, --txt-x) for consistency
-- Avoid inline styles; prefer scoped component styles
-
-### Architectural Patterns
-
-- **Modal routing**: Items open via ?item=<id> query param (preserves page context)
+- Single-user app - no auth, no multi-user, no social/AI features
+- **3 item types**: URL (auto-screenshots via Cloudflare Worker), image (R2-stored), text
+- Items can belong to multiple collections
+- **Modal routing**: Items open via `?item=<id>` query param (preserves page context)
 - **Context sharing**: Collections and items lists passed down via Svelte context
-- **Manual ordering**: Fractional indexing (lexicographical position strings) in itemCollectionPositions table
-- **Image storage**: Cloudflare R2 (imageKey field)
+- **Manual ordering**: Fractional indexing (lexicographical position strings) in `itemCollectionPositions` table
+- **`searchText` is derived**: combined from title + description + url; must be updated on any write that changes those fields
+- **R2 presigned URLs change every fetch**: `imageCache` caches by itemId to prevent reload, always use `getImage()` from `imageCache.svelte.ts`
+- **Dual collection bookkeeping**: `item.collections` (denormalized array) and `itemCollectionPositions` (junction table for ordering) must both be updated when adding/removing items from collections
+- Svelte 5 only - do not use deprecated Svelte features
+- Use global styles/colors from `app.css` (`--bg-*`, `--txt-*`); prefer scoped styles over inline
 
 ## Svelte MCP
 

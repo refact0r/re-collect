@@ -22,18 +22,30 @@ export const setCompleted = internalMutation({
 		itemId: v.id('items'),
 		imageKey: v.string(),
 		imageWidth: v.number(),
-		imageHeight: v.number()
+		imageHeight: v.number(),
+		title: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
 		const item = await ctx.db.get(args.itemId);
 		if (!item) return;
+
+		// Only set title if item doesn't already have one and we got a title from the worker
+		const shouldSetTitle = !item.title && args.title;
+
+		// Rebuild search text if we're adding a title
+		const newTitle = shouldSetTitle ? args.title : item.title;
+		const searchText = shouldSetTitle
+			? [newTitle, item.description, item.url].filter(Boolean).join(' ')
+			: undefined;
 
 		await ctx.db.patch(args.itemId, {
 			screenshotStatus: 'completed',
 			imageKey: args.imageKey,
 			imageWidth: args.imageWidth,
 			imageHeight: args.imageHeight,
-			screenshotError: undefined
+			screenshotError: undefined,
+			...(shouldSetTitle && { title: args.title }),
+			...(searchText && { searchText })
 		});
 	}
 });
@@ -152,14 +164,16 @@ export const generateScreenshotInternal = internalAction({
 				imageKey: string;
 				width: number;
 				height: number;
+				title?: string;
 			};
 
-			// Update item with screenshot data
+			// Update item with screenshot data and title (if available)
 			await ctx.runMutation(internal.screenshots.setCompleted, {
 				itemId: args.itemId,
 				imageKey: result.imageKey,
 				imageWidth: result.width,
-				imageHeight: result.height
+				imageHeight: result.height,
+				title: result.title
 			});
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
