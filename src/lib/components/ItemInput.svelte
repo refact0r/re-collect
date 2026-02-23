@@ -101,27 +101,8 @@
 		const file = input.files?.[0];
 		if (!file) return;
 
-		isAdding = true;
-		try {
-			const dimensions = await getImageDimensions(file);
-			const key = await uploadFile(file);
-			const result = await mutate(writeToken, (token) =>
-				client.mutation(api.items.add, {
-					type: 'image',
-					imageKey: key,
-					imageWidth: dimensions.width || undefined,
-					imageHeight: dimensions.height || undefined,
-					title: file.name,
-					collections: collectionId ? [collectionId] : undefined,
-					token
-				})
-			);
-			if (result !== null) {
-				input.value = '';
-			}
-		} finally {
-			isAdding = false;
-		}
+		await uploadImage(file);
+		input.value = '';
 	}
 
 	async function handlePaste(event: ClipboardEvent) {
@@ -133,27 +114,30 @@
 				event.preventDefault();
 				const file = item.getAsFile();
 				if (!file) return;
-
-				isAdding = true;
-				try {
-					const dimensions = await getImageDimensions(file);
-					const key = await uploadFile(file);
-					await mutate(writeToken, (token) =>
-						client.mutation(api.items.add, {
-							type: 'image',
-							imageKey: key,
-							imageWidth: dimensions.width || undefined,
-							imageHeight: dimensions.height || undefined,
-							title: file.name || 'Pasted image',
-							collections: collectionId ? [collectionId] : undefined,
-							token
-						})
-					);
-				} finally {
-					isAdding = false;
-				}
+				await uploadImage(file);
 				return;
 			}
+		}
+	}
+
+	async function uploadImage(file: File) {
+		isAdding = true;
+		try {
+			const dimensions = await getImageDimensions(file);
+			const key = await uploadFile(file);
+			await mutate(writeToken, (token) =>
+				client.mutation(api.items.add, {
+					type: 'image',
+					imageKey: key,
+					imageWidth: dimensions.width || undefined,
+					imageHeight: dimensions.height || undefined,
+					title: file.name || 'Pasted image',
+					collections: collectionId ? [collectionId] : undefined,
+					token
+				})
+			);
+		} finally {
+			isAdding = false;
 		}
 	}
 
@@ -179,27 +163,8 @@
 		isDragging = false;
 
 		const file = event.dataTransfer?.files[0];
-		if (!file) return;
-
-		if (file.type.startsWith('image/')) {
-			isAdding = true;
-			try {
-				const dimensions = await getImageDimensions(file);
-				const key = await uploadFile(file);
-				await mutate(writeToken, (token) =>
-					client.mutation(api.items.add, {
-						type: 'image',
-						imageKey: key,
-						imageWidth: dimensions.width || undefined,
-						imageHeight: dimensions.height || undefined,
-						title: file.name,
-						collections: collectionId ? [collectionId] : undefined,
-						token
-					})
-				);
-			} finally {
-				isAdding = false;
-			}
+		if (file?.type.startsWith('image/')) {
+			await uploadImage(file);
 		}
 	}
 </script>

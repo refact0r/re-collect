@@ -3,7 +3,6 @@ import { internalAction, internalMutation, mutation } from './_generated/server'
 import { internal } from './_generated/api';
 import { requireAuth } from './auth';
 
-// Internal mutation to update screenshot status to processing
 export const setProcessing = internalMutation({
 	args: { itemId: v.id('items') },
 	handler: async (ctx, args) => {
@@ -16,7 +15,6 @@ export const setProcessing = internalMutation({
 	}
 });
 
-// Internal mutation to mark screenshot as completed with image data
 export const setCompleted = internalMutation({
 	args: {
 		itemId: v.id('items'),
@@ -29,14 +27,7 @@ export const setCompleted = internalMutation({
 		const item = await ctx.db.get(args.itemId);
 		if (!item) return;
 
-		// Only set title if item doesn't already have one and we got a title from the worker
 		const shouldSetTitle = !item.title && args.title;
-
-		// Rebuild search text if we're adding a title
-		const newTitle = shouldSetTitle ? args.title : item.title;
-		const searchText = shouldSetTitle
-			? [newTitle, item.description, item.url].filter(Boolean).join(' ')
-			: undefined;
 
 		await ctx.db.patch(args.itemId, {
 			screenshotStatus: 'completed',
@@ -44,13 +35,14 @@ export const setCompleted = internalMutation({
 			imageWidth: args.imageWidth,
 			imageHeight: args.imageHeight,
 			screenshotError: undefined,
-			...(shouldSetTitle && { title: args.title }),
-			...(searchText && { searchText })
+			...(shouldSetTitle && {
+				title: args.title,
+				searchText: [args.title, item.description, item.url].filter(Boolean).join(' ')
+			})
 		});
 	}
 });
 
-// Internal mutation to mark screenshot as failed
 export const setFailed = internalMutation({
 	args: {
 		itemId: v.id('items'),
@@ -69,8 +61,6 @@ export const setFailed = internalMutation({
 	}
 });
 
-// Internal action to generate screenshot via Cloudflare Worker
-// Delegates to generateScreenshotInternal with retryCount: 0
 export const generateScreenshot = internalAction({
 	args: {
 		itemId: v.id('items'),
@@ -85,7 +75,6 @@ export const generateScreenshot = internalAction({
 	}
 });
 
-// Public mutation to retry a failed screenshot
 export const retryScreenshot = mutation({
 	args: { itemId: v.id('items'), token: v.optional(v.string()) },
 	handler: async (ctx, args) => {
@@ -101,14 +90,12 @@ export const retryScreenshot = mutation({
 
 		const retries = (item.screenshotRetries ?? 0) + 1;
 
-		// Reset to pending and schedule screenshot generation
 		await ctx.db.patch(args.itemId, {
 			screenshotStatus: 'pending',
 			screenshotError: undefined,
 			screenshotRetries: retries
 		});
 
-		// Schedule the action
 		await ctx.scheduler.runAfter(0, internal.screenshots.generateScreenshotInternal, {
 			itemId: args.itemId,
 			url: item.url,
@@ -117,7 +104,6 @@ export const retryScreenshot = mutation({
 	}
 });
 
-// Internal action for retry with retry count tracking
 export const generateScreenshotInternal = internalAction({
 	args: {
 		itemId: v.id('items'),
@@ -137,7 +123,6 @@ export const generateScreenshotInternal = internalAction({
 			return;
 		}
 
-		// Update status to processing
 		await ctx.runMutation(internal.screenshots.setProcessing, {
 			itemId: args.itemId
 		});
@@ -167,7 +152,6 @@ export const generateScreenshotInternal = internalAction({
 				title?: string;
 			};
 
-			// Update item with screenshot data and title (if available)
 			await ctx.runMutation(internal.screenshots.setCompleted, {
 				itemId: args.itemId,
 				imageKey: result.imageKey,

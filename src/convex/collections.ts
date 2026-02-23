@@ -5,7 +5,6 @@ import { deleteAllPositionsForCollection } from './itemCollectionPositions';
 import { getImageUrl } from './items';
 import { requireAuth } from './auth';
 
-// Create a new collection
 export const create = mutation({
 	args: {
 		name: v.string(),
@@ -20,7 +19,6 @@ export const create = mutation({
 	}
 });
 
-// Update a collection
 export const update = mutation({
 	args: {
 		id: v.id('collections'),
@@ -83,7 +81,6 @@ export const remove = mutation({
 	}
 });
 
-// Get all collections
 export const list = query({
 	args: {},
 	handler: async (ctx) => {
@@ -91,7 +88,6 @@ export const list = query({
 	}
 });
 
-// Get a single collection
 export const get = query({
 	args: { id: v.id('collections') },
 	handler: async (ctx, args) => {
@@ -99,38 +95,29 @@ export const get = query({
 	}
 });
 
-// Helper to fetch preview images for a collection
 async function getCollectionPreviews(
 	ctx: QueryCtx,
 	collectionId: Id<'collections'>,
 	limit: number = 4
 ): Promise<Array<{ _id: Id<'items'>; imageUrl: string; type: 'image' | 'url' }>> {
-	// Get all items in this collection via itemCollectionPositions
 	const positions = await ctx.db
 		.query('itemCollectionPositions')
 		.withIndex('by_collection', (q) => q.eq('collectionId', collectionId))
 		.collect();
 
-	// Fetch items and filter for displayable images
-	const itemPromises = positions.map((position) => ctx.db.get(position.itemId));
-	const allItems = await Promise.all(itemPromises);
+	const allItems = await Promise.all(positions.map((p) => ctx.db.get(p.itemId)));
 
-	const items = allItems.filter((item): item is NonNullable<typeof item> => {
-		if (!item) return false;
+	const displayable = allItems
+		.filter((item): item is NonNullable<typeof item> => {
+			if (!item) return false;
+			return (item.type === 'image' && !!item.imageKey) ||
+				(item.type === 'url' && item.screenshotStatus === 'completed');
+		})
+		.sort((a, b) => b.dateAdded - a.dateAdded)
+		.slice(0, limit);
 
-		// Include if: image type with image data, OR url type with completed screenshot
-		const hasImage = item.type === 'image' && !!item.imageKey;
-		const hasScreenshot = item.type === 'url' && item.screenshotStatus === 'completed';
-
-		return hasImage || hasScreenshot;
-	});
-
-	// Sort by dateAdded descending (most recent first)
-	items.sort((a, b) => b.dateAdded - a.dateAdded);
-
-	// Take first N items and generate image URLs
 	const previews = [];
-	for (const item of items.slice(0, limit)) {
+	for (const item of displayable) {
 		const imageUrl = await getImageUrl(ctx, item);
 		if (imageUrl) {
 			previews.push({
@@ -150,25 +137,20 @@ export const listWithCounts = query({
 	handler: async (ctx) => {
 		const collections = await ctx.db.query('collections').order('desc').collect();
 
-		const countsMap = new Map();
-		const previewsMap = new Map();
+		return Promise.all(
+			collections.map(async (collection) => {
+				const positions = await ctx.db
+					.query('itemCollectionPositions')
+					.withIndex('by_collection', (q) => q.eq('collectionId', collection._id))
+					.collect();
+				const previews = await getCollectionPreviews(ctx, collection._id, 4);
 
-		for (const collection of collections) {
-			const positions = await ctx.db
-				.query('itemCollectionPositions')
-				.withIndex('by_collection', (q) => q.eq('collectionId', collection._id))
-				.collect();
-			countsMap.set(collection._id, positions.length);
-
-			// Fetch preview images
-			const previews = await getCollectionPreviews(ctx, collection._id, 4);
-			previewsMap.set(collection._id, previews);
-		}
-
-		return collections.map((collection) => ({
-			...collection,
-			itemCount: countsMap.get(collection._id) ?? 0,
-			previews: previewsMap.get(collection._id) ?? []
-		}));
+				return {
+					...collection,
+					itemCount: positions.length,
+					previews
+				};
+			})
+		);
 	}
 });

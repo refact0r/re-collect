@@ -42,11 +42,14 @@
 	}
 
 	async function handleKeydown(event: KeyboardEvent) {
-		// Don't intercept arrow keys when typing in input fields
-		const target = event.target as HTMLElement;
-		if (
-			event.key === 'ArrowLeft' || event.key === 'ArrowRight'
-		) {
+		if (event.key === 'Escape') {
+			handleClose();
+			return;
+		}
+
+		// Arrow key navigation (skip when typing in input fields)
+		if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+			const target = event.target as HTMLElement;
 			if (
 				target instanceof HTMLInputElement ||
 				target instanceof HTMLTextAreaElement ||
@@ -54,27 +57,12 @@
 			) {
 				return;
 			}
-		}
 
-		if (event.key === 'Escape') {
-			handleClose();
-			return;
-		}
-
-		// Arrow key navigation
-		if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
 			const currentIndex = currentItems.findIndex((item: any) => item._id === itemId);
 			if (currentIndex === -1) return;
 
-			let newIndex: number;
-			if (event.key === 'ArrowLeft') {
-				newIndex = currentIndex - 1;
-				if (newIndex < 0) newIndex = currentItems.length - 1; // Wrap to end
-			} else {
-				newIndex = currentIndex + 1;
-				if (newIndex >= currentItems.length) newIndex = 0; // Wrap to start
-			}
-
+			const direction = event.key === 'ArrowLeft' ? -1 : 1;
+			const newIndex = (currentIndex + direction + currentItems.length) % currentItems.length;
 			const newItem = currentItems[newIndex];
 			if (newItem) {
 				event.preventDefault();

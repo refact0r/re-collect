@@ -5,11 +5,10 @@ import { requireAuth } from './auth';
 export const get = query({
 	args: { key: v.string() },
 	handler: async (ctx, args) => {
-		const result = await ctx.db
+		return await ctx.db
 			.query('viewPreferences')
 			.withIndex('by_key', (q) => q.eq('key', args.key))
 			.unique();
-		return result;
 	}
 });
 

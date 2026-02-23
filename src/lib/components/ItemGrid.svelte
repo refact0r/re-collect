@@ -79,10 +79,10 @@
 			: (containerWidth - (columnCount - MIN_COLS) * GAP) / columnCount
 	);
 
-	function shouldDisplayAsImage(item: Item, overrideStatus?: Item['screenshotStatus']): boolean {
-		const status = overrideStatus !== undefined ? overrideStatus : item.screenshotStatus;
+	function shouldDisplayAsImage(item: Item): boolean {
 		return (
-			(item.type === 'image' || (item.type === 'url' && status === 'completed')) && !!item.imageUrl
+			(item.type === 'image' || (item.type === 'url' && item.screenshotStatus === 'completed')) &&
+			!!item.imageUrl
 		);
 	}
 
@@ -98,13 +98,7 @@
 			return columnWidth * IMAGE_FALLBACK_ASPECT + CARD_CHROME + titleHeight;
 		}
 
-		// URL items in pending/processing/failed state use screenshot aspect ratio (1440x900)
-		if (
-			item.type === 'url' &&
-			(item.screenshotStatus === 'pending' ||
-				item.screenshotStatus === 'processing' ||
-				item.screenshotStatus === 'failed')
-		) {
+		if (item.type === 'url' && item.screenshotStatus && item.screenshotStatus !== 'completed') {
 			const screenshotHeight = columnWidth * (900 / 1440);
 			return screenshotHeight + CARD_CHROME + titleHeight;
 		}

@@ -101,10 +101,6 @@
 						<div class="icon-placeholder">
 							<IconImage />
 						</div>
-					{:else}
-						<div class="icon-placeholder">
-							<IconLink />
-						</div>
 					{/if}
 				</div>
 				<span class="item-title">{getDisplayText(item)}</span>

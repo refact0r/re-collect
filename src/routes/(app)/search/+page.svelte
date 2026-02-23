@@ -59,10 +59,6 @@
 			client.mutation(api.screenshots.retryScreenshot, { itemId, token })
 		);
 	}
-
-	async function handleDeleteItem(itemId: Id<'items'>) {
-		await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
-	}
 </script>
 
 <div class="container">

@@ -20,7 +20,11 @@ function buildSearchText(fields: {
 	return [fields.title, fields.description, fields.url].filter(Boolean).join(' ');
 }
 
-// Get image URL from R2
+// Get a sortable title string from an item
+function getSortTitle(item: { title?: string; url?: string }): string {
+	return (item.title ?? item.url ?? '').toLowerCase();
+}
+
 export async function getImageUrl(ctx: QueryCtx, item: Doc<'items'>): Promise<string | null> {
 	if (item.imageKey) {
 		return await r2.getUrl(item.imageKey, { expiresIn: 60 * 60 * 24 * 7 });
@@ -28,7 +32,6 @@ export async function getImageUrl(ctx: QueryCtx, item: Doc<'items'>): Promise<st
 	return null;
 }
 
-// Add a new item
 export const add = mutation({
 	args: {
 		type: v.union(v.literal('url'), v.literal('image'), v.literal('text')),
@@ -90,7 +93,6 @@ export const add = mutation({
 	}
 });
 
-// Update an existing item
 export const update = mutation({
 	args: {
 		id: v.id('items'),
@@ -144,7 +146,6 @@ export const update = mutation({
 	}
 });
 
-// Delete an item
 export const remove = mutation({
 	args: { id: v.id('items'), token: v.optional(v.string()) },
 	handler: async (ctx, args) => {
@@ -164,7 +165,6 @@ export const remove = mutation({
 	}
 });
 
-// Add item to a collection
 export const addToCollection = mutation({
 	args: {
 		itemId: v.id('items'),
@@ -188,7 +188,6 @@ export const addToCollection = mutation({
 	}
 });
 
-// Remove item from a collection
 export const removeFromCollection = mutation({
 	args: {
 		itemId: v.id('items'),
@@ -210,7 +209,6 @@ export const removeFromCollection = mutation({
 	}
 });
 
-// Get all items
 export const list = query({
 	args: {
 		sortBy: v.optional(
@@ -230,7 +228,6 @@ export const list = query({
 		const sortBy = args.sortBy ?? 'dateAddedNewest';
 		let items = await ctx.db.query('items').collect();
 
-		// Filter by collections if specified
 		if (args.collectionIds && args.collectionIds.length > 0) {
 			const filterSet = new Set(args.collectionIds);
 			items = items.filter(
@@ -239,11 +236,9 @@ export const list = query({
 					(args.includeUncollected && item.collections.length === 0)
 			);
 		} else if (args.includeUncollected !== undefined && !args.includeUncollected) {
-			// Only uncollected was deselected (no collection filter active)
 			items = items.filter((item) => item.collections.length > 0);
 		}
 
-		// Apply sorting based on sortBy option
 		switch (sortBy) {
 			case 'dateAddedNewest':
 				items.sort((a, b) => b.dateAdded - a.dateAdded);
@@ -258,22 +253,13 @@ export const list = query({
 				items.sort((a, b) => a.dateModified - b.dateModified);
 				break;
 			case 'titleAsc':
-				items.sort((a, b) => {
-					const titleA = (a.title ?? a.url ?? '').toLowerCase();
-					const titleB = (b.title ?? b.url ?? '').toLowerCase();
-					return titleA.localeCompare(titleB);
-				});
+				items.sort((a, b) => getSortTitle(a).localeCompare(getSortTitle(b)));
 				break;
 			case 'titleDesc':
-				items.sort((a, b) => {
-					const titleA = (a.title ?? a.url ?? '').toLowerCase();
-					const titleB = (b.title ?? b.url ?? '').toLowerCase();
-					return titleB.localeCompare(titleA);
-				});
+				items.sort((a, b) => getSortTitle(b).localeCompare(getSortTitle(a)));
 				break;
 		}
 
-		// Get image URLs for items with images
 		return Promise.all(
 			items.map(async (item) => ({
 				...item,
@@ -283,7 +269,6 @@ export const list = query({
 	}
 });
 
-// Get a single item
 export const get = query({
 	args: { id: v.id('items') },
 	handler: async (ctx, args) => {
@@ -296,7 +281,6 @@ export const get = query({
 	}
 });
 
-// Get items in a specific collection, ordered by position or other sort options
 export const listByCollection = query({
 	args: {
 		collectionId: v.id('collections'),
@@ -315,24 +299,14 @@ export const listByCollection = query({
 	handler: async (ctx, args) => {
 		const sortBy = args.sortBy ?? 'manual';
 
-		// Get positions ordered by position (lexicographically)
 		const positions = await getPositionsByCollection(ctx, args.collectionId);
+		const positionMap = new Map(positions.map((p) => [p.itemId, p.position]));
 
-		// Create a map for quick position lookup
-		const positionMap = new Map(positions.map((p) => [p.itemId as Id<'items'>, p.position]));
-
-		// Fetch only the items in this collection using their IDs from positions
-		const itemPromises = positions.map((p) => ctx.db.get(p.itemId));
-		const items = await Promise.all(itemPromises);
-
-		// Filter out null values (items that may have been deleted)
+		const items = await Promise.all(positions.map((p) => ctx.db.get(p.itemId)));
 		const filtered = items.filter((item): item is NonNullable<typeof item> => item !== null);
 
-		// Apply sorting based on sortBy option
 		switch (sortBy) {
 			case 'manual':
-				// Sort by position (items without position go to the end)
-				// Use simple string comparison (not localeCompare) to match fractional-indexing's expected ordering
 				filtered.sort((a, b) => {
 					const posA = positionMap.get(a._id) ?? '\uffff'; // Use high Unicode char for items without position
 					const posB = positionMap.get(b._id) ?? '\uffff';
@@ -355,30 +329,20 @@ export const listByCollection = query({
 				break;
 			case 'titleAsc':
 				filtered.sort((a, b) => {
-					const titleA = (a.title ?? a.url ?? '').toLowerCase();
-					const titleB = (b.title ?? b.url ?? '').toLowerCase();
-					const titleCompare = titleA.localeCompare(titleB);
-					if (titleCompare !== 0) return titleCompare;
-					// Fall back to manual order for items with same title
+					const cmp = getSortTitle(a).localeCompare(getSortTitle(b));
+					if (cmp !== 0) return cmp;
 					const posA = positionMap.get(a._id) ?? '\uffff';
 					const posB = positionMap.get(b._id) ?? '\uffff';
-					if (posA < posB) return -1;
-					if (posA > posB) return 1;
-					return 0;
+					return posA < posB ? -1 : posA > posB ? 1 : 0;
 				});
 				break;
 			case 'titleDesc':
 				filtered.sort((a, b) => {
-					const titleA = (a.title ?? a.url ?? '').toLowerCase();
-					const titleB = (b.title ?? b.url ?? '').toLowerCase();
-					const titleCompare = titleB.localeCompare(titleA);
-					if (titleCompare !== 0) return titleCompare;
-					// Fall back to manual order for items with same title
+					const cmp = getSortTitle(b).localeCompare(getSortTitle(a));
+					if (cmp !== 0) return cmp;
 					const posA = positionMap.get(a._id) ?? '\uffff';
 					const posB = positionMap.get(b._id) ?? '\uffff';
-					if (posA < posB) return -1;
-					if (posA > posB) return 1;
-					return 0;
+					return posA < posB ? -1 : posA > posB ? 1 : 0;
 				});
 				break;
 		}
@@ -393,7 +357,6 @@ export const listByCollection = query({
 	}
 });
 
-// Search items by title/description
 export const search = query({
 	args: { query: v.string() },
 	handler: async (ctx, args) => {
