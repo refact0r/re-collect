@@ -22,8 +22,8 @@
 		onSortChange: (sort: SortOption) => void;
 		onViewModeChange: (mode: ViewMode) => void;
 		collections?: { _id: Id<'collections'>; name: string }[];
-		filterCollectionIds?: Set<Id<'collections'>>;
-		onFilterChange?: (selected: Set<Id<'collections'>>) => void;
+		filterCollectionIds?: Set<string>;
+		onFilterChange?: (selected: Set<string>) => void;
 	}
 
 	let {

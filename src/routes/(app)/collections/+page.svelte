@@ -9,7 +9,8 @@
 	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
 
 	const client = useConvexClient();
-	const writeToken = getContext<string | null>('writeToken');
+	const getWriteToken = getContext<() => string | null>('writeToken');
+	const writeToken = $derived(getWriteToken());
 	const collections =
 		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
 

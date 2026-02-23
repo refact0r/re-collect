@@ -28,6 +28,7 @@ export const set = mutation({
 		),
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
 		filterCollectionIds: v.optional(v.array(v.id('collections'))),
+		includeUncollected: v.optional(v.boolean()),
 		token: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {

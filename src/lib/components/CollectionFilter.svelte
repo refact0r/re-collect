@@ -4,6 +4,8 @@
 	import IconFilterList from '~icons/material-symbols-light/filter-list';
 	import Dropdown from './Dropdown.svelte';
 
+	const UNCOLLECTED = 'uncollected';
+
 	interface Collection {
 		_id: Id<'collections'>;
 		name: string;
@@ -11,17 +13,19 @@
 
 	interface Props {
 		collections: Collection[];
-		selected: Set<Id<'collections'>>;
-		onchange: (selected: Set<Id<'collections'>>) => void;
+		selected: Set<string>;
+		onchange: (selected: Set<string>) => void;
 	}
 
 	let { collections, selected, onchange }: Props = $props();
 
+	// +1 for the "Uncollected" option
+	const totalOptions = $derived(collections.length + 1);
 	const label = $derived(
-		selected.size === collections.length || selected.size === 0 ? 'all' : String(selected.size)
+		selected.size === totalOptions || selected.size === 0 ? 'all' : String(selected.size)
 	);
 
-	function toggle(id: Id<'collections'>) {
+	function toggle(id: string) {
 		const next = new SvelteSet(selected);
 		if (next.has(id)) {
 			next.delete(id);
@@ -43,9 +47,14 @@
 				{col.name}
 			</label>
 		{/each}
-		{#if collections.length === 0}
-			<span class="empty">no collections</span>
-		{/if}
+		<label class="option uncollected">
+			<input
+				type="checkbox"
+				checked={selected.has(UNCOLLECTED)}
+				onchange={() => toggle(UNCOLLECTED)}
+			/>
+			uncollected
+		</label>
 	{/snippet}
 </Dropdown>
 
@@ -73,8 +82,7 @@
 		accent-color: var(--txt-1);
 	}
 
-	.empty {
-		padding: 0.5rem;
-		color: var(--txt-3);
+	.uncollected {
+		border-top: 1px solid var(--bg-3);
 	}
 </style>

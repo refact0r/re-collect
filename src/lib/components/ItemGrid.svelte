@@ -11,7 +11,8 @@
 	import IconError from '~icons/material-symbols-light/error-outline';
 
 	const client = useConvexClient();
-	const writeToken = getContext<string | null>('writeToken');
+	const getWriteToken = getContext<() => string | null>('writeToken');
+	const writeToken = $derived(getWriteToken());
 
 	interface Item {
 		_id: Id<'items'>;

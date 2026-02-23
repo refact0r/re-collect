@@ -15,7 +15,8 @@
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new';
 
 	const client = useConvexClient();
-	const writeToken = getContext<string | null>('writeToken');
+	const getWriteToken = getContext<() => string | null>('writeToken');
+	const writeToken = $derived(getWriteToken());
 
 	interface Item {
 		_id: Id<'items'>;

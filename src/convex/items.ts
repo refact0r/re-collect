@@ -223,7 +223,8 @@ export const list = query({
 				v.literal('titleDesc')
 			)
 		),
-		collectionIds: v.optional(v.array(v.id('collections')))
+		collectionIds: v.optional(v.array(v.id('collections'))),
+		includeUncollected: v.optional(v.boolean())
 	},
 	handler: async (ctx, args) => {
 		const sortBy = args.sortBy ?? 'dateAddedNewest';
@@ -232,7 +233,14 @@ export const list = query({
 		// Filter by collections if specified
 		if (args.collectionIds && args.collectionIds.length > 0) {
 			const filterSet = new Set(args.collectionIds);
-			items = items.filter((item) => item.collections.some((c) => filterSet.has(c)));
+			items = items.filter(
+				(item) =>
+					item.collections.some((c) => filterSet.has(c)) ||
+					(args.includeUncollected && item.collections.length === 0)
+			);
+		} else if (args.includeUncollected !== undefined && !args.includeUncollected) {
+			// Only uncollected was deselected (no collection filter active)
+			items = items.filter((item) => item.collections.length > 0);
 		}
 
 		// Apply sorting based on sortBy option

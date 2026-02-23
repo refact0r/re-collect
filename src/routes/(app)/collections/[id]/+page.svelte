@@ -11,7 +11,8 @@
 	import { mutate } from '$lib/mutationHelper.js';
 
 	const client = useConvexClient();
-	const writeToken = getContext<string | null>('writeToken');
+	const getWriteToken = getContext<() => string | null>('writeToken');
+	const writeToken = $derived(getWriteToken());
 	const collectionId = $derived(page.params.id as Id<'collections'>);
 	const allCollections =
 		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');

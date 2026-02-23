@@ -65,7 +65,8 @@ export default defineSchema({
 			)
 		),
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
-		filterCollectionIds: v.optional(v.array(v.id('collections')))
+		filterCollectionIds: v.optional(v.array(v.id('collections'))),
+		includeUncollected: v.optional(v.boolean())
 	}).index('by_key', ['key']),
 
 	// Junction table for per-collection item ordering

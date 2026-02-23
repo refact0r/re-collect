@@ -21,7 +21,8 @@
 	const allItems = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('items');
 	const collections =
 		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
-	const writeToken = getContext<string | null>('writeToken');
+	const getWriteToken = getContext<() => string | null>('writeToken');
+	const writeToken = $derived(getWriteToken());
 
 	// Find the specific item from context
 	const item = $derived.by(() => {

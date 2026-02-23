@@ -11,7 +11,8 @@
 	import { SvelteSet } from 'svelte/reactivity';
 
 	const client = useConvexClient();
-	const writeToken = getContext<string | null>('writeToken');
+	const getWriteToken = getContext<() => string | null>('writeToken');
+	const writeToken = $derived(getWriteToken());
 	const collectionsQuery = getContext<ReturnType<typeof useQuery>>('collections');
 	const currentItemsContext = getContext<{
 		items: any[];
@@ -27,9 +28,11 @@
 		| 'titleAsc'
 		| 'titleDesc';
 
+	const UNCOLLECTED = 'uncollected';
+
 	let sortBy = $state<SortOption>('dateAddedNewest');
 	let viewMode = $state<ViewMode>('grid');
-	let filterCollectionIds = $state(new SvelteSet<Id<'collections'>>());
+	let filterCollectionIds = $state(new SvelteSet<string>());
 	let prefsInitialized = $state(false);
 
 	// Load saved preferences
@@ -41,16 +44,22 @@
 		const collections = collectionsQuery.data;
 		if (prefs !== undefined && collections && !prefsInitialized) {
 			untrack(() => {
+				const allIds: string[] = [
+					...collections.map((c: { _id: Id<'collections'> }) => c._id),
+					UNCOLLECTED
+				];
 				if (prefs) {
 					sortBy = (prefs.sortMode as SortOption) ?? 'dateAddedNewest';
 					viewMode = (prefs.viewMode as ViewMode) ?? 'grid';
 					if (prefs.filterCollectionIds && prefs.filterCollectionIds.length > 0) {
-						filterCollectionIds = new SvelteSet(prefs.filterCollectionIds as Id<'collections'>[]);
+						const saved: string[] = [...(prefs.filterCollectionIds as string[])];
+						if ((prefs as any).includeUncollected !== false) saved.push(UNCOLLECTED);
+						filterCollectionIds = new SvelteSet(saved);
 					} else {
-						filterCollectionIds = new SvelteSet(collections.map((c: { _id: Id<'collections'> }) => c._id));
+						filterCollectionIds = new SvelteSet(allIds);
 					}
 				} else {
-					filterCollectionIds = new SvelteSet(collections.map((c: { _id: Id<'collections'> }) => c._id));
+					filterCollectionIds = new SvelteSet(allIds);
 				}
 				prefsInitialized = true;
 			});
@@ -75,30 +84,42 @@
 		}
 	}
 
-	function handleFilterChange(selected: Set<Id<'collections'>>) {
+	function handleFilterChange(selected: Set<string>) {
 		filterCollectionIds = new SvelteSet(selected);
 		if (prefsInitialized) {
-			const allSelected =
-				collectionsQuery.data && selected.size === collectionsQuery.data.length;
+			const collectionOnly = [...selected].filter((id) => id !== UNCOLLECTED);
+			const includeUncollected = selected.has(UNCOLLECTED);
+			const totalOptions = (collectionsQuery.data?.length ?? 0) + 1;
+			const allSelected = selected.size === totalOptions;
 			mutate(writeToken, (token) =>
 				client.mutation(api.viewPreferences.set, {
 					key: 'home',
-					filterCollectionIds: allSelected ? [] : [...selected],
+					filterCollectionIds: allSelected ? [] : (collectionOnly as Id<'collections'>[]),
+					includeUncollected,
 					token
 				})
 			);
 		}
 	}
 
-	// Pass collectionIds to query only when not all collections are selected
+	// Pass collectionIds to query only when not all options are selected
+	const totalOptions = $derived((collectionsQuery.data?.length ?? 0) + 1);
 	const allSelected = $derived(
-		!collectionsQuery.data || filterCollectionIds.size === collectionsQuery.data.length
+		!collectionsQuery.data || filterCollectionIds.size === totalOptions
 	);
+
+	// Split sentinel from real collection IDs for the query
+	const queryCollectionIds = $derived(
+		[...filterCollectionIds].filter((id) => id !== UNCOLLECTED) as Id<'collections'>[]
+	);
+	const includeUncollected = $derived(filterCollectionIds.has(UNCOLLECTED));
 
 	// Use query with sort option and optional collection filter
 	const items = useQuery(api.items.list, () => ({
 		sortBy,
-		...(!allSelected ? { collectionIds: [...filterCollectionIds] } : {})
+		...(!allSelected
+			? { collectionIds: queryCollectionIds, includeUncollected }
+			: {})
 	}));
 
 	// Update the current items when data changes

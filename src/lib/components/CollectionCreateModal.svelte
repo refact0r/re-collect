@@ -11,7 +11,8 @@
 	let { onClose }: Props = $props();
 
 	const client = useConvexClient();
-	const writeToken = getContext<string | null>('writeToken');
+	const getWriteToken = getContext<() => string | null>('writeToken');
+	const writeToken = $derived(getWriteToken());
 
 	let name = $state('');
 	let isCreating = $state(false);
