@@ -45,6 +45,7 @@
 		"wrangler": "^4.80.0"
 	},
 	"dependencies": {
+		"@chenglou/pretext": "^0.0.4",
 		"@convex-dev/r2": "^0.9.1",
 		"@fontsource/dm-mono": "^5.2.7",
 		"@fontsource/dm-sans": "^5.2.8",

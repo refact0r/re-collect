@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { generateKeyBetween } from 'fractional-indexing';
+	import { prepare, layout, type PreparedText } from '@chenglou/pretext';
 	import { getContext, onDestroy } from 'svelte';
 	import { page } from '$app/state';
 	import { useConvexClient } from 'convex-svelte';
@@ -61,8 +62,33 @@
 	const TEXT_CARD_PADDING = 16;
 	const TEXT_LINE_HEIGHT = 24;
 	const TEXT_MAX_LINES = 10;
-	const TEXT_CHAR_WIDTH = 7;
 	const DEFAULT_HEIGHT = 100;
+	const TEXT_FONT = '16px DM Sans';
+
+	// Pretext cache: prepared text measurements keyed by `${itemId}:${text}`
+	const preparedTexts = new Map<string, PreparedText>();
+
+	function getPreparedText(item: Item): PreparedText | null {
+		const text = getItemText(item);
+		if (!text) return null;
+
+		const cacheKey = `${item._id}:${text}`;
+		const cached = preparedTexts.get(cacheKey);
+		if (cached) return cached;
+
+		const prepared = prepare(text, TEXT_FONT, { whiteSpace: 'pre-wrap' });
+		preparedTexts.set(cacheKey, prepared);
+		return prepared;
+	}
+
+	function getItemText(item: Item): string | null {
+		if (item.type === 'text') return item.content ?? null;
+		if (item.type === 'url' && !shouldDisplayAsImage(item) &&
+			!(item.screenshotStatus && item.screenshotStatus !== 'completed')) {
+			return item.url ?? null;
+		}
+		return null;
+	}
 
 	let columnCount = $derived(
 		containerWidth === 0
@@ -88,38 +114,32 @@
 
 	function estimateHeight(item: Item): number {
 		const titleHeight = item.title ? TITLE_HEIGHT : 0;
+		const innerWidth = columnWidth - CARD_CHROME;
 
-		// All items with images display the same way
 		if (shouldDisplayAsImage(item)) {
 			if (item.imageWidth && item.imageHeight) {
-				const imageHeight = columnWidth * (item.imageHeight / item.imageWidth);
+				const imageHeight = innerWidth * (item.imageHeight / item.imageWidth);
 				return imageHeight + CARD_CHROME + titleHeight;
 			}
-			return columnWidth * IMAGE_FALLBACK_ASPECT + CARD_CHROME + titleHeight;
+			return innerWidth * IMAGE_FALLBACK_ASPECT + CARD_CHROME + titleHeight;
 		}
 
 		if (item.type === 'url' && item.screenshotStatus && item.screenshotStatus !== 'completed') {
-			const screenshotHeight = columnWidth * (900 / 1440);
+			const screenshotHeight = innerWidth * (900 / 1440);
 			return screenshotHeight + CARD_CHROME + titleHeight;
 		}
 
 		if (item.type === 'url' || item.type === 'text') {
-			const content = item.type === 'url' ? (item.url ?? '') : (item.content ?? '');
-			const lines = content.split('\n');
-			let totalLines = 0;
-			const charsPerLine = Math.max(MIN_COLS, Math.floor(columnWidth / TEXT_CHAR_WIDTH));
-
-			for (const line of lines) {
-				if (line.length === 0) {
-					totalLines += 1;
-				} else {
-					totalLines += Math.ceil(line.length / charsPerLine);
-				}
+			const prepared = getPreparedText(item);
+			if (prepared) {
+				const textWidth = innerWidth - TEXT_CARD_PADDING;
+				const result = layout(prepared, textWidth, TEXT_LINE_HEIGHT);
+				// CSS max-height is calc(1.5rem * 10 - 0.125rem) = 238px
+				const maxTextHeight = TEXT_MAX_LINES * TEXT_LINE_HEIGHT - 2;
+				const clampedHeight = Math.min(result.height, maxTextHeight);
+				return clampedHeight + TEXT_CARD_PADDING + CARD_CHROME + titleHeight;
 			}
-
-			const displayLines = Math.min(totalLines, TEXT_MAX_LINES);
-			const textHeight = displayLines * TEXT_LINE_HEIGHT + TEXT_CARD_PADDING;
-			return textHeight + CARD_CHROME + titleHeight;
+			return DEFAULT_HEIGHT + CARD_CHROME + titleHeight;
 		}
 
 		return DEFAULT_HEIGHT + CARD_CHROME + titleHeight;
@@ -739,6 +759,7 @@
 	.drag-preview .card {
 		background: var(--bg-1);
 	}
+
 
 	@media (max-width: 768px) {
 		.masonry {
