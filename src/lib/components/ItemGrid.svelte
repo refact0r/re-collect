@@ -627,7 +627,7 @@
 	.text-card {
 		padding: 0.5rem;
 		background: var(--bg-2);
-		word-break: break-all;
+		overflow-wrap: break-word;
 		overflow: auto;
 	}
 
@@ -759,7 +759,6 @@
 	.drag-preview .card {
 		background: var(--bg-1);
 	}
-
 
 	@media (max-width: 768px) {
 		.masonry {
