@@ -78,7 +78,7 @@
 			<a href={getItemUrl(item._id)} class="list-item">
 				<div class="thumbnail">
 					{#if shouldDisplayAsImage(item)}
-						<img src={getImage(item._id, item.imageUrl)} alt="" decoding="async" />
+						<img src={getImage(item._id, item.imageUrl)} alt="" decoding="async" loading="lazy" />
 					{:else if item.type === 'url'}
 						{#if item.screenshotStatus === 'pending' || item.screenshotStatus === 'processing'}
 							<div class="icon-placeholder loading">

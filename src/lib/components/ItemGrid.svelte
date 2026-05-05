@@ -163,8 +163,7 @@
 
 	// ============ DRAG STATE ============
 	let draggedItem: Item | null = $state(null);
-	let draggedItemHeight = $state(0); // Actual measured height for display
-	let draggedItemEstimatedHeight = $state(0); // Predicted height for algorithm consistency
+	let draggedItemHeight = $state(0);
 	let dragPosition = $state({ x: 0, y: 0 });
 	let dragOffset = $state({ x: 0, y: 0 });
 
@@ -286,41 +285,21 @@
 		return null;
 	}
 
-	/**
-	 * Update the placeholder's display height in a simulation result.
-	 */
-	function updatePlaceholderHeight(sim: { columns: DisplayItem[][] }, height: number): void {
-		for (const col of sim.columns) {
-			for (const item of col) {
-				if (item._id === 'placeholder') {
-					(item as { _id: 'placeholder'; height: number }).height = height;
-				}
-			}
-		}
-	}
-
 	// ============ DISPLAY LAYOUT ============
-	let displayColumns = $derived.by((): DisplayItem[][] => {
-		if (draggedItem && simulationResult) {
-			return simulationResult.columns;
-		}
-		return normalColumns;
-	});
+	let displayColumns: DisplayItem[][] = $derived(
+		draggedItem && simulationResult ? simulationResult.columns : normalColumns
+	);
 
 	// ============ DRAG HANDLERS ============
 	function handleDragStart(item: Item, e: PointerEvent) {
 		if (!isDraggable) return;
 		e.preventDefault();
 
-		const target = e.currentTarget as HTMLElement;
-		// Get the card-wrapper element (the button's parent)
-		const cardWrapper = target.closest('.card-wrapper') as HTMLElement;
-		const rect = cardWrapper.getBoundingClientRect();
-
 		draggedItem = item;
-		// Use actual measured height for display, calculated height for algorithm
-		draggedItemHeight = rect.height;
-		draggedItemEstimatedHeight = estimateHeight(item);
+		draggedItemHeight = estimateHeight(item);
+
+		const cardWrapper = (e.currentTarget as HTMLElement).closest('.card-wrapper') as HTMLElement;
+		const rect = cardWrapper.getBoundingClientRect();
 		dragOffset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
 		dragPosition = { x: e.clientX, y: e.clientY };
 
@@ -334,10 +313,9 @@
 				itemsForSimulation,
 				position.colIndex,
 				position.slotIndex,
-				draggedItemEstimatedHeight
+				draggedItemHeight
 			);
 			if (initialSim) {
-				updatePlaceholderHeight(initialSim, draggedItemHeight);
 				simulationResult = initialSim;
 			}
 		}
@@ -365,18 +343,12 @@
 		// Determine target slot from cursor Y based on original column layout
 		const targetSlot = getSlotFromCursorY(e.clientY, containerRect, originalColumn);
 
-		// Try to simulate with placeholder at this position
-		// Use calculated height for algorithm consistency, but the result will display with measured height
 		const newSimulation = distributeMasonryWithPlaceholder(
 			itemsForSimulation,
 			targetCol,
 			targetSlot,
-			draggedItemEstimatedHeight
+			draggedItemHeight
 		);
-
-		if (newSimulation) {
-			updatePlaceholderHeight(newSimulation, draggedItemHeight);
-		}
 
 		simulationResult = newSimulation;
 	}
@@ -432,7 +404,6 @@
 		simulationResult = null;
 		itemsForSimulation = [];
 		draggedItemHeight = 0;
-		draggedItemEstimatedHeight = 0;
 		document.removeEventListener('pointermove', handleDragMove);
 		document.removeEventListener('pointerup', handleDragEnd);
 		document.body.style.cursor = '';
@@ -480,6 +451,7 @@
 									width={realItem.imageWidth}
 									height={realItem.imageHeight}
 									decoding="async"
+									loading="lazy"
 								/>
 							{:else if realItem.type === 'url'}
 								{#if realItem.screenshotStatus === 'pending' || realItem.screenshotStatus === 'processing'}
