@@ -95,36 +95,33 @@ export const get = query({
 	}
 });
 
+const PREVIEW_LIMIT = 4;
+const PREVIEW_BATCH = 8;
+
 async function getCollectionPreviews(
 	ctx: QueryCtx,
-	collectionId: Id<'collections'>,
-	limit: number = 4
+	positions: Array<{ itemId: Id<'items'>; dateAdded: number }>
 ): Promise<Array<{ _id: Id<'items'>; imageUrl: string; type: 'image' | 'url' }>> {
-	const positions = await ctx.db
-		.query('itemCollectionPositions')
-		.withIndex('by_collection', (q) => q.eq('collectionId', collectionId))
-		.collect();
+	const sorted = [...positions].sort((a, b) => b.dateAdded - a.dateAdded);
+	const previews: Array<{ _id: Id<'items'>; imageUrl: string; type: 'image' | 'url' }> = [];
 
-	const allItems = await Promise.all(positions.map((p) => ctx.db.get(p.itemId)));
-
-	const displayable = allItems
-		.filter((item): item is NonNullable<typeof item> => {
-			if (!item) return false;
-			return (item.type === 'image' && !!item.imageKey) ||
+	for (let i = 0; i < sorted.length && previews.length < PREVIEW_LIMIT; i += PREVIEW_BATCH) {
+		const batch = sorted.slice(i, i + PREVIEW_BATCH);
+		const items = await Promise.all(batch.map((p) => ctx.db.get(p.itemId)));
+		for (const item of items) {
+			if (!item) continue;
+			const displayable =
+				(item.type === 'image' && !!item.imageKey) ||
 				(item.type === 'url' && item.screenshotStatus === 'completed');
-		})
-		.sort((a, b) => b.dateAdded - a.dateAdded)
-		.slice(0, limit);
-
-	const previews = [];
-	for (const item of displayable) {
-		const imageUrl = getImageUrl(item);
-		if (imageUrl) {
+			if (!displayable) continue;
+			const imageUrl = getImageUrl(item);
+			if (!imageUrl) continue;
 			previews.push({
 				_id: item._id,
 				imageUrl,
 				type: item.type as 'image' | 'url'
 			});
+			if (previews.length >= PREVIEW_LIMIT) break;
 		}
 	}
 
@@ -143,7 +140,7 @@ export const listWithCounts = query({
 					.query('itemCollectionPositions')
 					.withIndex('by_collection', (q) => q.eq('collectionId', collection._id))
 					.collect();
-				const previews = await getCollectionPreviews(ctx, collection._id, 4);
+				const previews = await getCollectionPreviews(ctx, positions);
 
 				return {
 					...collection,

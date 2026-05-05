@@ -226,38 +226,40 @@ export const list = query({
 	},
 	handler: async (ctx, args) => {
 		const sortBy = args.sortBy ?? 'dateAddedNewest';
-		let items = await ctx.db.query('items').collect();
+
+		let items: Doc<'items'>[];
+		switch (sortBy) {
+			case 'dateAddedNewest':
+				items = await ctx.db.query('items').withIndex('by_dateAdded').order('desc').collect();
+				break;
+			case 'dateAddedOldest':
+				items = await ctx.db.query('items').withIndex('by_dateAdded').order('asc').collect();
+				break;
+			case 'dateModifiedNewest':
+				items = await ctx.db.query('items').withIndex('by_dateModified').order('desc').collect();
+				break;
+			case 'dateModifiedOldest':
+				items = await ctx.db.query('items').withIndex('by_dateModified').order('asc').collect();
+				break;
+			case 'titleAsc':
+				items = await ctx.db.query('items').collect();
+				items.sort((a, b) => getSortTitle(a).localeCompare(getSortTitle(b)));
+				break;
+			case 'titleDesc':
+				items = await ctx.db.query('items').collect();
+				items.sort((a, b) => getSortTitle(b).localeCompare(getSortTitle(a)));
+				break;
+		}
 
 		if (args.collectionIds && args.collectionIds.length > 0) {
 			const filterSet = new Set(args.collectionIds);
 			items = items.filter(
 				(item) =>
 					item.collections.some((c) => filterSet.has(c)) ||
-					(args.includeUncollected && item.collections.length === 0)
+					(args.includeUncollected === true && item.collections.length === 0)
 			);
-		} else if (args.includeUncollected !== undefined && !args.includeUncollected) {
+		} else if (args.includeUncollected === false) {
 			items = items.filter((item) => item.collections.length > 0);
-		}
-
-		switch (sortBy) {
-			case 'dateAddedNewest':
-				items.sort((a, b) => b.dateAdded - a.dateAdded);
-				break;
-			case 'dateAddedOldest':
-				items.sort((a, b) => a.dateAdded - b.dateAdded);
-				break;
-			case 'dateModifiedNewest':
-				items.sort((a, b) => b.dateModified - a.dateModified);
-				break;
-			case 'dateModifiedOldest':
-				items.sort((a, b) => a.dateModified - b.dateModified);
-				break;
-			case 'titleAsc':
-				items.sort((a, b) => getSortTitle(a).localeCompare(getSortTitle(b)));
-				break;
-			case 'titleDesc':
-				items.sort((a, b) => getSortTitle(b).localeCompare(getSortTitle(a)));
-				break;
 		}
 
 		return items.map((item) => ({
