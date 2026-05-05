@@ -2,7 +2,7 @@
 
 A personal web application for collecting, organizing, and rediscovering design inspiration, web screenshots, articles, and visual references. Similar to Are.na.
 
-Consult `/reference` docs (R2 integration, Convex setup, icon system) when working with those systems.
+Consult `/reference` docs (R2 integration, Convex setup, icon system) when working with those systems. `reference/ops.md` documents external configuration.
 
 ## Architecture & Conventions
 
