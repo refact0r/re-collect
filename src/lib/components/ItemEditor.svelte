@@ -3,7 +3,6 @@
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { getImage } from '$lib/imageCache.svelte.js';
 	import { mutate } from '$lib/mutationHelper.js';
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
 	import IconCheck from '~icons/material-symbols/check';
@@ -108,11 +107,11 @@
 		<!-- Content Preview -->
 		<div class="content-preview">
 			{#if item.data.type === 'image' && item.data.imageUrl}
-				<img src={getImage(itemId, item.data.imageUrl)} alt={item.data.title ?? 'image'} />
+				<img src={item.data.imageUrl} alt={item.data.title ?? 'image'} />
 			{:else if item.data.type === 'url'}
 				{#if item.data.screenshotStatus === 'completed' && item.data.imageUrl}
 					<img
-						src={getImage(itemId, item.data.imageUrl)}
+						src={item.data.imageUrl}
 						alt={item.data.title ?? item.data.url ?? 'screenshot'}
 					/>
 				{:else}

@@ -4,7 +4,6 @@
 	import { api } from '../../../convex/_generated/api.js';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import CollectionCreateModal from '$lib/components/CollectionCreateModal.svelte';
-	import { getImage } from '$lib/imageCache.svelte';
 	import { mutate } from '$lib/mutationHelper.js';
 	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
 
@@ -65,7 +64,7 @@
 							{#each collection.previews as preview (preview._id)}
 								<div class="thumb-wrapper">
 									<img
-										src={getImage(preview._id, preview.imageUrl)}
+										src={preview.imageUrl}
 										alt=""
 										class="preview-thumb"
 										loading="lazy"

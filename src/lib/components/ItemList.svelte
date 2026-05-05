@@ -4,7 +4,6 @@
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { getImage } from '$lib/imageCache.svelte.js';
 	import { mutate } from '$lib/mutationHelper.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
 	import IconError from '~icons/material-symbols-light/error-outline';
@@ -78,7 +77,7 @@
 			<a href={getItemUrl(item._id)} class="list-item">
 				<div class="thumbnail">
 					{#if shouldDisplayAsImage(item)}
-						<img src={getImage(item._id, item.imageUrl)} alt="" decoding="async" loading="lazy" />
+						<img src={item.imageUrl} alt="" decoding="async" loading="lazy" />
 					{:else if item.type === 'url'}
 						{#if item.screenshotStatus === 'pending' || item.screenshotStatus === 'processing'}
 							<div class="icon-placeholder loading">

@@ -13,7 +13,7 @@ Consult `/reference` docs (R2 integration, Convex setup, icon system) when worki
 - **Context sharing**: Collections and items lists passed down via Svelte context
 - **Manual ordering**: Fractional indexing (lexicographical position strings) in `itemCollectionPositions` table
 - **`searchText` is derived**: combined from title + description + url; must be updated on any write that changes those fields
-- **R2 presigned URLs change every fetch**: `imageCache` caches by itemId to prevent reload, always use `getImage()` from `imageCache.svelte.ts`
+- **R2 images served via public custom domain** (`R2_PUBLIC_URL` env var): URLs are stable `${R2_PUBLIC_URL}/${imageKey}`, no presigning
 - **Dual collection bookkeeping**: `item.collections` (denormalized array) and `itemCollectionPositions` (junction table for ordering) must both be updated when adding/removing items from collections
 - Svelte 5 only - do not use deprecated Svelte features
 - Use global styles/colors from `app.css` (`--bg-*`, `--txt-*`); prefer scoped styles over inline

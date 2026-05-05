@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { mutation, query, type QueryCtx } from './_generated/server';
+import { mutation, query } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { r2 } from './r2';
@@ -25,9 +25,9 @@ function getSortTitle(item: { title?: string; url?: string }): string {
 	return (item.title ?? item.url ?? '').toLowerCase();
 }
 
-export async function getImageUrl(ctx: QueryCtx, item: Doc<'items'>): Promise<string | null> {
+export function getImageUrl(item: Doc<'items'>): string | null {
 	if (item.imageKey) {
-		return await r2.getUrl(item.imageKey, { expiresIn: 60 * 60 * 24 * 7 });
+		return `${process.env.R2_PUBLIC_URL}/${item.imageKey}`;
 	}
 	return null;
 }
@@ -260,12 +260,10 @@ export const list = query({
 				break;
 		}
 
-		return Promise.all(
-			items.map(async (item) => ({
-				...item,
-				imageUrl: await getImageUrl(ctx, item)
-			}))
-		);
+		return items.map((item) => ({
+			...item,
+			imageUrl: getImageUrl(item)
+		}));
 	}
 });
 
@@ -276,7 +274,7 @@ export const get = query({
 		if (!item) return null;
 		return {
 			...item,
-			imageUrl: await getImageUrl(ctx, item)
+			imageUrl: getImageUrl(item)
 		};
 	}
 });
@@ -347,13 +345,11 @@ export const listByCollection = query({
 				break;
 		}
 
-		return Promise.all(
-			filtered.map(async (item) => ({
-				...item,
-				imageUrl: await getImageUrl(ctx, item),
-				position: positionMap.get(item._id)
-			}))
-		);
+		return filtered.map((item) => ({
+			...item,
+			imageUrl: getImageUrl(item),
+			position: positionMap.get(item._id)
+		}));
 	}
 });
 
@@ -368,11 +364,9 @@ export const search = query({
 			.withSearchIndex('search_items', (q) => q.search('searchText', args.query))
 			.collect();
 
-		return Promise.all(
-			results.map(async (item) => ({
-				...item,
-				imageUrl: await getImageUrl(ctx, item)
-			}))
-		);
+		return results.map((item) => ({
+			...item,
+			imageUrl: getImageUrl(item)
+		}));
 	}
 });

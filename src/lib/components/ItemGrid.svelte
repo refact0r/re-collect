@@ -6,7 +6,6 @@
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { getImage } from '$lib/imageCache.svelte.js';
 	import { mutate } from '$lib/mutationHelper.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
 	import IconError from '~icons/material-symbols-light/error-outline';
@@ -446,7 +445,7 @@
 						<a href={getItemUrl(realItem._id)} class="clickable card">
 							{#if shouldDisplayAsImage(realItem)}
 								<img
-									src={getImage(realItem._id, realItem.imageUrl)}
+									src={realItem.imageUrl}
 									alt={realItem.title ?? realItem.url ?? 'image'}
 									width={realItem.imageWidth}
 									height={realItem.imageHeight}
@@ -539,7 +538,7 @@
 		<div class="clickable card">
 			{#if shouldDisplayAsImage(draggedItem)}
 				<img
-					src={getImage(draggedItem._id, draggedItem.imageUrl)}
+					src={draggedItem.imageUrl}
 					alt={draggedItem.title ?? draggedItem.url ?? 'image'}
 					width={draggedItem.imageWidth}
 					height={draggedItem.imageHeight}

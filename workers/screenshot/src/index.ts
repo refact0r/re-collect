@@ -226,7 +226,8 @@ export default {
 			// Upload to R2
 			await env.R2_BUCKET.put(imageKey, screenshotBuffer, {
 				httpMetadata: {
-					contentType: 'image/webp'
+					contentType: 'image/webp',
+					cacheControl: 'public, max-age=31536000, immutable'
 				}
 			});
 

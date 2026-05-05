@@ -118,7 +118,7 @@ async function getCollectionPreviews(
 
 	const previews = [];
 	for (const item of displayable) {
-		const imageUrl = await getImageUrl(ctx, item);
+		const imageUrl = getImageUrl(item);
 		if (imageUrl) {
 			previews.push({
 				_id: item._id,

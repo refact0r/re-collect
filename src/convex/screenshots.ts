@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { internalAction, internalMutation, mutation } from './_generated/server';
 import { internal } from './_generated/api';
 import { requireAuth } from './auth';
+import { r2 } from './r2';
 
 export const setProcessing = internalMutation({
 	args: { itemId: v.id('items') },
@@ -26,6 +27,10 @@ export const setCompleted = internalMutation({
 	handler: async (ctx, args) => {
 		const item = await ctx.db.get(args.itemId);
 		if (!item) return;
+
+		if (item.imageKey && item.imageKey !== args.imageKey) {
+			await r2.deleteObject(ctx, item.imageKey);
+		}
 
 		const shouldSetTitle = !item.title && args.title;
 
