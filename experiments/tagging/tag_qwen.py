@@ -1,0 +1,370 @@
+#!/usr/bin/env python3
+"""
+Production-shaped image tagging via Qwen (qwen/qwen3.6-flash on OpenRouter).
+
+The `tag_image()` function below is intended to mirror what would live inside
+a Convex action: take image bytes + content-type, return a validated tag dict
+(or raise). Everything outside of it is experiment harness.
+
+Usage:
+    OPENROUTER_API_KEY=sk-or-... python3 tag_qwen.py
+"""
+
+import base64
+import json
+import mimetypes
+import os
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
+
+API_KEY = os.environ.get("OPENROUTER_API_KEY")
+if not API_KEY:
+    sys.exit("set OPENROUTER_API_KEY")
+
+MODEL = "qwen/qwen3.6-flash"
+MAX_EDGE_PX = 768  # downscale long edge to this before sending
+TEMPERATURE = 0.3  # low; re-tagging same item should be ~stable
+MAX_TOKENS = 600  # JSON output is small; cap to control runaway
+TIMEOUT_S = 60
+RETRIES = 2  # plus one initial attempt = 3 total
+RETRY_BACKOFF_S = (1, 3)
+
+
+# ---------------------------------------------------------------------------
+# Prompt
+# ---------------------------------------------------------------------------
+# Notes on this revision:
+# - Example style vocabulary is no longer inside the JSON schema field
+#   comment, where small models tended to copy it back verbatim. It now sits
+#   in a separate "guidance" paragraph with an explicit anti-copy instruction.
+# - The vocabulary list is broader and grouped by domain so the model has more
+#   to draw on without being anchored to one set.
+# - "kind" gets a "photograph" option; the prior schema forced photos into
+#   "other".
+PROMPT = """You are tagging an image for a personal visual reference library. The image will be one of: an artwork or illustration, a graphic design piece, a screenshot of a website or digital interface, or a photograph. Your job is to produce structured tags so the user can rediscover this item later. Aesthetic style is the primary axis — spend the most thought there. Also capture the literal content (subject, concrete tags), since those help recall too.
+
+Style vocabulary guidance (inspirational, not prescriptive):
+- Design / web movements: brutalist, swiss, international typographic, memphis, y2k, vaporwave, post-internet, skeuomorphic, neumorphism, glassmorphism, terminal, ascii.
+- Art movements: art deco, art nouveau, bauhaus, constructivist, cubist, surrealist, expressionist, mid-century modern, ukiyo-e, gothic, baroque.
+- Illustration / digital: anime, manga, lo-fi, concept art, low-poly, ps1, ps2, pixel art, vector flat, isometric, risograph, halftone, zine, editorial illustration.
+- Photographic: documentary, street, portrait, fashion editorial, still life, film grain, polaroid, lomography.
+- General descriptors: minimalist, maximalist, monochrome, high-contrast, hand-drawn, generative, glitch, surreal.
+DO NOT pick a label merely because it appears in the list above. If none of these fit, propose a more accurate label. If something clearly fits, use it.
+
+Return ONLY a JSON object matching this schema. No prose, no markdown fences.
+
+{
+  "kind": "artwork" | "graphic_design" | "website" | "photograph" | "other",
+  "styles": string[],    // PRIMARY FIELD. 2-8 aesthetic/genre labels — what categories does this belong to. May include composition/layout descriptors when they're a defining aesthetic.
+  "palette": string,     // short phrase describing the palette.
+  "subject": string,     // one sentence under 30 words — what's depicted at a glance, not an exhaustive description.
+  "tags": string[]       // 5-12 concrete observations — specific objects, materials, motifs, technical details that the user could later search for. Distinct from styles; do not duplicate.
+}
+
+Rules:
+- Do NOT name specific artists, designers, studios, or brands unless their identity is unambiguous from a visible signature, logo, or watermark in the image.
+- For each style, pick the label that most accurately describes the image — neither broader nor narrower than the image warrants.
+- If the image contains text that would itself act as a distinct/memorable search anchor later — a title, headline, signage with real content, distinctive graffiti, or a brand/product name — include up to 3 of them as tags (no longer than a short phrase). Skip generic UI chrome, serial numbers, version strings, and any text that isn't recognizable out of context.
+"""
+
+
+# ---------------------------------------------------------------------------
+# Image preprocessing
+# ---------------------------------------------------------------------------
+def downscale_to_data_url(
+    path: Path, max_edge: int = MAX_EDGE_PX
+) -> tuple[str, int, str]:
+    """Downscale image to max_edge on its long side, return (data_url, byte_size, mime).
+
+    In production this would run inside a Convex action via Pillow or Sharp.
+    Here we use macOS `sips` since Pillow isn't installed. sips can't write
+    webp, so we always normalize output to JPEG — fine for tagging.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+    try:
+        try:
+            subprocess.run(
+                [
+                    "sips",
+                    "-s",
+                    "format",
+                    "jpeg",
+                    "-Z",
+                    str(max_edge),
+                    str(path),
+                    "--out",
+                    str(tmp_path),
+                ],
+                check=True,
+                capture_output=True,
+            )
+            raw = tmp_path.read_bytes()
+            mime = "image/jpeg"
+        except subprocess.CalledProcessError:
+            # downscale failed; send original
+            raw = path.read_bytes()
+            mime = mimetypes.guess_type(path.name)[0] or "image/png"
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    b64 = base64.b64encode(raw).decode("ascii")
+    return f"data:{mime};base64,{b64}", len(raw), mime
+
+
+# ---------------------------------------------------------------------------
+# Tag normalization
+# ---------------------------------------------------------------------------
+# Words ending in -s that aren't actually plurals. Singularizing these would
+# produce nonsense ("lens" → "len"). Add as we find more false positives.
+KEEP_PLURAL = {"lens", "iris", "series", "species", "analysis", "axis", "chaos"}
+
+# Trailing modifier words that add no search value when attached to a real
+# tag ("low-poly aesthetic" → "low-poly"). Only stripped when there's at
+# least one other word — a standalone "aesthetic" stays as-is per the design
+# note that the model's perspective should mostly come through.
+GENERIC_MODIFIERS = {"aesthetic", "style", "vibes", "vibe"}
+
+
+def singularize_word(w: str) -> str:
+    if len(w) <= 3 or w in KEEP_PLURAL:
+        return w
+    if w.endswith(("ss", "us", "is", "os")):
+        return w
+    if w.endswith("ies") and len(w) > 4:
+        return w[:-3] + "y"
+    if w.endswith("ves") and len(w) > 4:
+        return w[:-3] + "f"
+    if w.endswith(("ses", "xes", "zes", "ches", "shes")):
+        return w[:-2]
+    if w.endswith("s"):
+        return w[:-1]
+    return w
+
+
+def normalize_tag(s: str) -> str:
+    s = " ".join(s.lower().split())
+    s = s.strip(".,;:!?\"'`")
+    if not s:
+        return s
+    words = s.split()
+    while len(words) > 1 and words[-1] in GENERIC_MODIFIERS:
+        words.pop()
+    words = [singularize_word(w) for w in words]
+    return " ".join(words)
+
+
+def dedupe_preserve_order(items):
+    seen = set()
+    out = []
+    for x in items:
+        if x and x not in seen:
+            seen.add(x)
+            out.append(x)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Schema validation
+# ---------------------------------------------------------------------------
+class TagSchemaError(ValueError):
+    pass
+
+
+def validate_tags(d: dict) -> dict:
+    """Lightweight schema check + normalization. Raise TagSchemaError on violation."""
+    if not isinstance(d, dict):
+        raise TagSchemaError("not an object")
+
+    kind = d.get("kind")
+    if kind not in {"artwork", "graphic_design", "website", "photograph", "other"}:
+        raise TagSchemaError(f"bad kind: {kind!r}")
+
+    styles = d.get("styles")
+    if not isinstance(styles, list) or len(styles) < 1:
+        raise TagSchemaError("styles must have at least 1 entry")
+    if not all(isinstance(s, str) and s.strip() for s in styles):
+        raise TagSchemaError("styles entries must be non-empty strings")
+    d["styles"] = dedupe_preserve_order(normalize_tag(s) for s in styles)[:5]
+
+    palette = d.get("palette")
+    if not isinstance(palette, str) or not palette.strip():
+        raise TagSchemaError("palette must be non-empty string")
+    d["palette"] = palette.strip()
+
+    subject = d.get("subject")
+    if not isinstance(subject, str) or not subject.strip():
+        raise TagSchemaError("subject must be non-empty string")
+
+    tags = d.get("tags")
+    if not isinstance(tags, list) or len(tags) < 3:
+        raise TagSchemaError("tags must have at least 3 entries")
+    if not all(isinstance(t, str) and t.strip() for t in tags):
+        raise TagSchemaError("tags entries must be non-empty strings")
+    style_set = set(d["styles"])
+    d["tags"] = [
+        t for t in dedupe_preserve_order(normalize_tag(t) for t in tags)
+        if t not in style_set
+    ][:12]
+
+    return d
+
+
+def parse_json_lenient(s: str):
+    s = s.strip()
+    if s.startswith("```"):
+        s = s.strip("`")
+        if s.startswith("json"):
+            s = s[4:]
+        s = s.strip("`").strip()
+    i, j = s.find("{"), s.rfind("}")
+    if i == -1 or j == -1:
+        raise TagSchemaError("no JSON object found in response")
+    return json.loads(s[i : j + 1])
+
+
+# ---------------------------------------------------------------------------
+# Production-shaped tagging function
+# ---------------------------------------------------------------------------
+def tag_image(image_bytes: bytes, mime: str = "image/png") -> dict:
+    """Tag a single image. Returns validated tag dict. Raises on failure.
+
+    Mirrors what would live in a Convex action. Inputs are raw bytes so the
+    caller controls fetching from R2; output is the parsed/validated dict
+    ready to write to the items table.
+    """
+    b64 = base64.b64encode(image_bytes).decode("ascii")
+    data_url = f"data:{mime};base64,{b64}"
+
+    payload = {
+        "model": MODEL,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": PROMPT},
+                    {"type": "image_url", "image_url": {"url": data_url}},
+                ],
+            }
+        ],
+        "temperature": TEMPERATURE,
+        "max_tokens": MAX_TOKENS,
+        "response_format": {"type": "json_object"},
+        # Qwen 3.6 Flash is a thinking model. Reasoning helps it produce
+        # richer freeform tags ("tactile paving", "pixel UI overlay") rather
+        # than generic ones. Capped to ~1500 tokens so the visually busy
+        # outliers don't run away (uncapped this image hit 5200).
+        "reasoning": {"max_tokens": 1500},
+    }
+
+    last_err: Exception | None = None
+    for attempt in range(RETRIES + 1):
+        try:
+            req = urllib.request.Request(
+                "https://openrouter.ai/api/v1/chat/completions",
+                data=json.dumps(payload).encode("utf-8"),
+                headers={
+                    "Authorization": f"Bearer {API_KEY}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "http://localhost/re-collect",
+                    "X-Title": "re-collect tag pipeline",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=TIMEOUT_S) as resp:
+                body = json.loads(resp.read().decode("utf-8"))
+            content = body["choices"][0]["message"]["content"]
+            if not content:
+                raise RuntimeError(
+                    f"empty content; finish_reason={body['choices'][0].get('finish_reason')}"
+                )
+            parsed = parse_json_lenient(content)
+            validated = validate_tags(parsed)
+            # attach usage for the caller (cost telemetry)
+            validated["_usage"] = body.get("usage")
+            return validated
+        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as e:
+            last_err = e
+        except (KeyError, json.JSONDecodeError, TagSchemaError, RuntimeError) as e:
+            # validation/parse failures are also retryable — temperature > 0
+            # means a re-roll might succeed
+            last_err = e
+
+        if attempt < RETRIES:
+            time.sleep(RETRY_BACKOFF_S[min(attempt, len(RETRY_BACKOFF_S) - 1)])
+
+    raise RuntimeError(f"tag_image failed after {RETRIES + 1} attempts: {last_err}")
+
+
+# ---------------------------------------------------------------------------
+# Experiment harness
+# ---------------------------------------------------------------------------
+def main():
+    here = Path(__file__).parent
+    images = sorted(
+        p
+        for p in here.iterdir()
+        if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
+    )
+    print(f"model: {MODEL}")
+    print(f"images ({len(images)}): {[p.name for p in images]}\n")
+
+    def task(img_path: Path):
+        original_size = img_path.stat().st_size
+        data_url, downscaled_size, mime = downscale_to_data_url(img_path)
+        # tag_image expects raw bytes; re-decode the data URL we just built
+        b64 = data_url.split(",", 1)[1]
+        scaled_bytes = base64.b64decode(b64)
+        t0 = time.time()
+        try:
+            res = tag_image(scaled_bytes, mime)
+            elapsed = time.time() - t0
+            return img_path.name, {
+                "ok": True,
+                "elapsed_s": round(elapsed, 2),
+                "original_bytes": original_size,
+                "scaled_bytes": downscaled_size,
+                "result": res,
+            }
+        except Exception as e:
+            elapsed = time.time() - t0
+            return img_path.name, {
+                "ok": False,
+                "elapsed_s": round(elapsed, 2),
+                "original_bytes": original_size,
+                "scaled_bytes": downscaled_size,
+                "error": f"{type(e).__name__}: {e}",
+            }
+
+    results: dict = {}
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        for fut in as_completed(ex.submit(task, p) for p in images):
+            name, res = fut.result()
+            results[name] = res
+            if res["ok"]:
+                r = res["result"]
+                styles = ", ".join(r.get("styles", []))
+                shrink = res["original_bytes"] / max(res["scaled_bytes"], 1)
+                u = r.get("_usage", {}) or {}
+                print(
+                    f"[ok]   {name} :: {res['elapsed_s']}s :: "
+                    f"{res['original_bytes'] // 1024}KB → {res['scaled_bytes'] // 1024}KB ({shrink:.1f}x) :: "
+                    f"in={u.get('prompt_tokens')} out={u.get('completion_tokens')}"
+                )
+                print(f"       styles: {styles}")
+            else:
+                print(f"[FAIL] {name} :: {res['elapsed_s']}s :: {res['error'][:200]}")
+
+    out = here / "results_qwen.json"
+    out.write_text(json.dumps(results, indent=2))
+    print(f"\nwrote {out}")
+
+
+if __name__ == "__main__":
+    main()

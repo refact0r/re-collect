@@ -51,6 +51,8 @@
 		"@fontsource/dm-sans": "^5.2.8",
 		"convex": "^1.37.0",
 		"convex-svelte": "^0.0.12",
-		"fractional-indexing": "^3.2.0"
+		"fractional-indexing": "^3.2.0",
+		"quantize": "^1.0.2",
+		"sharp": "^0.33.5"
 	}
 }

@@ -10,6 +10,8 @@ Set with `npx convex env set <name> <value>`, list with `npx convex env list`.
 - `R2_TOKEN`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT`, `R2_BUCKET` — required by `@convex-dev/r2`. See `reference/convex-r2.md`.
 - `CLOUDFLARE_SCREENSHOT_URL` — public URL of the screenshot worker.
 - `CLOUDFLARE_SCREENSHOT_KEY` — bearer token the screenshot worker checks. Must match the worker's `API_KEY` secret.
+- `OPENROUTER_API_KEY` — required for AI image tagging. Used by `tagging.callOpenRouter` against `https://openrouter.ai/api/v1/chat/completions`.
+- `TAGGING_MODEL` — optional. Defaults to `qwen/qwen3.6-flash`. Override to swap models without a code change.
 
 ## Cloudflare R2
 

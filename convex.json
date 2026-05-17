@@ -1,3 +1,6 @@
 {
-  "functions": "src/convex/"
+  "functions": "src/convex/",
+  "node": {
+    "externalPackages": ["sharp"]
+  }
 }

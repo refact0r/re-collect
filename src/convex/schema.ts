@@ -22,6 +22,34 @@ export default defineSchema({
 		),
 		screenshotError: v.optional(v.string()),
 		screenshotRetries: v.optional(v.number()), // Track retry attempts
+		// LLM tagger output
+		kind: v.optional(
+			v.union(
+				v.literal('artwork'),
+				v.literal('graphic_design'),
+				v.literal('website'),
+				v.literal('photograph'),
+				v.literal('other')
+			)
+		),
+		styles: v.optional(v.array(v.string())),
+		paletteDescription: v.optional(v.string()),
+		subject: v.optional(v.string()),
+		aiTags: v.optional(v.array(v.string())),
+		// Deterministic palette extracted from pixels (not LLM)
+		paletteHex: v.optional(v.array(v.string())),
+		// Tagging status tracking
+		taggingStatus: v.optional(
+			v.union(
+				v.literal('pending'),
+				v.literal('processing'),
+				v.literal('completed'),
+				v.literal('failed')
+			)
+		),
+		taggingError: v.optional(v.string()),
+		taggingRetries: v.optional(v.number()),
+		taggingModelVersion: v.optional(v.string()),
 		searchText: v.optional(v.string()), // Combined field for full-text search (title + description + url)
 		collections: v.array(v.id('collections')),
 		dateAdded: v.number(),

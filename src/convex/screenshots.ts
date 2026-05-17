@@ -45,6 +45,11 @@ export const setCompleted = internalMutation({
 				searchText: [args.title, item.description, item.url].filter(Boolean).join(' ')
 			})
 		});
+
+		await ctx.scheduler.runAfter(0, internal.taggingActions.preprocessItem, {
+			itemId: args.itemId,
+			retryCount: 0
+		});
 	}
 });
 

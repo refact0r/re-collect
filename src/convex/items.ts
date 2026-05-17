@@ -89,6 +89,14 @@ export const add = mutation({
 			});
 		}
 
+		// Trigger tagging for image items. URL items wait for the screenshot to land.
+		if (args.type === 'image' && args.imageKey) {
+			await ctx.scheduler.runAfter(0, internal.taggingActions.preprocessItem, {
+				itemId,
+				retryCount: 0
+			});
+		}
+
 		return itemId;
 	}
 });

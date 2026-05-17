@@ -17,6 +17,8 @@ import type * as migrations_002_remove_collection_descriptions from "../migratio
 import type * as migrations_003_add_search_text from "../migrations/003_add_search_text.js";
 import type * as r2 from "../r2.js";
 import type * as screenshots from "../screenshots.js";
+import type * as tagging from "../tagging.js";
+import type * as taggingActions from "../taggingActions.js";
 import type * as viewPreferences from "../viewPreferences.js";
 
 import type {
@@ -35,6 +37,8 @@ declare const fullApi: ApiFromModules<{
   "migrations/003_add_search_text": typeof migrations_003_add_search_text;
   r2: typeof r2;
   screenshots: typeof screenshots;
+  tagging: typeof tagging;
+  taggingActions: typeof taggingActions;
   viewPreferences: typeof viewPreferences;
 }>;
 

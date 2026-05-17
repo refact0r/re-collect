@@ -4,6 +4,8 @@ A personal web application for collecting, organizing, and rediscovering design 
 
 Consult `/reference` docs (R2 integration, Convex setup, icon system) when working with those systems. `reference/ops.md` documents external configuration.
 
+`experiments/tagging/` is the sandbox for the AI image-tagging feature: `tag_qwen.py` is the canonical source of the prompt and validation logic (mirrored in `src/convex/tagging.ts`), `design.md` is product framing, `architecture.md` is the build plan. Iterate on the prompt there first, then port to Convex.
+
 ## Architecture & Conventions
 
 - Single-user app - no auth, no multi-user, no social/AI features
