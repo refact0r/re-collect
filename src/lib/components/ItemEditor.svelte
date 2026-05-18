@@ -180,6 +180,28 @@
 				</div>
 			</div>
 
+			{#if item.data.paletteHex && item.data.paletteHex.length > 0}
+				<div class="tag-field">
+					<div class="field-label">palette</div>
+					<div class="palette-strip">
+						{#each item.data.paletteHex as hex (hex)}
+							<span class="palette-swatch" style:background={hex}></span>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			{#if item.data.styles && item.data.styles.length > 0}
+				<div class="tag-field">
+					<div class="field-label">styles</div>
+					<div class="chip-list">
+						{#each item.data.styles as style (style)}
+							<span class="chip">{style}</span>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
 			<div class="meta">
 				<p>added: {new Date(item.data.dateAdded).toLocaleString()}</p>
 				<p>modified: {new Date(item.data.dateModified).toLocaleString()}</p>
@@ -249,7 +271,8 @@
 		font-size: 1rem;
 	}
 
-	.collections-field {
+	.collections-field,
+	.tag-field {
 		display: flex;
 		flex-direction: column;
 		gap: 0.25rem;
@@ -257,6 +280,30 @@
 
 	.field-label {
 		font-size: 1rem;
+	}
+
+	.palette-strip {
+		display: flex;
+		height: 1.75rem;
+		border: 1px solid var(--border);
+	}
+
+	.palette-swatch {
+		flex: 1;
+	}
+
+	.chip-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+	}
+
+	.chip {
+		padding: 0.125rem 0.5rem;
+		font-size: 0.875rem;
+		background: var(--bg-2);
+		border: 1px solid var(--border);
+		color: var(--txt-2);
 	}
 
 	.collections-container {
