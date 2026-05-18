@@ -22,7 +22,7 @@ function toHex(rgb: [number, number, number]): string {
 }
 
 export const preprocessItem = internalAction({
-	args: { itemId: v.id('items'), retryCount: v.number() },
+	args: { itemId: v.id('items') },
 	handler: async (ctx, args): Promise<void> => {
 		const item: Doc<'items'> | null = await ctx.runQuery(internal.tagging.getItemForTagging, {
 			itemId: args.itemId
@@ -72,15 +72,13 @@ export const preprocessItem = internalAction({
 			await ctx.scheduler.runAfter(0, internal.tagging.callOpenRouter, {
 				itemId: args.itemId,
 				downscaledBase64: downscaled.toString('base64'),
-				mime: 'image/jpeg',
-				retryCount: args.retryCount
+				mime: 'image/jpeg'
 			});
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Unknown error';
 			await ctx.runMutation(internal.tagging.setFailed, {
 				itemId: args.itemId,
-				error: message,
-				retries: args.retryCount
+				error: message
 			});
 		}
 	}

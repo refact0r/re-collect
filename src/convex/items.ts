@@ -50,10 +50,15 @@ export const add = mutation({
 		const now = Date.now();
 		const collections = args.collections ?? [];
 
-		// For URL items, set initial screenshot status to pending
+		// URL items: screenshot lands first, then tagging runs against it.
+		// Image items: tagging runs directly off the uploaded image.
 		const screenshotFields =
 			args.type === 'url' && args.url
-				? { screenshotStatus: 'pending' as const, screenshotRetries: 0 }
+				? { screenshotStatus: 'pending' as const }
+				: {};
+		const taggingFields =
+			args.type === 'image' && args.imageKey
+				? { taggingStatus: 'pending' as const }
 				: {};
 
 		const itemId = await ctx.db.insert('items', {
@@ -66,6 +71,7 @@ export const add = mutation({
 			imageWidth: args.imageWidth,
 			imageHeight: args.imageHeight,
 			...screenshotFields,
+			...taggingFields,
 			searchText: buildSearchText({
 				title: args.title,
 				description: args.description,
@@ -92,8 +98,7 @@ export const add = mutation({
 		// Trigger tagging for image items. URL items wait for the screenshot to land.
 		if (args.type === 'image' && args.imageKey) {
 			await ctx.scheduler.runAfter(0, internal.taggingActions.preprocessItem, {
-				itemId,
-				retryCount: 0
+				itemId
 			});
 		}
 

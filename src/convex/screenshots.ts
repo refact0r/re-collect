@@ -40,6 +40,8 @@ export const setCompleted = internalMutation({
 			imageWidth: args.imageWidth,
 			imageHeight: args.imageHeight,
 			screenshotError: undefined,
+			taggingStatus: 'pending',
+			taggingError: undefined,
 			...(shouldSetTitle && {
 				title: args.title,
 				searchText: [args.title, item.description, item.url].filter(Boolean).join(' ')
@@ -47,8 +49,7 @@ export const setCompleted = internalMutation({
 		});
 
 		await ctx.scheduler.runAfter(0, internal.taggingActions.preprocessItem, {
-			itemId: args.itemId,
-			retryCount: 0
+			itemId: args.itemId
 		});
 	}
 });
@@ -56,8 +57,7 @@ export const setCompleted = internalMutation({
 export const setFailed = internalMutation({
 	args: {
 		itemId: v.id('items'),
-		error: v.string(),
-		retries: v.number()
+		error: v.string()
 	},
 	handler: async (ctx, args) => {
 		const item = await ctx.db.get(args.itemId);
@@ -65,8 +65,7 @@ export const setFailed = internalMutation({
 
 		await ctx.db.patch(args.itemId, {
 			screenshotStatus: 'failed',
-			screenshotError: args.error,
-			screenshotRetries: args.retries
+			screenshotError: args.error
 		});
 	}
 });
@@ -79,8 +78,7 @@ export const generateScreenshot = internalAction({
 	handler: async (ctx, args): Promise<void> => {
 		await ctx.runAction(internal.screenshots.generateScreenshotInternal, {
 			itemId: args.itemId,
-			url: args.url,
-			retryCount: 0
+			url: args.url
 		});
 	}
 });
@@ -98,18 +96,14 @@ export const retryScreenshot = mutation({
 			throw new Error('Screenshot is not in failed state');
 		}
 
-		const retries = (item.screenshotRetries ?? 0) + 1;
-
 		await ctx.db.patch(args.itemId, {
 			screenshotStatus: 'pending',
-			screenshotError: undefined,
-			screenshotRetries: retries
+			screenshotError: undefined
 		});
 
 		await ctx.scheduler.runAfter(0, internal.screenshots.generateScreenshotInternal, {
 			itemId: args.itemId,
-			url: item.url,
-			retryCount: retries
+			url: item.url
 		});
 	}
 });
@@ -117,8 +111,7 @@ export const retryScreenshot = mutation({
 export const generateScreenshotInternal = internalAction({
 	args: {
 		itemId: v.id('items'),
-		url: v.string(),
-		retryCount: v.number()
+		url: v.string()
 	},
 	handler: async (ctx, args): Promise<void> => {
 		const workerUrl = process.env.CLOUDFLARE_SCREENSHOT_URL;
@@ -127,8 +120,7 @@ export const generateScreenshotInternal = internalAction({
 		if (!workerUrl || !apiKey) {
 			await ctx.runMutation(internal.screenshots.setFailed, {
 				itemId: args.itemId,
-				error: 'Screenshot service not configured',
-				retries: args.retryCount
+				error: 'Screenshot service not configured'
 			});
 			return;
 		}
@@ -174,8 +166,7 @@ export const generateScreenshotInternal = internalAction({
 
 			await ctx.runMutation(internal.screenshots.setFailed, {
 				itemId: args.itemId,
-				error: errorMessage,
-				retries: args.retryCount
+				error: errorMessage
 			});
 		}
 	}

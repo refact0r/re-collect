@@ -21,7 +21,6 @@ export default defineSchema({
 			)
 		),
 		screenshotError: v.optional(v.string()),
-		screenshotRetries: v.optional(v.number()), // Track retry attempts
 		// LLM tagger output
 		kind: v.optional(
 			v.union(
@@ -48,7 +47,6 @@ export default defineSchema({
 			)
 		),
 		taggingError: v.optional(v.string()),
-		taggingRetries: v.optional(v.number()),
 		taggingModelVersion: v.optional(v.string()),
 		searchText: v.optional(v.string()), // Combined field for full-text search (title + description + url)
 		collections: v.array(v.id('collections')),

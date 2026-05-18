@@ -225,16 +225,14 @@ export const setCompleted = internalMutation({
 export const setFailed = internalMutation({
 	args: {
 		itemId: v.id('items'),
-		error: v.string(),
-		retries: v.number()
+		error: v.string()
 	},
 	handler: async (ctx, args) => {
 		const item = await ctx.db.get(args.itemId);
 		if (!item) return;
 		await ctx.db.patch(args.itemId, {
 			taggingStatus: 'failed',
-			taggingError: args.error,
-			taggingRetries: args.retries
+			taggingError: args.error
 		});
 	}
 });
@@ -254,16 +252,14 @@ export const callOpenRouter = internalAction({
 	args: {
 		itemId: v.id('items'),
 		downscaledBase64: v.string(),
-		mime: v.string(),
-		retryCount: v.number()
+		mime: v.string()
 	},
 	handler: async (ctx, args): Promise<void> => {
 		const apiKey = process.env.OPENROUTER_API_KEY;
 		if (!apiKey) {
 			await ctx.runMutation(internal.tagging.setFailed, {
 				itemId: args.itemId,
-				error: 'OPENROUTER_API_KEY not configured',
-				retries: args.retryCount
+				error: 'OPENROUTER_API_KEY not configured'
 			});
 			return;
 		}
@@ -349,8 +345,7 @@ export const callOpenRouter = internalAction({
 			const message = error instanceof Error ? error.message : 'Unknown error';
 			await ctx.runMutation(internal.tagging.setFailed, {
 				itemId: args.itemId,
-				error: message,
-				retries: args.retryCount
+				error: message
 			});
 		}
 	}
@@ -368,16 +363,13 @@ export const retagItem = mutation({
 			throw new Error('Tagging already in progress');
 		}
 
-		const retries = (item.taggingRetries ?? 0) + 1;
 		await ctx.db.patch(args.itemId, {
 			taggingStatus: 'pending',
-			taggingError: undefined,
-			taggingRetries: retries
+			taggingError: undefined
 		});
 
 		await ctx.scheduler.runAfter(0, internal.taggingActions.preprocessItem, {
-			itemId: args.itemId,
-			retryCount: retries
+			itemId: args.itemId
 		});
 	}
 });
