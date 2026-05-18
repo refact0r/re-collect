@@ -7,8 +7,8 @@ import {
 } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
-import { requireAuth } from './auth';
-import { buildSearchText } from './searchText';
+import { requireAuth } from './lib/auth';
+import { buildSearchText } from './lib/searchText';
 
 const PROMPT_VERSION = 'v3';
 const DEFAULT_MODEL = 'qwen/qwen3.6-flash';

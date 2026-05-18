@@ -13,25 +13,25 @@ importers:
         version: 0.0.6
       '@convex-dev/r2':
         specifier: ^0.10.1
-        version: 0.10.1(@standard-schema/spec@1.1.0)(convex-svelte@0.0.12(convex@1.37.0(react@19.2.3))(svelte@5.55.5))(convex@1.37.0(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(svelte@5.55.5)(typescript@6.0.3)(zod@3.25.76)
+        version: 0.10.1(@standard-schema/spec@1.1.0)(convex-svelte@0.0.12(convex@1.37.0)(svelte@5.55.5))(convex@1.37.0)(svelte@5.55.5)(typescript@6.0.3)(zod@3.25.76)
       '@fontsource/dm-mono':
         specifier: ^5.2.7
         version: 5.2.7
       '@fontsource/dm-sans':
         specifier: ^5.2.8
         version: 5.2.8
+      colorthief:
+        specifier: ^3.3.1
+        version: 3.3.1(sharp@0.33.5)
       convex:
         specifier: ^1.37.0
-        version: 1.37.0(react@19.2.3)
+        version: 1.37.0
       convex-svelte:
         specifier: ^0.0.12
-        version: 0.0.12(convex@1.37.0(react@19.2.3))(svelte@5.55.5)
+        version: 0.0.12(convex@1.37.0)(svelte@5.55.5)
       fractional-indexing:
         specifier: ^3.2.0
         version: 3.2.0
-      quantize:
-        specifier: ^1.0.2
-        version: 1.0.2
       sharp:
         specifier: ^0.33.5
         version: 0.33.5
@@ -1765,6 +1765,7 @@ packages:
   basic-ftp@5.1.0:
     resolution: {integrity: sha512-RkaJzeJKDbaDWTIPiJwubyljaEPwpVWkm9Rt5h9Nd6h7tEXTJ3VB4qxdZBioV7JO5yLUaOKwz7vDOzlncUsegw==}
     engines: {node: '>=10.0.0'}
+    deprecated: Security vulnerability fixed in 5.2.1, please upgrade
 
   blake3-wasm@2.1.5:
     resolution: {integrity: sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g==}
@@ -1815,6 +1816,15 @@ packages:
   color@4.2.3:
     resolution: {integrity: sha512-1rXeuUUiGGrykh+CeBdu5Ie7OJwinCgQY0bc7GCRxy5xVHy+moaqkpL/jqQq0MtQOeYcrqEz4abc5f0KtU7W4A==}
     engines: {node: '>=12.5.0'}
+
+  colorthief@3.3.1:
+    resolution: {integrity: sha512-a3qzYXy51h6p3725pV8rnJwUBGTtvYQge2pVhKJwL+vETUD5pCi6VKmQyu51pBHdUbu/BPEXbwFLS0GnxXNhGA==}
+    hasBin: true
+    peerDependencies:
+      sharp: '>=0.33.0'
+    peerDependenciesMeta:
+      sharp:
+        optional: true
 
   concurrently@9.2.1:
     resolution: {integrity: sha512-fsfrO0MxV64Znoy8/l1vVIjjHa29SZyyqPgQBwhiDcaW8wJc2W3XWVOGx4M3oJBnv/zdUZIIp1gDeS98GzP8Ng==}
@@ -2514,19 +2524,6 @@ packages:
   quansync@0.2.11:
     resolution: {integrity: sha512-AifT7QEbW9Nri4tAwR5M/uzpBuqfZf+zwaEM/QkzEjj7NBuFD2rBuy0K3dE+8wltbezDV7JMA0WfnCPYRSYbXA==}
 
-  quantize@1.0.2:
-    resolution: {integrity: sha512-25P7wI2UoDbIQsQp50ARkt+5pwPsOq7G/BqvT5xAbapnRoNWMN8/p55H9TXd5MuENiJnm5XICB2H2aDZGwts7w==}
-    engines: {node: '>=0.10.21'}
-
-  react-dom@19.2.3:
-    resolution: {integrity: sha512-yELu4WmLPw5Mr/lmeEpox5rw3RETacE++JgHqQzd2dg+YbJuat3jH4ingc+WPZhxaoFzdv9y33G+F7Nl5O0GBg==}
-    peerDependencies:
-      react: ^19.2.3
-
-  react@19.2.3:
-    resolution: {integrity: sha512-Ku/hhYbVjOQnXDZFv2+RibmLFGwFdeeKHFcOTlrt7xplBnya5OGn/hIRDsqDiSUcfORsDC7MPxwork8jBwsIWA==}
-    engines: {node: '>=0.10.0'}
-
   readdirp@4.1.2:
     resolution: {integrity: sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg==}
     engines: {node: '>= 14.18.0'}
@@ -2555,9 +2552,6 @@ packages:
   sade@1.8.1:
     resolution: {integrity: sha512-xal3CZX1Xlo/k4ApwCFrHVACi9fBqJ7V+mwhBsuf/1IOKbBy098Fex+Wa/5QMubw09pSZ/u8EY8PWgevJsXp1A==}
     engines: {node: '>=6'}
-
-  scheduler@0.27.0:
-    resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
 
   semver@7.7.3:
     resolution: {integrity: sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q==}
@@ -3569,23 +3563,21 @@ snapshots:
 
   '@cloudflare/workers-types@4.20260116.0': {}
 
-  '@convex-dev/action-retrier@0.3.0(convex@1.37.0(react@19.2.3))':
+  '@convex-dev/action-retrier@0.3.0(convex@1.37.0)':
     dependencies:
-      convex: 1.37.0(react@19.2.3)
+      convex: 1.37.0
 
-  '@convex-dev/r2@0.10.1(@standard-schema/spec@1.1.0)(convex-svelte@0.0.12(convex@1.37.0(react@19.2.3))(svelte@5.55.5))(convex@1.37.0(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(svelte@5.55.5)(typescript@6.0.3)(zod@3.25.76)':
+  '@convex-dev/r2@0.10.1(@standard-schema/spec@1.1.0)(convex-svelte@0.0.12(convex@1.37.0)(svelte@5.55.5))(convex@1.37.0)(svelte@5.55.5)(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
       '@aws-sdk/client-s3': 3.1042.0
       '@aws-sdk/s3-request-presigner': 3.1042.0
-      '@convex-dev/action-retrier': 0.3.0(convex@1.37.0(react@19.2.3))
-      convex: 1.37.0(react@19.2.3)
-      convex-helpers: 0.1.108(@standard-schema/spec@1.1.0)(convex@1.37.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@3.25.76)
+      '@convex-dev/action-retrier': 0.3.0(convex@1.37.0)
+      convex: 1.37.0
+      convex-helpers: 0.1.108(@standard-schema/spec@1.1.0)(convex@1.37.0)(typescript@6.0.3)(zod@3.25.76)
       file-type: 21.3.4
       uuid: 13.0.2
     optionalDependencies:
-      convex-svelte: 0.0.12(convex@1.37.0(react@19.2.3))(svelte@5.55.5)
-      react: 19.2.3
-      react-dom: 19.2.3(react@19.2.3)
+      convex-svelte: 0.0.12(convex@1.37.0)(svelte@5.55.5)
       svelte: 5.55.5
     transitivePeerDependencies:
       - '@standard-schema/spec'
@@ -4847,6 +4839,10 @@ snapshots:
       color-convert: 2.0.1
       color-string: 1.9.1
 
+  colorthief@3.3.1(sharp@0.33.5):
+    optionalDependencies:
+      sharp: 0.33.5
+
   concurrently@9.2.1:
     dependencies:
       chalk: 4.1.2
@@ -4862,29 +4858,26 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex-helpers@0.1.108(@standard-schema/spec@1.1.0)(convex@1.37.0(react@19.2.3))(react@19.2.3)(typescript@6.0.3)(zod@3.25.76):
+  convex-helpers@0.1.108(@standard-schema/spec@1.1.0)(convex@1.37.0)(typescript@6.0.3)(zod@3.25.76):
     dependencies:
-      convex: 1.37.0(react@19.2.3)
+      convex: 1.37.0
     optionalDependencies:
       '@standard-schema/spec': 1.1.0
-      react: 19.2.3
       typescript: 6.0.3
       zod: 3.25.76
 
-  convex-svelte@0.0.12(convex@1.37.0(react@19.2.3))(svelte@5.55.5):
+  convex-svelte@0.0.12(convex@1.37.0)(svelte@5.55.5):
     dependencies:
-      convex: 1.37.0(react@19.2.3)
+      convex: 1.37.0
       esm-env: 1.2.2
       runed: 0.31.1(svelte@5.55.5)
       svelte: 5.55.5
 
-  convex@1.37.0(react@19.2.3):
+  convex@1.37.0:
     dependencies:
       esbuild: 0.27.0
       prettier: 3.8.3
       ws: 8.18.0
-    optionalDependencies:
-      react: 19.2.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -5545,17 +5538,6 @@ snapshots:
 
   quansync@0.2.11: {}
 
-  quantize@1.0.2: {}
-
-  react-dom@19.2.3(react@19.2.3):
-    dependencies:
-      react: 19.2.3
-      scheduler: 0.27.0
-    optional: true
-
-  react@19.2.3:
-    optional: true
-
   readdirp@4.1.2: {}
 
   regexparam@3.0.0: {}
@@ -5595,9 +5577,6 @@ snapshots:
   sade@1.8.1:
     dependencies:
       mri: 1.2.0
-
-  scheduler@0.27.0:
-    optional: true
 
   semver@7.7.3: {}
 

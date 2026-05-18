@@ -3,7 +3,7 @@ import { mutation, query, type QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { deleteAllPositionsForCollection } from './itemCollectionPositions';
 import { getImageUrl } from './items';
-import { requireAuth } from './auth';
+import { requireAuth } from './lib/auth';
 
 export const create = mutation({
 	args: {

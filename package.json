@@ -49,10 +49,10 @@
 		"@convex-dev/r2": "^0.10.1",
 		"@fontsource/dm-mono": "^5.2.7",
 		"@fontsource/dm-sans": "^5.2.8",
+		"colorthief": "^3.3.1",
 		"convex": "^1.37.0",
 		"convex-svelte": "^0.0.12",
 		"fractional-indexing": "^3.2.0",
-		"quantize": "^1.0.2",
 		"sharp": "^0.33.5"
 	}
 }

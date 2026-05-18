@@ -9,8 +9,8 @@ import {
 	deleteAllPositionsForItem,
 	getPositionsByCollection
 } from './itemCollectionPositions';
-import { requireAuth } from './auth';
-import { buildSearchText } from './searchText';
+import { requireAuth } from './lib/auth';
+import { buildSearchText } from './lib/searchText';
 
 // Get a sortable title string from an item
 function getSortTitle(item: { title?: string; url?: string }): string {

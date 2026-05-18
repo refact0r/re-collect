@@ -1,6 +1,11 @@
 packages:
   - "workers/screenshot"
 
+allowBuilds:
+  esbuild: true
+  sharp: true
+  workerd: true
+
 onlyBuiltDependencies:
   - esbuild
   - sharp

@@ -2,24 +2,85 @@
 
 import { v } from 'convex/values';
 import sharp from 'sharp';
-// @ts-expect-error -- no types ship with quantize
-import quantize from 'quantize';
+import { extractPalette, validateOptions, MmcqQuantizer } from 'colorthief/internals';
 import { internalAction } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 
 const MAX_EDGE_PX = 1024;
-const PALETTE_SAMPLE_WIDTH = 200;
 const PALETTE_COLORS = 5;
+// Color Thief's stride; samples every Nth pixel of the raw RGBA buffer.
+const PALETTE_SAMPLE_STRIDE = 10;
 
-function toHex(rgb: [number, number, number]): string {
-	return (
-		'#' +
-		rgb
-			.map((x) => Math.max(0, Math.min(255, x)).toString(16).padStart(2, '0'))
-			.join('')
-	);
+const mmcqQuantizer = new MmcqQuantizer();
+
+// Pick K dominant colors via Color Thief's MMCQ (recursive RGB median-cut
+// with a two-phase priority queue). Captures distinct color clusters well —
+// small accents survive Phase 2's count×volume splitting — at the cost of
+// occasionally producing phantom swatches in empty regions of color space
+// on images with widely-separated clusters.
+function extractPalettePeaks(
+	data: Buffer,
+	width: number,
+	height: number,
+	k: number
+): string[] {
+	const opts = validateOptions({
+		colorCount: k,
+		quality: PALETTE_SAMPLE_STRIDE,
+		ignoreWhite: false,
+		colorSpace: 'rgb'
+	});
+	const palette = extractPalette(data, width, height, opts, mmcqQuantizer);
+	return palette
+		? [...palette].sort((a, b) => b.population - a.population).map((c) => c.hex())
+		: [];
 }
+
+async function fetchAndDecode(imageKey: string): Promise<{
+	data: Buffer;
+	width: number;
+	height: number;
+}> {
+	const publicBase = process.env.R2_PUBLIC_URL;
+	if (!publicBase) throw new Error('R2_PUBLIC_URL not configured');
+
+	const response = await fetch(`${publicBase}/${imageKey}`);
+	if (!response.ok) {
+		throw new Error(`R2 fetch failed: ${response.status}`);
+	}
+	const buf = Buffer.from(await response.arrayBuffer());
+
+	const { data, info } = await sharp(buf)
+		.rotate()
+		.resize({ width: MAX_EDGE_PX, height: MAX_EDGE_PX, fit: 'inside', withoutEnlargement: true })
+		.raw()
+		.ensureAlpha()
+		.toBuffer({ resolveWithObject: true });
+
+	return { data, width: info.width, height: info.height };
+}
+
+export const repaletteItem = internalAction({
+	args: { itemId: v.id('items') },
+	handler: async (ctx, args): Promise<void> => {
+		const item: Doc<'items'> | null = await ctx.runQuery(internal.tagging.getItemForTagging, {
+			itemId: args.itemId
+		});
+		if (!item || !item.imageKey) return;
+
+		try {
+			const { data, width, height } = await fetchAndDecode(item.imageKey);
+			const paletteHex = extractPalettePeaks(data, width, height, PALETTE_COLORS);
+			await ctx.runMutation(internal.tagging.setPaletteHex, {
+				itemId: args.itemId,
+				paletteHex
+			});
+		} catch (error) {
+			console.error(`repaletteItem ${args.itemId} failed:`, error);
+		}
+	}
+});
 
 export const preprocessItem = internalAction({
 	args: { itemId: v.id('items') },
@@ -33,36 +94,15 @@ export const preprocessItem = internalAction({
 		await ctx.runMutation(internal.tagging.setProcessing, { itemId: args.itemId });
 
 		try {
-			const publicBase = process.env.R2_PUBLIC_URL;
-			if (!publicBase) throw new Error('R2_PUBLIC_URL not configured');
+			const { data, width, height } = await fetchAndDecode(item.imageKey);
 
-			const fetchResponse = await fetch(`${publicBase}/${item.imageKey}`);
-			if (!fetchResponse.ok) {
-				throw new Error(`R2 fetch failed: ${fetchResponse.status}`);
-			}
-			const buf = Buffer.from(await fetchResponse.arrayBuffer());
-
-			const downscaled = await sharp(buf)
-				.rotate()
-				.resize({ width: MAX_EDGE_PX, height: MAX_EDGE_PX, fit: 'inside', withoutEnlargement: true })
+			const downscaled = await sharp(data, {
+				raw: { width, height, channels: 4 }
+			})
 				.jpeg({ quality: 85 })
 				.toBuffer();
 
-			const { data } = await sharp(buf)
-				.rotate()
-				.resize({ width: PALETTE_SAMPLE_WIDTH })
-				.raw()
-				.ensureAlpha()
-				.toBuffer({ resolveWithObject: true });
-
-			const pixels: [number, number, number][] = [];
-			for (let i = 0; i < data.length; i += 4) {
-				pixels.push([data[i], data[i + 1], data[i + 2]]);
-			}
-			const cmap = pixels.length > 0 ? quantize(pixels, PALETTE_COLORS) : null;
-			const paletteHex: string[] = cmap
-				? (cmap.palette() as [number, number, number][]).map(toHex)
-				: [];
+			const paletteHex = extractPalettePeaks(data, width, height, PALETTE_COLORS);
 
 			await ctx.runMutation(internal.tagging.setPaletteHex, {
 				itemId: args.itemId,
@@ -83,4 +123,3 @@ export const preprocessItem = internalAction({
 		}
 	}
 });
-

@@ -1,5 +1,5 @@
 import { internalMutation } from '../_generated/server';
-import { buildSearchText } from '../searchText';
+import { buildSearchText } from '../lib/searchText';
 
 export const removeKind = internalMutation({
 	args: {},

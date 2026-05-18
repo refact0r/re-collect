@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { generateKeyBetween } from 'fractional-indexing';
-import { requireAuth } from './auth';
+import { requireAuth } from './lib/auth';
 
 // Get position record for an item in a collection
 export async function getPositionRecord(
