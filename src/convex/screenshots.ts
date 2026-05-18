@@ -34,6 +34,7 @@ export const setCompleted = internalMutation({
 		}
 
 		const shouldSetTitle = !item.title && args.title;
+		const newTitle = shouldSetTitle ? args.title : item.title;
 
 		await ctx.db.patch(args.itemId, {
 			screenshotStatus: 'completed',
@@ -45,7 +46,15 @@ export const setCompleted = internalMutation({
 			taggingError: undefined,
 			...(shouldSetTitle && {
 				title: args.title,
-				searchText: [args.title, item.description, item.url].filter(Boolean).join(' ')
+				searchText: buildSearchText({
+					title: newTitle,
+					description: item.description,
+					url: item.url,
+					styles: item.styles,
+					aiTags: item.aiTags,
+					subject: item.subject,
+					paletteDescription: item.paletteDescription
+				})
 			})
 		});
 

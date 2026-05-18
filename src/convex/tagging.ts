@@ -8,16 +8,25 @@ import {
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { requireAuth } from './auth';
+import { buildSearchText } from './searchText';
 
-const PROMPT_VERSION = 'v1';
+const PROMPT_VERSION = 'v3';
 const DEFAULT_MODEL = 'qwen/qwen3.6-flash';
 const TEMPERATURE = 0.3;
 const MAX_TOKENS = 600;
-const REASONING_MAX_TOKENS = 1500;
 const TIMEOUT_MS = 60_000;
 
 // Ported byte-for-byte from experiments/tagging/tag_qwen.py.
 const PROMPT = `You are tagging an image for a personal visual reference library. The image will be one of: an artwork or illustration, a graphic design piece, a screenshot of a website or digital interface, or a photograph. Your job is to produce structured tags so the user can rediscover this item later. Aesthetic style is the primary axis — spend the most thought there. Also capture the literal content (subject, concrete tags), since those help recall too.
+
+Return ONLY a JSON object matching this schema. No prose, no markdown fences.
+
+{
+  "styles": string[],    // PRIMARY FIELD. 2-8 specific aesthetic/genre labels — what categories does this belong to.
+  "palette": string,     // short phrase describing the palette.
+  "subject": string,     // one sentence under 30 words — what's depicted at a glance, not an exhaustive description.
+  "tags": string[]       // 5-12 concrete observations — specific objects, materials, motifs, technical details that the user could later search for. Distinct from styles; do not duplicate.
+}
 
 Style vocabulary guidance (inspirational, not prescriptive):
 - Design / web movements: brutalist, swiss, international typographic, memphis, y2k, vaporwave, post-internet, skeuomorphic, neumorphism, glassmorphism, terminal, ascii.
@@ -27,29 +36,11 @@ Style vocabulary guidance (inspirational, not prescriptive):
 - General descriptors: minimalist, maximalist, monochrome, high-contrast, hand-drawn, generative, glitch, surreal.
 DO NOT pick a label merely because it appears in the list above. If none of these fit, propose a more accurate label. If something clearly fits, use it.
 
-Return ONLY a JSON object matching this schema. No prose, no markdown fences.
-
-{
-  "kind": "artwork" | "graphic_design" | "website" | "photograph" | "other",
-  "styles": string[],    // PRIMARY FIELD. 2-8 aesthetic/genre labels — what categories does this belong to. May include composition/layout descriptors when they're a defining aesthetic.
-  "palette": string,     // short phrase describing the palette.
-  "subject": string,     // one sentence under 30 words — what's depicted at a glance, not an exhaustive description.
-  "tags": string[]       // 5-12 concrete observations — specific objects, materials, motifs, technical details that the user could later search for. Distinct from styles; do not duplicate.
-}
-
 Rules:
 - Do NOT name specific artists, designers, studios, or brands unless their identity is unambiguous from a visible signature, logo, or watermark in the image.
 - For each style, pick the label that most accurately describes the image — neither broader nor narrower than the image warrants.
 - If the image contains text that would itself act as a distinct/memorable search anchor later — a title, headline, signage with real content, distinctive graffiti, or a brand/product name — include up to 3 of them as tags (no longer than a short phrase). Skip generic UI chrome, serial numbers, version strings, and any text that isn't recognizable out of context.
 `;
-
-const KIND_LITERALS = new Set([
-	'artwork',
-	'graphic_design',
-	'website',
-	'photograph',
-	'other'
-]);
 
 // Words ending in -s that aren't actually plurals.
 const KEEP_PLURAL = new Set(['lens', 'iris', 'series', 'species', 'analysis', 'axis', 'chaos']);
@@ -112,7 +103,6 @@ function parseJsonLenient(s: string): unknown {
 }
 
 type ValidatedTags = {
-	kind: 'artwork' | 'graphic_design' | 'website' | 'photograph' | 'other';
 	styles: string[];
 	paletteDescription: string;
 	subject: string;
@@ -124,11 +114,6 @@ function validateTags(d: unknown): ValidatedTags {
 		throw new TagSchemaError('not an object');
 	}
 	const obj = d as Record<string, unknown>;
-
-	const kind = obj.kind;
-	if (typeof kind !== 'string' || !KIND_LITERALS.has(kind)) {
-		throw new TagSchemaError(`bad kind: ${JSON.stringify(kind)}`);
-	}
 
 	const stylesRaw = obj.styles;
 	if (!Array.isArray(stylesRaw) || stylesRaw.length < 1) {
@@ -164,7 +149,6 @@ function validateTags(d: unknown): ValidatedTags {
 		.slice(0, 12);
 
 	return {
-		kind: kind as ValidatedTags['kind'],
 		styles,
 		paletteDescription,
 		subject,
@@ -193,13 +177,6 @@ export const setProcessing = internalMutation({
 export const setCompleted = internalMutation({
 	args: {
 		itemId: v.id('items'),
-		kind: v.union(
-			v.literal('artwork'),
-			v.literal('graphic_design'),
-			v.literal('website'),
-			v.literal('photograph'),
-			v.literal('other')
-		),
 		styles: v.array(v.string()),
 		paletteDescription: v.string(),
 		subject: v.string(),
@@ -211,13 +188,21 @@ export const setCompleted = internalMutation({
 		if (!item) return;
 		await ctx.db.patch(args.itemId, {
 			taggingStatus: 'completed',
-			kind: args.kind,
 			styles: args.styles,
 			paletteDescription: args.paletteDescription,
 			subject: args.subject,
 			aiTags: args.aiTags,
 			taggingModelVersion: args.modelVersion,
-			taggingError: undefined
+			taggingError: undefined,
+			searchText: buildSearchText({
+				title: item.title,
+				description: item.description,
+				url: item.url,
+				styles: args.styles,
+				aiTags: args.aiTags,
+				subject: args.subject,
+				paletteDescription: args.paletteDescription
+			})
 		});
 	}
 });
@@ -281,7 +266,10 @@ export const callOpenRouter = internalAction({
 			temperature: TEMPERATURE,
 			max_tokens: MAX_TOKENS,
 			response_format: { type: 'json_object' },
-			reasoning: { max_tokens: REASONING_MAX_TOKENS }
+			// Reasoning disabled: matrix sweep (4 images × 6 treatments × 3
+			// trials) showed reasoning drifts the model away from specific
+			// named-movement labels and reduces stability across re-tags.
+			reasoning: { enabled: false }
 		};
 
 		try {
@@ -334,7 +322,6 @@ export const callOpenRouter = internalAction({
 
 			await ctx.runMutation(internal.tagging.setCompleted, {
 				itemId: args.itemId,
-				kind: validated.kind,
 				styles: validated.styles,
 				paletteDescription: validated.paletteDescription,
 				subject: validated.subject,

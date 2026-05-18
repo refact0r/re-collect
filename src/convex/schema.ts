@@ -22,15 +22,6 @@ export default defineSchema({
 		),
 		screenshotError: v.optional(v.string()),
 		// LLM tagger output
-		kind: v.optional(
-			v.union(
-				v.literal('artwork'),
-				v.literal('graphic_design'),
-				v.literal('website'),
-				v.literal('photograph'),
-				v.literal('other')
-			)
-		),
 		styles: v.optional(v.array(v.string())),
 		paletteDescription: v.optional(v.string()),
 		subject: v.optional(v.string()),

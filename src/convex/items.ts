@@ -145,7 +145,6 @@ export const update = mutation({
 				title: newTitle,
 				description: newDescription,
 				url: newUrl,
-				kind: existing.kind,
 				styles: existing.styles,
 				aiTags: existing.aiTags,
 				subject: existing.subject,

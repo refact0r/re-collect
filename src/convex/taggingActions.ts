@@ -8,7 +8,7 @@ import { internalAction } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 
-const MAX_EDGE_PX = 768;
+const MAX_EDGE_PX = 1024;
 const PALETTE_SAMPLE_WIDTH = 200;
 const PALETTE_COLORS = 5;
 

@@ -28,7 +28,7 @@ if not API_KEY:
     sys.exit("set OPENROUTER_API_KEY")
 
 MODEL = "qwen/qwen3.6-flash"
-MAX_EDGE_PX = 768  # downscale long edge to this before sending
+MAX_EDGE_PX = 1024  # downscale long edge to this before sending
 TEMPERATURE = 0.3  # low; re-tagging same item should be ~stable
 MAX_TOKENS = 600  # JSON output is small; cap to control runaway
 TIMEOUT_S = 60
@@ -45,9 +45,16 @@ RETRY_BACKOFF_S = (1, 3)
 #   in a separate "guidance" paragraph with an explicit anti-copy instruction.
 # - The vocabulary list is broader and grouped by domain so the model has more
 #   to draw on without being anchored to one set.
-# - "kind" gets a "photograph" option; the prior schema forced photos into
-#   "other".
 PROMPT = """You are tagging an image for a personal visual reference library. The image will be one of: an artwork or illustration, a graphic design piece, a screenshot of a website or digital interface, or a photograph. Your job is to produce structured tags so the user can rediscover this item later. Aesthetic style is the primary axis — spend the most thought there. Also capture the literal content (subject, concrete tags), since those help recall too.
+
+Return ONLY a JSON object matching this schema. No prose, no markdown fences.
+
+{
+  "styles": string[],    // PRIMARY FIELD. 2-8 specific aesthetic/genre labels — what categories does this belong to.
+  "palette": string,     // short phrase describing the palette.
+  "subject": string,     // one sentence under 30 words — what's depicted at a glance, not an exhaustive description.
+  "tags": string[]       // 5-12 concrete observations — specific objects, materials, motifs, technical details that the user could later search for. Distinct from styles; do not duplicate.
+}
 
 Style vocabulary guidance (inspirational, not prescriptive):
 - Design / web movements: brutalist, swiss, international typographic, memphis, y2k, vaporwave, post-internet, skeuomorphic, neumorphism, glassmorphism, terminal, ascii.
@@ -56,16 +63,6 @@ Style vocabulary guidance (inspirational, not prescriptive):
 - Photographic: documentary, street, portrait, fashion editorial, still life, film grain, polaroid, lomography.
 - General descriptors: minimalist, maximalist, monochrome, high-contrast, hand-drawn, generative, glitch, surreal.
 DO NOT pick a label merely because it appears in the list above. If none of these fit, propose a more accurate label. If something clearly fits, use it.
-
-Return ONLY a JSON object matching this schema. No prose, no markdown fences.
-
-{
-  "kind": "artwork" | "graphic_design" | "website" | "photograph" | "other",
-  "styles": string[],    // PRIMARY FIELD. 2-8 aesthetic/genre labels — what categories does this belong to. May include composition/layout descriptors when they're a defining aesthetic.
-  "palette": string,     // short phrase describing the palette.
-  "subject": string,     // one sentence under 30 words — what's depicted at a glance, not an exhaustive description.
-  "tags": string[]       // 5-12 concrete observations — specific objects, materials, motifs, technical details that the user could later search for. Distinct from styles; do not duplicate.
-}
 
 Rules:
 - Do NOT name specific artists, designers, studios, or brands unless their identity is unambiguous from a visible signature, logo, or watermark in the image.
@@ -182,10 +179,6 @@ def validate_tags(d: dict) -> dict:
     if not isinstance(d, dict):
         raise TagSchemaError("not an object")
 
-    kind = d.get("kind")
-    if kind not in {"artwork", "graphic_design", "website", "photograph", "other"}:
-        raise TagSchemaError(f"bad kind: {kind!r}")
-
     styles = d.get("styles")
     if not isinstance(styles, list) or len(styles) < 1:
         raise TagSchemaError("styles must have at least 1 entry")
@@ -209,7 +202,8 @@ def validate_tags(d: dict) -> dict:
         raise TagSchemaError("tags entries must be non-empty strings")
     style_set = set(d["styles"])
     d["tags"] = [
-        t for t in dedupe_preserve_order(normalize_tag(t) for t in tags)
+        t
+        for t in dedupe_preserve_order(normalize_tag(t) for t in tags)
         if t not in style_set
     ][:12]
 
@@ -256,11 +250,12 @@ def tag_image(image_bytes: bytes, mime: str = "image/png") -> dict:
         "temperature": TEMPERATURE,
         "max_tokens": MAX_TOKENS,
         "response_format": {"type": "json_object"},
-        # Qwen 3.6 Flash is a thinking model. Reasoning helps it produce
-        # richer freeform tags ("tactile paving", "pixel UI overlay") rather
-        # than generic ones. Capped to ~1500 tokens so the visually busy
-        # outliers don't run away (uncapped this image hit 5200).
-        "reasoning": {"max_tokens": 1500},
+        # Reasoning disabled. Empirically (matrix sweep over 4 images × 3
+        # trials × 6 treatments) reasoning drifted the model away from
+        # specific named-movement labels (swiss, ascii, cyberpunk) toward
+        # vaguer descriptors. Reasoning off also produces more stable
+        # outputs across re-tags. ~5x cheaper than r1500 baseline.
+        "reasoning": {"enabled": False},
     }
 
     last_err: Exception | None = None
