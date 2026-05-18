@@ -191,7 +191,7 @@ def validate_tags(d: dict) -> dict:
         raise TagSchemaError("styles must have at least 1 entry")
     if not all(isinstance(s, str) and s.strip() for s in styles):
         raise TagSchemaError("styles entries must be non-empty strings")
-    d["styles"] = dedupe_preserve_order(normalize_tag(s) for s in styles)[:5]
+    d["styles"] = dedupe_preserve_order(normalize_tag(s) for s in styles)[:8]
 
     palette = d.get("palette")
     if not isinstance(palette, str) or not palette.strip():

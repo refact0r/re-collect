@@ -3,6 +3,7 @@ import { internalAction, internalMutation, mutation } from './_generated/server'
 import { internal } from './_generated/api';
 import { requireAuth } from './auth';
 import { r2 } from './r2';
+import { buildSearchText } from './searchText';
 
 export const setProcessing = internalMutation({
 	args: { itemId: v.id('items') },

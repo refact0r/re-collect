@@ -10,15 +10,7 @@ import {
 	getPositionsByCollection
 } from './itemCollectionPositions';
 import { requireAuth } from './auth';
-
-// Build combined search text from title, description, and URL
-function buildSearchText(fields: {
-	title?: string;
-	description?: string;
-	url?: string;
-}): string {
-	return [fields.title, fields.description, fields.url].filter(Boolean).join(' ');
-}
+import { buildSearchText } from './searchText';
 
 // Get a sortable title string from an item
 function getSortTitle(item: { title?: string; url?: string }): string {
@@ -152,7 +144,12 @@ export const update = mutation({
 			searchText: buildSearchText({
 				title: newTitle,
 				description: newDescription,
-				url: newUrl
+				url: newUrl,
+				kind: existing.kind,
+				styles: existing.styles,
+				aiTags: existing.aiTags,
+				subject: existing.subject,
+				paletteDescription: existing.paletteDescription
 			}),
 			dateModified: Date.now()
 		});

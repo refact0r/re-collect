@@ -137,7 +137,7 @@ function validateTags(d: unknown): ValidatedTags {
 	if (!stylesRaw.every((s) => typeof s === 'string' && s.trim())) {
 		throw new TagSchemaError('styles entries must be non-empty strings');
 	}
-	const styles = dedupePreserveOrder(stylesRaw.map((s) => normalizeTag(s as string))).slice(0, 5);
+	const styles = dedupePreserveOrder(stylesRaw.map((s) => normalizeTag(s as string))).slice(0, 8);
 
 	const paletteRaw = obj.palette;
 	if (typeof paletteRaw !== 'string' || !paletteRaw.trim()) {
