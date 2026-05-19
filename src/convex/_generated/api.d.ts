@@ -12,6 +12,7 @@ import type * as collections from "../collections.js";
 import type * as itemCollectionPositions from "../itemCollectionPositions.js";
 import type * as items from "../items.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_colorNames from "../lib/colorNames.js";
 import type * as lib_searchText from "../lib/searchText.js";
 import type * as migrations_001_add_positions from "../migrations/001_add_positions.js";
 import type * as migrations_002_remove_collection_descriptions from "../migrations/002_remove_collection_descriptions.js";
@@ -20,6 +21,7 @@ import type * as migrations_004_bulk_retag from "../migrations/004_bulk_retag.js
 import type * as migrations_005_remove_kind from "../migrations/005_remove_kind.js";
 import type * as migrations_006_repalette from "../migrations/006_repalette.js";
 import type * as migrations_007_drop_palette_description from "../migrations/007_drop_palette_description.js";
+import type * as migrations_008_palette_names from "../migrations/008_palette_names.js";
 import type * as r2 from "../r2.js";
 import type * as screenshots from "../screenshots.js";
 import type * as tagging from "../tagging.js";
@@ -37,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   itemCollectionPositions: typeof itemCollectionPositions;
   items: typeof items;
   "lib/auth": typeof lib_auth;
+  "lib/colorNames": typeof lib_colorNames;
   "lib/searchText": typeof lib_searchText;
   "migrations/001_add_positions": typeof migrations_001_add_positions;
   "migrations/002_remove_collection_descriptions": typeof migrations_002_remove_collection_descriptions;
@@ -45,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   "migrations/005_remove_kind": typeof migrations_005_remove_kind;
   "migrations/006_repalette": typeof migrations_006_repalette;
   "migrations/007_drop_palette_description": typeof migrations_007_drop_palette_description;
+  "migrations/008_palette_names": typeof migrations_008_palette_names;
   r2: typeof r2;
   screenshots: typeof screenshots;
   tagging: typeof tagging;

@@ -52,7 +52,8 @@ export const setCompleted = internalMutation({
 					url: item.url,
 					styles: item.styles,
 					aiTags: item.aiTags,
-					subject: item.subject
+					subject: item.subject,
+					paletteNames: item.paletteNames
 				})
 			})
 		});

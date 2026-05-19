@@ -147,7 +147,8 @@ export const update = mutation({
 				url: newUrl,
 				styles: existing.styles,
 				aiTags: existing.aiTags,
-				subject: existing.subject
+				subject: existing.subject,
+				paletteNames: existing.paletteNames
 			}),
 			dateModified: Date.now()
 		});

@@ -9,6 +9,7 @@ import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { requireAuth } from './lib/auth';
 import { buildSearchText } from './lib/searchText';
+import { colorNamesForPalette } from './lib/colorNames';
 
 const PROMPT_VERSION = 'v4';
 const DEFAULT_MODEL = 'qwen/qwen3.6-flash';
@@ -189,7 +190,8 @@ export const setCompleted = internalMutation({
 				url: item.url,
 				styles: args.styles,
 				aiTags: args.aiTags,
-				subject: args.subject
+				subject: args.subject,
+				paletteNames: item.paletteNames
 			})
 		});
 	}
@@ -215,8 +217,19 @@ export const setPaletteHex = internalMutation({
 	handler: async (ctx, args) => {
 		const item = await ctx.db.get(args.itemId);
 		if (!item) return;
+		const paletteNames = colorNamesForPalette(args.paletteHex);
 		await ctx.db.patch(args.itemId, {
-			paletteHex: args.paletteHex
+			paletteHex: args.paletteHex,
+			paletteNames,
+			searchText: buildSearchText({
+				title: item.title,
+				description: item.description,
+				url: item.url,
+				styles: item.styles,
+				aiTags: item.aiTags,
+				subject: item.subject,
+				paletteNames
+			})
 		});
 	}
 });

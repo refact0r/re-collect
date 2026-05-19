@@ -27,6 +27,9 @@ export default defineSchema({
 		aiTags: v.optional(v.array(v.string())),
 		// Deterministic palette extracted from pixels (not LLM)
 		paletteHex: v.optional(v.array(v.string())),
+		// Named-color tokens derived from paletteHex via Lab nearest-neighbor;
+		// included in searchText so queries like "blue poster" hit color matches.
+		paletteNames: v.optional(v.array(v.string())),
 		// Tagging status tracking
 		taggingStatus: v.optional(
 			v.union(
