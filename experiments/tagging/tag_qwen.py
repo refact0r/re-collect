@@ -51,7 +51,6 @@ Return ONLY a JSON object matching this schema. No prose, no markdown fences.
 
 {
   "styles": string[],    // PRIMARY FIELD. 2-8 specific aesthetic/genre labels — what categories does this belong to.
-  "palette": string,     // short phrase describing the palette.
   "subject": string,     // one sentence under 30 words — what's depicted at a glance, not an exhaustive description.
   "tags": string[]       // 5-12 concrete observations — specific objects, materials, motifs, technical details that the user could later search for. Distinct from styles; do not duplicate.
 }
@@ -185,11 +184,6 @@ def validate_tags(d: dict) -> dict:
     if not all(isinstance(s, str) and s.strip() for s in styles):
         raise TagSchemaError("styles entries must be non-empty strings")
     d["styles"] = dedupe_preserve_order(normalize_tag(s) for s in styles)[:8]
-
-    palette = d.get("palette")
-    if not isinstance(palette, str) or not palette.strip():
-        raise TagSchemaError("palette must be non-empty string")
-    d["palette"] = palette.strip()
 
     subject = d.get("subject")
     if not isinstance(subject, str) or not subject.strip():

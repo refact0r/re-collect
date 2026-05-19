@@ -10,7 +10,7 @@ import type { Doc } from './_generated/dataModel';
 import { requireAuth } from './lib/auth';
 import { buildSearchText } from './lib/searchText';
 
-const PROMPT_VERSION = 'v3';
+const PROMPT_VERSION = 'v4';
 const DEFAULT_MODEL = 'qwen/qwen3.6-flash';
 const TEMPERATURE = 0.3;
 const MAX_TOKENS = 600;
@@ -23,7 +23,6 @@ Return ONLY a JSON object matching this schema. No prose, no markdown fences.
 
 {
   "styles": string[],    // PRIMARY FIELD. 2-8 specific aesthetic/genre labels — what categories does this belong to.
-  "palette": string,     // short phrase describing the palette.
   "subject": string,     // one sentence under 30 words — what's depicted at a glance, not an exhaustive description.
   "tags": string[]       // 5-12 concrete observations — specific objects, materials, motifs, technical details that the user could later search for. Distinct from styles; do not duplicate.
 }
@@ -104,7 +103,6 @@ function parseJsonLenient(s: string): unknown {
 
 type ValidatedTags = {
 	styles: string[];
-	paletteDescription: string;
 	subject: string;
 	aiTags: string[];
 };
@@ -123,12 +121,6 @@ function validateTags(d: unknown): ValidatedTags {
 		throw new TagSchemaError('styles entries must be non-empty strings');
 	}
 	const styles = dedupePreserveOrder(stylesRaw.map((s) => normalizeTag(s as string))).slice(0, 8);
-
-	const paletteRaw = obj.palette;
-	if (typeof paletteRaw !== 'string' || !paletteRaw.trim()) {
-		throw new TagSchemaError('palette must be non-empty string');
-	}
-	const paletteDescription = paletteRaw.trim();
 
 	const subjectRaw = obj.subject;
 	if (typeof subjectRaw !== 'string' || !subjectRaw.trim()) {
@@ -150,7 +142,6 @@ function validateTags(d: unknown): ValidatedTags {
 
 	return {
 		styles,
-		paletteDescription,
 		subject,
 		aiTags
 	};
@@ -178,7 +169,6 @@ export const setCompleted = internalMutation({
 	args: {
 		itemId: v.id('items'),
 		styles: v.array(v.string()),
-		paletteDescription: v.string(),
 		subject: v.string(),
 		aiTags: v.array(v.string()),
 		modelVersion: v.string()
@@ -189,7 +179,6 @@ export const setCompleted = internalMutation({
 		await ctx.db.patch(args.itemId, {
 			taggingStatus: 'completed',
 			styles: args.styles,
-			paletteDescription: args.paletteDescription,
 			subject: args.subject,
 			aiTags: args.aiTags,
 			taggingModelVersion: args.modelVersion,
@@ -200,8 +189,7 @@ export const setCompleted = internalMutation({
 				url: item.url,
 				styles: args.styles,
 				aiTags: args.aiTags,
-				subject: args.subject,
-				paletteDescription: args.paletteDescription
+				subject: args.subject
 			})
 		});
 	}
@@ -323,7 +311,6 @@ export const callOpenRouter = internalAction({
 			await ctx.runMutation(internal.tagging.setCompleted, {
 				itemId: args.itemId,
 				styles: validated.styles,
-				paletteDescription: validated.paletteDescription,
 				subject: validated.subject,
 				aiTags: validated.aiTags,
 				modelVersion: `${model}:${PROMPT_VERSION}`

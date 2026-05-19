@@ -19,6 +19,7 @@ import type * as migrations_003_add_search_text from "../migrations/003_add_sear
 import type * as migrations_004_bulk_retag from "../migrations/004_bulk_retag.js";
 import type * as migrations_005_remove_kind from "../migrations/005_remove_kind.js";
 import type * as migrations_006_repalette from "../migrations/006_repalette.js";
+import type * as migrations_007_drop_palette_description from "../migrations/007_drop_palette_description.js";
 import type * as r2 from "../r2.js";
 import type * as screenshots from "../screenshots.js";
 import type * as tagging from "../tagging.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   "migrations/004_bulk_retag": typeof migrations_004_bulk_retag;
   "migrations/005_remove_kind": typeof migrations_005_remove_kind;
   "migrations/006_repalette": typeof migrations_006_repalette;
+  "migrations/007_drop_palette_description": typeof migrations_007_drop_palette_description;
   r2: typeof r2;
   screenshots: typeof screenshots;
   tagging: typeof tagging;

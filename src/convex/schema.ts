@@ -23,7 +23,6 @@ export default defineSchema({
 		screenshotError: v.optional(v.string()),
 		// LLM tagger output
 		styles: v.optional(v.array(v.string())),
-		paletteDescription: v.optional(v.string()),
 		subject: v.optional(v.string()),
 		aiTags: v.optional(v.array(v.string())),
 		// Deterministic palette extracted from pixels (not LLM)

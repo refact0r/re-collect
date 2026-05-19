@@ -41,7 +41,6 @@ kind: v.optional(v.union(
   v.literal('other'),
 )),
 styles: v.optional(v.array(v.string())),
-paletteDescription: v.optional(v.string()),
 subject: v.optional(v.string()),
 aiTags: v.optional(v.array(v.string())),       // named aiTags to leave room for user tags later
 
@@ -69,7 +68,7 @@ discovery surfaces, not now.
 ### `src/convex/tagging.ts` (default runtime)
 
 - `internalMutation setProcessing({ itemId })` — patches `taggingStatus: 'processing'`.
-- `internalMutation setCompleted({ itemId, kind, styles, paletteDescription, paletteHex, subject, aiTags, modelVersion })` — patches all fields, sets status to `'completed'`, clears `taggingError`. Does **not** reset `taggingRetries` — matches `screenshots.setCompleted` which leaves `screenshotRetries` in place as a lifetime counter.
+- `internalMutation setCompleted({ itemId, kind, styles, paletteHex, subject, aiTags, modelVersion })` — patches all fields, sets status to `'completed'`, clears `taggingError`. Does **not** reset `taggingRetries` — matches `screenshots.setCompleted` which leaves `screenshotRetries` in place as a lifetime counter.
 - `internalMutation setFailed({ itemId, error, retries })` — patches status + error + retries.
 - `internalMutation setPaletteHex({ itemId, paletteHex })` — patches just the hex palette. Called by the preprocessing action so swatches land even if the LLM call later fails.
 - `internalAction callOpenRouter({ itemId, downscaledBase64, mime, retryCount })`:
@@ -172,10 +171,9 @@ so bumping on prompt change is a one-line edit and grep-friendly.
 Port to TypeScript from `tag_qwen.py`:
 
 - `parse_json_lenient` — strip markdown fences, locate the outermost `{...}`, `JSON.parse`.
-- `validate_tags` — schema check + normalization. **Remap JSON keys at this boundary:** the prompt returns `palette` and `tags`; persist them as `paletteDescription` and `aiTags`. Enforce:
+- `validate_tags` — schema check + normalization. **Remap JSON keys at this boundary:** the prompt returns `tags`; persist as `aiTags`. Enforce:
   - `kind` ∈ the five literals.
   - `styles`: non-empty array of non-empty strings; after `normalize_tag` + dedupe, cap at 5.
-  - `paletteDescription` (from JSON `palette`): non-empty string.
   - `subject`: non-empty string.
   - `aiTags` (from JSON `tags`): at least 3 entries; after normalize + dedupe, *remove any that already appear in `styles`*, cap at 12.
 - `normalize_tag` — lowercase, collapse whitespace, strip leading/trailing punctuation, drop trailing generic modifiers (`aesthetic`, `style`, `vibes`, `vibe`) when there's another word, then `singularize_word`.

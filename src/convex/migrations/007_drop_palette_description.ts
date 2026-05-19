@@ -1,16 +1,19 @@
 import { internalMutation } from '../_generated/server';
 import { buildSearchText } from '../lib/searchText';
 
-export const removeKind = internalMutation({
+// Clears the legacy `paletteDescription` field from every item and rebuilds
+// `searchText` (since the field used to be folded in). Run on both dev and
+// prod before removing the field from the schema.
+export const run = internalMutation({
 	args: {},
 	handler: async (ctx) => {
 		const items = await ctx.db.query('items').collect();
 		let updated = 0;
 
 		for (const item of items) {
-			// `kind` was removed from the schema in this same change; cast to read
-			// the legacy field off rows that still have it.
-			if ((item as { kind?: string }).kind === undefined) continue;
+			if ((item as { paletteDescription?: string }).paletteDescription === undefined) {
+				continue;
+			}
 
 			await ctx.db.patch(item._id, {
 				searchText: buildSearchText({
@@ -21,11 +24,11 @@ export const removeKind = internalMutation({
 					aiTags: item.aiTags,
 					subject: item.subject
 				}),
-				...({ kind: undefined } as Record<string, unknown>)
+				...({ paletteDescription: undefined } as Record<string, unknown>)
 			});
 			updated++;
 		}
 
-		return { success: true, itemsUpdated: updated };
+		return { total: items.length, updated };
 	}
 });

@@ -196,7 +196,7 @@
 					<div class="field-label">styles</div>
 					<div class="chip-list">
 						{#each item.data.styles as style (style)}
-							<span class="chip">{style}</span>
+							<a class="chip" href="/search?q={encodeURIComponent(style)}">{style}</a>
 						{/each}
 					</div>
 				</div>
@@ -304,6 +304,12 @@
 		background: var(--bg-2);
 		border: 1px solid var(--border);
 		color: var(--txt-2);
+		text-decoration: none;
+	}
+
+	a.chip:hover {
+		border-color: var(--txt-3);
+		color: var(--txt-1);
 	}
 
 	.collections-container {
