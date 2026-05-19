@@ -12,15 +12,29 @@
 // Anchors are single-word names only: compound xkcd names like "navy blue" are
 // excluded since they tokenize to ["navy", "blue"] in full-text search and
 // produce false-positives (e.g. "olive green" surfacing for "green" queries).
-// The distance threshold handles synonym expansion instead.
+// Matching runs in two passes per palette hex: (1) a strict pass against the
+// full anchor table at DISTANCE_THRESHOLD finds specific names (lavender,
+// lilac, periwinkle); (2) a permissive pass against just the basic-color
+// anchors at BASIC_DISTANCE_THRESHOLD finds the coarse-color memberships
+// (purple, blue) directly from the hex. The basic pass replaces an older
+// parent-inheritance map, which drifted when a marginal specific match
+// dragged in unrelated parents (e.g. an orange-gray matching khaki, whose
+// parents included green).
 
 const DISTANCE_THRESHOLD = 0.15;
+const BASIC_DISTANCE_THRESHOLD = 0.25;
 const CHROMA_THRESHOLD = 0.04;
+// Multiplier on the hue chord term in oklchDistance. The unweighted chord
+// scales with √(C₁C₂), which is weak enough that distant hues can clear the
+// threshold via close L/C alone (e.g. cerulean leaking onto desaturated
+// purples). Weighting hue separates the families without a hard angular cap.
+const HUE_WEIGHT = 2.5;
 
 // 45 single-word names from the bottom 100 of xkcd.com/color/rgb.txt
-// (most-popular survey results), plus 10 manual additions: white, gray
+// (most-popular survey results), plus 17 manual additions: white, gray
 // (American spelling alias for grey), cream, coral, silver, charcoal,
-// crimson, amber, emerald, scarlet.
+// crimson, amber, emerald, scarlet, azure, sienna, umber, viridian,
+// carmine, fuchsia, auburn.
 const ANCHOR_HEX: Record<string, string> = {
 	ochre: '#bf9005',
 	cerulean: '#0485d1',
@@ -76,8 +90,33 @@ const ANCHOR_HEX: Record<string, string> = {
 	crimson: '#8c000f',
 	amber: '#feb308',
 	emerald: '#01a049',
-	scarlet: '#be0119'
+	scarlet: '#be0119',
+	azure: '#069af3',
+	sienna: '#a9561e',
+	umber: '#b26400',
+	viridian: '#1e9167',
+	carmine: '#9d0216',
+	fuchsia: '#ed0dd9',
+	auburn: '#9a3001'
 };
+
+// Basic-color names run as a second pass at BASIC_DISTANCE_THRESHOLD, so the
+// coarse-color tag for a hex is derived directly from its position in OKLCh
+// rather than inherited from whatever specific anchors happened to match.
+const BASIC_NAMES = new Set([
+	'red',
+	'orange',
+	'yellow',
+	'green',
+	'blue',
+	'purple',
+	'pink',
+	'brown',
+	'white',
+	'grey',
+	'gray',
+	'black'
+]);
 
 type Oklch = { L: number; C: number; h: number };
 type Anchor = { name: string; lch: Oklch };
@@ -125,7 +164,7 @@ function oklchDistance(p: Oklch, q: Oklch): number {
 	let dh = p.h - q.h;
 	while (dh > Math.PI) dh -= 2 * Math.PI;
 	while (dh < -Math.PI) dh += 2 * Math.PI;
-	const dH = 2 * Math.sqrt(p.C * q.C) * Math.sin(dh / 2);
+	const dH = HUE_WEIGHT * 2 * Math.sqrt(p.C * q.C) * Math.sin(dh / 2);
 	return Math.sqrt(dL * dL + dC * dC + dH * dH);
 }
 
@@ -133,24 +172,30 @@ const ANCHORS: Anchor[] = Object.entries(ANCHOR_HEX).map(([name, hex]) => ({
 	name,
 	lch: hexToOklch(hex)
 }));
+const BASIC_ANCHORS: Anchor[] = ANCHORS.filter((a) => BASIC_NAMES.has(a.name));
 
 export function colorNamesForPalette(paletteHex: string[]): string[] {
 	const seen = new Set<string>();
 	const out: string[] = [];
+	const add = (name: string) => {
+		if (!seen.has(name)) {
+			seen.add(name);
+			out.push(name);
+		}
+	};
+	const matchPass = (lch: Oklch, achromatic: boolean, anchors: Anchor[], threshold: number) => {
+		for (const anchor of anchors) {
+			const anchorAchromatic = anchor.lch.C < CHROMA_THRESHOLD;
+			if (achromatic !== anchorAchromatic) continue;
+			if (oklchDistance(lch, anchor.lch) < threshold) add(anchor.name);
+		}
+	};
 	for (const hex of paletteHex) {
 		if (!/^#?[0-9a-fA-F]{6}$/.test(hex)) continue;
 		const lch = hexToOklch(hex);
 		const achromatic = lch.C < CHROMA_THRESHOLD;
-		for (const anchor of ANCHORS) {
-			const anchorAchromatic = anchor.lch.C < CHROMA_THRESHOLD;
-			if (achromatic !== anchorAchromatic) continue;
-			if (oklchDistance(lch, anchor.lch) < DISTANCE_THRESHOLD) {
-				if (!seen.has(anchor.name)) {
-					seen.add(anchor.name);
-					out.push(anchor.name);
-				}
-			}
-		}
+		matchPass(lch, achromatic, ANCHORS, DISTANCE_THRESHOLD);
+		matchPass(lch, achromatic, BASIC_ANCHORS, BASIC_DISTANCE_THRESHOLD);
 	}
 	return out;
 }
