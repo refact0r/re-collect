@@ -176,7 +176,7 @@ Port to TypeScript from `tag_qwen.py`:
   - `styles`: non-empty array of non-empty strings; after `normalize_tag` + dedupe, cap at 5.
   - `subject`: non-empty string.
   - `aiTags` (from JSON `tags`): at least 3 entries; after normalize + dedupe, *remove any that already appear in `styles`*, cap at 12.
-- `normalize_tag` — lowercase, collapse whitespace, strip leading/trailing punctuation, drop trailing generic modifiers (`aesthetic`, `style`, `vibes`, `vibe`) when there's another word, then `singularize_word`.
+- `normalize_tag` — lowercase, collapse whitespace, strip leading/trailing punctuation, drop trailing generic modifiers (`aesthetic`, `style`, `vibes`, `vibe`) and suffix-noise words (`design`, `influenced`, `driven`, `based`, `heavy`) when there's another word, strip the same suffix-noise as a hyphenated tail on the last word (`swiss-influenced` → `swiss`, `typography-driven` → `typography`), then `singularize_word`.
 - `singularize_word` — see `tag_qwen.py` for the rules and the `KEEP_PLURAL` list. Don't reinvent; port them.
 
 On validation failure: treat as a retryable error (action throws → `setFailed`).

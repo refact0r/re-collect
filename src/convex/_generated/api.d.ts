@@ -22,6 +22,7 @@ import type * as migrations_005_remove_kind from "../migrations/005_remove_kind.
 import type * as migrations_006_repalette from "../migrations/006_repalette.js";
 import type * as migrations_007_drop_palette_description from "../migrations/007_drop_palette_description.js";
 import type * as migrations_008_palette_names from "../migrations/008_palette_names.js";
+import type * as migrations_009_normalize_tags from "../migrations/009_normalize_tags.js";
 import type * as r2 from "../r2.js";
 import type * as screenshots from "../screenshots.js";
 import type * as tagging from "../tagging.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   "migrations/006_repalette": typeof migrations_006_repalette;
   "migrations/007_drop_palette_description": typeof migrations_007_drop_palette_description;
   "migrations/008_palette_names": typeof migrations_008_palette_names;
+  "migrations/009_normalize_tags": typeof migrations_009_normalize_tags;
   r2: typeof r2;
   screenshots: typeof screenshots;
   tagging: typeof tagging;

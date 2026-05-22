@@ -45,6 +45,12 @@ Rules:
 // Words ending in -s that aren't actually plurals.
 const KEEP_PLURAL = new Set(['lens', 'iris', 'series', 'species', 'analysis', 'axis', 'chaos']);
 const GENERIC_MODIFIERS = new Set(['aesthetic', 'style', 'vibes', 'vibe']);
+// Words that are noise as a suffix — either as a trailing space-separated
+// word ("editorial design" → "editorial") or as a hyphenated tail
+// ("swiss-influenced" → "swiss", "typography-driven" → "typography"). They
+// remain meaningful as standalone single-word tags, so only stripped when
+// attached.
+const SUFFIX_NOISE = new Set(['design', 'influenced', 'driven', 'based', 'heavy']);
 
 function singularizeWord(w: string): string {
 	if (w.length <= 3 || KEEP_PLURAL.has(w)) return w;
@@ -64,18 +70,32 @@ function singularizeWord(w: string): string {
 	return w;
 }
 
-function normalizeTag(s: string): string {
+export function normalizeTag(s: string): string {
 	let out = s.toLowerCase().split(/\s+/).filter(Boolean).join(' ');
 	out = out.replace(/^[.,;:!?"'`]+|[.,;:!?"'`]+$/g, '');
 	if (!out) return out;
 	const words = out.split(' ');
-	while (words.length > 1 && GENERIC_MODIFIERS.has(words[words.length - 1])) {
+	while (
+		words.length > 1 &&
+		(GENERIC_MODIFIERS.has(words[words.length - 1]) ||
+			SUFFIX_NOISE.has(words[words.length - 1]))
+	) {
 		words.pop();
+	}
+	if (words.length > 0) {
+		const last = words[words.length - 1];
+		for (const suffix of SUFFIX_NOISE) {
+			const ending = `-${suffix}`;
+			if (last.endsWith(ending) && last.length > ending.length) {
+				words[words.length - 1] = last.slice(0, -ending.length);
+				break;
+			}
+		}
 	}
 	return words.map(singularizeWord).join(' ');
 }
 
-function dedupePreserveOrder(items: string[]): string[] {
+export function dedupePreserveOrder(items: string[]): string[] {
 	const seen = new Set<string>();
 	const out: string[] = [];
 	for (const x of items) {

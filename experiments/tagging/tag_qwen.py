@@ -127,6 +127,13 @@ KEEP_PLURAL = {"lens", "iris", "series", "species", "analysis", "axis", "chaos"}
 # note that the model's perspective should mostly come through.
 GENERIC_MODIFIERS = {"aesthetic", "style", "vibes", "vibe"}
 
+# Words that are noise as a suffix — either as a trailing space-separated
+# word ("editorial design" → "editorial") or as a hyphenated tail
+# ("swiss-influenced" → "swiss", "typography-driven" → "typography"). They
+# remain meaningful as standalone single-word tags, so only stripped when
+# attached.
+SUFFIX_NOISE = {"design", "influenced", "driven", "based", "heavy"}
+
 
 def singularize_word(w: str) -> str:
     if len(w) <= 3 or w in KEEP_PLURAL:
@@ -150,8 +157,17 @@ def normalize_tag(s: str) -> str:
     if not s:
         return s
     words = s.split()
-    while len(words) > 1 and words[-1] in GENERIC_MODIFIERS:
+    while len(words) > 1 and (
+        words[-1] in GENERIC_MODIFIERS or words[-1] in SUFFIX_NOISE
+    ):
         words.pop()
+    if words:
+        last = words[-1]
+        for suffix in SUFFIX_NOISE:
+            ending = f"-{suffix}"
+            if last.endswith(ending) and len(last) > len(ending):
+                words[-1] = last[: -len(ending)]
+                break
     words = [singularize_word(w) for w in words]
     return " ".join(words)
 
