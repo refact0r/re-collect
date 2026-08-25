@@ -1,0 +1,218 @@
+{
+  "model": "qwen/qwen3.7-flash",
+  "results": {
+    "j970dmwy4f59mtvhx82z9gvt957zet99-1768699057177.webp": {
+      "ok": true,
+      "elapsed_s": 5.44,
+      "original_bytes": 203324,
+      "scaled_bytes": 206581,
+      "result": {
+        "styles": [
+          "terminal",
+          "ascii art",
+          "brutalist web",
+          "typographic",
+          "monochrome",
+          "post-internet"
+        ],
+        "subject": "A monochromatic website landing page featuring large serif typography overlaid on a background of ASCII code patterns, with navigation tabs at the top.",
+        "tags": [
+          "ascii art background",
+          "serif typography",
+          "black and white",
+          "web",
+          "code",
+          "soft space",
+          "soft glossary",
+          "soft inspiration",
+          "welcome to our soft space for webdesign and code",
+          "(concept)",
+          "(html)",
+          "drag me"
+        ],
+        "_usage": {
+          "prompt_tokens": 1246,
+          "completion_tokens": 180,
+          "total_tokens": 1426,
+          "cost": 6.078e-05,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 6.078e-05,
+            "upstream_inference_prompt_cost": 3.738e-05,
+            "upstream_inference_completions_cost": 2.34e-05
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        }
+      }
+    },
+    "2be91ec1-de91-4a44-ae34-cebb090f3d3a.png": {
+      "ok": true,
+      "elapsed_s": 6.29,
+      "original_bytes": 2695371,
+      "scaled_bytes": 188953,
+      "result": {
+        "styles": [
+          "experimental typography",
+          "contemporary graphic",
+          "collage",
+          "minimalist poster",
+          "book cover"
+        ],
+        "subject": "A vertical book cover featuring a crumpled paper texture with halftone shading overlaid by thin, geometric Chinese characters and a small peach-colored door illustration on a teal background.",
+        "tags": [
+          "crumpled paper texture",
+          "halftone pattern",
+          "teal background",
+          "geometric line",
+          "chinese character",
+          "peach door icon",
+          "negative space",
+          "renujian publisher",
+          "vertical composition",
+          "mixed media",
+          "surreal element",
+          "punctuated stroke"
+        ],
+        "_usage": {
+          "prompt_tokens": 1342,
+          "completion_tokens": 185,
+          "total_tokens": 1527,
+          "cost": 6.431e-05,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 6.431e-05,
+            "upstream_inference_prompt_cost": 4.026e-05,
+            "upstream_inference_completions_cost": 2.405e-05
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        }
+      }
+    },
+    "11cb983c-234b-4dbd-8d75-9d52a60ebef3.png": {
+      "ok": true,
+      "elapsed_s": 7.03,
+      "original_bytes": 4962705,
+      "scaled_bytes": 216735,
+      "result": {
+        "styles": [
+          "lo-fi",
+          "cyberpunk",
+          "industrial",
+          "concept art",
+          "minimalist"
+        ],
+        "subject": "A stylized character in a hooded sleeping bag sits on a concrete ledge within a vast, grey industrial facility featuring exposed pipes and floating stairs.",
+        "tags": [
+          "concrete architecture",
+          "exposed piping",
+          "floating stair",
+          "sleeping bag",
+          "backpack",
+          "pressure gauge",
+          "yellow warning label",
+          "monochrome palette",
+          "high angle view",
+          "g6 marking",
+          "day 127 year 31",
+          "concrete solitude"
+        ],
+        "_usage": {
+          "prompt_tokens": 1374,
+          "completion_tokens": 179,
+          "total_tokens": 1553,
+          "cost": 6.449e-05,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 6.449e-05,
+            "upstream_inference_prompt_cost": 4.122e-05,
+            "upstream_inference_completions_cost": 2.327e-05
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        }
+      }
+    },
+    "bbf2a4de-f0f1-4d7d-8fe4-814f919250c6.png": {
+      "ok": true,
+      "elapsed_s": 8.48,
+      "original_bytes": 12687100,
+      "scaled_bytes": 237853,
+      "result": {
+        "styles": [
+          "vaporwave",
+          "cyberpunk",
+          "retrowave",
+          "low-poly",
+          "synthwave"
+        ],
+        "subject": "A stylized, low-poly 3D render of a futuristic urban overpass featuring a masked figure holding a white bear, overlaid with retro-digital UI elements and bold red, blue, and yellow color blocking.",
+        "tags": [
+          "caeruleum",
+          "a26",
+          "manage memory data",
+          "pixelated typography",
+          "tactile paving",
+          "red bicycle",
+          "white teddy bear",
+          "masked character",
+          "industrial pipe",
+          "chain-link fence",
+          "deep blue sky",
+          "red autumn leaf"
+        ],
+        "_usage": {
+          "prompt_tokens": 1438,
+          "completion_tokens": 192,
+          "total_tokens": 1630,
+          "cost": 6.81e-05,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 6.81e-05,
+            "upstream_inference_prompt_cost": 4.314e-05,
+            "upstream_inference_completions_cost": 2.496e-05
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        }
+      }
+    }
+  }
+}

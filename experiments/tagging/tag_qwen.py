@@ -1,13 +1,24 @@
 #!/usr/bin/env python3
 """
-Production-shaped image tagging via Qwen (qwen/qwen3.6-flash on OpenRouter).
+Sandbox for the shipped image-tagging pipeline (src/convex/tagging.ts).
 
-The `tag_image()` function below is intended to mirror what would live inside
-a Convex action: take image bytes + content-type, return a validated tag dict
-(or raise). Everything outside of it is experiment harness.
+`tag_image()` mirrors the production Convex action `tagging.callOpenRouter`:
+take image bytes + content-type, return a validated tag dict (or raise). The
+PROMPT string, model params, and normalization/validation logic here are the
+canonical source — production is a byte-for-byte port. Iterate here first,
+then port changes to tagging.ts and bump PROMPT_VERSION there.
+
+Everything outside `tag_image()` is experiment harness. Preprocessing differs
+from production (sips→JPEG here vs sharp→JPEG q85 in taggingActions.ts) but
+both downscale to a 1024px long edge. Palette extraction (Color Thief MMCQ →
+paletteHex/paletteNames) is production-only and not part of this experiment.
 
 Usage:
-    OPENROUTER_API_KEY=sk-or-... python3 tag_qwen.py
+    OPENROUTER_API_KEY=sk-or-... python3 tag_qwen.py [model ...]
+
+With no args, runs the production default model. With one or more OpenRouter
+model slugs, runs the full image set against each and writes one
+results_<slug>.json per model.
 """
 
 import base64
@@ -27,7 +38,9 @@ API_KEY = os.environ.get("OPENROUTER_API_KEY")
 if not API_KEY:
     sys.exit("set OPENROUTER_API_KEY")
 
-MODEL = "qwen/qwen3.6-flash"
+# Keep in sync with DEFAULT_MODEL / PROMPT_VERSION in src/convex/tagging.ts.
+DEFAULT_MODEL = "qwen/qwen3.7-flash"
+PROMPT_VERSION = "v4"
 MAX_EDGE_PX = 1024  # downscale long edge to this before sending
 TEMPERATURE = 0.3  # low; re-tagging same item should be ~stable
 MAX_TOKENS = 600  # JSON output is small; cap to control runaway
@@ -236,10 +249,10 @@ def parse_json_lenient(s: str):
 # ---------------------------------------------------------------------------
 # Production-shaped tagging function
 # ---------------------------------------------------------------------------
-def tag_image(image_bytes: bytes, mime: str = "image/png") -> dict:
+def tag_image(image_bytes: bytes, mime: str = "image/png", model: str = DEFAULT_MODEL) -> dict:
     """Tag a single image. Returns validated tag dict. Raises on failure.
 
-    Mirrors what would live in a Convex action. Inputs are raw bytes so the
+    Mirrors the production Convex action. Inputs are raw bytes so the
     caller controls fetching from R2; output is the parsed/validated dict
     ready to write to the items table.
     """
@@ -247,7 +260,7 @@ def tag_image(image_bytes: bytes, mime: str = "image/png") -> dict:
     data_url = f"data:{mime};base64,{b64}"
 
     payload = {
-        "model": MODEL,
+        "model": model,
         "messages": [
             {
                 "role": "user",
@@ -265,6 +278,9 @@ def tag_image(image_bytes: bytes, mime: str = "image/png") -> dict:
         # specific named-movement labels (swiss, ascii, cyberpunk) toward
         # vaguer descriptors. Reasoning off also produces more stable
         # outputs across re-tags. ~5x cheaper than r1500 baseline.
+        # Some models (e.g. google/gemini-3.7-flash) mandate reasoning and
+        # 400 on this param; the retry loop drops it for those and marks the
+        # result "_reasoning_forced" so comparisons account for it.
         "reasoning": {"enabled": False},
     }
 
@@ -293,8 +309,19 @@ def tag_image(image_bytes: bytes, mime: str = "image/png") -> dict:
             validated = validate_tags(parsed)
             # attach usage for the caller (cost telemetry)
             validated["_usage"] = body.get("usage")
+            if "reasoning" not in payload:
+                validated["_reasoning_forced"] = True
             return validated
-        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as e:
+        except urllib.error.HTTPError as e:
+            detail = ""
+            try:
+                detail = e.read().decode("utf-8", "replace")
+            except Exception:
+                pass
+            if "Reasoning is mandatory" in detail and "reasoning" in payload:
+                del payload["reasoning"]
+            last_err = RuntimeError(f"HTTP {e.code}: {detail[:300]}")
+        except (urllib.error.URLError, TimeoutError) as e:
             last_err = e
         except (KeyError, json.JSONDecodeError, TagSchemaError, RuntimeError) as e:
             # validation/parse failures are also retryable — temperature > 0
@@ -310,14 +337,8 @@ def tag_image(image_bytes: bytes, mime: str = "image/png") -> dict:
 # ---------------------------------------------------------------------------
 # Experiment harness
 # ---------------------------------------------------------------------------
-def main():
-    here = Path(__file__).parent
-    images = sorted(
-        p
-        for p in here.iterdir()
-        if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
-    )
-    print(f"model: {MODEL}")
+def run_model(model: str, images: list[Path], here: Path) -> None:
+    print(f"model: {model}")
     print(f"images ({len(images)}): {[p.name for p in images]}\n")
 
     def task(img_path: Path):
@@ -328,7 +349,7 @@ def main():
         scaled_bytes = base64.b64decode(b64)
         t0 = time.time()
         try:
-            res = tag_image(scaled_bytes, mime)
+            res = tag_image(scaled_bytes, mime, model)
             elapsed = time.time() - t0
             return img_path.name, {
                 "ok": True,
@@ -366,9 +387,24 @@ def main():
             else:
                 print(f"[FAIL] {name} :: {res['elapsed_s']}s :: {res['error'][:200]}")
 
-    out = here / "results_qwen.json"
-    out.write_text(json.dumps(results, indent=2))
+    slug = model.replace("/", "-").replace(":", "-").replace(".", "")
+    out = here / f"results_{slug}.json"
+    out.write_text(json.dumps({"model": model, "results": results}, indent=2))
     print(f"\nwrote {out}")
+
+
+def main():
+    here = Path(__file__).parent
+    images = sorted(
+        p
+        for p in here.iterdir()
+        if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
+    )
+    models = sys.argv[1:] or [DEFAULT_MODEL]
+    for i, model in enumerate(models):
+        if i:
+            print("\n" + "=" * 72 + "\n")
+        run_model(model, images, here)
 
 
 if __name__ == "__main__":

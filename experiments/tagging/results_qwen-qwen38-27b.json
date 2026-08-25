@@ -1,0 +1,210 @@
+{
+  "model": "qwen/qwen3.8-27b",
+  "results": {
+    "11cb983c-234b-4dbd-8d75-9d52a60ebef3.png": {
+      "ok": true,
+      "elapsed_s": 3.68,
+      "original_bytes": 4962705,
+      "scaled_bytes": 216735,
+      "result": {
+        "styles": [
+          "anime",
+          "concept art",
+          "dystopian",
+          "monochrome",
+          "industrial"
+        ],
+        "subject": "A small anime character sits on a concrete ledge in a grey, industrial interior, surrounded by pipes and machinery.",
+        "tags": [
+          "anime character",
+          "industrial interior",
+          "concrete",
+          "pipe",
+          "gauge",
+          "backpack",
+          "boot",
+          "yellow warning tape",
+          "g6",
+          "concrete soudute"
+        ],
+        "_usage": {
+          "prompt_tokens": 1372,
+          "completion_tokens": 107,
+          "total_tokens": 1479,
+          "cost": 0.0009598,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 0.0009598,
+            "upstream_inference_prompt_cost": 0.0006174,
+            "upstream_inference_completions_cost": 0.0003424
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        }
+      }
+    },
+    "j970dmwy4f59mtvhx82z9gvt957zet99-1768699057177.webp": {
+      "ok": true,
+      "elapsed_s": 3.95,
+      "original_bytes": 203324,
+      "scaled_bytes": 206581,
+      "result": {
+        "styles": [
+          "brutalist",
+          "swiss",
+          "minimalist",
+          "monochrome",
+          "high-contrast",
+          "post-internet"
+        ],
+        "subject": "A minimalist web design layout featuring large, mixed-weight typography over a background of dense, abstract code-like text.",
+        "tags": [
+          "typography",
+          "sans-serif",
+          "serif",
+          "italic",
+          "code snippet",
+          "abstract data",
+          "grid layout",
+          "white background",
+          "black ink",
+          "web interface",
+          "drag me"
+        ],
+        "_usage": {
+          "prompt_tokens": 1245,
+          "completion_tokens": 154,
+          "total_tokens": 1399,
+          "cost": 0.000921825,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 0.000921825,
+            "upstream_inference_prompt_cost": 0.000529125,
+            "upstream_inference_completions_cost": 0.0003927
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        }
+      }
+    },
+    "bbf2a4de-f0f1-4d7d-8fe4-814f919250c6.png": {
+      "ok": true,
+      "elapsed_s": 3.84,
+      "original_bytes": 12687100,
+      "scaled_bytes": 237853,
+      "result": {
+        "styles": [
+          "vaporwave",
+          "lo-fi",
+          "concept art",
+          "minimalist",
+          "isometric"
+        ],
+        "subject": "A stylized, low-poly 3D scene of an urban overpass with a figure in a white mask, set against a deep blue sky with digital overlays.",
+        "tags": [
+          "low-poly",
+          "3d render",
+          "white mask",
+          "red bicycle",
+          "yellow tactile paving",
+          "pixelated cloud",
+          "blue sky",
+          "urban infrastructure",
+          "caeruleum",
+          "a26"
+        ],
+        "_usage": {
+          "prompt_tokens": 1436,
+          "completion_tokens": 122,
+          "total_tokens": 1558,
+          "cost": 0.0010366,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 0.0010366,
+            "upstream_inference_prompt_cost": 0.0006462,
+            "upstream_inference_completions_cost": 0.0003904
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        }
+      }
+    },
+    "2be91ec1-de91-4a44-ae34-cebb090f3d3a.png": {
+      "ok": true,
+      "elapsed_s": 7.9,
+      "original_bytes": 2695371,
+      "scaled_bytes": 188953,
+      "result": {
+        "styles": [
+          "editorial illustration",
+          "swiss",
+          "minimalist",
+          "halftone",
+          "vector flat"
+        ],
+        "subject": "A book cover design featuring large, deconstructed Chinese characters overlaid on a halftone-printed map of Africa against a teal background.",
+        "tags": [
+          "chinese typography",
+          "deconstructed character",
+          "map of africa",
+          "teal background",
+          "halftone texture",
+          "crumpled paper effect",
+          "book cover",
+          "kedujian publisher",
+          "\u5b6b\u983b"
+        ],
+        "_usage": {
+          "prompt_tokens": 1341,
+          "completion_tokens": 157,
+          "total_tokens": 1498,
+          "cost": 0.000970275,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 0.000970275,
+            "upstream_inference_prompt_cost": 0.000569925,
+            "upstream_inference_completions_cost": 0.00040035
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        }
+      }
+    }
+  }
+}

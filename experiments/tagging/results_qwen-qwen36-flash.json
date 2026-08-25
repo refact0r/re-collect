@@ -1,0 +1,214 @@
+{
+  "model": "qwen/qwen3.6-flash",
+  "results": {
+    "2be91ec1-de91-4a44-ae34-cebb090f3d3a.png": {
+      "ok": true,
+      "elapsed_s": 7.02,
+      "original_bytes": 2695371,
+      "scaled_bytes": 188953,
+      "result": {
+        "styles": [
+          "editorial illustration",
+          "typographic",
+          "constructivist",
+          "risograph",
+          "halftone",
+          "minimalist"
+        ],
+        "subject": "A graphic poster featuring large, stylized Chinese characters overlaid on a crumpled paper texture with halftone shading against a teal background.",
+        "tags": [
+          "crumpled paper",
+          "chinese character",
+          "halftone dot",
+          "teal background",
+          "geometric line",
+          "risunian publisher",
+          "sun pin",
+          "abstract shape",
+          "book cover",
+          "black outline",
+          "offset printing effect"
+        ],
+        "_usage": {
+          "prompt_tokens": 1342,
+          "completion_tokens": 172,
+          "total_tokens": 1514,
+          "cost": 0.000445125,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 0.000445125,
+            "upstream_inference_prompt_cost": 0.000251625,
+            "upstream_inference_completions_cost": 0.0001935
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        }
+      }
+    },
+    "bbf2a4de-f0f1-4d7d-8fe4-814f919250c6.png": {
+      "ok": true,
+      "elapsed_s": 6.95,
+      "original_bytes": 12687100,
+      "scaled_bytes": 237853,
+      "result": {
+        "styles": [
+          "cyberpunk",
+          "ps1",
+          "low-poly",
+          "vaporwave",
+          "concept art"
+        ],
+        "subject": "A stylized, low-resolution digital scene of a character in black and red gear sitting on stairs next to a bicycle, set against a bright blue sky with pixelated city architecture.",
+        "tags": [
+          "caeruleum",
+          "a26",
+          "crt scanline",
+          "ui overlay",
+          "red bicycle",
+          "falling petal",
+          "industrial pipe",
+          "tactile paving",
+          "cityscape background",
+          "character silhouette"
+        ],
+        "_usage": {
+          "prompt_tokens": 1438,
+          "completion_tokens": 165,
+          "total_tokens": 1603,
+          "cost": 0.00045525,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 0.00045525,
+            "upstream_inference_prompt_cost": 0.000269625,
+            "upstream_inference_completions_cost": 0.000185625
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        }
+      }
+    },
+    "j970dmwy4f59mtvhx82z9gvt957zet99-1768699057177.webp": {
+      "ok": true,
+      "elapsed_s": 7.47,
+      "original_bytes": 203324,
+      "scaled_bytes": 206581,
+      "result": {
+        "styles": [
+          "brutalist",
+          "terminal",
+          "ascii art",
+          "monochrome",
+          "typographic"
+        ],
+        "subject": "A minimalist website landing page featuring large serif typography overlaid on a background of scrolling ASCII code characters.",
+        "tags": [
+          "welcome to our soft space for webdesign and code",
+          "sofi space",
+          "sofi glossary",
+          "sofi inspiration",
+          "(concept)",
+          "(html)",
+          "info",
+          "imprint",
+          "drag me",
+          "black text",
+          "white background",
+          "code stream"
+        ],
+        "_usage": {
+          "prompt_tokens": 1246,
+          "completion_tokens": 162,
+          "total_tokens": 1408,
+          "cost": 0.000415875,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 0.000415875,
+            "upstream_inference_prompt_cost": 0.000233625,
+            "upstream_inference_completions_cost": 0.00018225
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        }
+      }
+    },
+    "11cb983c-234b-4dbd-8d75-9d52a60ebef3.png": {
+      "ok": true,
+      "elapsed_s": 7.6,
+      "original_bytes": 4962705,
+      "scaled_bytes": 216735,
+      "result": {
+        "styles": [
+          "concept art",
+          "anime",
+          "lo-fi",
+          "cyberpunk",
+          "digital painting"
+        ],
+        "subject": "A young anime character sits dejectedly in a cramped, industrial concrete alcove surrounded by pipes and ventilation ducts.",
+        "tags": [
+          "concrete wall",
+          "industrial pipe",
+          "ventilation shaft",
+          "backpack",
+          "boot",
+          "gauge",
+          "yellow stripe",
+          "g6",
+          "f8 112-119",
+          "a-103-3c",
+          "concrete solitude"
+        ],
+        "_usage": {
+          "prompt_tokens": 1374,
+          "completion_tokens": 169,
+          "total_tokens": 1543,
+          "cost": 0.00044775,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 0.00044775,
+            "upstream_inference_prompt_cost": 0.000257625,
+            "upstream_inference_completions_cost": 0.000190125
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        }
+      }
+    }
+  }
+}

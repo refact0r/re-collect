@@ -7,7 +7,7 @@ import { buildSearchText } from './lib/searchText';
 import { colorNamesForPalette } from './lib/colorNames';
 
 const PROMPT_VERSION = 'v4';
-const DEFAULT_MODEL = 'qwen/qwen3.6-flash';
+const DEFAULT_MODEL = 'qwen/qwen3.7-flash';
 const TEMPERATURE = 0.3;
 const MAX_TOKENS = 600;
 const TIMEOUT_MS = 60_000;

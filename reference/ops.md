@@ -11,7 +11,7 @@ Set with `npx convex env set <name> <value>`, list with `npx convex env list`.
 - `CLOUDFLARE_SCREENSHOT_URL` — public URL of the screenshot worker.
 - `CLOUDFLARE_SCREENSHOT_KEY` — bearer token the screenshot worker checks. Must match the worker's `API_KEY` secret.
 - `OPENROUTER_API_KEY` — required for AI image tagging. Used by `tagging.callOpenRouter` against `https://openrouter.ai/api/v1/chat/completions`.
-- `TAGGING_MODEL` — optional. Defaults to `qwen/qwen3.6-flash`. Override to swap models without a code change.
+- `TAGGING_MODEL` — optional. Defaults to `qwen/qwen3.7-flash`. Override to swap models without a code change.
 
 ## Cloudflare R2
 

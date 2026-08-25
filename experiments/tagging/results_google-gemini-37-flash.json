@@ -1,0 +1,215 @@
+{
+  "model": "google/gemini-3.7-flash",
+  "results": {
+    "11cb983c-234b-4dbd-8d75-9d52a60ebef3.png": {
+      "ok": true,
+      "elapsed_s": 5.31,
+      "original_bytes": 4962705,
+      "scaled_bytes": 216735,
+      "result": {
+        "styles": [
+          "concept art",
+          "anime",
+          "brutalist",
+          "sci-fi illustration",
+          "atmospheric",
+          "digital painting"
+        ],
+        "subject": "A lone traveler rests in a sleeping bag on a high concrete ledge inside a vast, industrial megastructure above a dizzying drop.",
+        "tags": [
+          "cantilever stair",
+          "concrete architecture",
+          "sleeping bag",
+          "piping system",
+          "pressure gauge",
+          "backpack",
+          "megastructure",
+          "verticality",
+          "concrete solitude",
+          "high-angle perspective"
+        ],
+        "_usage": {
+          "prompt_tokens": 1643,
+          "completion_tokens": 258,
+          "total_tokens": 1901,
+          "cost": 0.001099875,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 0.001099875,
+            "upstream_inference_prompt_cost": 0.000616125,
+            "upstream_inference_completions_cost": 0.00048375
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 101,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        },
+        "_reasoning_forced": true
+      }
+    },
+    "j970dmwy4f59mtvhx82z9gvt957zet99-1768699057177.webp": {
+      "ok": true,
+      "elapsed_s": 7.15,
+      "original_bytes": 203324,
+      "scaled_bytes": 206581,
+      "result": {
+        "styles": [
+          "brutalist",
+          "ascii",
+          "post-internet",
+          "typographic",
+          "monochrome",
+          "minimalist"
+        ],
+        "subject": "A minimalist website interface featuring prominent headline typography layered over ASCII character art with file-folder navigation tabs.",
+        "tags": [
+          "ascii art",
+          "folder tab",
+          "tab navigation",
+          "serif italic",
+          "black and white",
+          "typography overlay",
+          "draggable container",
+          "welcome to our soft space",
+          "web"
+        ],
+        "_usage": {
+          "prompt_tokens": 1671,
+          "completion_tokens": 513,
+          "total_tokens": 2184,
+          "cost": 0.0015885,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 0.0015885,
+            "upstream_inference_prompt_cost": 0.000626625,
+            "upstream_inference_completions_cost": 0.000961875
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 418,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        },
+        "_reasoning_forced": true
+      }
+    },
+    "2be91ec1-de91-4a44-ae34-cebb090f3d3a.png": {
+      "ok": true,
+      "elapsed_s": 7.96,
+      "original_bytes": 2695371,
+      "scaled_bytes": 188953,
+      "result": {
+        "styles": [
+          "minimalist",
+          "contemporary graphic",
+          "editorial",
+          "risograph",
+          "halftone",
+          "modern typography"
+        ],
+        "subject": "A minimalist turquoise book cover featuring a halftone-textured crumpled paper silhouette layered with delicate, deconstructed Chinese typography.",
+        "tags": [
+          "book cover",
+          "halftone pattern",
+          "crumpled paper texture",
+          "open door motif",
+          "cyan background",
+          "line typography",
+          "chinese calligraphy",
+          "\u5b59\u9891",
+          "renjian publisher"
+        ],
+        "_usage": {
+          "prompt_tokens": 1671,
+          "completion_tokens": 581,
+          "total_tokens": 2252,
+          "cost": 0.001716,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 0.001716,
+            "upstream_inference_prompt_cost": 0.000626625,
+            "upstream_inference_completions_cost": 0.001089375
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 480,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        },
+        "_reasoning_forced": true
+      }
+    },
+    "bbf2a4de-f0f1-4d7d-8fe4-814f919250c6.png": {
+      "ok": true,
+      "elapsed_s": 8.02,
+      "original_bytes": 12687100,
+      "scaled_bytes": 237853,
+      "result": {
+        "styles": [
+          "y2k",
+          "anime illustration",
+          "cel-shaded",
+          "graphic",
+          "sci-fi",
+          "video game ui"
+        ],
+        "subject": "A masked figure and a small floating mascot stand near an outdoor staircase overlooking a bright city skyline framed by futuristic UI overlay elements.",
+        "tags": [
+          "caeruleum",
+          "a.26",
+          "tactile paving",
+          "industrial pipe",
+          "red bicycle",
+          "falling leaf",
+          "city skyline",
+          "game menu ui",
+          "wire mesh fence",
+          "streetlamp"
+        ],
+        "_usage": {
+          "prompt_tokens": 1652,
+          "completion_tokens": 580,
+          "total_tokens": 2232,
+          "cost": 0.001707,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 0.001707,
+            "upstream_inference_prompt_cost": 0.0006195,
+            "upstream_inference_completions_cost": 0.0010875
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 469,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          }
+        },
+        "_reasoning_forced": true
+      }
+    }
+  }
+}

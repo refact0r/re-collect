@@ -4,7 +4,7 @@ A personal web application for collecting, organizing, and rediscovering design 
 
 Consult `/reference` docs (R2 integration, icon system) when working with those systems. `reference/ops.md` documents external configuration.
 
-`experiments/tagging/` is the sandbox for the AI image-tagging feature: `tag_qwen.py` is the canonical source of the prompt and validation logic (mirrored in `src/convex/tagging.ts`), `design.md` is product framing, `architecture.md` is the build plan. Iterate on the prompt there first, then port to Convex.
+`experiments/tagging/` is the sandbox for the AI image-tagging feature: `tag_qwen.py` is the canonical source of the prompt and validation logic (mirrored in `src/convex/tagging.ts`), `design.md` is product framing, `architecture.md` describes the as-built pipeline. Iterate on the prompt there first, then port to Convex.
 
 ## Architecture & Conventions
 
