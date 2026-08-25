@@ -1,4 +1,4 @@
-import puppeteer from '@cloudflare/puppeteer';
+import puppeteer, { type Browser, type HTTPRequest } from '@cloudflare/puppeteer';
 
 interface Env {
 	BROWSER: Fetcher;
@@ -112,7 +112,7 @@ export default {
 			});
 		}
 
-		let browser: puppeteer.Browser | null = null;
+		let browser: Browser | null = null;
 
 		try {
 			const startTime = Date.now();
@@ -146,7 +146,7 @@ export default {
 
 			// Enable request interception to block tracking/analytics
 			await page.setRequestInterception(true);
-			page.on('request', (request) => {
+			page.on('request', (request: HTTPRequest) => {
 				const url = request.url();
 				const resourceType = request.resourceType();
 
@@ -166,8 +166,8 @@ export default {
 					url.includes('adservice') ||
 					url.includes('adsystem') ||
 					url.includes('advertising') ||
-					// Resource types that keep network busy
-					resourceType === 'beacon' ||
+					// Resource types that keep network busy ('ping' covers beacons)
+					resourceType === 'ping' ||
 					resourceType === 'websocket'
 				) {
 					request.abort();
@@ -193,7 +193,7 @@ export default {
 					timeout: NETWORKIDLE_TIMEOUT
 				});
 				console.log(`[${Date.now()}] Network idle achieved`);
-			} catch (e) {
+			} catch {
 				// Network didn't fully idle - wait a bit more and proceed anyway
 				console.log(`[${Date.now()}] Network idle timeout, proceeding with screenshot after delay`);
 				await new Promise((resolve) => setTimeout(resolve, FALLBACK_DELAY));

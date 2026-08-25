@@ -9,15 +9,13 @@
 	import { type ViewMode } from '$lib/components/ViewToggle.svelte';
 	import { mutate } from '$lib/mutationHelper.js';
 	import { SvelteSet } from 'svelte/reactivity';
+	import type { CurrentItemsContext } from '$lib/types.js';
 
 	const client = useConvexClient();
 	const getWriteToken = getContext<() => string | null>('writeToken');
 	const writeToken = $derived(getWriteToken());
 	const collectionsQuery = getContext<ReturnType<typeof useQuery>>('collections');
-	const currentItemsContext = getContext<{
-		items: any[];
-		setItems: (items: any[]) => void;
-	}>('currentItems');
+	const currentItemsContext = getContext<CurrentItemsContext>('currentItems');
 
 	// Sort state
 	type SortOption =
@@ -32,7 +30,7 @@
 
 	let sortBy = $state<SortOption>('dateAddedNewest');
 	let viewMode = $state<ViewMode>('grid');
-	let filterCollectionIds = $state(new SvelteSet<string>());
+	let filterCollectionIds = $state.raw(new SvelteSet<string>());
 	let prefsInitialized = $state(false);
 
 	// Load saved preferences
@@ -53,7 +51,7 @@
 					viewMode = (prefs.viewMode as ViewMode) ?? 'grid';
 					if (prefs.filterCollectionIds && prefs.filterCollectionIds.length > 0) {
 						const saved: string[] = [...(prefs.filterCollectionIds as string[])];
-						if ((prefs as any).includeUncollected !== false) saved.push(UNCOLLECTED);
+						if (prefs.includeUncollected !== false) saved.push(UNCOLLECTED);
 						filterCollectionIds = new SvelteSet(saved);
 					} else {
 						filterCollectionIds = new SvelteSet(allIds);
@@ -104,9 +102,7 @@
 
 	// Pass collectionIds to query only when not all options are selected
 	const totalOptions = $derived((collectionsQuery.data?.length ?? 0) + 1);
-	const allSelected = $derived(
-		!collectionsQuery.data || filterCollectionIds.size === totalOptions
-	);
+	const allSelected = $derived(!collectionsQuery.data || filterCollectionIds.size === totalOptions);
 
 	// Split sentinel from real collection IDs for the query
 	const queryCollectionIds = $derived(
@@ -117,9 +113,7 @@
 	// Use query with sort option and optional collection filter
 	const items = useQuery(api.items.list, () => ({
 		sortBy,
-		...(!allSelected
-			? { collectionIds: queryCollectionIds, includeUncollected }
-			: {})
+		...(!allSelected ? { collectionIds: queryCollectionIds, includeUncollected } : {})
 	}));
 
 	// Update the current items when data changes
@@ -154,7 +148,7 @@
 	{:else if items.data?.length === 0}
 		<p class="status-text">no items yet. add your first one above!</p>
 	{:else if viewMode === 'list'}
-		<ItemList items={items.data ?? []} onRetryScreenshot={handleRetryScreenshot} />
+		<ItemList items={items.data ?? []} />
 	{:else}
 		<ItemGrid items={items.data ?? []} onRetryScreenshot={handleRetryScreenshot} />
 	{/if}

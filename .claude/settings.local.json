@@ -1,14 +1,12 @@
 {
-  "permissions": {
-    "allow": [
-      "mcp__svelte__svelte-autofixer",
-      "Bash(npx svelte-check:*)",
-      "WebFetch(domain:github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
-    ]
-  },
-  "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "svelte"
-  ]
+	"permissions": {
+		"allow": [
+			"mcp__svelte__svelte-autofixer",
+			"Bash(npx svelte-check:*)",
+			"WebFetch(domain:github.com)",
+			"WebFetch(domain:raw.githubusercontent.com)"
+		]
+	},
+	"enableAllProjectMcpServers": true,
+	"enabledMcpjsonServers": ["svelte"]
 }

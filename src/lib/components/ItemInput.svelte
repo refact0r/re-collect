@@ -191,8 +191,7 @@
 			onpaste={handlePaste}
 			placeholder="paste a url, image, or type text..."
 			disabled={isAdding}
-			rows="1"
-		></textarea>
+			rows="1"></textarea>
 	</div>
 </div>
 

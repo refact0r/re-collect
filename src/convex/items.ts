@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
-import type { Doc, Id } from './_generated/dataModel';
+import type { Doc } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { r2 } from './r2';
 import {
@@ -45,13 +45,9 @@ export const add = mutation({
 		// URL items: screenshot lands first, then tagging runs against it.
 		// Image items: tagging runs directly off the uploaded image.
 		const screenshotFields =
-			args.type === 'url' && args.url
-				? { screenshotStatus: 'pending' as const }
-				: {};
+			args.type === 'url' && args.url ? { screenshotStatus: 'pending' as const } : {};
 		const taggingFields =
-			args.type === 'image' && args.imageKey
-				? { taggingStatus: 'pending' as const }
-				: {};
+			args.type === 'image' && args.imageKey ? { taggingStatus: 'pending' as const } : {};
 
 		const itemId = await ctx.db.insert('items', {
 			type: args.type,

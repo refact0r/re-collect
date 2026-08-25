@@ -13,6 +13,7 @@ export const removeCollectionDescriptions = internalMutation({
 			// Check if collection has a description field
 			if ('description' in collection) {
 				// Create new object without description field
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any -- historical migration; description is no longer in the schema
 				const { description, ...collectionWithoutDescription } = collection as any;
 
 				// Replace the document with the version without description

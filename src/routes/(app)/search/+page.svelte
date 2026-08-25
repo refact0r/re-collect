@@ -8,14 +8,12 @@
 	import ItemList from '$lib/components/ItemList.svelte';
 	import ViewToggle, { type ViewMode } from '$lib/components/ViewToggle.svelte';
 	import { mutate } from '$lib/mutationHelper.js';
+	import type { CurrentItemsContext } from '$lib/types.js';
 
 	const client = useConvexClient();
 	const getWriteToken = getContext<() => string | null>('writeToken');
 	const writeToken = $derived(getWriteToken());
-	const currentItemsContext = getContext<{
-		items: any[];
-		setItems: (items: any[]) => void;
-	}>('currentItems');
+	const currentItemsContext = getContext<CurrentItemsContext>('currentItems');
 
 	let viewMode = $state<ViewMode>('grid');
 	let prefsInitialized = $state(false);
@@ -79,7 +77,7 @@
 			<ViewToggle value={viewMode} onchange={handleViewModeChange} />
 		</div>
 		{#if viewMode === 'list'}
-			<ItemList items={searchResults.data ?? []} onRetryScreenshot={handleRetryScreenshot} />
+			<ItemList items={searchResults.data ?? []} />
 		{:else}
 			<ItemGrid items={searchResults.data ?? []} onRetryScreenshot={handleRetryScreenshot} />
 		{/if}

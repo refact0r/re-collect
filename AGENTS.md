@@ -2,13 +2,13 @@
 
 A personal web application for collecting, organizing, and rediscovering design inspiration, web screenshots, articles, and visual references. Similar to Are.na.
 
-Consult `/reference` docs (R2 integration, Convex setup, icon system) when working with those systems. `reference/ops.md` documents external configuration.
+Consult `/reference` docs (R2 integration, icon system) when working with those systems. `reference/ops.md` documents external configuration.
 
 `experiments/tagging/` is the sandbox for the AI image-tagging feature: `tag_qwen.py` is the canonical source of the prompt and validation logic (mirrored in `src/convex/tagging.ts`), `design.md` is product framing, `architecture.md` is the build plan. Iterate on the prompt there first, then port to Convex.
 
 ## Architecture & Conventions
 
-- Single-user app - no auth, no multi-user, no social/AI features
+- Single-user app - no multi-user or social features. Auth is a single password cookie gate (`AUTH_PASSWORD`) plus a `CONVEX_WRITE_TOKEN` checked by mutations via `requireAuth`
 - **3 item types**: URL (auto-screenshots via Cloudflare Worker), image (R2-stored), text
 - Items can belong to multiple collections
 - **Modal routing**: Items open via `?item=<id>` query param (preserves page context)

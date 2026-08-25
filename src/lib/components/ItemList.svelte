@@ -34,10 +34,9 @@
 
 	interface Props {
 		items: Item[];
-		onRetryScreenshot?: (itemId: Id<'items'>) => void;
 	}
 
-	let { items, onRetryScreenshot }: Props = $props();
+	let { items }: Props = $props();
 
 	async function handleDeleteItem(itemId: Id<'items'>, e: MouseEvent) {
 		e.preventDefault();

@@ -8,7 +8,7 @@ Store and serve files with Cloudflare R2.
 
 ```ts
 // or @convex-dev/r2/svelte for Svelte!
-import { useUploadFile } from "@convex-dev/r2/react";
+import { useUploadFile } from '@convex-dev/r2/react';
 
 // Upload files from React
 const uploadFile = useUploadFile(api.example);
@@ -36,11 +36,11 @@ const response = await fetch(url);
 
   ```json
   [
-    {
-      "AllowedOrigins": ["http://localhost:5173"],
-      "AllowedMethods": ["GET", "PUT"],
-      "AllowedHeaders": ["Content-Type"]
-    }
+  	{
+  		"AllowedOrigins": ["http://localhost:5173"],
+  		"AllowedMethods": ["GET", "PUT"],
+  		"AllowedHeaders": ["Content-Type"]
+  	}
   ]
   ```
 
@@ -77,8 +77,8 @@ component by calling `use`:
 
 ```ts
 // convex/convex.config.ts
-import { defineApp } from "convex/server";
-import r2 from "@convex-dev/r2/convex.config.js";
+import { defineApp } from 'convex/server';
+import r2 from '@convex-dev/r2/convex.config.js';
 
 const app = defineApp();
 app.use(r2);
@@ -113,23 +113,23 @@ for React and Svelte that handle the entire upload process:
 
    ```ts
    // convex/example.ts
-   import { R2 } from "@convex-dev/r2";
-   import { components } from "./_generated/api";
+   import { R2 } from '@convex-dev/r2';
+   import { components } from './_generated/api';
 
    export const r2 = new R2(components.r2);
 
    export const { generateUploadUrl, syncMetadata } = r2.clientApi({
-     checkUpload: async (ctx, bucket) => {
-       // const user = await userFromAuth(ctx);
-       // ...validate that the user can upload to this bucket
-     },
-     onUpload: async (ctx, bucket, key) => {
-       // ...do something with the key
-       // This technically runs in the `syncMetadata` mutation, as the upload
-       // is performed from the client side. Will run if using the `useUploadFile`
-       // hook, or if `syncMetadata` function is called directly. Runs after the
-       // `checkUpload` callback.
-     },
+   	checkUpload: async (ctx, bucket) => {
+   		// const user = await userFromAuth(ctx);
+   		// ...validate that the user can upload to this bucket
+   	},
+   	onUpload: async (ctx, bucket, key) => {
+   		// ...do something with the key
+   		// This technically runs in the `syncMetadata` mutation, as the upload
+   		// is performed from the client side. Will run if using the `useUploadFile`
+   		// hook, or if `syncMetadata` function is called directly. Runs after the
+   		// `checkUpload` callback.
+   	}
    });
    ```
 
@@ -139,43 +139,39 @@ for React and Svelte that handle the entire upload process:
 
    ```tsx
    // src/App.tsx
-   import { FormEvent, useRef, useState } from "react";
-   import { useAction } from "convex/react";
-   import { api } from "../convex/_generated/api";
-   import { useUploadFile } from "@convex-dev/r2/react";
+   import { FormEvent, useRef, useState } from 'react';
+   import { useAction } from 'convex/react';
+   import { api } from '../convex/_generated/api';
+   import { useUploadFile } from '@convex-dev/r2/react';
 
    export default function App() {
-     // Passing the entire api exported from `convex/example.ts` to the hook.
-     // This must include `generateUploadUrl` and `syncMetadata` from the r2 client api.
-     const uploadFile = useUploadFile(api.example);
-     const imageInput = useRef<HTMLInputElement>(null);
-     const [selectedImage, setSelectedImage] = useState<File | null>(null);
+   	// Passing the entire api exported from `convex/example.ts` to the hook.
+   	// This must include `generateUploadUrl` and `syncMetadata` from the r2 client api.
+   	const uploadFile = useUploadFile(api.example);
+   	const imageInput = useRef<HTMLInputElement>(null);
+   	const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
-     async function handleUpload(event: FormEvent) {
-       event.preventDefault();
+   	async function handleUpload(event: FormEvent) {
+   		event.preventDefault();
 
-       // The file is uploaded to R2, metadata is synced to the database, and the
-       // key of the newly created object is returned.
-       await uploadFile(selectedImage!);
-       setSelectedImage(null);
-       imageInput.current!.value = "";
-     }
-     return (
-       <form onSubmit={handleUpload}>
-         <input
-           type="file"
-           accept="image/*"
-           ref={imageInput}
-           onChange={(event) => setSelectedImage(event.target.files![0])}
-           disabled={selectedImage !== null}
-         />
-         <input
-           type="submit"
-           value="Upload"
-           disabled={selectedImage === null}
-         />
-       </form>
-     );
+   		// The file is uploaded to R2, metadata is synced to the database, and the
+   		// key of the newly created object is returned.
+   		await uploadFile(selectedImage!);
+   		setSelectedImage(null);
+   		imageInput.current!.value = '';
+   	}
+   	return (
+   		<form onSubmit={handleUpload}>
+   			<input
+   				type="file"
+   				accept="image/*"
+   				ref={imageInput}
+   				onChange={(event) => setSelectedImage(event.target.files![0])}
+   				disabled={selectedImage !== null}
+   			/>
+   			<input type="submit" value="Upload" disabled={selectedImage === null} />
+   		</form>
+   	);
    }
    ```
 
@@ -183,34 +179,34 @@ for React and Svelte that handle the entire upload process:
 
    ```svelte
    <script lang="ts">
-      import { useUploadFile } from "@convex-dev/r2/svelte";
-      import { api } from "../convex/_generated/api";
+   	import { useUploadFile } from '@convex-dev/r2/svelte';
+   	import { api } from '../convex/_generated/api';
 
-      const uploadFile = useUploadFile(api.example);
+   	const uploadFile = useUploadFile(api.example);
 
-      let selectedImage = $state<File | null>(null);
+   	let selectedImage = $state<File | null>(null);
 
-      async function handleUpload(file: File) {
-        await uploadFile(file);
-        selectedImage = null;
-      }
-    </script>
+   	async function handleUpload(file: File) {
+   		await uploadFile(file);
+   		selectedImage = null;
+   	}
+   </script>
 
-    <form
-      onsubmit={() => {
-        if (selectedImage) handleUpload(selectedImage);
-      }}
-    >
-      <input
-        type="file"
-        accept="image/*"
-        onchange={(e) => {
-          selectedImage = e.currentTarget.files?.[0] ?? null;
-        }}
-        disabled={selectedImage !== null}
-      />
-      <button type="submit" disabled={selectedImage === null}> Upload </button>
-    </form>
+   <form
+   	onsubmit={() => {
+   		if (selectedImage) handleUpload(selectedImage);
+   	}}
+   >
+   	<input
+   		type="file"
+   		accept="image/*"
+   		onchange={(e) => {
+   			selectedImage = e.currentTarget.files?.[0] ?? null;
+   		}}
+   		disabled={selectedImage !== null}
+   	/>
+   	<button type="submit" disabled={selectedImage === null}> Upload </button>
+   </form>
    ```
 
 ### Using a custom object key
@@ -225,24 +221,24 @@ the `r2` instance.
 
 ```ts
 // convex/example.ts
-import { R2 } from "@convex-dev/r2";
-import { components } from "./_generated/api";
+import { R2 } from '@convex-dev/r2';
+import { components } from './_generated/api';
 
 export const r2 = new R2(components.r2);
 
 // A custom mutation that creates a key from the user id and a uuid. If the key
 // already exists, the mutation will fail.
 export const generateUploadUrlWithCustomKey = mutation({
-  args: {},
-  handler: async (ctx) => {
-    // Replace this with whatever function you use to get the current user
-    const currentUser = await getUser(ctx);
-    if (!currentUser) {
-      throw new Error("User not found");
-    }
-    const key = `${currentUser.id}.${crypto.randomUUID()}`;
-    return r2.generateUploadUrl(key);
-  },
+	args: {},
+	handler: async (ctx) => {
+		// Replace this with whatever function you use to get the current user
+		const currentUser = await getUser(ctx);
+		if (!currentUser) {
+			throw new Error('User not found');
+		}
+		const key = `${currentUser.id}.${crypto.randomUUID()}`;
+		return r2.generateUploadUrl(key);
+	}
 });
 ```
 
@@ -254,30 +250,30 @@ the server side.
 
 ```ts
 // convex/example.ts
-import { internalAction } from "./_generated/server";
-import { R2 } from "@convex-dev/r2";
+import { internalAction } from './_generated/server';
+import { R2 } from '@convex-dev/r2';
 
 const r2 = new R2(components.r2);
 
 export const store = internalAction({
-  handler: async (ctx) => {
-    // Download a random image from picsum.photos
-    const url = "https://picsum.photos/200/300";
-    const response = await fetch(url);
-    const blob = await response.blob();
+	handler: async (ctx) => {
+		// Download a random image from picsum.photos
+		const url = 'https://picsum.photos/200/300';
+		const response = await fetch(url);
+		const blob = await response.blob();
 
-    // This function call is the only required part, it uploads the blob to R2,
-    // syncs the metadata, and returns the key. The key is a uuid by default, but
-    // an optional custom key can be provided in the options object. A MIME type
-    // can also be provided, which will override the type inferred for blobs.
-    const key = await r2.store(ctx, blob, {
-      key: "my-custom-key",
-      type: "image/jpeg",
-    });
+		// This function call is the only required part, it uploads the blob to R2,
+		// syncs the metadata, and returns the key. The key is a uuid by default, but
+		// an optional custom key can be provided in the options object. A MIME type
+		// can also be provided, which will override the type inferred for blobs.
+		const key = await r2.store(ctx, blob, {
+			key: 'my-custom-key',
+			type: 'image/jpeg'
+		});
 
-    // Example use case, associate the key with a record in your database
-    await ctx.runMutation(internal.example.insertImage, { key });
-  },
+		// Example use case, associate the key with a record in your database
+		await ctx.runMutation(internal.example.insertImage, { key });
+	}
 });
 ```
 
@@ -302,31 +298,31 @@ R2 component client.
 
 ```ts
 // convex/listMessages.ts
-import { components } from "./_generated/api";
-import { query } from "./_generated/server";
-import { R2 } from "@convex-dev/r2";
+import { components } from './_generated/api';
+import { query } from './_generated/server';
+import { R2 } from '@convex-dev/r2';
 
 const r2 = new R2(components.r2);
 
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    // In this example, messages have an imageKey field with the object key
-    const messages = await ctx.db.query("messages").collect();
-    return Promise.all(
-      messages.map(async (message) => ({
-        ...message,
-        imageUrl: await r2.getUrl(
-          message.imageKey,
-          // Options object is optional, can be omitted
-          {
-            // Custom expiration time in seconds, default is 900 (15 minutes)
-            expiresIn: 60 * 60 * 24, // 1 day
-          },
-        ),
-      })),
-    );
-  },
+	args: {},
+	handler: async (ctx) => {
+		// In this example, messages have an imageKey field with the object key
+		const messages = await ctx.db.query('messages').collect();
+		return Promise.all(
+			messages.map(async (message) => ({
+				...message,
+				imageUrl: await r2.getUrl(
+					message.imageKey,
+					// Options object is optional, can be omitted
+					{
+						// Custom expiration time in seconds, default is 900 (15 minutes)
+						expiresIn: 60 * 60 * 24 // 1 day
+					}
+				)
+			}))
+		);
+	}
 });
 ```
 
@@ -335,7 +331,7 @@ File URLs can be used in img elements to render images:
 ```tsx
 // src/App.tsx
 function Image({ message }: { message: { url: string } }) {
-  return <img src={message.url} height="300px" width="auto" />;
+	return <img src={message.url} height="300px" width="auto" />;
 }
 ```
 
@@ -346,19 +342,19 @@ Files stored in R2 can be deleted from actions or mutations via the
 
 ```ts
 // convex/images.ts
-import { v } from "convex/values";
-import { mutation } from "./_generated/server";
-import { R2 } from "@convex-dev/r2";
+import { v } from 'convex/values';
+import { mutation } from './_generated/server';
+import { R2 } from '@convex-dev/r2';
 
 const r2 = new R2(components.r2);
 
 export const deleteObject = mutation({
-  args: {
-    key: v.string(),
-  },
-  handler: async (ctx, args) => {
-    return await r2.deleteObject(ctx, args.key);
-  },
+	args: {
+		key: v.string()
+	},
+	handler: async (ctx, args) => {
+		return await r2.deleteObject(ctx, args.key);
+	}
 });
 ```
 
@@ -368,19 +364,19 @@ File metadata of an R2 file can be accessed from actions via `r2.getMetadata`:
 
 ```ts
 // convex/images.ts
-import { v } from "convex/values";
-import { query } from "./_generated/server";
-import { R2 } from "@convex-dev/r2";
+import { v } from 'convex/values';
+import { query } from './_generated/server';
+import { R2 } from '@convex-dev/r2';
 
 const r2 = new R2(components.r2);
 
 export const getMetadata = query({
-  args: {
-    key: v.string(),
-  },
-  handler: async (ctx, args) => {
-    return await r2.getMetadata(args.key);
-  },
+	args: {
+		key: v.string()
+	},
+	handler: async (ctx, args) => {
+		return await r2.getMetadata(args.key);
+	}
 });
 ```
 
@@ -388,9 +384,9 @@ This is an example of the returned document:
 
 ```json
 {
-  "ContentType": "image/jpeg",
-  "ContentLength": 125338,
-  "LastModified": "2024-03-20T12:34:56Z"
+	"ContentType": "image/jpeg",
+	"ContentLength": 125338,
+	"LastModified": "2024-03-20T12:34:56Z"
 }
 ```
 
@@ -407,27 +403,27 @@ Metadata can be listed or paginated from actions via `r2.listMetadata` and
 
 ```ts
 // convex/example.ts
-import { query } from "./_generated/server";
-import { R2 } from "@convex-dev/r2";
+import { query } from './_generated/server';
+import { R2 } from '@convex-dev/r2';
 
 const r2 = new R2(components.r2);
 
 export const list = query({
-  args: {
-    limit: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    return r2.listMetadata(ctx, args.limit);
-  },
+	args: {
+		limit: v.optional(v.number())
+	},
+	handler: async (ctx, args) => {
+		return r2.listMetadata(ctx, args.limit);
+	}
 });
 
 export const page = query({
-  args: {
-    paginationOpts: paginationOptsValidator,
-  },
-  handler: async (ctx, args) => {
-    return r2.pageMetadata(ctx, args.paginationOpts);
-  },
+	args: {
+		paginationOpts: paginationOptsValidator
+	},
+	handler: async (ctx, args) => {
+		return r2.pageMetadata(ctx, args.paginationOpts);
+	}
 });
 ```
 
@@ -442,30 +438,28 @@ access the metadata of the newly uploaded file.
 
 ```ts
 // convex/example.ts
-import { R2, type R2Callbacks } from "@convex-dev/r2";
-import { components } from "./_generated/api";
+import { R2, type R2Callbacks } from '@convex-dev/r2';
+import { components } from './_generated/api';
 
 export const r2 = new R2(components.r2);
 
 const callbacks: R2Callbacks = internal.example;
 
-export const { generateUploadUrl, syncMetadata, onSyncMetadata } = r2.clientApi(
-  {
-    // Pass the functions from this file back into the component.
-    // Technically only an object with `onSyncMetadata` is required, the recommended
-    // pattern is just for convenience.
-    callbacks,
+export const { generateUploadUrl, syncMetadata, onSyncMetadata } = r2.clientApi({
+	// Pass the functions from this file back into the component.
+	// Technically only an object with `onSyncMetadata` is required, the recommended
+	// pattern is just for convenience.
+	callbacks,
 
-    onSyncMetadata: async (ctx, args) => {
-      // args: { bucket: string; key: string; isNew: boolean }
-      // args.isNew is true if the key did not previously exist in your Convex R2
-      // metadata table
-      const metadata = await r2.getMetadata(ctx, args.key);
-      // log metadata of synced object
-      console.log("metadata", metadata);
-    },
-  },
-);
+	onSyncMetadata: async (ctx, args) => {
+		// args: { bucket: string; key: string; isNew: boolean }
+		// args.isNew is true if the key did not previously exist in your Convex R2
+		// metadata table
+		const metadata = await r2.getMetadata(ctx, args.key);
+		// log metadata of synced object
+		console.log('metadata', metadata);
+	}
+});
 ```
 
 <!-- END: Include on https://convex.dev/components -->

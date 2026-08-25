@@ -11,6 +11,7 @@ Cloudflare Worker that captures website screenshots using Browser Rendering API.
 ## Setup
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
@@ -19,12 +20,15 @@ Cloudflare Worker that captures website screenshots using Browser Rendering API.
    - Set `bucket_name` to your R2 bucket name
 
 3. Set up API key as a secret:
+
    ```bash
    wrangler secret put API_KEY
    ```
+
    Enter a secure random string when prompted.
 
 4. Deploy the worker:
+
    ```bash
    npm run deploy
    ```
@@ -38,11 +42,13 @@ Cloudflare Worker that captures website screenshots using Browser Rendering API.
 ## Development
 
 Run locally:
+
 ```bash
 npm run dev
 ```
 
 View logs:
+
 ```bash
 npm run tail
 ```
@@ -54,30 +60,34 @@ npm run tail
 Takes a screenshot of a URL and uploads it to R2.
 
 **Headers:**
+
 - `Authorization: Bearer <API_KEY>`
 - `Content-Type: application/json`
 
 **Body:**
+
 ```json
 {
-  "url": "https://example.com",
-  "itemId": "abc123"
+	"url": "https://example.com",
+	"itemId": "abc123"
 }
 ```
 
 **Response (success):**
+
 ```json
 {
-  "imageKey": "screenshots/abc123-1234567890.webp",
-  "width": 1200,
-  "height": 800
+	"imageKey": "screenshots/abc123-1234567890.webp",
+	"width": 1200,
+	"height": 800
 }
 ```
 
 **Response (error):**
+
 ```json
 {
-  "error": "Failed to capture screenshot"
+	"error": "Failed to capture screenshot"
 }
 ```
 

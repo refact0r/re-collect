@@ -8,9 +8,9 @@
 		"tail": "wrangler tail"
 	},
 	"devDependencies": {
-		"@cloudflare/puppeteer": "^1.0.4",
-		"@cloudflare/workers-types": "^4.20260116.0",
-		"typescript": "^5.9.3",
-		"wrangler": "^4.59.2"
+		"@cloudflare/puppeteer": "^1.4.0",
+		"@cloudflare/workers-types": "^5.20260823.1",
+		"typescript": "^6.0.3",
+		"wrangler": "^4.125.0"
 	}
 }

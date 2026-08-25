@@ -9,6 +9,7 @@
 	import ItemModal from '$lib/components/ItemModal.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
+	import type { DisplayItem } from '$lib/types.js';
 	import { api } from '../../convex/_generated/api.js';
 	import IconMenu from '~icons/material-symbols-light/menu';
 	import IconSearch from '~icons/material-symbols-light/search';
@@ -21,7 +22,7 @@
 	const collections = useQuery(api.collections.listWithCounts, {});
 
 	// State for current items being displayed (set by active page)
-	let currentItems = $state<any[]>([]);
+	let currentItems = $state<DisplayItem[]>([]);
 
 	// Make available to all child routes via context
 	setContext('items', items);
@@ -30,7 +31,7 @@
 		get items() {
 			return currentItems;
 		},
-		setItems(newItems: any[]) {
+		setItems(newItems: DisplayItem[]) {
 			currentItems = newItems;
 		}
 	});

@@ -1,5 +1,5 @@
 packages:
-  - "workers/screenshot"
+  - 'workers/screenshot'
 
 allowBuilds:
   esbuild: true

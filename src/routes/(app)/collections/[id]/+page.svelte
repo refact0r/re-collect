@@ -3,7 +3,8 @@
 	import { getContext, untrack } from 'svelte';
 	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../../../convex/_generated/api.js';
-	import type { Id } from '../../../../convex/_generated/dataModel.js';
+	import type { Doc, Id } from '../../../../convex/_generated/dataModel.js';
+	import type { CurrentItemsContext } from '$lib/types.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
 	import ItemList from '$lib/components/ItemList.svelte';
 	import TopControls from '$lib/components/TopControls.svelte';
@@ -16,10 +17,7 @@
 	const collectionId = $derived(page.params.id as Id<'collections'>);
 	const allCollections =
 		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
-	const currentItemsContext = getContext<{
-		items: any[];
-		setItems: (items: any[]) => void;
-	}>('currentItems');
+	const currentItemsContext = getContext<CurrentItemsContext>('currentItems');
 
 	// Sort state
 	type SortOption =
@@ -57,7 +55,7 @@
 		return {
 			isLoading: false,
 			error: null,
-			data: allCollections.data.find((c: any) => c._id === collectionId) ?? null
+			data: allCollections.data.find((c: Doc<'collections'>) => c._id === collectionId) ?? null
 		};
 	});
 
@@ -209,7 +207,7 @@
 		{:else if items.data?.length === 0}
 			<p class="status-text">no items in this collection yet.</p>
 		{:else if viewMode === 'list'}
-			<ItemList items={items.data ?? []} onRetryScreenshot={handleRetryScreenshot} />
+			<ItemList items={items.data ?? []} />
 		{:else}
 			<ItemGrid
 				items={items.data ?? []}

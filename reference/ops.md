@@ -35,6 +35,7 @@ Zone `refact0r.dev` → Caching → Cache Rules → "R2 image caching":
 Every URL on this hostname is content-addressable and never mutates (see invariant above), so 1-year TTLs are safe and keep repeat loads instant.
 
 Cache invalidation:
+
 - **Edge:** Cloudflare → Caching → Purge Cache (by URL or "Purge Everything"). Takes seconds.
 - **Browser:** Can't be remotely invalidated. Use hard reload (Cmd/Ctrl-Shift-R), or change the URL (different key = new cache entry). For planned migrations, lower the Browser TTL on the rule a few weeks ahead so old TTLs roll over before you switch.
 

@@ -82,8 +82,11 @@
 
 	function getItemText(item: Item): string | null {
 		if (item.type === 'text') return item.content ?? null;
-		if (item.type === 'url' && !shouldDisplayAsImage(item) &&
-			!(item.screenshotStatus && item.screenshotStatus !== 'completed')) {
+		if (
+			item.type === 'url' &&
+			!shouldDisplayAsImage(item) &&
+			!(item.screenshotStatus && item.screenshotStatus !== 'completed')
+		) {
 			return item.url ?? null;
 		}
 		return null;
@@ -285,7 +288,7 @@
 	}
 
 	// ============ DISPLAY LAYOUT ============
-	let displayColumns: DisplayItem[][] = $derived(
+	let displayColumns: DisplayItem[][] = $derived.by(() =>
 		draggedItem && simulationResult ? simulationResult.columns : normalColumns
 	);
 

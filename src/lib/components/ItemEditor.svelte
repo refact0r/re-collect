@@ -2,7 +2,7 @@
 	import { getContext } from 'svelte';
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
-	import type { Id } from '../../convex/_generated/dataModel.js';
+	import type { Doc, Id } from '../../convex/_generated/dataModel.js';
 	import { mutate } from '$lib/mutationHelper.js';
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
 	import IconCheck from '~icons/material-symbols/check';
@@ -31,7 +31,7 @@
 		return {
 			isLoading: false,
 			error: null,
-			data: allItems.data.find((i: any) => i._id === itemId) ?? null
+			data: allItems.data.find((i: Doc<'items'>) => i._id === itemId) ?? null
 		};
 	});
 
@@ -76,9 +76,7 @@
 			onDelete();
 
 			// Delete in background
-			await mutate(writeToken, (token) =>
-				client.mutation(api.items.remove, { id: itemId, token })
-			);
+			await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
 		}
 	}
 
@@ -110,10 +108,7 @@
 				<img src={item.data.imageUrl} alt={item.data.title ?? 'image'} />
 			{:else if item.data.type === 'url'}
 				{#if item.data.screenshotStatus === 'completed' && item.data.imageUrl}
-					<img
-						src={item.data.imageUrl}
-						alt={item.data.title ?? item.data.url ?? 'screenshot'}
-					/>
+					<img src={item.data.imageUrl} alt={item.data.title ?? item.data.url ?? 'screenshot'} />
 				{:else}
 					<div class="url-preview">
 						<p class="url-text">{url || item.data.url}</p>

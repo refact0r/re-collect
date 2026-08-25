@@ -17,9 +17,7 @@
 
 	async function handleDelete(id: Id<'collections'>) {
 		if (confirm('Delete this collection? Items will not be deleted.')) {
-			await mutate(writeToken, (token) =>
-				client.mutation(api.collections.remove, { id, token })
-			);
+			await mutate(writeToken, (token) => client.mutation(api.collections.remove, { id, token }));
 		}
 	}
 </script>
@@ -63,12 +61,7 @@
 						<div class="preview-row">
 							{#each collection.previews as preview (preview._id)}
 								<div class="thumb-wrapper">
-									<img
-										src={preview.imageUrl}
-										alt=""
-										class="preview-thumb"
-										loading="lazy"
-									/>
+									<img src={preview.imageUrl} alt="" class="preview-thumb" loading="lazy" />
 								</div>
 							{/each}
 							{#each Array(Math.max(0, 4 - (collection.previews?.length || 0))) as _, i (i)}

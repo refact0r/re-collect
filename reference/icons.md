@@ -9,12 +9,12 @@ Import from `~icons/material-symbols-light/`:
 
 ```svelte
 <script lang="ts">
-  import IconClose from '~icons/material-symbols-light/close';
-  import IconMenu from '~icons/material-symbols-light/menu';
+	import IconClose from '~icons/material-symbols-light/close';
+	import IconMenu from '~icons/material-symbols-light/menu';
 </script>
 
 <button>
-  <IconClose />
+	<IconClose />
 </button>
 ```
 
@@ -24,8 +24,8 @@ Icons are SVG components. In Svelte component styles, use `:global(svg)` to styl
 
 ```svelte
 <style>
-  button :global(svg) {
-  }
+	button :global(svg) {
+	}
 </style>
 ```
 

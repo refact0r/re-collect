@@ -1,10 +1,5 @@
 import { v } from 'convex/values';
-import {
-	internalAction,
-	internalMutation,
-	internalQuery,
-	mutation
-} from './_generated/server';
+import { internalAction, internalMutation, internalQuery, mutation } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { requireAuth } from './lib/auth';
@@ -77,8 +72,7 @@ export function normalizeTag(s: string): string {
 	const words = out.split(' ');
 	while (
 		words.length > 1 &&
-		(GENERIC_MODIFIERS.has(words[words.length - 1]) ||
-			SUFFIX_NOISE.has(words[words.length - 1]))
+		(GENERIC_MODIFIERS.has(words[words.length - 1]) || SUFFIX_NOISE.has(words[words.length - 1]))
 	) {
 		words.pop();
 	}
@@ -336,10 +330,7 @@ export const callOpenRouter = internalAction({
 			const parsed = parseJsonLenient(content);
 			const validated = validateTags(parsed);
 
-			console.log(
-				`tagging usage for ${args.itemId}:`,
-				JSON.stringify(body.usage ?? null)
-			);
+			console.log(`tagging usage for ${args.itemId}:`, JSON.stringify(body.usage ?? null));
 
 			await ctx.runMutation(internal.tagging.setCompleted, {
 				itemId: args.itemId,

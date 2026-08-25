@@ -19,12 +19,7 @@ const mmcqQuantizer = new MmcqQuantizer();
 // small accents survive Phase 2's count×volume splitting — at the cost of
 // occasionally producing phantom swatches in empty regions of color space
 // on images with widely-separated clusters.
-function extractPalettePeaks(
-	data: Buffer,
-	width: number,
-	height: number,
-	k: number
-): string[] {
+function extractPalettePeaks(data: Buffer, width: number, height: number, k: number): string[] {
 	const opts = validateOptions({
 		colorCount: k,
 		quality: PALETTE_SAMPLE_STRIDE,

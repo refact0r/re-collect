@@ -18,9 +18,7 @@ export const normalizeExistingTags = internalMutation({
 				: undefined;
 			const styleSet = new Set(newStyles ?? []);
 			const newAiTags = item.aiTags
-				? dedupePreserveOrder(item.aiTags.map(normalizeTag)).filter(
-						(t) => t && !styleSet.has(t)
-					)
+				? dedupePreserveOrder(item.aiTags.map(normalizeTag)).filter((t) => t && !styleSet.has(t))
 				: undefined;
 
 			const stylesChanged =

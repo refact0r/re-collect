@@ -7,3 +7,12 @@ bun.lockb
 
 # Miscellaneous
 /static/
+
+# Tool-managed files (Convex codegen, convex ai-files skills)
+/src/convex/_generated/
+/.agents/
+/skills-lock.json
+/convex.json
+
+# Experiment sandbox — not held to app formatting
+/experiments/

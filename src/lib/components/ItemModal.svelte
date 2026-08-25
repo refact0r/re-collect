@@ -4,6 +4,7 @@
 	import { getContext } from 'svelte';
 	import ItemEditor from './ItemEditor.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
+	import type { CurrentItemsContext } from '$lib/types.js';
 
 	interface Props {
 		itemId: Id<'items'>;
@@ -15,10 +16,7 @@
 	let editor = $state<ItemEditor>();
 
 	// Get current items from context (set by the active page)
-	const currentItemsContext = getContext<{
-		items: any[];
-		setItems: (items: any[]) => void;
-	}>('currentItems');
+	const currentItemsContext = getContext<CurrentItemsContext>('currentItems');
 
 	const currentItems = $derived(currentItemsContext.items);
 
@@ -58,7 +56,7 @@
 				return;
 			}
 
-			const currentIndex = currentItems.findIndex((item: any) => item._id === itemId);
+			const currentIndex = currentItems.findIndex((item) => item._id === itemId);
 			if (currentIndex === -1) return;
 
 			const direction = event.key === 'ArrowLeft' ? -1 : 1;
@@ -75,16 +73,10 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
-<div
-	class="backdrop"
-	onclick={handleBackdropClick}
-	role="dialog"
-	aria-modal="true"
-	tabindex="-1"
->
+<div class="backdrop" onclick={handleBackdropClick} role="dialog" aria-modal="true" tabindex="-1">
 	<div class="modal modal-wide">
 		{#key itemId}
-			<ItemEditor bind:this={editor} {itemId} onClose={onClose} onDelete={onClose} />
+			<ItemEditor bind:this={editor} {itemId} {onClose} onDelete={onClose} />
 		{/key}
 	</div>
 </div>
