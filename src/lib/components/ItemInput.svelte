@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 	import { useConvexClient } from 'convex-svelte';
-	import { useUploadFile } from '@convex-dev/r2/svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { mutate } from '$lib/mutationHelper.js';
@@ -14,9 +13,22 @@
 	let { collectionId }: Props = $props();
 
 	const client = useConvexClient();
-	const uploadFile = useUploadFile(api.r2);
 	const getWriteToken = getContext<() => string | null>('writeToken');
 	const writeToken = $derived(getWriteToken());
+
+	async function uploadFile(file: File): Promise<string | null> {
+		return await mutate(writeToken, async (token) => {
+			const { url, key } = await client.mutation(api.r2.generateUploadUrl, { token });
+			const res = await fetch(url, {
+				method: 'PUT',
+				headers: { 'Content-Type': file.type },
+				body: file
+			});
+			if (!res.ok) throw new Error(`Failed to upload file: ${res.status}`);
+			await client.mutation(api.r2.syncMetadata, { key, token });
+			return key;
+		});
+	}
 
 	let inputValue = $state('');
 	let isAdding = $state(false);
@@ -125,6 +137,7 @@
 		try {
 			const dimensions = await getImageDimensions(file);
 			const key = await uploadFile(file);
+			if (!key) return;
 			await mutate(writeToken, (token) =>
 				client.mutation(api.items.add, {
 					type: 'image',
