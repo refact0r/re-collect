@@ -1,3 +1,7 @@
+import type { ConvexClient } from 'convex/browser';
+import { api } from '../convex/_generated/api.js';
+import type { Id } from '../convex/_generated/dataModel.js';
+
 /**
  * Helper to execute mutations with token and handle auth errors.
  * Shows an alert if the user is not authenticated.
@@ -16,4 +20,9 @@ export async function mutate<T>(
 		}
 		throw e;
 	}
+}
+
+// Re-fetch a URL item's image in its current mode (shared by the listing pages)
+export function retryScreenshot(client: ConvexClient, token: string | null, itemId: Id<'items'>) {
+	return mutate(token, (t) => client.mutation(api.screenshots.reimageItem, { itemId, token: t }));
 }

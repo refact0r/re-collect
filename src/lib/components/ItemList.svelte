@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
-	import { page } from '$app/state';
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { mutate } from '$lib/mutationHelper.js';
+	import { getWriteTokenContext } from '$lib/context.js';
+	import { shouldDisplayAsImage, getItemUrl } from '$lib/itemDisplay.js';
+	import type { DisplayItem } from '$lib/types.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
 	import IconError from '~icons/material-symbols-light/error-outline';
 	import IconDelete from '~icons/material-symbols-light/delete-outline';
@@ -14,26 +15,11 @@
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new';
 
 	const client = useConvexClient();
-	const getWriteToken = getContext<() => string | null>('writeToken');
+	const getWriteToken = getWriteTokenContext();
 	const writeToken = $derived(getWriteToken());
 
-	interface Item {
-		_id: Id<'items'>;
-		type: 'url' | 'text' | 'image';
-		title?: string;
-		description?: string;
-		url?: string;
-		content?: string;
-		imageUrl?: string | null;
-		imageWidth?: number;
-		imageHeight?: number;
-		position?: string;
-		screenshotStatus?: 'pending' | 'processing' | 'completed' | 'failed';
-		screenshotError?: string;
-	}
-
 	interface Props {
-		items: Item[];
+		items: DisplayItem[];
 	}
 
 	let { items }: Props = $props();
@@ -41,7 +27,6 @@
 	async function handleDeleteItem(itemId: Id<'items'>, e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
-		if (!confirm('Delete this item?')) return;
 		await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
 	}
 
@@ -51,20 +36,7 @@
 		window.open(url, '_blank', 'noopener,noreferrer');
 	}
 
-	function getItemUrl(itemId: Id<'items'>): string {
-		const params = new URLSearchParams(page.url.searchParams);
-		params.set('item', itemId);
-		return `${page.url.pathname}?${params}`;
-	}
-
-	function shouldDisplayAsImage(item: Item): boolean {
-		return (
-			(item.type === 'image' || (item.type === 'url' && item.screenshotStatus === 'completed')) &&
-			!!item.imageUrl
-		);
-	}
-
-	function getDisplayText(item: Item): string {
+	function getDisplayText(item: DisplayItem): string {
 		if (item.title) return item.title;
 		if (item.url) return item.url;
 		return 'Untitled';
@@ -189,16 +161,6 @@
 
 	.icon-placeholder.error {
 		color: var(--danger-border);
-	}
-
-	@keyframes pulse {
-		0%,
-		100% {
-			color: var(--bg-3);
-		}
-		50% {
-			color: var(--txt-3);
-		}
 	}
 
 	.item-title {

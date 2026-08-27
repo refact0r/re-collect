@@ -1,26 +1,24 @@
 <script lang="ts">
-	import { getContext, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { useConvexClient } from 'convex-svelte';
 	import { generateKeyBetween } from 'fractional-indexing';
 	import { api } from '../../../convex/_generated/api.js';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import CollectionCreateModal from '$lib/components/CollectionCreateModal.svelte';
 	import { mutate } from '$lib/mutationHelper.js';
+	import {
+		getWriteTokenContext,
+		getCollectionsContext,
+		type CollectionsData
+	} from '$lib/context.js';
 	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
 
-	type CollectionCard = {
-		_id: Id<'collections'>;
-		name: string;
-		itemCount: number;
-		position?: string;
-		previews: { _id: Id<'items'>; imageUrl: string; type: 'image' | 'url' }[];
-	};
+	type CollectionCard = CollectionsData[number];
 
 	const client = useConvexClient();
-	const getWriteToken = getContext<() => string | null>('writeToken');
+	const getWriteToken = getWriteTokenContext();
 	const writeToken = $derived(getWriteToken());
-	const collections =
-		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
+	const collections = getCollectionsContext();
 
 	let showCreateModal = $state(false);
 
@@ -31,7 +29,7 @@
 	}
 
 	// ============ DRAG REORDERING ============
-	const serverCollections = $derived((collections.data ?? []) as CollectionCard[]);
+	const serverCollections = $derived(collections.data ?? []);
 
 	let listElement: HTMLElement | undefined = $state();
 	let draggedCollection: CollectionCard | null = $state(null);

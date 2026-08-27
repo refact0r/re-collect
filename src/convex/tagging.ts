@@ -1,8 +1,8 @@
 import { v } from 'convex/values';
-import { internalAction, internalMutation, internalQuery, mutation } from './_generated/server';
+import { internalAction, internalMutation, internalQuery } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
-import { requireAuth } from './lib/auth';
+import { authedMutation } from './lib/auth';
 import { buildSearchText } from './lib/searchText';
 import { colorNamesForPalette } from './lib/colorNames';
 
@@ -349,10 +349,9 @@ export const callOpenRouter = internalAction({
 	}
 });
 
-export const retagItem = mutation({
-	args: { itemId: v.id('items'), token: v.optional(v.string()) },
+export const retagItem = authedMutation({
+	args: { itemId: v.id('items') },
 	handler: async (ctx, args) => {
-		requireAuth(args.token);
 		const item = await ctx.db.get(args.itemId);
 		if (!item) throw new Error('Item not found');
 		if (item.type === 'text') throw new Error('Text items cannot be tagged');

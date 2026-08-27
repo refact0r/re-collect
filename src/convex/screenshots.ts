@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
-import { internalAction, internalMutation, mutation } from './_generated/server';
+import { internalAction, internalMutation } from './_generated/server';
 import { internal } from './_generated/api';
-import { requireAuth } from './lib/auth';
+import { authedMutation } from './lib/auth';
 import { r2 } from './r2';
 import { buildSearchText } from './lib/searchText';
 import { linkImageModeValidator } from './schema';
@@ -89,14 +89,12 @@ export const setFailed = internalMutation({
 
 // Re-fetch a URL item's image, switching to the given mode; omitting the mode
 // refreshes in the item's current one (e.g. retrying a failed capture)
-export const reimageItem = mutation({
+export const reimageItem = authedMutation({
 	args: {
 		itemId: v.id('items'),
-		mode: v.optional(linkImageModeValidator),
-		token: v.optional(v.string())
+		mode: v.optional(linkImageModeValidator)
 	},
 	handler: async (ctx, args) => {
-		requireAuth(args.token);
 		const item = await ctx.db.get(args.itemId);
 		if (!item) throw new Error('Item not found');
 		if (item.type !== 'url' || !item.url) {

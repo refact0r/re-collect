@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
 	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Doc, Id } from '../../convex/_generated/dataModel.js';
 	import { mutate } from '$lib/mutationHelper.js';
+	import { getCollectionsContext, getWriteTokenContext } from '$lib/context.js';
 	import Dropdown from './Dropdown.svelte';
 	import IconSettings from '~icons/material-symbols-light/settings-outline';
 
@@ -15,9 +15,8 @@
 	let { collectionId }: Props = $props();
 
 	const client = useConvexClient();
-	const collections =
-		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
-	const getWriteToken = getContext<() => string | null>('writeToken');
+	const collections = getCollectionsContext();
+	const getWriteToken = getWriteTokenContext();
 	const writeToken = $derived(getWriteToken());
 
 	const homePrefs = useQuery(api.viewPreferences.get, () => ({ key: 'home' }));

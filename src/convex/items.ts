@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { mutation, query } from './_generated/server';
+import { query } from './_generated/server';
 import type { Doc } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { r2 } from './r2';
@@ -9,9 +9,10 @@ import {
 	deleteAllPositionsForItem,
 	getPositionsByCollection
 } from './itemCollectionPositions';
-import { requireAuth } from './lib/auth';
+import { authedMutation } from './lib/auth';
 import { buildSearchText } from './lib/searchText';
 import { getPreferences } from './viewPreferences';
+import { sortModeValidator, collectionSortModeValidator } from './schema';
 
 // Get a sortable title string from an item
 function getSortTitle(item: { title?: string; url?: string }): string {
@@ -25,7 +26,7 @@ export function getImageUrl(item: Doc<'items'>): string | null {
 	return null;
 }
 
-export const add = mutation({
+export const add = authedMutation({
 	args: {
 		type: v.union(v.literal('url'), v.literal('image'), v.literal('text')),
 		title: v.optional(v.string()),
@@ -35,11 +36,9 @@ export const add = mutation({
 		imageKey: v.optional(v.string()),
 		imageWidth: v.optional(v.number()),
 		imageHeight: v.optional(v.number()),
-		collections: v.optional(v.array(v.id('collections'))),
-		token: v.optional(v.string())
+		collections: v.optional(v.array(v.id('collections')))
 	},
 	handler: async (ctx, args) => {
-		requireAuth(args.token);
 		const now = Date.now();
 		const collections = args.collections ?? [];
 
@@ -115,19 +114,17 @@ export const add = mutation({
 	}
 });
 
-export const update = mutation({
+export const update = authedMutation({
 	args: {
 		id: v.id('items'),
 		title: v.optional(v.string()),
 		description: v.optional(v.string()),
 		url: v.optional(v.string()),
 		content: v.optional(v.string()),
-		collections: v.optional(v.array(v.id('collections'))),
-		token: v.optional(v.string())
+		collections: v.optional(v.array(v.id('collections')))
 	},
 	handler: async (ctx, args) => {
-		requireAuth(args.token);
-		const { id, collections, token, ...updates } = args;
+		const { id, collections, ...updates } = args;
 		const existing = await ctx.db.get(id);
 		if (!existing) throw new Error('Item not found');
 
@@ -169,10 +166,9 @@ export const update = mutation({
 	}
 });
 
-export const remove = mutation({
-	args: { id: v.id('items'), token: v.optional(v.string()) },
+export const remove = authedMutation({
+	args: { id: v.id('items') },
 	handler: async (ctx, args) => {
-		requireAuth(args.token);
 		const item = await ctx.db.get(args.id);
 		if (!item) throw new Error('Item not found');
 
@@ -188,42 +184,29 @@ export const remove = mutation({
 	}
 });
 
-export const addToCollection = mutation({
+export const addToCollection = authedMutation({
 	args: {
 		itemId: v.id('items'),
-		collectionId: v.id('collections'),
-		token: v.optional(v.string())
+		collectionId: v.id('collections')
 	},
 	handler: async (ctx, args) => {
-		requireAuth(args.token);
 		await addItemToCollection(ctx, args.itemId, args.collectionId);
 	}
 });
 
-export const removeFromCollection = mutation({
+export const removeFromCollection = authedMutation({
 	args: {
 		itemId: v.id('items'),
-		collectionId: v.id('collections'),
-		token: v.optional(v.string())
+		collectionId: v.id('collections')
 	},
 	handler: async (ctx, args) => {
-		requireAuth(args.token);
 		await removeItemFromCollection(ctx, args.itemId, args.collectionId);
 	}
 });
 
 export const list = query({
 	args: {
-		sortBy: v.optional(
-			v.union(
-				v.literal('dateAddedNewest'),
-				v.literal('dateAddedOldest'),
-				v.literal('dateModifiedNewest'),
-				v.literal('dateModifiedOldest'),
-				v.literal('titleAsc'),
-				v.literal('titleDesc')
-			)
-		),
+		sortBy: v.optional(sortModeValidator),
 		collectionIds: v.optional(v.array(v.id('collections'))),
 		includeUncollected: v.optional(v.boolean())
 	},
@@ -272,32 +255,10 @@ export const list = query({
 	}
 });
 
-export const get = query({
-	args: { id: v.id('items') },
-	handler: async (ctx, args) => {
-		const item = await ctx.db.get(args.id);
-		if (!item) return null;
-		return {
-			...item,
-			imageUrl: getImageUrl(item)
-		};
-	}
-});
-
 export const listByCollection = query({
 	args: {
 		collectionId: v.id('collections'),
-		sortBy: v.optional(
-			v.union(
-				v.literal('manual'),
-				v.literal('dateAddedNewest'),
-				v.literal('dateAddedOldest'),
-				v.literal('dateModifiedNewest'),
-				v.literal('dateModifiedOldest'),
-				v.literal('titleAsc'),
-				v.literal('titleDesc')
-			)
-		)
+		sortBy: v.optional(collectionSortModeValidator)
 	},
 	handler: async (ctx, args) => {
 		const sortBy = args.sortBy ?? 'manual';

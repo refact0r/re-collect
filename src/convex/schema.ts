@@ -6,6 +6,19 @@ import { v } from 'convex/values';
 export const taggingModeValidator = v.union(v.literal('visual'), v.literal('none'));
 export const linkImageModeValidator = v.union(v.literal('screenshot'), v.literal('og'));
 
+// Sort mode validators, shared by every table/mutation that stores them.
+// Collections additionally support 'manual' (fractional-index ordering).
+const sortModes = [
+	v.literal('dateAddedNewest'),
+	v.literal('dateAddedOldest'),
+	v.literal('dateModifiedNewest'),
+	v.literal('dateModifiedOldest'),
+	v.literal('titleAsc'),
+	v.literal('titleDesc')
+] as const;
+export const sortModeValidator = v.union(...sortModes);
+export const collectionSortModeValidator = v.union(v.literal('manual'), ...sortModes);
+
 export default defineSchema({
 	items: defineTable({
 		type: v.union(v.literal('url'), v.literal('image'), v.literal('text')),
@@ -66,17 +79,7 @@ export default defineSchema({
 		dateCreated: v.number(),
 		position: v.optional(v.string()), // Lexicographical fractional index for manual ordering
 		itemCount: v.optional(v.number()), // Denormalized count of itemCollectionPositions rows (backfilled by migration 011)
-		sortMode: v.optional(
-			v.union(
-				v.literal('manual'),
-				v.literal('dateAddedNewest'),
-				v.literal('dateAddedOldest'),
-				v.literal('dateModifiedNewest'),
-				v.literal('dateModifiedOldest'),
-				v.literal('titleAsc'),
-				v.literal('titleDesc')
-			)
-		), // Defaults to 'manual'
+		sortMode: v.optional(collectionSortModeValidator), // Defaults to 'manual'
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))), // Defaults to 'grid'
 		// Ingestion defaults applied to items added into this collection
 		taggingMode: v.optional(taggingModeValidator),
@@ -86,16 +89,7 @@ export default defineSchema({
 	// View preferences for non-collection pages (home, search)
 	viewPreferences: defineTable({
 		key: v.string(), // "home", "search"
-		sortMode: v.optional(
-			v.union(
-				v.literal('dateAddedNewest'),
-				v.literal('dateAddedOldest'),
-				v.literal('dateModifiedNewest'),
-				v.literal('dateModifiedOldest'),
-				v.literal('titleAsc'),
-				v.literal('titleDesc')
-			)
-		),
+		sortMode: v.optional(sortModeValidator),
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
 		filterCollectionIds: v.optional(v.array(v.id('collections'))),
 		includeUncollected: v.optional(v.boolean()),

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { getContext, untrack } from 'svelte';
 	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
@@ -7,84 +6,67 @@
 	import ItemList from '$lib/components/ItemList.svelte';
 	import TopControls from '$lib/components/TopControls.svelte';
 	import { type ViewMode } from '$lib/components/ViewToggle.svelte';
-	import { mutate } from '$lib/mutationHelper.js';
+	import { mutate, retryScreenshot } from '$lib/mutationHelper.js';
 	import { SvelteSet } from 'svelte/reactivity';
-	import type { CurrentItemsContext } from '$lib/types.js';
+	import {
+		getWriteTokenContext,
+		getCollectionsContext,
+		getCurrentItemsContext
+	} from '$lib/context.js';
+	import type { CollectionSortOption, SortOption } from '$lib/types.js';
 
 	const client = useConvexClient();
-	const getWriteToken = getContext<() => string | null>('writeToken');
+	const getWriteToken = getWriteTokenContext();
 	const writeToken = $derived(getWriteToken());
-	const collectionsQuery = getContext<ReturnType<typeof useQuery>>('collections');
-	const currentItemsContext = getContext<CurrentItemsContext>('currentItems');
-
-	// Sort state
-	type SortOption =
-		| 'dateAddedNewest'
-		| 'dateAddedOldest'
-		| 'dateModifiedNewest'
-		| 'dateModifiedOldest'
-		| 'titleAsc'
-		| 'titleDesc';
+	const collectionsQuery = getCollectionsContext();
+	const currentItemsContext = getCurrentItemsContext();
 
 	const UNCOLLECTED = 'uncollected';
 
-	let sortBy = $state<SortOption>('dateAddedNewest');
-	let viewMode = $state<ViewMode>('grid');
-	let filterCollectionIds = $state.raw(new SvelteSet<string>());
-	let prefsInitialized = $state(false);
-
-	// Load saved preferences
+	// Load saved preferences; local overrides win until the mutation round-trips
 	const savedPrefs = useQuery(api.viewPreferences.get, () => ({ key: 'home' }));
+	let sortOverride = $state<SortOption | null>(null);
+	let viewOverride = $state<ViewMode | null>(null);
+	const sortBy = $derived(sortOverride ?? savedPrefs.data?.sortMode ?? 'dateAddedNewest');
+	const viewMode = $derived(viewOverride ?? savedPrefs.data?.viewMode ?? 'grid');
 
-	// Initialize preferences from DB once loaded
+	// The filter set needs both prefs and collections loaded, so it's initialized once
+	let filterCollectionIds = $state.raw(new SvelteSet<string>());
+	let filterInitialized = $state(false);
+
 	$effect(() => {
 		const prefs = savedPrefs.data;
 		const collections = collectionsQuery.data;
-		if (prefs !== undefined && collections && !prefsInitialized) {
-			untrack(() => {
-				const allIds: string[] = [
-					...collections.map((c: { _id: Id<'collections'> }) => c._id),
-					UNCOLLECTED
-				];
-				if (prefs) {
-					sortBy = (prefs.sortMode as SortOption) ?? 'dateAddedNewest';
-					viewMode = (prefs.viewMode as ViewMode) ?? 'grid';
-					if (prefs.filterCollectionIds && prefs.filterCollectionIds.length > 0) {
-						const saved: string[] = [...(prefs.filterCollectionIds as string[])];
-						if (prefs.includeUncollected !== false) saved.push(UNCOLLECTED);
-						filterCollectionIds = new SvelteSet(saved);
-					} else {
-						filterCollectionIds = new SvelteSet(allIds);
-					}
-				} else {
-					filterCollectionIds = new SvelteSet(allIds);
-				}
-				prefsInitialized = true;
-			});
+		if (prefs !== undefined && collections && !filterInitialized) {
+			if (prefs?.filterCollectionIds && prefs.filterCollectionIds.length > 0) {
+				const saved: string[] = [...prefs.filterCollectionIds];
+				if (prefs.includeUncollected !== false) saved.push(UNCOLLECTED);
+				filterCollectionIds = new SvelteSet(saved);
+			} else {
+				filterCollectionIds = new SvelteSet([...collections.map((c) => c._id), UNCOLLECTED]);
+			}
+			filterInitialized = true;
 		}
 	});
 
-	function handleSortChange(newSort: string) {
-		sortBy = newSort as SortOption;
-		if (prefsInitialized) {
-			mutate(writeToken, (token) =>
-				client.mutation(api.viewPreferences.set, { key: 'home', sortMode: sortBy, token })
-			);
-		}
+	function handleSortChange(newSort: CollectionSortOption) {
+		const sort = newSort as SortOption; // 'manual' is not offered on the home page
+		sortOverride = sort;
+		mutate(writeToken, (token) =>
+			client.mutation(api.viewPreferences.set, { key: 'home', sortMode: sort, token })
+		);
 	}
 
 	function handleViewModeChange(newMode: ViewMode) {
-		viewMode = newMode;
-		if (prefsInitialized) {
-			mutate(writeToken, (token) =>
-				client.mutation(api.viewPreferences.set, { key: 'home', viewMode: newMode, token })
-			);
-		}
+		viewOverride = newMode;
+		mutate(writeToken, (token) =>
+			client.mutation(api.viewPreferences.set, { key: 'home', viewMode: newMode, token })
+		);
 	}
 
 	function handleFilterChange(selected: Set<string>) {
 		filterCollectionIds = new SvelteSet(selected);
-		if (prefsInitialized) {
+		if (filterInitialized) {
 			const collectionOnly = [...selected].filter((id) => id !== UNCOLLECTED);
 			const includeUncollected = selected.has(UNCOLLECTED);
 			const totalOptions = (collectionsQuery.data?.length ?? 0) + 1;
@@ -123,11 +105,8 @@
 		}
 	});
 
-	async function handleRetryScreenshot(itemId: Id<'items'>) {
-		await mutate(writeToken, (token) =>
-			client.mutation(api.screenshots.reimageItem, { itemId, token })
-		);
-	}
+	const handleRetryScreenshot = (itemId: Id<'items'>) =>
+		retryScreenshot(client, writeToken, itemId);
 </script>
 
 <div class="container">

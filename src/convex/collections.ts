@@ -1,11 +1,15 @@
 import { v } from 'convex/values';
-import { mutation, query, type QueryCtx } from './_generated/server';
+import { query, type QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { generateKeyBetween } from 'fractional-indexing';
 import { removeItemFromCollection } from './itemCollectionPositions';
 import { getImageUrl } from './items';
-import { requireAuth } from './lib/auth';
-import { taggingModeValidator, linkImageModeValidator } from './schema';
+import { authedMutation } from './lib/auth';
+import {
+	taggingModeValidator,
+	linkImageModeValidator,
+	collectionSortModeValidator
+} from './schema';
 
 // Manual order by fractional-index position (backfilled by migration 010)
 async function listSorted(ctx: QueryCtx) {
@@ -13,13 +17,11 @@ async function listSorted(ctx: QueryCtx) {
 	return collections.sort((a, b) => ((a.position ?? '') < (b.position ?? '') ? -1 : 1));
 }
 
-export const create = mutation({
+export const create = authedMutation({
 	args: {
-		name: v.string(),
-		token: v.optional(v.string())
+		name: v.string()
 	},
 	handler: async (ctx, args) => {
-		requireAuth(args.token);
 		// New collections go to the bottom of the manual order
 		const sorted = await listSorted(ctx);
 		const lastPos = sorted[sorted.length - 1]?.position ?? null;
@@ -31,14 +33,12 @@ export const create = mutation({
 	}
 });
 
-export const reorder = mutation({
+export const reorder = authedMutation({
 	args: {
 		id: v.id('collections'),
-		newPosition: v.string(),
-		token: v.optional(v.string())
+		newPosition: v.string()
 	},
 	handler: async (ctx, args) => {
-		requireAuth(args.token);
 		const existing = await ctx.db.get(args.id);
 		if (!existing) throw new Error('Collection not found');
 
@@ -46,29 +46,17 @@ export const reorder = mutation({
 	}
 });
 
-export const update = mutation({
+export const update = authedMutation({
 	args: {
 		id: v.id('collections'),
 		name: v.optional(v.string()),
-		sortMode: v.optional(
-			v.union(
-				v.literal('manual'),
-				v.literal('dateAddedNewest'),
-				v.literal('dateAddedOldest'),
-				v.literal('dateModifiedNewest'),
-				v.literal('dateModifiedOldest'),
-				v.literal('titleAsc'),
-				v.literal('titleDesc')
-			)
-		),
+		sortMode: v.optional(collectionSortModeValidator),
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
 		taggingMode: v.optional(taggingModeValidator),
-		linkImageMode: v.optional(linkImageModeValidator),
-		token: v.optional(v.string())
+		linkImageMode: v.optional(linkImageModeValidator)
 	},
 	handler: async (ctx, args) => {
-		requireAuth(args.token);
-		const { id, token, ...updates } = args;
+		const { id, ...updates } = args;
 		const existing = await ctx.db.get(id);
 		if (!existing) throw new Error('Collection not found');
 
@@ -77,10 +65,9 @@ export const update = mutation({
 });
 
 // Delete a collection (also removes it from all items)
-export const remove = mutation({
-	args: { id: v.id('collections'), token: v.optional(v.string()) },
+export const remove = authedMutation({
+	args: { id: v.id('collections') },
 	handler: async (ctx, args) => {
-		requireAuth(args.token);
 		const collection = await ctx.db.get(args.id);
 		if (!collection) throw new Error('Collection not found');
 
@@ -94,20 +81,6 @@ export const remove = mutation({
 		}
 
 		await ctx.db.delete(args.id);
-	}
-});
-
-export const list = query({
-	args: {},
-	handler: async (ctx) => {
-		return await listSorted(ctx);
-	}
-});
-
-export const get = query({
-	args: { id: v.id('collections') },
-	handler: async (ctx, args) => {
-		return await ctx.db.get(args.id);
 	}
 });
 

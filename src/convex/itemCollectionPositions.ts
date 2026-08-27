@@ -1,8 +1,8 @@
 import { v } from 'convex/values';
-import { mutation, query, type MutationCtx, type QueryCtx } from './_generated/server';
+import type { MutationCtx, QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { generateKeyBetween } from 'fractional-indexing';
-import { requireAuth } from './lib/auth';
+import { authedMutation } from './lib/auth';
 
 // Get position record for an item in a collection
 export async function getPositionRecord(
@@ -119,15 +119,13 @@ export async function deleteAllPositionsForItem(ctx: MutationCtx, itemId: Id<'it
 }
 
 // Reorder an item within a collection
-export const reorderItem = mutation({
+export const reorderItem = authedMutation({
 	args: {
 		itemId: v.id('items'),
 		collectionId: v.id('collections'),
-		newPosition: v.string(),
-		token: v.optional(v.string())
+		newPosition: v.string()
 	},
 	handler: async (ctx, args) => {
-		requireAuth(args.token);
 		const item = await ctx.db.get(args.itemId);
 		if (!item) throw new Error('Item not found');
 
@@ -145,13 +143,5 @@ export const reorderItem = mutation({
 		await ctx.db.patch(record._id, {
 			position: args.newPosition
 		});
-	}
-});
-
-// Query to list items by collection with positions (for use in items.ts)
-export const listByCollectionWithPositions = query({
-	args: { collectionId: v.id('collections') },
-	handler: async (ctx, args) => {
-		return await getPositionsByCollection(ctx, args.collectionId);
 	}
 });

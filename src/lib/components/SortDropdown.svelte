@@ -1,25 +1,17 @@
 <script lang="ts">
 	import IconSort from '~icons/material-symbols-light/sort';
 	import Dropdown from './Dropdown.svelte';
-
-	type SortOption =
-		| 'manual'
-		| 'dateAddedNewest'
-		| 'dateAddedOldest'
-		| 'dateModifiedNewest'
-		| 'dateModifiedOldest'
-		| 'titleAsc'
-		| 'titleDesc';
+	import type { CollectionSortOption } from '$lib/types.js';
 
 	interface Props {
-		value: SortOption;
+		value: CollectionSortOption;
 		showManualSort?: boolean;
-		onchange: (sort: SortOption) => void;
+		onchange: (sort: CollectionSortOption) => void;
 	}
 
 	let { value, showManualSort = false, onchange }: Props = $props();
 
-	const options: { value: SortOption; label: string; manual?: boolean }[] = [
+	const options: { value: CollectionSortOption; label: string; manual?: boolean }[] = [
 		{ value: 'manual', label: 'manual', manual: true },
 		{ value: 'dateAddedNewest', label: 'added (new)' },
 		{ value: 'dateAddedOldest', label: 'added (old)' },

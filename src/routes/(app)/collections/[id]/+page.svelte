@@ -1,41 +1,53 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { getContext, untrack } from 'svelte';
 	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../../../convex/_generated/api.js';
-	import type { Doc, Id } from '../../../../convex/_generated/dataModel.js';
-	import type { CurrentItemsContext } from '$lib/types.js';
+	import type { Id } from '../../../../convex/_generated/dataModel.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
 	import ItemList from '$lib/components/ItemList.svelte';
 	import TopControls from '$lib/components/TopControls.svelte';
 	import { type ViewMode } from '$lib/components/ViewToggle.svelte';
-	import { mutate } from '$lib/mutationHelper.js';
+	import { mutate, retryScreenshot } from '$lib/mutationHelper.js';
+	import {
+		getWriteTokenContext,
+		getCollectionsContext,
+		getCurrentItemsContext
+	} from '$lib/context.js';
+	import type { CollectionSortOption } from '$lib/types.js';
 
 	const client = useConvexClient();
-	const getWriteToken = getContext<() => string | null>('writeToken');
+	const getWriteToken = getWriteTokenContext();
 	const writeToken = $derived(getWriteToken());
 	const collectionId = $derived(page.params.id as Id<'collections'>);
-	const allCollections =
-		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
-	const currentItemsContext = getContext<CurrentItemsContext>('currentItems');
+	const allCollections = getCollectionsContext();
+	const currentItemsContext = getCurrentItemsContext();
 
-	// Sort state
-	type SortOption =
-		| 'manual'
-		| 'dateAddedNewest'
-		| 'dateAddedOldest'
-		| 'dateModifiedNewest'
-		| 'dateModifiedOldest'
-		| 'titleAsc'
-		| 'titleDesc';
-	let sortBy = $state<SortOption>('manual');
+	// Derive collection from context
+	const collection = $derived.by(() => {
+		if (allCollections.isLoading || allCollections.error || !allCollections.data) {
+			return { isLoading: allCollections.isLoading, error: allCollections.error, data: null };
+		}
+		return {
+			isLoading: false,
+			error: null,
+			data: allCollections.data.find((c) => c._id === collectionId) ?? null
+		};
+	});
 
-	// View mode state
-	let viewMode = $state<ViewMode>('grid');
-
-	// Track if we've initialized from stored preferences
-	let prefsInitialized = $state(false);
-	let lastCollectionId = $state<string | null>(null);
+	// Prefs come from the collection doc; a local override (keyed by collection so
+	// navigation drops it) wins until the mutation round-trips
+	let sortOverride = $state<{ id: string; value: CollectionSortOption } | null>(null);
+	let viewOverride = $state<{ id: string; value: ViewMode } | null>(null);
+	const sortBy = $derived(
+		sortOverride && sortOverride.id === collectionId
+			? sortOverride.value
+			: (collection.data?.sortMode ?? 'manual')
+	);
+	const viewMode = $derived(
+		viewOverride && viewOverride.id === collectionId
+			? viewOverride.value
+			: (collection.data?.viewMode ?? 'grid')
+	);
 
 	// Use dedicated query for collection items with sort option
 	const items = useQuery(api.items.listByCollection, () => ({ collectionId, sortBy }));
@@ -47,58 +59,28 @@
 		}
 	});
 
-	// Derive collection from context
-	const collection = $derived.by(() => {
-		if (allCollections.isLoading || allCollections.error || !allCollections.data) {
-			return { isLoading: allCollections.isLoading, error: allCollections.error, data: null };
-		}
-		return {
-			isLoading: false,
-			error: null,
-			data: allCollections.data.find((c: Doc<'collections'>) => c._id === collectionId) ?? null
-		};
-	});
-
-	// Initialize preferences from stored collection data
-	$effect(() => {
-		const coll = collection.data;
-		const cid = collectionId;
-		if (coll && cid !== lastCollectionId) {
-			untrack(() => {
-				sortBy = (coll.sortMode as SortOption) ?? 'manual';
-				viewMode = (coll.viewMode as ViewMode) ?? 'grid';
-				prefsInitialized = true;
-				lastCollectionId = cid;
-			});
-		}
-	});
-
 	// Save sort preference when changed
-	async function handleSortChange(newSort: SortOption) {
-		sortBy = newSort;
-		if (prefsInitialized) {
-			await mutate(writeToken, (token) =>
-				client.mutation(api.collections.update, {
-					id: collectionId,
-					sortMode: newSort,
-					token
-				})
-			);
-		}
+	async function handleSortChange(newSort: CollectionSortOption) {
+		sortOverride = { id: collectionId, value: newSort };
+		await mutate(writeToken, (token) =>
+			client.mutation(api.collections.update, {
+				id: collectionId,
+				sortMode: newSort,
+				token
+			})
+		);
 	}
 
 	// Save view mode preference when changed
 	async function handleViewModeChange(newMode: ViewMode) {
-		viewMode = newMode;
-		if (prefsInitialized) {
-			await mutate(writeToken, (token) =>
-				client.mutation(api.collections.update, {
-					id: collectionId,
-					viewMode: newMode,
-					token
-				})
-			);
-		}
+		viewOverride = { id: collectionId, value: newMode };
+		await mutate(writeToken, (token) =>
+			client.mutation(api.collections.update, {
+				id: collectionId,
+				viewMode: newMode,
+				token
+			})
+		);
 	}
 
 	// Reorder handler for drag-drop
@@ -113,12 +95,8 @@
 		);
 	}
 
-	// Retry handler for failed screenshots
-	async function handleRetryScreenshot(itemId: Id<'items'>) {
-		await mutate(writeToken, (token) =>
-			client.mutation(api.screenshots.reimageItem, { itemId, token })
-		);
-	}
+	const handleRetryScreenshot = (itemId: Id<'items'>) =>
+		retryScreenshot(client, writeToken, itemId);
 
 	let isEditing = $state(false);
 	let editName = $state('');

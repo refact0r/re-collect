@@ -1,7 +1,14 @@
 <script lang="ts">
 	import { PUBLIC_CONVEX_URL } from '$env/static/public';
 	import { setupConvex, useQuery } from 'convex-svelte';
-	import { setContext, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
+	import {
+		setItemsContext,
+		setCollectionsContext,
+		setCurrentItemsContext,
+		setWriteTokenContext,
+		setIsAuthenticatedContext
+	} from '$lib/context.js';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 
@@ -25,9 +32,9 @@
 	let currentItems = $state<DisplayItem[]>([]);
 
 	// Make available to all child routes via context
-	setContext('items', items);
-	setContext('collections', collections);
-	setContext('currentItems', {
+	setItemsContext(items);
+	setCollectionsContext(collections);
+	setCurrentItemsContext({
 		get items() {
 			return currentItems;
 		},
@@ -36,8 +43,8 @@
 		}
 	});
 	// Pass auth as reactive getters so consumers always get current value
-	setContext('writeToken', () => data.writeToken);
-	setContext('isAuthenticated', () => data.isAuthenticated);
+	setWriteTokenContext(() => data.writeToken);
+	setIsAuthenticatedContext(() => data.isAuthenticated);
 
 	const editItemId = $derived(page.url.searchParams.get('item') as Id<'items'> | null);
 

@@ -466,3 +466,14 @@ button.danger:disabled,
 .section h3 {
 	margin: 0 0 0.5rem 0;
 }
+
+/* Loading pulse shared by item cards/thumbnails */
+@keyframes pulse {
+	0%,
+	100% {
+		color: var(--bg-3);
+	}
+	50% {
+		color: var(--txt-3);
+	}
+}

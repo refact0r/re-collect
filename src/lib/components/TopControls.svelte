@@ -5,22 +5,14 @@
 	import CollectionFilter from './CollectionFilter.svelte';
 	import SortDropdown from './SortDropdown.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-
-	type SortOption =
-		| 'manual'
-		| 'dateAddedNewest'
-		| 'dateAddedOldest'
-		| 'dateModifiedNewest'
-		| 'dateModifiedOldest'
-		| 'titleAsc'
-		| 'titleDesc';
+	import type { CollectionSortOption } from '$lib/types.js';
 
 	interface Props {
 		collectionId?: Id<'collections'>;
-		sortBy: SortOption;
+		sortBy: CollectionSortOption;
 		viewMode: ViewMode;
 		showManualSort?: boolean;
-		onSortChange: (sort: SortOption) => void;
+		onSortChange: (sort: CollectionSortOption) => void;
 		onViewModeChange: (mode: ViewMode) => void;
 		collections?: { _id: Id<'collections'>; name: string }[];
 		filterCollectionIds?: Set<string>;

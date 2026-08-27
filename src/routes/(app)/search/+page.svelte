@@ -1,46 +1,29 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { getContext, untrack } from 'svelte';
 	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../../convex/_generated/api.js';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
 	import ItemList from '$lib/components/ItemList.svelte';
 	import ViewToggle, { type ViewMode } from '$lib/components/ViewToggle.svelte';
-	import { mutate } from '$lib/mutationHelper.js';
-	import type { CurrentItemsContext } from '$lib/types.js';
+	import { mutate, retryScreenshot } from '$lib/mutationHelper.js';
+	import { getWriteTokenContext, getCurrentItemsContext } from '$lib/context.js';
 
 	const client = useConvexClient();
-	const getWriteToken = getContext<() => string | null>('writeToken');
+	const getWriteToken = getWriteTokenContext();
 	const writeToken = $derived(getWriteToken());
-	const currentItemsContext = getContext<CurrentItemsContext>('currentItems');
+	const currentItemsContext = getCurrentItemsContext();
 
-	let viewMode = $state<ViewMode>('grid');
-	let prefsInitialized = $state(false);
-
-	// Load saved preferences
+	// Load saved preferences; the local override wins until the mutation round-trips
 	const savedPrefs = useQuery(api.viewPreferences.get, () => ({ key: 'search' }));
-
-	// Initialize preferences from DB once loaded
-	$effect(() => {
-		const prefs = savedPrefs.data;
-		if (prefs !== undefined && !prefsInitialized) {
-			untrack(() => {
-				if (prefs) {
-					viewMode = (prefs.viewMode as ViewMode) ?? 'grid';
-				}
-				prefsInitialized = true;
-			});
-		}
-	});
+	let viewOverride = $state<ViewMode | null>(null);
+	const viewMode = $derived(viewOverride ?? savedPrefs.data?.viewMode ?? 'grid');
 
 	function handleViewModeChange(newMode: ViewMode) {
-		viewMode = newMode;
-		if (prefsInitialized) {
-			mutate(writeToken, (token) =>
-				client.mutation(api.viewPreferences.set, { key: 'search', viewMode: newMode, token })
-			);
-		}
+		viewOverride = newMode;
+		mutate(writeToken, (token) =>
+			client.mutation(api.viewPreferences.set, { key: 'search', viewMode: newMode, token })
+		);
 	}
 
 	const searchQuery = $derived(page.url.searchParams.get('q') ?? '');
@@ -52,11 +35,8 @@
 		}
 	});
 
-	async function handleRetryScreenshot(itemId: Id<'items'>) {
-		await mutate(writeToken, (token) =>
-			client.mutation(api.screenshots.reimageItem, { itemId, token })
-		);
-	}
+	const handleRetryScreenshot = (itemId: Id<'items'>) =>
+		retryScreenshot(client, writeToken, itemId);
 </script>
 
 <div class="container">

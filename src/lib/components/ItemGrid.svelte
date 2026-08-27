@@ -1,36 +1,23 @@
 <script lang="ts">
 	import { generateKeyBetween } from 'fractional-indexing';
 	import { prepare, layout, type PreparedText } from '@chenglou/pretext';
-	import { getContext, onDestroy } from 'svelte';
-	import { page } from '$app/state';
+	import { onDestroy } from 'svelte';
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { mutate } from '$lib/mutationHelper.js';
+	import { getWriteTokenContext } from '$lib/context.js';
+	import { shouldDisplayAsImage, getItemUrl } from '$lib/itemDisplay.js';
+	import type { DisplayItem } from '$lib/types.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
 	import IconError from '~icons/material-symbols-light/error-outline';
 
 	const client = useConvexClient();
-	const getWriteToken = getContext<() => string | null>('writeToken');
+	const getWriteToken = getWriteTokenContext();
 	const writeToken = $derived(getWriteToken());
 
-	interface Item {
-		_id: Id<'items'>;
-		type: 'url' | 'text' | 'image';
-		title?: string;
-		url?: string;
-		content?: string;
-		imageUrl?: string | null;
-		imageWidth?: number;
-		imageHeight?: number;
-		position?: string;
-		// Screenshot fields for URL items
-		screenshotStatus?: 'pending' | 'processing' | 'completed' | 'failed';
-		screenshotError?: string;
-	}
-
 	interface Props {
-		items: Item[];
+		items: DisplayItem[];
 		collectionId?: Id<'collections'>;
 		onReorder?: (itemId: Id<'items'>, newPosition: string) => void;
 		onRetryScreenshot?: (itemId: Id<'items'>) => void;
@@ -67,7 +54,7 @@
 	// Pretext cache: prepared text measurements keyed by `${itemId}:${text}`
 	const preparedTexts = new Map<string, PreparedText>();
 
-	function getPreparedText(item: Item): PreparedText | null {
+	function getPreparedText(item: DisplayItem): PreparedText | null {
 		const text = getItemText(item);
 		if (!text) return null;
 
@@ -80,7 +67,7 @@
 		return prepared;
 	}
 
-	function getItemText(item: Item): string | null {
+	function getItemText(item: DisplayItem): string | null {
 		if (item.type === 'text') return item.content ?? null;
 		if (
 			item.type === 'url' &&
@@ -107,14 +94,7 @@
 			: (containerWidth - (columnCount - MIN_COLS) * GAP) / columnCount
 	);
 
-	function shouldDisplayAsImage(item: Item): boolean {
-		return (
-			(item.type === 'image' || (item.type === 'url' && item.screenshotStatus === 'completed')) &&
-			!!item.imageUrl
-		);
-	}
-
-	function estimateHeight(item: Item): number {
+	function estimateHeight(item: DisplayItem): number {
 		const titleHeight = item.title ? TITLE_HEIGHT : 0;
 		const innerWidth = columnWidth - CARD_CHROME;
 
@@ -148,9 +128,9 @@
 	}
 
 	// ============ MASONRY DISTRIBUTION ============
-	function distributeMasonry(itemsToDistribute: Item[]): Item[][] {
+	function distributeMasonry(itemsToDistribute: DisplayItem[]): DisplayItem[][] {
 		if (columnCount === 0 || itemsToDistribute.length === 0 || columnWidth === 0) return [];
-		const cols: Item[][] = Array.from({ length: columnCount }, () => []);
+		const cols: DisplayItem[][] = Array.from({ length: columnCount }, () => []);
 		const heights = Array(columnCount).fill(0);
 		for (const item of itemsToDistribute) {
 			const shortest = heights.indexOf(Math.min(...heights));
@@ -164,20 +144,20 @@
 	let normalColumns = $derived(distributeMasonry(items));
 
 	// ============ DRAG STATE ============
-	let draggedItem: Item | null = $state(null);
+	let draggedItem: DisplayItem | null = $state(null);
 	let draggedItemHeight = $state(0);
 	let dragPosition = $state({ x: 0, y: 0 });
 	let dragOffset = $state({ x: 0, y: 0 });
 
 	// Original flat item order (excluding dragged item) for simulation
-	let itemsForSimulation: Item[] = $state([]);
+	let itemsForSimulation: DisplayItem[] = $state([]);
 
 	// The simulated layout during drag (null if current position is invalid)
-	type DisplayItem = Item | { _id: 'placeholder'; height: number };
+	type GridCell = DisplayItem | { _id: 'placeholder'; height: number };
 	let simulationResult: {
-		columns: DisplayItem[][];
-		beforeItem: Item | null;
-		afterItem: Item | null;
+		columns: GridCell[][];
+		beforeItem: DisplayItem | null;
+		afterItem: DisplayItem | null;
 	} | null = $state(null);
 
 	// ============ MASONRY SIMULATION WITH PLACEHOLDER ============
@@ -188,19 +168,23 @@
 	 * Returns the resulting columns and flat-list neighbors if valid, or null if unreachable.
 	 */
 	function distributeMasonryWithPlaceholder(
-		itemsToPlace: Item[],
+		itemsToPlace: DisplayItem[],
 		targetCol: number,
 		targetSlot: number,
 		placeholderHeight: number
-	): { columns: DisplayItem[][]; beforeItem: Item | null; afterItem: Item | null } | null {
+	): {
+		columns: GridCell[][];
+		beforeItem: DisplayItem | null;
+		afterItem: DisplayItem | null;
+	} | null {
 		if (columnCount === 0 || columnWidth === 0) return null;
 
-		const cols: DisplayItem[][] = Array.from({ length: columnCount }, () => []);
+		const cols: GridCell[][] = Array.from({ length: columnCount }, () => []);
 		const heights = Array(columnCount).fill(0);
 		let placeholderPlaced = false;
-		let beforeItem: Item | null = null;
-		let afterItem: Item | null = null;
-		let lastPlacedItem: Item | null = null;
+		let beforeItem: DisplayItem | null = null;
+		let afterItem: DisplayItem | null = null;
+		let lastPlacedItem: DisplayItem | null = null;
 
 		for (let i = 0; i < itemsToPlace.length; i++) {
 			const item = itemsToPlace[i];
@@ -257,7 +241,11 @@
 	 * Determine which slot in a column the cursor wants based on Y position.
 	 * Uses the original column layout (without placeholder) to calculate slot boundaries.
 	 */
-	function getSlotFromCursorY(cursorY: number, containerRect: DOMRect, column: Item[]): number {
+	function getSlotFromCursorY(
+		cursorY: number,
+		containerRect: DOMRect,
+		column: DisplayItem[]
+	): number {
 		const relativeY = cursorY - containerRect.top;
 		let y = 0;
 		for (let i = 0; i < column.length; i++) {
@@ -275,7 +263,7 @@
 	 * Find an item's column and slot in the column layout.
 	 */
 	function findItemInColumns(
-		columns: Item[][],
+		columns: DisplayItem[][],
 		itemId: Id<'items'>
 	): { colIndex: number; slotIndex: number } | null {
 		for (let colIndex = 0; colIndex < columns.length; colIndex++) {
@@ -288,12 +276,12 @@
 	}
 
 	// ============ DISPLAY LAYOUT ============
-	let displayColumns: DisplayItem[][] = $derived.by(() =>
+	let displayColumns: GridCell[][] = $derived.by(() =>
 		draggedItem && simulationResult ? simulationResult.columns : normalColumns
 	);
 
 	// ============ DRAG HANDLERS ============
-	function handleDragStart(item: Item, e: PointerEvent) {
+	function handleDragStart(item: DisplayItem, e: PointerEvent) {
 		if (!isDraggable) return;
 		e.preventDefault();
 
@@ -412,12 +400,6 @@
 		document.body.style.userSelect = '';
 	}
 
-	function getItemUrl(itemId: Id<'items'>): string {
-		const params = new URLSearchParams(page.url.searchParams);
-		params.set('item', itemId);
-		return `${page.url.pathname}?${params}`;
-	}
-
 	$effect(() => {
 		if (!containerElement) return;
 		const observer = new ResizeObserver((entries) => {
@@ -435,6 +417,77 @@
 	});
 </script>
 
+{#snippet cardContent(item: DisplayItem)}
+	{#if shouldDisplayAsImage(item)}
+		<img
+			src={item.imageUrl}
+			alt={item.title ?? item.url ?? 'image'}
+			width={item.imageWidth}
+			height={item.imageHeight}
+			decoding="async"
+			loading="lazy"
+		/>
+	{:else if item.type === 'url'}
+		{#if item.screenshotStatus === 'pending' || item.screenshotStatus === 'processing'}
+			<div class="url-card url-loading">
+				<div class="loading-icon">
+					<IconSchedule />
+				</div>
+				<span class="url-text">{item.url}</span>
+			</div>
+		{:else if item.screenshotStatus === 'failed'}
+			<div class="url-card url-failed">
+				<div class="failed-content">
+					<div class="failed-icon">
+						<IconError />
+					</div>
+					<span class="url-text">{item.url}</span>
+					{#if item.screenshotError}
+						<span class="error-text" title={item.screenshotError}>Screenshot failed</span>
+					{/if}
+				</div>
+				<div class="failed-actions">
+					{#if onRetryScreenshot}
+						<button
+							class="retry-button"
+							title="Retry screenshot"
+							onclick={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								onRetryScreenshot(item._id);
+							}}
+						>
+							retry
+						</button>
+					{/if}
+					<button
+						class="delete-button"
+						title="Delete item"
+						onclick={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							handleDeleteItem(item._id);
+						}}
+					>
+						delete
+					</button>
+				</div>
+			</div>
+		{:else}
+			<div class="url-card">
+				<span class="url-text">{item.url}</span>
+			</div>
+		{/if}
+	{:else if item.type === 'text'}
+		<div class="text-card">
+			<p>{item.content}</p>
+		</div>
+	{/if}
+	{#if item.title}
+		<div class="card-title">{item.title}</div>
+	{/if}
+{/snippet}
+
 <div class="masonry" bind:this={containerElement}>
 	{#each displayColumns as column, colIndex (colIndex)}
 		<div class="column">
@@ -442,80 +495,11 @@
 				{#if item._id === 'placeholder'}
 					<div class="placeholder" style:height="{(item as { height: number }).height}px"></div>
 				{:else}
-					{@const realItem = item as Item}
+					{@const realItem = item as DisplayItem}
 					{@const isDragging = draggedItem?._id === realItem._id}
 					<div class="card-wrapper" class:dragging={isDragging}>
 						<a href={getItemUrl(realItem._id)} class="clickable card">
-							{#if shouldDisplayAsImage(realItem)}
-								<img
-									src={realItem.imageUrl}
-									alt={realItem.title ?? realItem.url ?? 'image'}
-									width={realItem.imageWidth}
-									height={realItem.imageHeight}
-									decoding="async"
-									loading="lazy"
-								/>
-							{:else if realItem.type === 'url'}
-								{#if realItem.screenshotStatus === 'pending' || realItem.screenshotStatus === 'processing'}
-									<div class="url-card url-loading">
-										<div class="loading-icon">
-											<IconSchedule />
-										</div>
-										<span class="url-text">{realItem.url}</span>
-									</div>
-								{:else if realItem.screenshotStatus === 'failed'}
-									<div class="url-card url-failed">
-										<div class="failed-content">
-											<div class="failed-icon">
-												<IconError />
-											</div>
-											<span class="url-text">{realItem.url}</span>
-											{#if realItem.screenshotError}
-												<span class="error-text" title={realItem.screenshotError}
-													>Screenshot failed</span
-												>
-											{/if}
-										</div>
-										<div class="failed-actions">
-											{#if onRetryScreenshot}
-												<button
-													class="retry-button"
-													title="Retry screenshot"
-													onclick={(e) => {
-														e.preventDefault();
-														e.stopPropagation();
-														onRetryScreenshot(realItem._id);
-													}}
-												>
-													retry
-												</button>
-											{/if}
-											<button
-												class="delete-button"
-												title="Delete item"
-												onclick={(e) => {
-													e.preventDefault();
-													e.stopPropagation();
-													handleDeleteItem(realItem._id);
-												}}
-											>
-												delete
-											</button>
-										</div>
-									</div>
-								{:else}
-									<div class="url-card">
-										<span class="url-text">{realItem.url}</span>
-									</div>
-								{/if}
-							{:else if realItem.type === 'text'}
-								<div class="text-card">
-									<p>{realItem.content}</p>
-								</div>
-							{/if}
-							{#if realItem.title}
-								<div class="card-title">{realItem.title}</div>
-							{/if}
+							{@render cardContent(realItem)}
 						</a>
 						{#if isDraggable}
 							<button
@@ -539,26 +523,7 @@
 		style:width="{columnWidth}px"
 	>
 		<div class="clickable card">
-			{#if shouldDisplayAsImage(draggedItem)}
-				<img
-					src={draggedItem.imageUrl}
-					alt={draggedItem.title ?? draggedItem.url ?? 'image'}
-					width={draggedItem.imageWidth}
-					height={draggedItem.imageHeight}
-					decoding="async"
-				/>
-			{:else if draggedItem.type === 'url'}
-				<div class="url-card">
-					<span class="url-text">{draggedItem.url}</span>
-				</div>
-			{:else if draggedItem.type === 'text'}
-				<div class="text-card">
-					<p>{draggedItem.content}</p>
-				</div>
-			{/if}
-			{#if draggedItem.title}
-				<div class="card-title">{draggedItem.title}</div>
-			{/if}
+			{@render cardContent(draggedItem)}
 		</div>
 	</div>
 {/if}
@@ -644,16 +609,6 @@
 	.failed-icon :global(svg) {
 		width: 100%;
 		height: 100%;
-	}
-
-	@keyframes pulse {
-		0%,
-		100% {
-			color: var(--bg-3);
-		}
-		50% {
-			color: var(--txt-3);
-		}
 	}
 
 	/* Failed state for URL items */

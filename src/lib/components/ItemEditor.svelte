@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Doc, Id } from '../../convex/_generated/dataModel.js';
 	import { mutate } from '$lib/mutationHelper.js';
+	import { getItemsContext, getCollectionsContext, getWriteTokenContext } from '$lib/context.js';
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
 	import IconCheck from '~icons/material-symbols/check';
 	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
@@ -17,10 +17,9 @@
 	let { itemId, onClose, onDelete }: Props = $props();
 
 	const client = useConvexClient();
-	const allItems = getContext<ReturnType<typeof import('convex-svelte').useQuery>>('items');
-	const collections =
-		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
-	const getWriteToken = getContext<() => string | null>('writeToken');
+	const allItems = getItemsContext();
+	const collections = getCollectionsContext();
+	const getWriteToken = getWriteTokenContext();
 	const writeToken = $derived(getWriteToken());
 
 	// Find the specific item from context
@@ -82,14 +81,12 @@
 	}
 
 	async function handleDelete() {
-		if (confirm('Delete this item?')) {
-			// Close modal immediately to avoid showing "item not found" error
-			// as Convex updates the items list in real-time
-			onDelete();
+		// Close modal immediately to avoid showing "item not found" error
+		// as Convex updates the items list in real-time
+		onDelete();
 
-			// Delete in background
-			await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
-		}
+		// Delete in background
+		await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
 	}
 
 	const imageBusy = $derived(

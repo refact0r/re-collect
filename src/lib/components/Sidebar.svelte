@@ -1,14 +1,13 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
 	import { page } from '$app/state';
 	import IconClose from '~icons/material-symbols-light/close';
 	import IconChevronLeft from '~icons/material-symbols-light/chevron-left';
 	import IconChevronRight from '~icons/material-symbols-light/chevron-right';
 	import Logo from '$lib/assets/logo.svelte';
+	import { getCollectionsContext, getIsAuthenticatedContext } from '$lib/context.js';
 
-	const collections =
-		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
-	const getIsAuthenticated = getContext<() => boolean>('isAuthenticated');
+	const collections = getCollectionsContext();
+	const getIsAuthenticated = getIsAuthenticatedContext();
 	const isAuthenticated = $derived(getIsAuthenticated());
 
 	let collapsed = $state(false);

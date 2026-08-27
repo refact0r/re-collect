@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { getContext } from 'svelte';
 	import ItemEditor from './ItemEditor.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import type { CurrentItemsContext } from '$lib/types.js';
+	import { getCurrentItemsContext } from '$lib/context.js';
 
 	interface Props {
 		itemId: Id<'items'>;
@@ -16,7 +15,7 @@
 	let editor = $state<ItemEditor>();
 
 	// Get current items from context (set by the active page)
-	const currentItemsContext = getContext<CurrentItemsContext>('currentItems');
+	const currentItemsContext = getCurrentItemsContext();
 
 	const currentItems = $derived(currentItemsContext.items);
 

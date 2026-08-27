@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { mutate } from '$lib/mutationHelper.js';
+	import { getWriteTokenContext } from '$lib/context.js';
 	import IconUpload from '~icons/material-symbols-light/upload-sharp';
 
 	interface Props {
@@ -13,7 +13,7 @@
 	let { collectionId }: Props = $props();
 
 	const client = useConvexClient();
-	const getWriteToken = getContext<() => string | null>('writeToken');
+	const getWriteToken = getWriteTokenContext();
 	const writeToken = $derived(getWriteToken());
 
 	async function uploadFile(file: File): Promise<string | null> {

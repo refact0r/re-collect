@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import { mutate } from '$lib/mutationHelper.js';
+	import { getWriteTokenContext } from '$lib/context.js';
 
 	interface Props {
 		onClose: () => void;
@@ -11,7 +11,7 @@
 	let { onClose }: Props = $props();
 
 	const client = useConvexClient();
-	const getWriteToken = getContext<() => string | null>('writeToken');
+	const getWriteToken = getWriteTokenContext();
 	const writeToken = $derived(getWriteToken());
 
 	let name = $state('');
