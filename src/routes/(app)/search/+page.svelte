@@ -54,7 +54,7 @@
 
 	async function handleRetryScreenshot(itemId: Id<'items'>) {
 		await mutate(writeToken, (token) =>
-			client.mutation(api.screenshots.retryScreenshot, { itemId, token })
+			client.mutation(api.screenshots.reimageItem, { itemId, token })
 		);
 	}
 </script>

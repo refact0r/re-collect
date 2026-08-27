@@ -1,6 +1,11 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
+// Ingestion mode validators, shared by every table/mutation that stores them.
+// undefined always means the default: 'visual' / 'screenshot'.
+export const taggingModeValidator = v.union(v.literal('visual'), v.literal('none'));
+export const linkImageModeValidator = v.union(v.literal('screenshot'), v.literal('og'));
+
 export default defineSchema({
 	items: defineTable({
 		type: v.union(v.literal('url'), v.literal('image'), v.literal('text')),
@@ -41,6 +46,9 @@ export default defineSchema({
 		),
 		taggingError: v.optional(v.string()),
 		taggingModelVersion: v.optional(v.string()),
+		// Ingestion prefs snapshotted from the first collection at add time
+		taggingMode: v.optional(taggingModeValidator),
+		linkImageMode: v.optional(linkImageModeValidator), // URL items only
 		searchText: v.optional(v.string()), // Combined field for full-text search (title + description + url)
 		collections: v.array(v.id('collections')),
 		dateAdded: v.number(),
@@ -57,6 +65,7 @@ export default defineSchema({
 		name: v.string(),
 		dateCreated: v.number(),
 		position: v.optional(v.string()), // Lexicographical fractional index for manual ordering
+		itemCount: v.optional(v.number()), // Denormalized count of itemCollectionPositions rows (backfilled by migration 011)
 		sortMode: v.optional(
 			v.union(
 				v.literal('manual'),
@@ -68,7 +77,10 @@ export default defineSchema({
 				v.literal('titleDesc')
 			)
 		), // Defaults to 'manual'
-		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))) // Defaults to 'grid'
+		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))), // Defaults to 'grid'
+		// Ingestion defaults applied to items added into this collection
+		taggingMode: v.optional(taggingModeValidator),
+		linkImageMode: v.optional(linkImageModeValidator)
 	}).index('by_name', ['name']),
 
 	// View preferences for non-collection pages (home, search)
@@ -86,7 +98,10 @@ export default defineSchema({
 		),
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
 		filterCollectionIds: v.optional(v.array(v.id('collections'))),
-		includeUncollected: v.optional(v.boolean())
+		includeUncollected: v.optional(v.boolean()),
+		// Ingestion defaults for collection-less adds (stored on the "home" row)
+		taggingMode: v.optional(taggingModeValidator),
+		linkImageMode: v.optional(linkImageModeValidator)
 	}).index('by_key', ['key']),
 
 	// Junction table for per-collection item ordering
@@ -97,6 +112,7 @@ export default defineSchema({
 		dateAdded: v.number()
 	})
 		.index('by_collection', ['collectionId', 'position'])
+		.index('by_collection_dateAdded', ['collectionId', 'dateAdded'])
 		.index('by_item', ['itemId'])
 		.index('by_item_and_collection', ['itemId', 'collectionId'])
 });

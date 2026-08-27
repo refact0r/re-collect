@@ -35,59 +35,72 @@ export async function getPositionsByCollection(ctx: QueryCtx, collectionId: Id<'
 		.collect();
 }
 
-// Add item to collection with a position (at the top by default)
-export async function addItemToCollectionWithPosition(
+// Add item to collection: creates the position record (at the top by default),
+// updates the item's denormalized collections array, and bumps the collection's
+// itemCount. All membership changes must go through this or removeItemFromCollection.
+export async function addItemToCollection(
 	ctx: MutationCtx,
 	itemId: Id<'items'>,
 	collectionId: Id<'collections'>,
 	position?: string
 ) {
-	// Check if position record already exists
-	const existing = await ctx.db
-		.query('itemCollectionPositions')
-		.withIndex('by_item_and_collection', (q) =>
-			q.eq('itemId', itemId).eq('collectionId', collectionId)
-		)
-		.unique();
+	const item = await ctx.db.get(itemId);
+	if (!item) throw new Error('Item not found');
+	const collection = await ctx.db.get(collectionId);
+	if (!collection) throw new Error('Collection not found');
 
-	if (existing) {
-		return existing._id;
+	const existing = await getPositionRecord(ctx, itemId, collectionId);
+	if (!existing) {
+		let newPosition = position;
+		if (!newPosition) {
+			const firstPos = await getFirstPosition(ctx, collectionId);
+			newPosition = generateKeyBetween(null, firstPos);
+		}
+		await ctx.db.insert('itemCollectionPositions', {
+			itemId,
+			collectionId,
+			position: newPosition,
+			dateAdded: Date.now()
+		});
+		await ctx.db.patch(collectionId, { itemCount: (collection.itemCount ?? 0) + 1 });
 	}
 
-	// If no position provided, add at the top
-	let newPosition = position;
-	if (!newPosition) {
-		const firstPos = await getFirstPosition(ctx, collectionId);
-		newPosition = generateKeyBetween(null, firstPos);
+	if (!item.collections.includes(collectionId)) {
+		await ctx.db.patch(itemId, {
+			collections: [...item.collections, collectionId],
+			dateModified: Date.now()
+		});
 	}
-
-	return await ctx.db.insert('itemCollectionPositions', {
-		itemId,
-		collectionId,
-		position: newPosition,
-		dateAdded: Date.now()
-	});
 }
 
-// Remove item from collection (delete position record)
-export async function removeItemFromCollectionWithPosition(
+// Remove item from collection: deletes the position record, updates the item's
+// collections array, and decrements the collection's itemCount.
+export async function removeItemFromCollection(
 	ctx: MutationCtx,
 	itemId: Id<'items'>,
 	collectionId: Id<'collections'>
 ) {
-	const record = await ctx.db
-		.query('itemCollectionPositions')
-		.withIndex('by_item_and_collection', (q) =>
-			q.eq('itemId', itemId).eq('collectionId', collectionId)
-		)
-		.unique();
-
+	const record = await getPositionRecord(ctx, itemId, collectionId);
 	if (record) {
 		await ctx.db.delete(record._id);
+		const collection = await ctx.db.get(collectionId);
+		if (collection) {
+			await ctx.db.patch(collectionId, {
+				itemCount: Math.max(0, (collection.itemCount ?? 0) - 1)
+			});
+		}
+	}
+
+	const item = await ctx.db.get(itemId);
+	if (item && item.collections.includes(collectionId)) {
+		await ctx.db.patch(itemId, {
+			collections: item.collections.filter((c) => c !== collectionId),
+			dateModified: Date.now()
+		});
 	}
 }
 
-// Delete all position records for an item
+// Delete all position records for an item (used when deleting the item itself)
 export async function deleteAllPositionsForItem(ctx: MutationCtx, itemId: Id<'items'>) {
 	const records = await ctx.db
 		.query('itemCollectionPositions')
@@ -96,21 +109,12 @@ export async function deleteAllPositionsForItem(ctx: MutationCtx, itemId: Id<'it
 
 	for (const record of records) {
 		await ctx.db.delete(record._id);
-	}
-}
-
-// Delete all position records for a collection
-export async function deleteAllPositionsForCollection(
-	ctx: MutationCtx,
-	collectionId: Id<'collections'>
-) {
-	const records = await ctx.db
-		.query('itemCollectionPositions')
-		.withIndex('by_collection', (q) => q.eq('collectionId', collectionId))
-		.collect();
-
-	for (const record of records) {
-		await ctx.db.delete(record._id);
+		const collection = await ctx.db.get(record.collectionId);
+		if (collection) {
+			await ctx.db.patch(collection._id, {
+				itemCount: Math.max(0, (collection.itemCount ?? 0) - 1)
+			});
+		}
 	}
 }
 
@@ -135,28 +139,12 @@ export const reorderItem = mutation({
 			throw new Error('Item is not in this collection');
 		}
 
-		// Find existing position record
-		const record = await ctx.db
-			.query('itemCollectionPositions')
-			.withIndex('by_item_and_collection', (q) =>
-				q.eq('itemId', args.itemId).eq('collectionId', args.collectionId)
-			)
-			.unique();
+		const record = await getPositionRecord(ctx, args.itemId, args.collectionId);
+		if (!record) throw new Error('Position record not found');
 
-		if (!record) {
-			// Create position record if it doesn't exist (for items added before position system)
-			await ctx.db.insert('itemCollectionPositions', {
-				itemId: args.itemId,
-				collectionId: args.collectionId,
-				position: args.newPosition,
-				dateAdded: Date.now()
-			});
-		} else {
-			// Update existing position
-			await ctx.db.patch(record._id, {
-				position: args.newPosition
-			});
-		}
+		await ctx.db.patch(record._id, {
+			position: args.newPosition
+		});
 	}
 });
 

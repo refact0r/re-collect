@@ -51,24 +51,28 @@
 		}
 	});
 
-	export async function save() {
+	// Returns whether the edits are persisted (true when there was nothing to save)
+	export async function save(): Promise<boolean> {
 		const data = item.data;
-		if (!data) return;
+		if (!data) return false;
 		const unchanged =
 			title === (data.title ?? '') &&
 			description === (data.description ?? '') &&
 			url === (data.url ?? '') &&
 			content === (data.content ?? '');
-		if (unchanged) return;
-		await mutate(writeToken, (token) =>
-			client.mutation(api.items.update, {
-				id: itemId,
-				title,
-				description,
-				url,
-				content,
-				token
-			})
+		if (unchanged) return true;
+		return (
+			(await mutate(writeToken, async (token) => {
+				await client.mutation(api.items.update, {
+					id: itemId,
+					title,
+					description,
+					url,
+					content,
+					token
+				});
+				return true;
+			})) ?? false
 		);
 	}
 
@@ -86,6 +90,29 @@
 			// Delete in background
 			await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
 		}
+	}
+
+	const imageBusy = $derived(
+		item.data?.screenshotStatus === 'pending' || item.data?.screenshotStatus === 'processing'
+	);
+	const tagBusy = $derived(
+		item.data?.taggingStatus === 'pending' || item.data?.taggingStatus === 'processing'
+	);
+	const hasTags = $derived(
+		!!(item.data?.styles?.length || item.data?.aiTags?.length || item.data?.subject)
+	);
+
+	// Clicking a mode re-fetches in that mode, so the active button doubles as refresh
+	async function reimage(mode: 'screenshot' | 'og') {
+		// Persist the draft first so the capture uses the url as edited
+		if (!(await save())) return;
+		await mutate(writeToken, (token) =>
+			client.mutation(api.screenshots.reimageItem, { itemId, mode, token })
+		);
+	}
+
+	async function retag() {
+		await mutate(writeToken, (token) => client.mutation(api.tagging.retagItem, { itemId, token }));
 	}
 
 	async function toggleCollection(collectionId: Id<'collections'>) {
@@ -182,6 +209,45 @@
 					{/if}
 				</div>
 			</div>
+
+			{#if item.data.type === 'url'}
+				<div class="tag-field">
+					<div class="field-label">link image</div>
+					<div class="mode-options">
+						<button
+							class:active={(item.data.linkImageMode ?? 'screenshot') === 'screenshot'}
+							disabled={imageBusy || tagBusy}
+							onclick={() => reimage('screenshot')}
+						>
+							screenshot
+						</button>
+						<button
+							class:active={item.data.linkImageMode === 'og'}
+							disabled={imageBusy || tagBusy}
+							onclick={() => reimage('og')}
+						>
+							og image
+						</button>
+					</div>
+					{#if imageBusy}
+						<p class="status-text">fetching image...</p>
+					{:else if item.data.screenshotStatus === 'failed'}
+						<p class="status-text">failed: {item.data.screenshotError}</p>
+					{/if}
+				</div>
+			{/if}
+
+			{#if item.data.type !== 'text'}
+				<div class="tag-field">
+					<div class="field-label">ai tags</div>
+					<button disabled={tagBusy || imageBusy || !item.data.imageKey} onclick={retag}>
+						{tagBusy ? 'tagging...' : hasTags ? 're-tag' : 'tag'}
+					</button>
+					{#if item.data.taggingStatus === 'failed'}
+						<p class="status-text">failed: {item.data.taggingError}</p>
+					{/if}
+				</div>
+			{/if}
 
 			{#if item.data.paletteHex && item.data.paletteHex.length > 0}
 				<div class="tag-field">

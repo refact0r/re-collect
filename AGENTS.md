@@ -11,6 +11,7 @@ Consult `/reference` docs (R2 integration, icon system) when working with those 
 - Do not excessively preserve backward compatibility, remove obsolte paths and unused code.
 - Choose the simplest implementation that works, avoid overengineering.
 - Use SvelteKit and Convex best practices, refer to the documentation if unsure.
+- Add comments only when logical/necessary, avoid excessive comments.
 
 ## Architecture & Conventions
 

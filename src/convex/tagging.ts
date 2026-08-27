@@ -360,8 +360,15 @@ export const retagItem = mutation({
 		if (item.taggingStatus === 'processing' || item.taggingStatus === 'pending') {
 			throw new Error('Tagging already in progress');
 		}
+		// Don't tag an image that's about to be replaced; the new image
+		// schedules its own tagging (or palette) when it lands
+		if (item.screenshotStatus === 'pending' || item.screenshotStatus === 'processing') {
+			throw new Error('Image fetch in progress; wait for it to finish');
+		}
 
+		// Manually tagging an item opts it into tagging for future re-images
 		await ctx.db.patch(args.itemId, {
+			taggingMode: 'visual',
 			taggingStatus: 'pending',
 			taggingError: undefined
 		});

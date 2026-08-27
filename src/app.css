@@ -252,6 +252,33 @@ label.icon-filled:hover {
 	color: var(--txt-1);
 }
 
+/* Segmented toggle (a row of mutually exclusive option buttons) */
+
+.mode-options {
+	display: flex;
+}
+
+.mode-options button {
+	flex: 1;
+	border: 1px solid var(--border);
+	background: transparent;
+	justify-content: center;
+	color: var(--txt-2);
+}
+
+.mode-options button + button {
+	border-left: none;
+}
+
+.mode-options button:hover:not(:disabled) {
+	background: var(--bg-3);
+}
+
+.mode-options button.active {
+	color: var(--txt-1);
+	background: var(--bg-3);
+}
+
 /* Danger Buttons */
 
 button.danger,

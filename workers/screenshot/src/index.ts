@@ -1,5 +1,19 @@
 import puppeteer, { type Browser, type HTTPRequest } from '@cloudflare/puppeteer';
 
+// Minimal DOM globals for code running inside page.evaluate — the worker
+// tsconfig has no DOM lib, and these only exist in the browser context.
+declare const document: {
+	querySelector(selector: string): { getAttribute(name: string): string | null } | null;
+	baseURI: string;
+};
+declare const Image: new () => {
+	naturalWidth: number;
+	naturalHeight: number;
+	onload: (() => void) | null;
+	onerror: (() => void) | null;
+	src: string;
+};
+
 interface Env {
 	BROWSER: Fetcher;
 	R2_BUCKET: R2Bucket;
@@ -9,6 +23,8 @@ interface Env {
 interface ScreenshotRequest {
 	url: string;
 	itemId: string;
+	// 'og' tries the page's og:image first, falling back to a screenshot
+	mode?: 'screenshot' | 'og';
 }
 
 interface ScreenshotResponse {
@@ -17,6 +33,7 @@ interface ScreenshotResponse {
 	height: number;
 	captureTimeMs: number;
 	title?: string;
+	description?: string;
 }
 
 interface ErrorResponse {
@@ -30,6 +47,20 @@ const NAVIGATION_TIMEOUT = 15000; // 15 seconds for initial navigation
 const NETWORKIDLE_TIMEOUT = 10000; // 10 seconds to wait for network idle
 const FALLBACK_DELAY = 2000; // 2 seconds extra wait if network doesn't idle
 const FORCED_DELAY = 5000; // forced wait before screenshot (for loading screens, client-side rendering)
+
+// og:image handling
+const MIN_OG_WIDTH = 400; // reject tiny og:images (logos, favicons) and fall back to screenshot
+const OG_FETCH_TIMEOUT = 10000;
+const OG_CONTENT_TYPE_EXT: Record<string, string> = {
+	'image/jpeg': 'jpg',
+	'image/png': 'png',
+	'image/webp': 'webp',
+	'image/gif': 'gif',
+	'image/avif': 'avif'
+};
+
+const USER_AGENT =
+	'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 // Validate URL is safe to screenshot
 function isValidUrl(url: string): boolean {
@@ -60,10 +91,68 @@ function isValidUrl(url: string): boolean {
 	}
 }
 
-// Generate a unique key for the screenshot
-function generateImageKey(itemId: string): string {
+// Generate a unique R2 key for a captured image
+function generateImageKey(itemId: string, prefix: string, ext: string): string {
 	const timestamp = Date.now();
-	return `screenshots/${itemId}-${timestamp}.webp`;
+	return `${prefix}/${itemId}-${timestamp}.${ext}`;
+}
+
+// Download the page's og:image (already resolved to an absolute URL) and store
+// it in R2. Returns null whenever the image is unusable (too small, unfetchable,
+// weird content type) so the caller can fall back to a screenshot.
+async function tryOgImage(
+	page: Awaited<ReturnType<Browser['newPage']>>,
+	env: Env,
+	pageUrl: string,
+	itemId: string,
+	imageUrl: string
+): Promise<{ imageKey: string; width: number; height: number } | null> {
+	try {
+		// Measure in the browser: format-agnostic and reuses the page's cookies/referer
+		const dims = await page.evaluate((src: string) => {
+			return new Promise<{ width: number; height: number } | null>((resolve) => {
+				const img = new Image();
+				const timer = setTimeout(() => resolve(null), 10000);
+				img.onload = () => {
+					clearTimeout(timer);
+					resolve({ width: img.naturalWidth, height: img.naturalHeight });
+				};
+				img.onerror = () => {
+					clearTimeout(timer);
+					resolve(null);
+				};
+				img.src = src;
+			});
+		}, imageUrl);
+		if (!dims || dims.width < MIN_OG_WIDTH || dims.height < 1) {
+			console.log(`og:image rejected (dims: ${JSON.stringify(dims)})`);
+			return null;
+		}
+
+		const response = await fetch(imageUrl, {
+			headers: { 'User-Agent': USER_AGENT, Referer: pageUrl },
+			signal: AbortSignal.timeout(OG_FETCH_TIMEOUT)
+		});
+		if (!response.ok) return null;
+
+		const contentType = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+		const ext = contentType ? OG_CONTENT_TYPE_EXT[contentType] : undefined;
+		if (!contentType || !ext) return null;
+
+		const buffer = await response.arrayBuffer();
+		const imageKey = generateImageKey(itemId, 'og', ext);
+		await env.R2_BUCKET.put(imageKey, buffer, {
+			httpMetadata: {
+				contentType,
+				cacheControl: 'public, max-age=31536000, immutable'
+			}
+		});
+
+		return { imageKey, width: dims.width, height: dims.height };
+	} catch (error) {
+		console.log('og:image fetch failed:', error instanceof Error ? error.message : error);
+		return null;
+	}
 }
 
 export default {
@@ -96,6 +185,7 @@ export default {
 		}
 
 		const { url, itemId } = body;
+		const mode = body.mode === 'og' ? 'og' : 'screenshot';
 
 		if (!url || !itemId) {
 			return new Response(JSON.stringify({ error: 'Missing url or itemId' }), {
@@ -140,9 +230,7 @@ export default {
 			});
 
 			// Set a realistic user agent
-			await page.setUserAgent(
-				'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-			);
+			await page.setUserAgent(USER_AGENT);
 
 			// Enable request interception to block tracking/analytics
 			await page.setRequestInterception(true);
@@ -192,6 +280,51 @@ export default {
 			});
 			console.log(`[${Date.now()}] DOM content loaded`);
 
+			// Meta tags live in the initial HTML, so read them right away
+			const meta = await page.evaluate(() => {
+				const read = (selector: string) =>
+					document.querySelector(selector)?.getAttribute('content')?.trim() || null;
+				const rawOgImage =
+					read('meta[property="og:image"]') ??
+					read('meta[name="twitter:image"]') ??
+					read('meta[property="twitter:image"]');
+				// Resolve relative values against baseURI so redirects and <base href>
+				// are honored (the originally requested URL may not be where we landed)
+				let ogImage: string | null = null;
+				if (rawOgImage) {
+					try {
+						ogImage = new URL(rawOgImage, document.baseURI).href;
+					} catch {
+						ogImage = null;
+					}
+				}
+				return {
+					ogImage,
+					description: read('meta[property="og:description"]') ?? read('meta[name="description"]')
+				};
+			});
+
+			// og mode: use the page's own preview image when it's usable
+			if (mode === 'og' && meta.ogImage) {
+				const ogResult = await tryOgImage(page, env, page.url(), itemId, meta.ogImage);
+				if (ogResult) {
+					const captureTimeMs = Date.now() - startTime;
+					console.log(`[${Date.now()}] og:image stored in ${captureTimeMs}ms`);
+					const title = (await page.title()).trim();
+					const response: ScreenshotResponse = {
+						...ogResult,
+						captureTimeMs,
+						title: title || undefined,
+						description: meta.description ?? undefined
+					};
+					return new Response(JSON.stringify(response), {
+						status: 200,
+						headers: { 'Content-Type': 'application/json' }
+					});
+				}
+				console.log(`[${Date.now()}] og:image unusable, falling back to screenshot`);
+			}
+
 			// Try to wait for network idle, but take screenshot anyway if it times out
 			try {
 				await page.waitForNetworkIdle({
@@ -227,7 +360,7 @@ export default {
 			const title = await page.title();
 
 			// Generate unique key for R2
-			const imageKey = generateImageKey(itemId);
+			const imageKey = generateImageKey(itemId, 'screenshots', 'webp');
 
 			// Upload to R2
 			await env.R2_BUCKET.put(imageKey, screenshotBuffer, {
@@ -246,7 +379,8 @@ export default {
 				width: VIEWPORT_WIDTH,
 				height: VIEWPORT_HEIGHT,
 				captureTimeMs,
-				title: title.trim() || undefined // Only include if non-empty
+				title: title.trim() || undefined, // Only include if non-empty
+				description: meta.description ?? undefined
 			};
 
 			return new Response(JSON.stringify(response), {

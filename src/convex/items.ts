@@ -4,13 +4,14 @@ import type { Doc } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { r2 } from './r2';
 import {
-	addItemToCollectionWithPosition,
-	removeItemFromCollectionWithPosition,
+	addItemToCollection,
+	removeItemFromCollection,
 	deleteAllPositionsForItem,
 	getPositionsByCollection
 } from './itemCollectionPositions';
 import { requireAuth } from './lib/auth';
 import { buildSearchText } from './lib/searchText';
+import { getPreferences } from './viewPreferences';
 
 // Get a sortable title string from an item
 function getSortTitle(item: { title?: string; url?: string }): string {
@@ -42,12 +43,24 @@ export const add = mutation({
 		const now = Date.now();
 		const collections = args.collections ?? [];
 
-		// URL items: screenshot lands first, then tagging runs against it.
+		// Ingestion prefs come from the first collection at add time (or the home
+		// defaults for collection-less adds) and are snapshotted onto the item;
+		// later membership changes don't re-apply them.
+		const defaultsSource = collections[0]
+			? await ctx.db.get(collections[0])
+			: await getPreferences(ctx, 'home');
+		const taggingMode = defaultsSource?.taggingMode;
+		const linkImageMode = defaultsSource?.linkImageMode;
+		const wantsTagging = taggingMode !== 'none';
+
+		// URL items: screenshot/og image lands first, then tagging runs against it.
 		// Image items: tagging runs directly off the uploaded image.
 		const screenshotFields =
 			args.type === 'url' && args.url ? { screenshotStatus: 'pending' as const } : {};
 		const taggingFields =
-			args.type === 'image' && args.imageKey ? { taggingStatus: 'pending' as const } : {};
+			args.type === 'image' && args.imageKey && wantsTagging
+				? { taggingStatus: 'pending' as const }
+				: {};
 
 		const itemId = await ctx.db.insert('items', {
 			type: args.type,
@@ -60,34 +73,42 @@ export const add = mutation({
 			imageHeight: args.imageHeight,
 			...screenshotFields,
 			...taggingFields,
+			taggingMode: args.type !== 'text' ? taggingMode : undefined,
+			linkImageMode: args.type === 'url' ? linkImageMode : undefined,
 			searchText: buildSearchText({
 				title: args.title,
 				description: args.description,
 				url: args.url
 			}),
-			collections,
+			collections: [],
 			dateAdded: now,
 			dateModified: now
 		});
 
-		// Create position records for each collection (item appears at top)
+		// Membership bookkeeping (positions, collections array, counts) lives in the helper
 		for (const collectionId of collections) {
-			await addItemToCollectionWithPosition(ctx, itemId, collectionId);
+			await addItemToCollection(ctx, itemId, collectionId);
 		}
 
-		// Trigger screenshot generation for URL items
+		// Trigger screenshot/og image generation for URL items
 		if (args.type === 'url' && args.url) {
-			await ctx.scheduler.runAfter(0, internal.screenshots.generateScreenshot, {
+			await ctx.scheduler.runAfter(0, internal.screenshots.generateScreenshotInternal, {
 				itemId,
-				url: args.url
+				url: args.url,
+				mode: linkImageMode
 			});
 		}
 
-		// Trigger tagging for image items. URL items wait for the screenshot to land.
+		// Trigger tagging for image items (palette always runs, even untagged).
+		// URL items wait for their image to land.
 		if (args.type === 'image' && args.imageKey) {
-			await ctx.scheduler.runAfter(0, internal.taggingActions.preprocessItem, {
-				itemId
-			});
+			await ctx.scheduler.runAfter(
+				0,
+				wantsTagging
+					? internal.taggingActions.preprocessItem
+					: internal.taggingActions.repaletteItem,
+				{ itemId }
+			);
 		}
 
 		return itemId;
@@ -115,17 +136,15 @@ export const update = mutation({
 			const oldCollections = new Set(existing.collections);
 			const newCollections = new Set(collections);
 
-			// Add positions for newly added collections
 			for (const collectionId of newCollections) {
 				if (!oldCollections.has(collectionId)) {
-					await addItemToCollectionWithPosition(ctx, id, collectionId);
+					await addItemToCollection(ctx, id, collectionId);
 				}
 			}
 
-			// Remove positions for removed collections
 			for (const collectionId of oldCollections) {
 				if (!newCollections.has(collectionId)) {
-					await removeItemFromCollectionWithPosition(ctx, id, collectionId);
+					await removeItemFromCollection(ctx, id, collectionId);
 				}
 			}
 		}
@@ -136,7 +155,6 @@ export const update = mutation({
 
 		await ctx.db.patch(id, {
 			...updates,
-			...(collections !== undefined && { collections }),
 			searchText: buildSearchText({
 				title: newTitle,
 				description: newDescription,
@@ -178,18 +196,7 @@ export const addToCollection = mutation({
 	},
 	handler: async (ctx, args) => {
 		requireAuth(args.token);
-		const item = await ctx.db.get(args.itemId);
-		if (!item) throw new Error('Item not found');
-
-		if (!item.collections.includes(args.collectionId)) {
-			// Create position record (item appears at top)
-			await addItemToCollectionWithPosition(ctx, args.itemId, args.collectionId);
-
-			await ctx.db.patch(args.itemId, {
-				collections: [...item.collections, args.collectionId],
-				dateModified: Date.now()
-			});
-		}
+		await addItemToCollection(ctx, args.itemId, args.collectionId);
 	}
 });
 
@@ -201,16 +208,7 @@ export const removeFromCollection = mutation({
 	},
 	handler: async (ctx, args) => {
 		requireAuth(args.token);
-		const item = await ctx.db.get(args.itemId);
-		if (!item) throw new Error('Item not found');
-
-		// Delete position record
-		await removeItemFromCollectionWithPosition(ctx, args.itemId, args.collectionId);
-
-		await ctx.db.patch(args.itemId, {
-			collections: item.collections.filter((c) => c !== args.collectionId),
-			dateModified: Date.now()
-		});
+		await removeItemFromCollection(ctx, args.itemId, args.collectionId);
 	}
 });
 
@@ -369,7 +367,7 @@ export const search = query({
 		const results = await ctx.db
 			.query('items')
 			.withSearchIndex('search_items', (q) => q.search('searchText', args.query))
-			.collect();
+			.take(50);
 
 		return results.map((item) => ({
 			...item,
