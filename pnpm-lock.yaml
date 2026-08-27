@@ -13,7 +13,10 @@ importers:
         version: 0.0.8
       '@convex-dev/r2':
         specifier: ^0.10.2
-        version: 0.10.2(@standard-schema/spec@1.1.0)(convex-svelte@0.14.0(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.10(@typescript-eslint/types@8.67.0))(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(convex@1.45.0)(svelte@5.56.10(@typescript-eslint/types@8.67.0)))(convex@1.45.0)(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)
+        version: 0.10.2(@standard-schema/spec@1.1.0)(convex-svelte@0.14.0(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.10(@typescript-eslint/types@8.67.0))(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(convex@1.45.0(react@19.2.8))(svelte@5.56.10(@typescript-eslint/types@8.67.0)))(convex@1.45.0(react@19.2.8))(react@19.2.8)(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)
+      '@convex-dev/workpool':
+        specifier: ^0.4.10
+        version: 0.4.10(convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(convex@1.45.0(react@19.2.8))(react@19.2.8)
       '@fontsource/dm-mono':
         specifier: ^5.3.0
         version: 5.3.0
@@ -25,10 +28,10 @@ importers:
         version: 3.5.0(sharp@0.35.3(@types/node@26.2.0))
       convex:
         specifier: ^1.45.0
-        version: 1.45.0
+        version: 1.45.0(react@19.2.8)
       convex-svelte:
         specifier: ^0.14.0
-        version: 0.14.0(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.10(@typescript-eslint/types@8.67.0))(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(convex@1.45.0)(svelte@5.56.10(@typescript-eslint/types@8.67.0))
+        version: 0.14.0(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.10(@typescript-eslint/types@8.67.0))(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(convex@1.45.0(react@19.2.8))(svelte@5.56.10(@typescript-eslint/types@8.67.0))
       fractional-indexing:
         specifier: ^4.0.0
         version: 4.0.0
@@ -267,6 +270,12 @@ packages:
     peerDependencies:
       convex: ^1.24.8
 
+  '@convex-dev/batch-worker@0.2.1':
+    resolution: {integrity: sha512-QEDW6XmT+SmBJAmNqyl0QAEmJ4yMKJAIoJ+LntsA8KY5gYP+UhSFvTEMCvo177RZxOR/cfkZ3R+4S/UBaj/JnQ==}
+    peerDependencies:
+      convex: ^1.36.1
+      react: ^18.3.1 || ^19.0.0
+
   '@convex-dev/r2@0.10.2':
     resolution: {integrity: sha512-9FuL3k+CDjuCXYTSuriVxOIpBuUI6qdBWydwJ+9xYJwVh1Z2CpXDRS0kuTsMGsIg8Yr/OiPvNS9W06mfmRBDrg==}
     peerDependencies:
@@ -290,6 +299,12 @@ packages:
         optional: true
       vue:
         optional: true
+
+  '@convex-dev/workpool@0.4.10':
+    resolution: {integrity: sha512-wJTSZ3vmGIfR1enEzttlDq6YtXr/hmJr8DO3sa2v861WHOL1zyyXfWuvrHQiDuOOVryQJujqKc8VcH1IJ4um5g==}
+    peerDependencies:
+      convex: ^1.36.1
+      convex-helpers: ^0.1.94
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -2189,6 +2204,10 @@ packages:
   quansync@0.2.11:
     resolution: {integrity: sha512-AifT7QEbW9Nri4tAwR5M/uzpBuqfZf+zwaEM/QkzEjj7NBuFD2rBuy0K3dE+8wltbezDV7JMA0WfnCPYRSYbXA==}
 
+  react@19.2.8:
+    resolution: {integrity: sha512-PWaYA1L/q9u2u7xYQi+Y3L3Yfnie7XyLeaJICV1MGD6LprsBxcAqGjYyr0eY3p+QdsA+x/Irkt4Qif8D63+Sbw==}
+    engines: {node: '>=0.10.0'}
+
   readdirp@4.1.2:
     resolution: {integrity: sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg==}
     engines: {node: '>= 14.18.0'}
@@ -2886,21 +2905,27 @@ snapshots:
 
   '@cloudflare/workers-types@5.20260823.1': {}
 
-  '@convex-dev/action-retrier@0.3.1(convex@1.45.0)':
+  '@convex-dev/action-retrier@0.3.1(convex@1.45.0(react@19.2.8))':
     dependencies:
-      convex: 1.45.0
+      convex: 1.45.0(react@19.2.8)
 
-  '@convex-dev/r2@0.10.2(@standard-schema/spec@1.1.0)(convex-svelte@0.14.0(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.10(@typescript-eslint/types@8.67.0))(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(convex@1.45.0)(svelte@5.56.10(@typescript-eslint/types@8.67.0)))(convex@1.45.0)(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)':
+  '@convex-dev/batch-worker@0.2.1(convex@1.45.0(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      convex: 1.45.0(react@19.2.8)
+      react: 19.2.8
+
+  '@convex-dev/r2@0.10.2(@standard-schema/spec@1.1.0)(convex-svelte@0.14.0(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.10(@typescript-eslint/types@8.67.0))(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(convex@1.45.0(react@19.2.8))(svelte@5.56.10(@typescript-eslint/types@8.67.0)))(convex@1.45.0(react@19.2.8))(react@19.2.8)(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)':
     dependencies:
       '@aws-sdk/client-s3': 3.1116.0
       '@aws-sdk/s3-request-presigner': 3.1116.0
-      '@convex-dev/action-retrier': 0.3.1(convex@1.45.0)
-      convex: 1.45.0
-      convex-helpers: 0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0)(typescript@6.0.3)
+      '@convex-dev/action-retrier': 0.3.1(convex@1.45.0(react@19.2.8))
+      convex: 1.45.0(react@19.2.8)
+      convex-helpers: 0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
       file-type: 21.3.4
       uuid: 14.0.2
     optionalDependencies:
-      convex-svelte: 0.14.0(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.10(@typescript-eslint/types@8.67.0))(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(convex@1.45.0)(svelte@5.56.10(@typescript-eslint/types@8.67.0))
+      convex-svelte: 0.14.0(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.10(@typescript-eslint/types@8.67.0))(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(convex@1.45.0(react@19.2.8))(svelte@5.56.10(@typescript-eslint/types@8.67.0))
+      react: 19.2.8
       svelte: 5.56.10(@typescript-eslint/types@8.67.0)
     transitivePeerDependencies:
       - '@standard-schema/spec'
@@ -2908,6 +2933,14 @@ snapshots:
       - supports-color
       - typescript
       - zod
+
+  '@convex-dev/workpool@0.4.10(convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.8))(react@19.2.8)(typescript@6.0.3))(convex@1.45.0(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      '@convex-dev/batch-worker': 0.2.1(convex@1.45.0(react@19.2.8))(react@19.2.8)
+      convex: 1.45.0(react@19.2.8)
+      convex-helpers: 0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.8))(react@19.2.8)(typescript@6.0.3)
+    transitivePeerDependencies:
+      - react
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
@@ -3844,16 +3877,17 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0)(typescript@6.0.3):
+  convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.45.0(react@19.2.8))(react@19.2.8)(typescript@6.0.3):
     dependencies:
-      convex: 1.45.0
+      convex: 1.45.0(react@19.2.8)
     optionalDependencies:
       '@standard-schema/spec': 1.1.0
+      react: 19.2.8
       typescript: 6.0.3
 
-  convex-svelte@0.14.0(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.10(@typescript-eslint/types@8.67.0))(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(convex@1.45.0)(svelte@5.56.10(@typescript-eslint/types@8.67.0)):
+  convex-svelte@0.14.0(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.10(@typescript-eslint/types@8.67.0))(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(convex@1.45.0(react@19.2.8))(svelte@5.56.10(@typescript-eslint/types@8.67.0)):
     dependencies:
-      convex: 1.45.0
+      convex: 1.45.0(react@19.2.8)
       esm-env: 1.2.2
       runed: 0.37.1(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.10(@typescript-eslint/types@8.67.0))(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(svelte@5.56.10(@typescript-eslint/types@8.67.0))(typescript@6.0.3)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.1)))(svelte@5.56.10(@typescript-eslint/types@8.67.0))
       svelte: 5.56.10(@typescript-eslint/types@8.67.0)
@@ -3861,11 +3895,13 @@ snapshots:
       - '@sveltejs/kit'
       - zod
 
-  convex@1.45.0:
+  convex@1.45.0(react@19.2.8):
     dependencies:
       esbuild: 0.27.0
       prettier: 3.9.6
       ws: 8.21.0
+    optionalDependencies:
+      react: 19.2.8
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -4491,6 +4527,8 @@ snapshots:
   punycode@2.3.1: {}
 
   quansync@0.2.11: {}
+
+  react@19.2.8: {}
 
   readdirp@4.1.2: {}
 

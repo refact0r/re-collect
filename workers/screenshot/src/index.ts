@@ -44,10 +44,11 @@ interface ErrorResponse {
 // Viewport settings
 const VIEWPORT_WIDTH = 1440;
 const VIEWPORT_HEIGHT = 900;
-const NAVIGATION_TIMEOUT = 15000; // 15 seconds for initial navigation
-const NETWORKIDLE_TIMEOUT = 10000; // 10 seconds to wait for network idle
-const FALLBACK_DELAY = 2000; // 2 seconds extra wait if network doesn't idle
-const FORCED_DELAY = 5000; // forced wait before screenshot (for loading screens, client-side rendering)
+
+// Capture timing
+const NAVIGATION_TIMEOUT = 10000; // initial navigation (domcontentloaded)
+const NETWORKIDLE_TIMEOUT = 10000; // wait for network idle after navigation
+const SETTLE_DELAY = 5000; // wait after network idle for loading animations / client-side rendering
 
 // og:image handling
 const MIN_OG_WIDTH = 400; // reject tiny og:images (logos, favicons) and fall back to screenshot
@@ -141,21 +142,25 @@ async function tryOgImage(
 ): Promise<{ imageKey: string; width: number; height: number } | null> {
 	try {
 		// Measure in the browser: format-agnostic and reuses the page's cookies/referer
-		const dims = await page.evaluate((src: string) => {
-			return new Promise<{ width: number; height: number } | null>((resolve) => {
-				const img = new Image();
-				const timer = setTimeout(() => resolve(null), 10000);
-				img.onload = () => {
-					clearTimeout(timer);
-					resolve({ width: img.naturalWidth, height: img.naturalHeight });
-				};
-				img.onerror = () => {
-					clearTimeout(timer);
-					resolve(null);
-				};
-				img.src = src;
-			});
-		}, imageUrl);
+		const dims = await page.evaluate(
+			(src: string, timeoutMs: number) => {
+				return new Promise<{ width: number; height: number } | null>((resolve) => {
+					const img = new Image();
+					const timer = setTimeout(() => resolve(null), timeoutMs);
+					img.onload = () => {
+						clearTimeout(timer);
+						resolve({ width: img.naturalWidth, height: img.naturalHeight });
+					};
+					img.onerror = () => {
+						clearTimeout(timer);
+						resolve(null);
+					};
+					img.src = src;
+				});
+			},
+			imageUrl,
+			OG_FETCH_TIMEOUT
+		);
 		if (!dims || dims.width < MIN_OG_WIDTH || dims.height < 1) {
 			console.log(`og:image rejected (dims: ${JSON.stringify(dims)})`);
 			return null;
@@ -487,7 +492,7 @@ export default {
 				console.log(`[${Date.now()}] og:image unusable, falling back to screenshot`);
 			}
 
-			// Try to wait for network idle, but take screenshot anyway if it times out
+			// Try to wait for network idle, but take the screenshot anyway if it times out
 			try {
 				await page.waitForNetworkIdle({
 					idleTime: 500,
@@ -495,14 +500,11 @@ export default {
 				});
 				console.log(`[${Date.now()}] Network idle achieved`);
 			} catch {
-				// Network didn't fully idle - wait a bit more and proceed anyway
-				console.log(`[${Date.now()}] Network idle timeout, proceeding with screenshot after delay`);
-				await new Promise((resolve) => setTimeout(resolve, FALLBACK_DELAY));
+				console.log(`[${Date.now()}] Network idle timeout, proceeding with screenshot`);
 			}
 
-			// Always wait a bit more to allow for loading screens and client-side rendering
-			console.log(`[${Date.now()}] Waiting for loading screens to complete...`);
-			await new Promise((resolve) => setTimeout(resolve, FORCED_DELAY));
+			// Settle for loading animations and client-side rendering
+			await new Promise((resolve) => setTimeout(resolve, SETTLE_DELAY));
 
 			// Hide scrollbars for cleaner screenshots
 			await page.addStyleTag({
@@ -520,6 +522,11 @@ export default {
 
 			// Extract page title
 			const title = await page.title();
+
+			// Browser work is done - close it now so the R2 upload doesn't bill
+			// as browser time
+			await browser.close();
+			browser = null;
 
 			// Generate unique key for R2
 			const imageKey = generateImageKey(itemId, 'screenshots', 'webp');
@@ -560,7 +567,12 @@ export default {
 			let statusCode = 500;
 			let userMessage = 'Failed to capture screenshot';
 
-			if (errorMessage.includes('net::ERR_NAME_NOT_RESOLVED')) {
+			// Browser Rendering limit errors (launch rate, concurrency, daily
+			// time) - pass through as 429 so the caller can retry with backoff
+			if (/429|rate limit|too many|limit exceeded/i.test(errorMessage)) {
+				statusCode = 429;
+				userMessage = 'Browser rendering rate limited';
+			} else if (errorMessage.includes('net::ERR_NAME_NOT_RESOLVED')) {
 				statusCode = 502;
 				userMessage = 'Domain not found';
 			} else if (errorMessage.includes('net::ERR_CONNECTION_REFUSED')) {

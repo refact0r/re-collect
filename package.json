@@ -43,6 +43,7 @@
 	"dependencies": {
 		"@chenglou/pretext": "^0.0.8",
 		"@convex-dev/r2": "^0.10.2",
+		"@convex-dev/workpool": "^0.4.10",
 		"@fontsource/dm-mono": "^5.3.0",
 		"@fontsource/dm-sans": "^5.3.0",
 		"colorthief": "^3.5.0",

@@ -11,6 +11,7 @@ import {
 } from './itemCollectionPositions';
 import { authedMutation } from './lib/auth';
 import { buildSearchText } from './lib/searchText';
+import { enqueueScreenshot } from './screenshots';
 import { getPreferences } from './viewPreferences';
 import { sortModeValidator, collectionSortModeValidator } from './schema';
 
@@ -91,11 +92,7 @@ export const add = authedMutation({
 
 		// Trigger screenshot/og image generation for URL items
 		if (args.type === 'url' && args.url) {
-			await ctx.scheduler.runAfter(0, internal.screenshots.generateScreenshotInternal, {
-				itemId,
-				url: args.url,
-				mode: linkImageMode
-			});
+			await enqueueScreenshot(ctx, { itemId, url: args.url, mode: linkImageMode });
 		}
 
 		// Trigger tagging for image items (palette always runs, even untagged).

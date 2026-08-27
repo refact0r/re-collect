@@ -1,10 +1,31 @@
-import { v } from 'convex/values';
-import { internalAction, internalMutation } from './_generated/server';
-import { internal } from './_generated/api';
+import { v, type Infer } from 'convex/values';
+import { internalAction, internalMutation, type MutationCtx } from './_generated/server';
+import { internal, components } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import { Workpool, vOnCompleteArgs } from '@convex-dev/workpool';
 import { authedMutation } from './lib/auth';
 import { r2 } from './r2';
 import { buildSearchText } from './lib/searchText';
 import { linkImageModeValidator } from './schema';
+
+// Serializes captures so the Cloudflare free plan's launch limits (1 new
+// browser per 20s, 3 concurrent) don't drop screenshots during burst saves.
+// Rate-limited attempts throw and are retried here with ~25s backoff.
+const screenshotPool = new Workpool(components.screenshotPool, {
+	maxParallelism: 1,
+	retryActionsByDefault: true,
+	defaultRetryBehavior: { maxAttempts: 4, initialBackoffMs: 25000, base: 2 }
+});
+
+export async function enqueueScreenshot(
+	ctx: MutationCtx,
+	args: { itemId: Id<'items'>; url: string; mode?: Infer<typeof linkImageModeValidator> }
+): Promise<void> {
+	await screenshotPool.enqueueAction(ctx, internal.screenshots.generateScreenshotInternal, args, {
+		onComplete: internal.screenshots.onScreenshotComplete,
+		context: { itemId: args.itemId }
+	});
+}
 
 export const setProcessing = internalMutation({
 	args: { itemId: v.id('items') },
@@ -116,11 +137,7 @@ export const reimageItem = authedMutation({
 			screenshotError: undefined
 		});
 
-		await ctx.scheduler.runAfter(0, internal.screenshots.generateScreenshotInternal, {
-			itemId: args.itemId,
-			url: item.url,
-			mode
-		});
+		await enqueueScreenshot(ctx, { itemId: args.itemId, url: item.url, mode });
 	}
 });
 
@@ -146,8 +163,9 @@ export const generateScreenshotInternal = internalAction({
 			itemId: args.itemId
 		});
 
+		let response: Response;
 		try {
-			const response = await fetch(workerUrl, {
+			response = await fetch(workerUrl, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -159,35 +177,60 @@ export const generateScreenshotInternal = internalAction({
 					mode: args.mode ?? 'screenshot'
 				})
 			});
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				throw new Error(`Screenshot service error: ${response.status} - ${errorText}`);
-			}
-
-			const result = (await response.json()) as {
-				imageKey: string;
-				width: number;
-				height: number;
-				title?: string;
-				description?: string;
-			};
-
-			await ctx.runMutation(internal.screenshots.setCompleted, {
-				itemId: args.itemId,
-				imageKey: result.imageKey,
-				imageWidth: result.width,
-				imageHeight: result.height,
-				title: result.title,
-				description: result.description
-			});
 		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+			// Worker unreachable - throw so the workpool retries; onScreenshotComplete
+			// records the failure if retries run out
+			throw new Error(
+				`Screenshot service unreachable: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
 
+		// Browser Rendering rate limit - throw so the workpool retries with backoff
+		if (response.status === 429) {
+			throw new Error(`Screenshot service rate limited: ${await response.text()}`);
+		}
+
+		if (!response.ok) {
+			const errorText = await response.text();
 			await ctx.runMutation(internal.screenshots.setFailed, {
 				itemId: args.itemId,
-				error: errorMessage
+				error: `Screenshot service error: ${response.status} - ${errorText}`
 			});
+			return;
 		}
+
+		const result = (await response.json()) as {
+			imageKey: string;
+			width: number;
+			height: number;
+			title?: string;
+			description?: string;
+		};
+
+		await ctx.runMutation(internal.screenshots.setCompleted, {
+			itemId: args.itemId,
+			imageKey: result.imageKey,
+			imageWidth: result.width,
+			imageHeight: result.height,
+			title: result.title,
+			description: result.description
+		});
+	}
+});
+
+// Runs after each pool job settles; success is already recorded by the action,
+// so this only marks items whose retries were exhausted (or job canceled)
+export const onScreenshotComplete = internalMutation({
+	args: vOnCompleteArgs(v.object({ itemId: v.id('items') })),
+	handler: async (ctx, args) => {
+		if (args.result.kind === 'success') return;
+
+		const item = await ctx.db.get(args.context.itemId);
+		if (!item || item.screenshotStatus !== 'processing') return;
+
+		await ctx.db.patch(args.context.itemId, {
+			screenshotStatus: 'failed',
+			screenshotError: args.result.kind === 'failed' ? args.result.error : 'Canceled'
+		});
 	}
 });
