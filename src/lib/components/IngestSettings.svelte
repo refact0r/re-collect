@@ -5,7 +5,7 @@
 	import type { Doc, Id } from '../../convex/_generated/dataModel.js';
 	import { mutate } from '$lib/mutationHelper.js';
 	import Dropdown from './Dropdown.svelte';
-	import IconSettings from '~icons/material-symbols-light/settings-outline-sharp';
+	import IconSettings from '~icons/material-symbols-light/settings-outline';
 
 	interface Props {
 		// Without a collection, settings apply to collection-less adds (home defaults)
@@ -51,48 +51,61 @@
 	}
 </script>
 
-<Dropdown label="">
-	{#snippet icon()}
-		<IconSettings />
-	{/snippet}
-	{#snippet content()}
-		<div class="panel">
-			<p class="hint">
-				{collectionId ? 'defaults for new items' : 'defaults for uncollected items'}
-			</p>
-			<div class="group">
-				<span class="group-label">ai tagging</span>
-				<div class="mode-options">
-					{#each taggingOptions as opt (opt.value)}
-						<button
-							class:active={taggingMode === opt.value}
-							onclick={() => setDefaults({ taggingMode: opt.value })}
-						>
-							{opt.label}
-						</button>
-					{/each}
+<div class="ingest-settings">
+	<Dropdown label="">
+		{#snippet icon()}
+			<IconSettings />
+		{/snippet}
+		{#snippet content()}
+			<div class="panel">
+				<p class="hint">
+					{collectionId ? 'defaults for new items' : 'defaults for uncollected items'}
+				</p>
+				<div class="group">
+					<span class="group-label">ai tagging</span>
+					<div class="mode-options">
+						{#each taggingOptions as opt (opt.value)}
+							<button
+								class:active={taggingMode === opt.value}
+								onclick={() => setDefaults({ taggingMode: opt.value })}
+							>
+								{opt.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+				<div class="group">
+					<span class="group-label">link image</span>
+					<div class="mode-options">
+						{#each linkImageOptions as opt (opt.value)}
+							<button
+								class:active={linkImageMode === opt.value}
+								onclick={() => setDefaults({ linkImageMode: opt.value })}
+							>
+								{opt.label}
+							</button>
+						{/each}
+					</div>
 				</div>
 			</div>
-			<div class="group">
-				<span class="group-label">link image</span>
-				<div class="mode-options">
-					{#each linkImageOptions as opt (opt.value)}
-						<button
-							class:active={linkImageMode === opt.value}
-							onclick={() => setDefaults({ linkImageMode: opt.value })}
-						>
-							{opt.label}
-						</button>
-					{/each}
-				</div>
-			</div>
-		</div>
-	{/snippet}
-</Dropdown>
+		{/snippet}
+	</Dropdown>
+</div>
 
 <style>
+	/* Match the icon-filled buttons this sits next to in the controls row */
+	.ingest-settings :global(.trigger) {
+		aspect-ratio: 1;
+		padding: 0.5rem;
+	}
+
+	.ingest-settings :global(.trigger svg) {
+		width: 1.5rem;
+		height: 1.5rem;
+	}
+
 	.panel {
-		min-width: 12.5rem;
+		min-width: 16rem;
 		padding: 0.75rem;
 		display: flex;
 		flex-direction: column;

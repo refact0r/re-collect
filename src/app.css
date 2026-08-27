@@ -264,6 +264,7 @@ label.icon-filled:hover {
 	background: transparent;
 	justify-content: center;
 	color: var(--txt-2);
+	white-space: nowrap;
 }
 
 .mode-options button + button {
