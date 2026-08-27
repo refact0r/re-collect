@@ -56,6 +56,7 @@ export default defineSchema({
 	collections: defineTable({
 		name: v.string(),
 		dateCreated: v.number(),
+		position: v.optional(v.string()), // Lexicographical fractional index for manual ordering
 		sortMode: v.optional(
 			v.union(
 				v.literal('manual'),

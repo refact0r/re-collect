@@ -1,9 +1,16 @@
 import { v } from 'convex/values';
 import { mutation, query, type QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
+import { generateKeyBetween } from 'fractional-indexing';
 import { deleteAllPositionsForCollection } from './itemCollectionPositions';
 import { getImageUrl } from './items';
 import { requireAuth } from './lib/auth';
+
+// Manual order by fractional-index position (backfilled by migration 010)
+async function listSorted(ctx: QueryCtx) {
+	const collections = await ctx.db.query('collections').collect();
+	return collections.sort((a, b) => ((a.position ?? '') < (b.position ?? '') ? -1 : 1));
+}
 
 export const create = mutation({
 	args: {
@@ -12,10 +19,29 @@ export const create = mutation({
 	},
 	handler: async (ctx, args) => {
 		requireAuth(args.token);
+		// New collections go to the top of the manual order
+		const sorted = await listSorted(ctx);
+		const firstPos = sorted[0]?.position ?? null;
 		return await ctx.db.insert('collections', {
 			name: args.name,
-			dateCreated: Date.now()
+			dateCreated: Date.now(),
+			position: generateKeyBetween(null, firstPos)
 		});
+	}
+});
+
+export const reorder = mutation({
+	args: {
+		id: v.id('collections'),
+		newPosition: v.string(),
+		token: v.optional(v.string())
+	},
+	handler: async (ctx, args) => {
+		requireAuth(args.token);
+		const existing = await ctx.db.get(args.id);
+		if (!existing) throw new Error('Collection not found');
+
+		await ctx.db.patch(args.id, { position: args.newPosition });
 	}
 });
 
@@ -84,7 +110,7 @@ export const remove = mutation({
 export const list = query({
 	args: {},
 	handler: async (ctx) => {
-		return await ctx.db.query('collections').order('desc').collect();
+		return await listSorted(ctx);
 	}
 });
 
@@ -132,7 +158,7 @@ async function getCollectionPreviews(
 export const listWithCounts = query({
 	args: {},
 	handler: async (ctx) => {
-		const collections = await ctx.db.query('collections').order('desc').collect();
+		const collections = await listSorted(ctx);
 
 		return Promise.all(
 			collections.map(async (collection) => {
