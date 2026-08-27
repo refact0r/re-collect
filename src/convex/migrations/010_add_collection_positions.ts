@@ -1,28 +1,26 @@
 import { internalMutation } from '../_generated/server';
 import { generateKeyBetween } from 'fractional-indexing';
 
-// Backfill manual-order positions for collections, preserving the
-// previous display order (newest first)
+// Assign fresh sequential manual-order positions to ALL collections,
+// preserving the currently displayed order (position asc, unpositioned
+// first by creation time — matching collections.listSorted). Safe to
+// rerun; also repairs duplicate positions created by pre-migration drags.
 export const migrateCollectionPositions = internalMutation({
 	args: {},
 	handler: async (ctx) => {
-		const collections = await ctx.db.query('collections').order('desc').collect();
+		const collections = await ctx.db.query('collections').collect();
+		collections.sort((a, b) => ((a.position ?? '') < (b.position ?? '') ? -1 : 1));
 
 		let previousPosition: string | null = null;
-		let updated = 0;
+		const order: string[] = [];
 
 		for (const collection of collections) {
-			if (collection.position) {
-				previousPosition = collection.position;
-				continue;
-			}
-
 			const position = generateKeyBetween(previousPosition, null);
 			await ctx.db.patch(collection._id, { position });
 			previousPosition = position;
-			updated++;
+			order.push(`${position} ${collection.name}`);
 		}
 
-		return { success: true, updated };
+		return { success: true, order };
 	}
 });
