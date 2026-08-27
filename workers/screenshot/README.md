@@ -69,17 +69,25 @@ Takes a screenshot of a URL and uploads it to R2.
 ```json
 {
 	"url": "https://example.com",
-	"itemId": "abc123"
+	"itemId": "abc123",
+	"mode": "og"
 }
 ```
+
+`mode` is optional: `"og"` tries the page's og:image first (via a plain fetch,
+then via the browser), falling back to a screenshot; `"screenshot"` (default)
+always captures a viewport screenshot.
 
 **Response (success):**
 
 ```json
 {
 	"imageKey": "screenshots/abc123-1234567890.webp",
-	"width": 1200,
-	"height": 800
+	"width": 1440,
+	"height": 900,
+	"captureTimeMs": 8000,
+	"title": "Example Domain",
+	"description": "..."
 }
 ```
 
@@ -93,7 +101,8 @@ Takes a screenshot of a URL and uploads it to R2.
 
 ## Limitations
 
-- Screenshots are 1200x800 viewport (not full page)
-- 30 second timeout for page load
-- Blocked URLs: localhost, private IPs, .local domains
+- Screenshots are 1440x900 viewport (not full page)
+- 15 second navigation timeout, then up to 10s waiting for network idle plus a
+  forced 5s settle delay before capture
+- Blocked URLs: localhost, private/link-local IPs (v4 and v6), .local/.internal domains
 - Only HTTP/HTTPS URLs allowed

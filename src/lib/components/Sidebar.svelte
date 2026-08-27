@@ -35,7 +35,9 @@
 			onclick={() => (mobileOpen = false)}>collections</a
 		>
 		{#if isAuthenticated}
-			<a href="/logout" class="nav-link" onclick={() => (mobileOpen = false)}>logout</a>
+			<form method="POST" action="/logout" class="logout-form">
+				<button class="nav-link" onclick={() => (mobileOpen = false)}>logout</button>
+			</form>
 		{:else}
 			<a href="/login" class="nav-link" onclick={() => (mobileOpen = false)}>login</a>
 		{/if}
@@ -124,6 +126,15 @@
 
 	.main-nav {
 		display: none;
+	}
+
+	.logout-form {
+		display: contents;
+	}
+
+	.logout-form button {
+		width: 100%;
+		justify-content: flex-start;
 	}
 
 	@media (max-width: 768px) {

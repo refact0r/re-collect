@@ -73,17 +73,48 @@ function isValidUrl(url: string): boolean {
 			return false;
 		}
 
-		// Block localhost and private IPs
+		// Block localhost and private/link-local IPs
 		const hostname = parsed.hostname.toLowerCase();
 		if (
 			hostname === 'localhost' ||
-			hostname === '127.0.0.1' ||
-			hostname.startsWith('192.168.') ||
-			hostname.startsWith('10.') ||
-			hostname.startsWith('172.16.') ||
-			hostname.endsWith('.local')
+			hostname.endsWith('.localhost') ||
+			hostname.endsWith('.local') ||
+			hostname.endsWith('.internal')
 		) {
 			return false;
+		}
+
+		// IPv4 literal: loopback, private (10/8, 172.16/12, 192.168/16),
+		// link-local (169.254/16), and 0.0.0.0/8
+		const ipv4 = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+		if (ipv4) {
+			const [a, b] = [Number(ipv4[1]), Number(ipv4[2])];
+			if (
+				a === 0 ||
+				a === 10 ||
+				a === 127 ||
+				(a === 169 && b === 254) ||
+				(a === 172 && b >= 16 && b <= 31) ||
+				(a === 192 && b === 168)
+			) {
+				return false;
+			}
+		}
+
+		// IPv6 literal (URL.hostname keeps the brackets): loopback, unspecified,
+		// unique-local (fc00::/7), link-local (fe80::/10), IPv4-mapped
+		if (hostname.startsWith('[')) {
+			const ipv6 = hostname.slice(1, -1);
+			if (
+				ipv6 === '::1' ||
+				ipv6 === '::' ||
+				ipv6.startsWith('fc') ||
+				ipv6.startsWith('fd') ||
+				/^fe[89ab]/.test(ipv6) ||
+				ipv6.includes('::ffff:')
+			) {
+				return false;
+			}
 		}
 
 		return true;
@@ -160,7 +191,11 @@ async function tryOgImage(
 // launching a browser (Browser Rendering free plan allows only ~10 min/day and
 // 1 launch per 20s). Returns null on any failure so the caller can fall back
 // to the full browser flow.
-async function tryOgFast(env: Env, url: string, itemId: string): Promise<ScreenshotResponse | null> {
+async function tryOgFast(
+	env: Env,
+	url: string,
+	itemId: string
+): Promise<ScreenshotResponse | null> {
 	const startTime = Date.now();
 	try {
 		const pageResponse = await fetch(url, {
@@ -226,7 +261,11 @@ async function tryOgFast(env: Env, url: string, itemId: string): Promise<Screens
 		});
 		if (!imageResponse.ok) return null;
 
-		const contentType = imageResponse.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+		const contentType = imageResponse.headers
+			.get('content-type')
+			?.split(';')[0]
+			.trim()
+			.toLowerCase();
 		const ext = contentType ? OG_CONTENT_TYPE_EXT[contentType] : undefined;
 		if (!contentType || !ext) return null;
 

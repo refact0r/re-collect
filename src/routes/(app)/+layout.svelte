@@ -132,7 +132,9 @@
 		</div>
 		<div class="nav-actions">
 			{#if data.isAuthenticated}
-				<a href="/logout" class="nav-link">logout</a>
+				<form method="POST" action="/logout">
+					<button class="nav-link">logout</button>
+				</form>
 			{:else}
 				<a href="/login" class="nav-link">login</a>
 			{/if}

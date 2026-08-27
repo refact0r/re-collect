@@ -135,6 +135,8 @@ Documented in `reference/ops.md`, set via `npx convex env set`:
   planned LLM palette-description string.
 - Reasoning ended up fully disabled, not capped at 1500 tokens.
 - searchText integration — deferred in the plan — has shipped (see above).
+- Bulk re-tag migration shipped as `src/convex/migrations/004_bulk_retag.ts`,
+  and the regenerate-tags UI button shipped in `ItemEditor.svelte` (via
+  `tagging.retagItem`).
 - Still unbuilt: `semanticText`/embeddings/vector search, `/tags` index
-  page, regenerate-tags UI button, bulk re-tag migration, tag-quality eval
-  harness beyond the sandbox scripts here.
+  page, tag-quality eval harness beyond the sandbox scripts here.

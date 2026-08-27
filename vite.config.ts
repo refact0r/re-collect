@@ -1,5 +1,4 @@
 import { defineConfig } from 'vitest/config';
-import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
 import Icons from 'unplugin-icons/vite';
 
@@ -12,40 +11,13 @@ export default defineConfig({
 	],
 
 	server: {
-		allowedHosts: ['uncondemnable-disorganizedly-nerissa.ngrok-free.dev']
+		// Allow any ngrok tunnel for testing on other devices
+		allowedHosts: ['.ngrok-free.dev']
 	},
 
 	test: {
 		expect: { requireAssertions: true },
-
-		projects: [
-			{
-				extends: './vite.config.ts',
-
-				test: {
-					name: 'client',
-
-					browser: {
-						enabled: true,
-						provider: playwright(),
-						instances: [{ browser: 'chromium', headless: true }]
-					},
-
-					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
-					exclude: ['src/lib/server/**']
-				}
-			},
-
-			{
-				extends: './vite.config.ts',
-
-				test: {
-					name: 'server',
-					environment: 'node',
-					include: ['src/**/*.{test,spec}.{js,ts}'],
-					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
-				}
-			}
-		]
+		environment: 'node',
+		include: ['src/**/*.{test,spec}.{js,ts}']
 	}
 });

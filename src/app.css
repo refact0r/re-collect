@@ -60,21 +60,11 @@ h3 {
 	font-size: 1.125rem;
 }
 
-.h1,
-.h2,
-.h3 {
+.h1 {
 	font-family: 'DM Sans' !important;
 	font-weight: 500 !important;
 	letter-spacing: -0.02ch !important;
-}
-.h1 {
 	font-size: 1.75rem !important;
-}
-.h2 {
-	font-size: 1.5rem !important;
-}
-.h3 {
-	font-size: 1.125rem !important;
 }
 
 /* Form Elements */
@@ -129,8 +119,7 @@ select {
 }
 
 /* Buttons */
-button,
-.btn {
+button {
 	cursor: pointer;
 	font-family: var(--font);
 	font-weight: var(--font-weight);
@@ -147,28 +136,24 @@ button,
 	text-decoration: none;
 }
 
-button:hover,
-.btn:hover {
+button:hover {
 	background: var(--bg-3);
 	color: var(--txt-1);
 }
 
-button:focus-visible,
-.btn:focus-visible {
+button:focus-visible {
 	outline: 1px solid var(--txt-3);
 	outline-offset: 1px;
 }
 
-button:disabled,
-.btn:disabled {
+button:disabled {
 	background: var(--bg-2);
 	color: var(--txt-3);
 	border-color: var(--border);
 	cursor: not-allowed;
 }
 
-button:disabled:hover,
-.btn:disabled:hover {
+button:disabled:hover {
 	background: var(--bg-2);
 	color: var(--txt-3);
 }
@@ -282,19 +267,16 @@ label.icon-filled:hover {
 
 /* Danger Buttons */
 
-button.danger,
-.btn.danger {
+button.danger {
 	background: var(--danger-bg);
 	border-color: var(--danger-border);
 }
 
-button.danger:hover,
-.btn.danger:hover {
+button.danger:hover {
 	background: var(--danger-border);
 }
 
-button.danger:disabled,
-.btn.danger:disabled {
+button.danger:disabled {
 	background: var(--danger-bg);
 	border-color: var(--danger-border);
 	color: var(--txt-3);
@@ -405,25 +387,6 @@ button.danger:disabled,
 	max-width: calc(100vw - 4rem);
 }
 
-.modal .close-btn {
-	position: absolute;
-	top: 0;
-	right: 0;
-	background: transparent;
-	border: 1px solid transparent;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 1.25rem;
-	padding: var(--spacing);
-	color: var(--txt-3);
-}
-
-.modal .close-btn:hover {
-	background: var(--bg-2);
-	color: var(--txt-1);
-}
-
 /* Status Messages */
 
 .status-text {
@@ -447,24 +410,6 @@ button.danger:disabled,
 
 .page-header h1 {
 	margin: 0;
-}
-
-/* Cards */
-
-.card {
-	border: 1px solid var(--border);
-	padding: 1rem;
-}
-
-/* Sections */
-
-.section {
-	border: 1px solid var(--border);
-	padding: 1rem;
-}
-
-.section h3 {
-	margin: 0 0 0.5rem 0;
 }
 
 /* Loading pulse shared by item cards/thumbnails */

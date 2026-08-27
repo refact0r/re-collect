@@ -1,9 +1,9 @@
 import { redirect } from '@sveltejs/kit';
+import { COOKIE_NAME } from '$lib/server/auth';
 import type { RequestHandler } from './$types';
 
-const COOKIE_NAME = 'auth-session';
-
-export const GET: RequestHandler = async ({ cookies }) => {
+// POST so logout can't be triggered cross-site via a GET (link, <img>, prefetch)
+export const POST: RequestHandler = async ({ cookies }) => {
 	cookies.delete(COOKIE_NAME, { path: '/' });
 	throw redirect(303, '/login');
 };
