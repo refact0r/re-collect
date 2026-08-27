@@ -78,7 +78,7 @@ export default {
 
 		// Validate API key
 		const authHeader = request.headers.get('Authorization');
-		if (!authHeader || authHeader !== `Bearer ${env.API_KEY}`) {
+		if (!env.API_KEY || !authHeader || authHeader !== `Bearer ${env.API_KEY}`) {
 			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
@@ -149,6 +149,12 @@ export default {
 			page.on('request', (request: HTTPRequest) => {
 				const url = request.url();
 				const resourceType = request.resourceType();
+
+				// Never block the page itself (e.g. screenshotting an analytics vendor's own site)
+				if (request.isNavigationRequest() || resourceType === 'document') {
+					request.continue();
+					return;
+				}
 
 				// Block tracking, analytics, and ads that prevent network idle
 				if (

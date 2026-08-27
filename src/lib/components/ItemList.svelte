@@ -41,6 +41,7 @@
 	async function handleDeleteItem(itemId: Id<'items'>, e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
+		if (!confirm('Delete this item?')) return;
 		await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
 	}
 

@@ -52,6 +52,14 @@
 	});
 
 	export async function save() {
+		const data = item.data;
+		if (!data) return;
+		const unchanged =
+			title === (data.title ?? '') &&
+			description === (data.description ?? '') &&
+			url === (data.url ?? '') &&
+			content === (data.content ?? '');
+		if (unchanged) return;
 		await mutate(writeToken, (token) =>
 			client.mutation(api.items.update, {
 				id: itemId,

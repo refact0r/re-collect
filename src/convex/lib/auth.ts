@@ -1,7 +1,8 @@
 import { ConvexError } from 'convex/values';
 
 export function requireAuth(token: string | undefined) {
-	if (token !== process.env.CONVEX_WRITE_TOKEN) {
+	const expected = process.env.CONVEX_WRITE_TOKEN;
+	if (!expected || token !== expected) {
 		throw new ConvexError('Unauthorized');
 	}
 }

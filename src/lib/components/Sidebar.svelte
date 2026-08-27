@@ -8,7 +8,8 @@
 
 	const collections =
 		getContext<ReturnType<typeof import('convex-svelte').useQuery>>('collections');
-	const isAuthenticated = getContext<boolean>('isAuthenticated');
+	const getIsAuthenticated = getContext<() => boolean>('isAuthenticated');
+	const isAuthenticated = $derived(getIsAuthenticated());
 
 	let collapsed = $state(false);
 	let { mobileOpen = $bindable(false) } = $props();
