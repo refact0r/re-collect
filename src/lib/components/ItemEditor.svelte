@@ -155,125 +155,127 @@
 		</div>
 		<!-- Properties & Controls -->
 		<div class="form">
-			<label>
-				title
-				<input type="text" bind:value={title} />
-			</label>
+			<div class="fields">
+				<label>
+					title
+					<input type="text" bind:value={title} />
+				</label>
 
-			<label>
-				description
-				<textarea bind:value={description} rows="3"></textarea>
-			</label>
+				<label>
+					description
+					<textarea bind:value={description} rows="3"></textarea>
+				</label>
 
-			<label>
-				{item.data.type === 'url' ? 'url' : 'source url'}
-				<div class="url-input-row">
-					<input type="url" bind:value={url} />
-					<a
-						href={url}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="icon-filled"
-						aria-label="open url"
-					>
-						<IconOpenInNew />
-					</a>
+				<label>
+					{item.data.type === 'url' ? 'url' : 'source url'}
+					<div class="url-input-row">
+						<input type="url" bind:value={url} />
+						<a
+							href={url}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="icon-filled"
+							aria-label="open url"
+						>
+							<IconOpenInNew />
+						</a>
+					</div>
+				</label>
+
+				<div class="collections-field">
+					<div class="field-label">collections</div>
+					<div class="collections-container">
+						{#if collections.isLoading}
+							<p class="status-text">loading collections...</p>
+						{:else if collections.data?.length === 0}
+							<p class="status-text">no collections yet. <a href="/collections">create one</a></p>
+						{:else}
+							<div class="collection-list">
+								{#each collections.data ?? [] as collection (collection._id)}
+									<label class="checkbox-label">
+										<input
+											type="checkbox"
+											checked={item.data.collections.includes(collection._id)}
+											onchange={() => toggleCollection(collection._id)}
+										/>
+										<span class="checkbox">
+											{#if item.data.collections.includes(collection._id)}
+												<IconCheck />
+											{/if}
+										</span>
+										{collection.name}
+									</label>
+								{/each}
+							</div>
+						{/if}
+					</div>
 				</div>
-			</label>
 
-			<div class="collections-field">
-				<div class="field-label">collections</div>
-				<div class="collections-container">
-					{#if collections.isLoading}
-						<p class="status-text">loading collections...</p>
-					{:else if collections.data?.length === 0}
-						<p class="status-text">no collections yet. <a href="/collections">create one</a></p>
-					{:else}
-						<div class="collection-list">
-							{#each collections.data ?? [] as collection (collection._id)}
-								<label class="checkbox-label">
-									<input
-										type="checkbox"
-										checked={item.data.collections.includes(collection._id)}
-										onchange={() => toggleCollection(collection._id)}
-									/>
-									<span class="checkbox">
-										{#if item.data.collections.includes(collection._id)}
-											<IconCheck />
-										{/if}
-									</span>
-									{collection.name}
-								</label>
+				{#if item.data.paletteHex && item.data.paletteHex.length > 0}
+					<div class="tag-field">
+						<div class="field-label">palette</div>
+						<div class="palette-strip">
+							{#each item.data.paletteHex as hex (hex)}
+								<span class="palette-swatch" style:background={hex}></span>
 							{/each}
 						</div>
-					{/if}
-				</div>
-			</div>
+					</div>
+				{/if}
 
-			{#if item.data.type === 'url'}
-				<div class="tag-field">
-					<div class="field-label">link image</div>
-					<div class="mode-options">
-						<button
-							class:active={(item.data.linkImageMode ?? 'screenshot') === 'screenshot'}
-							disabled={imageBusy || tagBusy}
-							onclick={() => reimage('screenshot')}
-						>
-							screenshot
+				{#if item.data.styles && item.data.styles.length > 0}
+					<div class="tag-field">
+						<div class="field-label">styles</div>
+						<div class="chip-list">
+							{#each item.data.styles as style (style)}
+								<a class="chip" href="/search?q={encodeURIComponent(style)}">{style}</a>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				{#if item.data.type === 'url'}
+					<div class="tag-field">
+						<div class="field-label">link image</div>
+						<div class="mode-options">
+							<button
+								class:active={(item.data.linkImageMode ?? 'screenshot') === 'screenshot'}
+								disabled={imageBusy || tagBusy}
+								onclick={() => reimage('screenshot')}
+							>
+								screenshot
+							</button>
+							<button
+								class:active={item.data.linkImageMode === 'og'}
+								disabled={imageBusy || tagBusy}
+								onclick={() => reimage('og')}
+							>
+								og image
+							</button>
+						</div>
+						{#if imageBusy}
+							<p class="status-text">fetching image...</p>
+						{:else if item.data.screenshotStatus === 'failed'}
+							<p class="status-text">failed: {item.data.screenshotError}</p>
+						{/if}
+					</div>
+				{/if}
+
+				{#if item.data.type !== 'text'}
+					<div class="tag-field">
+						<div class="field-label">ai tags</div>
+						<button disabled={tagBusy || imageBusy || !item.data.imageKey} onclick={retag}>
+							{tagBusy ? 'tagging...' : hasTags ? 're-tag' : 'tag'}
 						</button>
-						<button
-							class:active={item.data.linkImageMode === 'og'}
-							disabled={imageBusy || tagBusy}
-							onclick={() => reimage('og')}
-						>
-							og image
-						</button>
+						{#if item.data.taggingStatus === 'failed'}
+							<p class="status-text">failed: {item.data.taggingError}</p>
+						{/if}
 					</div>
-					{#if imageBusy}
-						<p class="status-text">fetching image...</p>
-					{:else if item.data.screenshotStatus === 'failed'}
-						<p class="status-text">failed: {item.data.screenshotError}</p>
-					{/if}
-				</div>
-			{/if}
+				{/if}
 
-			{#if item.data.type !== 'text'}
-				<div class="tag-field">
-					<div class="field-label">ai tags</div>
-					<button disabled={tagBusy || imageBusy || !item.data.imageKey} onclick={retag}>
-						{tagBusy ? 'tagging...' : hasTags ? 're-tag' : 'tag'}
-					</button>
-					{#if item.data.taggingStatus === 'failed'}
-						<p class="status-text">failed: {item.data.taggingError}</p>
-					{/if}
+				<div class="meta">
+					<p>added: {new Date(item.data.dateAdded).toLocaleString()}</p>
+					<p>modified: {new Date(item.data.dateModified).toLocaleString()}</p>
 				</div>
-			{/if}
-
-			{#if item.data.paletteHex && item.data.paletteHex.length > 0}
-				<div class="tag-field">
-					<div class="field-label">palette</div>
-					<div class="palette-strip">
-						{#each item.data.paletteHex as hex (hex)}
-							<span class="palette-swatch" style:background={hex}></span>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			{#if item.data.styles && item.data.styles.length > 0}
-				<div class="tag-field">
-					<div class="field-label">styles</div>
-					<div class="chip-list">
-						{#each item.data.styles as style (style)}
-							<a class="chip" href="/search?q={encodeURIComponent(style)}">{style}</a>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<div class="meta">
-				<p>added: {new Date(item.data.dateAdded).toLocaleString()}</p>
-				<p>modified: {new Date(item.data.dateModified).toLocaleString()}</p>
 			</div>
 
 			<div class="actions">
@@ -296,8 +298,6 @@
 	}
 
 	.content-preview {
-		position: sticky;
-		top: 0;
 		display: grid;
 		place-items: center;
 		flex: 1;
@@ -307,6 +307,19 @@
 
 	.form {
 		width: 25rem;
+		min-height: 0;
+	}
+
+	.fields {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+		/* extend through the modal padding so the scrollbar sits at its edge */
+		margin-right: -1rem;
+		padding-right: 1rem;
 	}
 
 	.content-preview img {
@@ -443,7 +456,6 @@
 	}
 
 	.actions {
-		margin-top: auto;
 		display: flex;
 		gap: 0.5rem;
 		align-items: center;
@@ -460,10 +472,15 @@
 		}
 
 		.content-preview {
-			position: static;
 			display: block;
 			padding: 1rem;
 			container-type: normal;
+		}
+
+		.fields {
+			overflow-y: visible;
+			margin-right: 0;
+			padding-right: 0;
 		}
 
 		.content-preview img {

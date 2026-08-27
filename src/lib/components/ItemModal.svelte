@@ -84,6 +84,7 @@
 <style>
 	.modal {
 		height: calc(100vh - 4rem);
+		overflow: hidden;
 	}
 
 	@media (max-width: 768px) {
@@ -94,6 +95,7 @@
 		.modal {
 			height: 100vh;
 			max-height: 100vh;
+			overflow-y: auto;
 			width: 100vw;
 			max-width: 100vw;
 			border: none;

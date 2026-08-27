@@ -1,4 +1,5 @@
 import puppeteer, { type Browser, type HTTPRequest } from '@cloudflare/puppeteer';
+import { imageSize } from 'image-size';
 
 // Minimal DOM globals for code running inside page.evaluate — the worker
 // tsconfig has no DOM lib, and these only exist in the browser context.
@@ -155,6 +156,110 @@ async function tryOgImage(
 	}
 }
 
+// Fast og path: fetch the page HTML directly and extract the og:image without
+// launching a browser (Browser Rendering free plan allows only ~10 min/day and
+// 1 launch per 20s). Returns null on any failure so the caller can fall back
+// to the full browser flow.
+async function tryOgFast(env: Env, url: string, itemId: string): Promise<ScreenshotResponse | null> {
+	const startTime = Date.now();
+	try {
+		const pageResponse = await fetch(url, {
+			headers: {
+				'User-Agent': USER_AGENT,
+				'Accept-Language': 'en-US,en;q=0.9',
+				Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+			},
+			signal: AbortSignal.timeout(OG_FETCH_TIMEOUT)
+		});
+		if (!pageResponse.ok) return null;
+		const pageType = pageResponse.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+		if (pageType !== 'text/html' && pageType !== 'application/xhtml+xml') return null;
+
+		const meta = {
+			ogImage: null as string | null,
+			twitterImage: null as string | null,
+			ogTitle: null as string | null,
+			twitterTitle: null as string | null,
+			ogDescription: null as string | null,
+			description: null as string | null,
+			pageTitle: '',
+			baseHref: null as string | null
+		};
+		const rewriter = new HTMLRewriter()
+			.on('meta', {
+				element(el) {
+					const content = el.getAttribute('content')?.trim();
+					if (!content) return;
+					const key = (el.getAttribute('property') ?? el.getAttribute('name'))?.toLowerCase();
+					if (key === 'og:image') meta.ogImage ??= content;
+					else if (key === 'twitter:image') meta.twitterImage ??= content;
+					else if (key === 'og:title') meta.ogTitle ??= content;
+					else if (key === 'twitter:title') meta.twitterTitle ??= content;
+					else if (key === 'og:description') meta.ogDescription ??= content;
+					else if (key === 'description') meta.description ??= content;
+				}
+			})
+			.on('base', {
+				element(el) {
+					meta.baseHref ??= el.getAttribute('href');
+				}
+			})
+			.on('head > title', {
+				text(t) {
+					meta.pageTitle += t.text;
+				}
+			});
+		// Handlers only run as the transformed body is consumed
+		await rewriter.transform(pageResponse).arrayBuffer();
+
+		const rawImage = meta.ogImage ?? meta.twitterImage;
+		if (!rawImage) return null;
+
+		// Resolve relative URLs against <base href> or the final (post-redirect) URL
+		const pageUrl = pageResponse.url || url;
+		const base = meta.baseHref ? new URL(meta.baseHref, pageUrl).href : pageUrl;
+		const imageUrl = new URL(rawImage, base).href;
+
+		const imageResponse = await fetch(imageUrl, {
+			headers: { 'User-Agent': USER_AGENT, Referer: pageUrl },
+			signal: AbortSignal.timeout(OG_FETCH_TIMEOUT)
+		});
+		if (!imageResponse.ok) return null;
+
+		const contentType = imageResponse.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+		const ext = contentType ? OG_CONTENT_TYPE_EXT[contentType] : undefined;
+		if (!contentType || !ext) return null;
+
+		const buffer = await imageResponse.arrayBuffer();
+		const dims = imageSize(new Uint8Array(buffer));
+		if (!dims.width || !dims.height || dims.width < MIN_OG_WIDTH) {
+			console.log(`og:image rejected (dims: ${dims.width}x${dims.height})`);
+			return null;
+		}
+
+		const imageKey = generateImageKey(itemId, 'og', ext);
+		await env.R2_BUCKET.put(imageKey, buffer, {
+			httpMetadata: {
+				contentType,
+				cacheControl: 'public, max-age=31536000, immutable'
+			}
+		});
+
+		const title = meta.pageTitle.trim() || meta.ogTitle || meta.twitterTitle;
+		return {
+			imageKey,
+			width: dims.width,
+			height: dims.height,
+			captureTimeMs: Date.now() - startTime,
+			title: title || undefined,
+			description: meta.ogDescription ?? meta.description ?? undefined
+		};
+	} catch (error) {
+		console.log('fast og fetch failed:', error instanceof Error ? error.message : error);
+		return null;
+	}
+}
+
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		// Only allow POST requests
@@ -200,6 +305,21 @@ export default {
 				status: 400,
 				headers: { 'Content-Type': 'application/json' }
 			});
+		}
+
+		// og mode: try extracting the og:image with a plain fetch first — no
+		// browser time spent. Fall through to the browser flow if it fails
+		// (no og:image, bot-blocked fetch, unusable image).
+		if (mode === 'og') {
+			const fast = await tryOgFast(env, url, itemId);
+			if (fast) {
+				console.log(`[${Date.now()}] og:image stored without browser in ${fast.captureTimeMs}ms`);
+				return new Response(JSON.stringify(fast), {
+					status: 200,
+					headers: { 'Content-Type': 'application/json' }
+				});
+			}
+			console.log(`[${Date.now()}] fast og path failed, falling back to browser`);
 		}
 
 		let browser: Browser | null = null;
@@ -300,6 +420,9 @@ export default {
 				}
 				return {
 					ogImage,
+					// Fallback title for pages that only set <title> via JS after load —
+					// og mode reads the title at domcontentloaded, before scripts settle
+					ogTitle: read('meta[property="og:title"]') ?? read('meta[name="twitter:title"]'),
 					description: read('meta[property="og:description"]') ?? read('meta[name="description"]')
 				};
 			});
@@ -310,7 +433,7 @@ export default {
 				if (ogResult) {
 					const captureTimeMs = Date.now() - startTime;
 					console.log(`[${Date.now()}] og:image stored in ${captureTimeMs}ms`);
-					const title = (await page.title()).trim();
+					const title = (await page.title()).trim() || meta.ogTitle;
 					const response: ScreenshotResponse = {
 						...ogResult,
 						captureTimeMs,
