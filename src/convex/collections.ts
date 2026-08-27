@@ -19,13 +19,13 @@ export const create = mutation({
 	},
 	handler: async (ctx, args) => {
 		requireAuth(args.token);
-		// New collections go to the top of the manual order
+		// New collections go to the bottom of the manual order
 		const sorted = await listSorted(ctx);
-		const firstPos = sorted[0]?.position ?? null;
+		const lastPos = sorted[sorted.length - 1]?.position ?? null;
 		return await ctx.db.insert('collections', {
 			name: args.name,
 			dateCreated: Date.now(),
-			position: generateKeyBetween(null, firstPos)
+			position: generateKeyBetween(lastPos, null)
 		});
 	}
 });
