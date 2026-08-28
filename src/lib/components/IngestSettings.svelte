@@ -31,6 +31,7 @@
 
 	const taggingOptions = [
 		{ value: 'visual', label: 'visual' },
+		{ value: 'text', label: 'text' },
 		{ value: 'none', label: 'none' }
 	] as const;
 	const linkImageOptions = [
@@ -39,7 +40,7 @@
 	] as const;
 
 	async function setDefaults(fields: {
-		taggingMode?: 'visual' | 'none';
+		taggingMode?: 'visual' | 'text' | 'none';
 		linkImageMode?: 'screenshot' | 'og';
 	}) {
 		await mutate(writeToken, (token) =>

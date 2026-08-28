@@ -108,8 +108,10 @@
 		);
 	}
 
-	async function retag() {
-		await mutate(writeToken, (token) => client.mutation(api.tagging.retagItem, { itemId, token }));
+	async function retag(mode?: 'visual' | 'text') {
+		await mutate(writeToken, (token) =>
+			client.mutation(api.tagging.retagItem, { itemId, mode, token })
+		);
 	}
 
 	async function toggleCollection(collectionId: Id<'collections'>) {
@@ -159,7 +161,7 @@
 				</label>
 
 				<label>
-					description
+					notes
 					<textarea bind:value={description} rows="3"></textarea>
 				</label>
 
@@ -230,6 +232,24 @@
 					</div>
 				{/if}
 
+				{#if item.data.subject ?? item.data.ogDescription}
+					<div class="tag-field">
+						<div class="field-label">subject</div>
+						<p class="subject-text">{item.data.subject ?? item.data.ogDescription}</p>
+					</div>
+				{/if}
+
+				{#if item.data.aiTags && item.data.aiTags.length > 0}
+					<div class="tag-field">
+						<div class="field-label">search tags</div>
+						<div class="chip-list">
+							{#each item.data.aiTags as tag (tag)}
+								<a class="chip" href="/search?q={encodeURIComponent(tag)}">{tag}</a>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
 				{#if item.data.type === 'url'}
 					<div class="tag-field">
 						<div class="field-label">link image</div>
@@ -259,10 +279,36 @@
 
 				{#if item.data.type !== 'text'}
 					<div class="tag-field">
-						<div class="field-label">ai tags</div>
-						<button disabled={tagBusy || imageBusy || !item.data.imageKey} onclick={retag}>
-							{tagBusy ? 'tagging...' : hasTags ? 're-tag' : 'tag'}
-						</button>
+						<div class="field-label">ai tagging</div>
+						{#if item.data.type === 'url'}
+							<!-- Clicking a mode re-tags in that mode, so the active button doubles as refresh -->
+							<div class="mode-options">
+								<button
+									class:active={(item.data.taggingMode ?? 'visual') === 'visual'}
+									disabled={tagBusy || imageBusy || !item.data.imageKey}
+									onclick={() => retag('visual')}
+								>
+									visual
+								</button>
+								<button
+									class:active={item.data.taggingMode === 'text'}
+									disabled={tagBusy}
+									onclick={() => retag('text')}
+								>
+									text
+								</button>
+							</div>
+							{#if tagBusy}
+								<p class="status-text">tagging...</p>
+							{/if}
+						{:else}
+							<button
+								disabled={tagBusy || imageBusy || !item.data.imageKey}
+								onclick={() => retag()}
+							>
+								{tagBusy ? 'tagging...' : hasTags ? 're-tag' : 'tag'}
+							</button>
+						{/if}
 						{#if item.data.taggingStatus === 'failed'}
 							<p class="status-text">failed: {item.data.taggingError}</p>
 						{/if}
@@ -369,6 +415,11 @@
 
 	.palette-swatch {
 		flex: 1;
+	}
+
+	.subject-text {
+		font-size: 0.875rem;
+		color: var(--txt-2);
 	}
 
 	.chip-list {

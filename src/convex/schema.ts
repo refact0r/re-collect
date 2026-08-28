@@ -3,7 +3,11 @@ import { v } from 'convex/values';
 
 // Ingestion mode validators, shared by every table/mutation that stores them.
 // undefined always means the default: 'visual' / 'screenshot'.
-export const taggingModeValidator = v.union(v.literal('visual'), v.literal('none'));
+export const taggingModeValidator = v.union(
+	v.literal('visual'),
+	v.literal('text'),
+	v.literal('none')
+);
 export const linkImageModeValidator = v.union(v.literal('screenshot'), v.literal('og'));
 
 // Sort mode validators, shared by every table/mutation that stores them.
@@ -23,7 +27,10 @@ export default defineSchema({
 	items: defineTable({
 		type: v.union(v.literal('url'), v.literal('image'), v.literal('text')),
 		title: v.optional(v.string()),
-		description: v.optional(v.string()),
+		description: v.optional(v.string()), // User notes — never machine-written
+		// og:description captured by the screenshot worker; display fallback when
+		// there's no AI subject, and a search-token source
+		ogDescription: v.optional(v.string()),
 		url: v.optional(v.string()),
 		content: v.optional(v.string()), // For text items
 		imageKey: v.optional(v.string()), // R2 object key for uploaded images

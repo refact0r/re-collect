@@ -21,7 +21,8 @@ Consult `/reference` docs (R2 integration, icon system) when working with those 
 - **Modal routing**: Items open via `?item=<id>` query param (preserves page context)
 - **Context sharing**: Collections and items lists passed down via Svelte context
 - **Manual ordering**: Fractional indexing (lexicographical position strings) in `itemCollectionPositions` table
-- **`searchText` is derived**: combined from title + description + url + AI-tagging output (subject, styles, aiTags); rebuild via `buildSearchText()` in `searchText.ts` on any write that changes those fields
+- **`searchText` is derived**: combined from title + description (user notes) + ogDescription + url + AI-tagging output (subject, styles, aiTags); rebuild via `buildSearchText()` in `searchText.ts` on any write that changes those fields
+- **Prose field ownership**: `description` is user notes (never machine-written), `ogDescription` is worker-captured, `subject` is AI-generated; display shows `subject ?? ogDescription`
 - **R2 images served via public custom domain** (`R2_PUBLIC_URL` env var): URLs are stable `${R2_PUBLIC_URL}/${imageKey}`, no presigning
 - **Dual collection bookkeeping**: `item.collections` (denormalized array) and `itemCollectionPositions` (junction table for ordering) must both be updated when adding/removing items from collections
 - Svelte 5 only - do not use deprecated Svelte features

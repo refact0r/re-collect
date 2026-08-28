@@ -2,6 +2,14 @@
 
 Notes on external configuration that isn't visible from the codebase.
 
+## App worker (Cloudflare)
+
+- Deploy: `pnpm run deploy:app` (builds then `wrangler deploy`). `pnpm run deploy` deploys the Convex backend first, then the app (`pnpm deploy` without `run` is a pnpm built-in — use `run`).
+- `PUBLIC_CONVEX_URL` / `PUBLIC_CONVEX_SITE_URL` are baked into the bundle at build time. Production values come from the checked-in `.env.production`, which overrides `.env.local` during `vite build` — local dev values can't leak into a deploy.
+- Secrets are runtime worker env (rotate without rebuilding, via dashboard or `wrangler secret put`):
+  - `AUTH_PASSWORD` — the login password (`$env/dynamic/private`).
+  - `CONVEX_WRITE_TOKEN` — must match the Convex deployment's env var of the same name.
+
 ## Convex env vars
 
 Set with `npx convex env set <name> <value>`, list with `npx convex env list`.
@@ -41,6 +49,6 @@ Cache invalidation:
 
 ## Cloudflare Worker (screenshot)
 
-- Source: `workers/screenshot/`. Deploy: `cd workers/screenshot && pnpm wrangler deploy`.
+- Source: `workers/screenshot/`. Deploy: `pnpm run deploy:screenshot` (from repo root).
 - Bindings (`wrangler.toml`): `BROWSER` (Browser Rendering), `R2_BUCKET` (bound to `re-collect`).
 - Secret `API_KEY`: set via `wrangler secret put API_KEY` in `workers/screenshot/`. Must match `CLOUDFLARE_SCREENSHOT_KEY`.

@@ -54,7 +54,7 @@ taggingModelVersion: v.optional(v.string()),  // `${model}:${PROMPT_VERSION}`, e
 ```
 
 `searchText` **does** include tagging output: `buildSearchText()` in
-`src/convex/lib/searchText.ts` combines title + description + url + subject +
+`src/convex/lib/searchText.ts` combines title + description + ogDescription + url + subject +
 styles + aiTags + paletteNames, and is rebuilt by every mutation that touches
 any of those fields (`setCompleted`, `setPaletteHex`, item edits).
 
@@ -105,7 +105,13 @@ Validation failure → action throws → `setFailed`.
 | `screenshots.setCompleted` | after patching imageKey/dimensions        | `internal.taggingActions.preprocessItem` |
 | `tagging.retagItem`        | public mutation, auth-gated               | `internal.taggingActions.preprocessItem` |
 
-Text items are never tagged. A screenshot retry produces a new `imageKey` and
+Text items are never tagged. URL items with `taggingMode: 'text'` skip visual
+tagging entirely: `tagging.tagTextItem` (scheduled from `items.add` and
+`tagging.retagItem`, default runtime, no worker/browser involvement) fetches
+the page, extracts readable text via Defuddle + linkedom, truncates to 8k
+chars, and produces genre labels → `styles`, summary → `subject`, topic tags →
+`aiTags` (`TEXT_PROMPT_VERSION` stamps `taggingModelVersion`). The image still gets
+palette extraction via `repaletteItem`. A screenshot retry produces a new `imageKey` and
 unconditionally schedules another tagging run; for a single-user app the
 blast radius of a concurrent duplicate is a wasted OpenRouter call — don't
 fan this trigger out further without an idempotency guard.

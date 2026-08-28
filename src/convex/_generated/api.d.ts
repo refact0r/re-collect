@@ -25,6 +25,7 @@ import type * as migrations_008_palette_names from "../migrations/008_palette_na
 import type * as migrations_009_normalize_tags from "../migrations/009_normalize_tags.js";
 import type * as migrations_010_add_collection_positions from "../migrations/010_add_collection_positions.js";
 import type * as migrations_011_backfill_item_counts from "../migrations/011_backfill_item_counts.js";
+import type * as migrations_012_og_description from "../migrations/012_og_description.js";
 import type * as r2 from "../r2.js";
 import type * as screenshots from "../screenshots.js";
 import type * as tagging from "../tagging.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   "migrations/009_normalize_tags": typeof migrations_009_normalize_tags;
   "migrations/010_add_collection_positions": typeof migrations_010_add_collection_positions;
   "migrations/011_backfill_item_counts": typeof migrations_011_backfill_item_counts;
+  "migrations/012_og_description": typeof migrations_012_og_description;
   r2: typeof r2;
   screenshots: typeof screenshots;
   tagging: typeof tagging;

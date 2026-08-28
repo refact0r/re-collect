@@ -1,7 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { dev } from '$app/environment';
-import { AUTH_PASSWORD } from '$env/static/private';
-import { COOKIE_NAME, safeEqual, sessionToken } from '$lib/server/auth';
+import { COOKIE_NAME, verifyPassword, sessionToken } from '$lib/server/auth';
 import type { Actions } from './$types';
 
 export const actions = {
@@ -9,7 +8,7 @@ export const actions = {
 		const data = await request.formData();
 		const password = data.get('password');
 
-		if (typeof password === 'string' && (await safeEqual(password, AUTH_PASSWORD))) {
+		if (typeof password === 'string' && (await verifyPassword(password))) {
 			cookies.set(COOKIE_NAME, await sessionToken(), {
 				path: '/',
 				httpOnly: true,

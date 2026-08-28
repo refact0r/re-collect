@@ -75,8 +75,8 @@
 					{/if}
 				</div>
 				<span class="item-title">{getDisplayText(item)}</span>
-				{#if item.description}
-					<span class="item-description">{item.description}</span>
+				{#if item.subject ?? item.ogDescription}
+					<span class="item-description">{item.subject ?? item.ogDescription}</span>
 				{/if}
 			</a>
 			{#if item.url}

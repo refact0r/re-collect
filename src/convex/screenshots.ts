@@ -56,10 +56,14 @@ export const setCompleted = internalMutation({
 			await r2.deleteObject(ctx, item.imageKey);
 		}
 
-		// Only fill title/description the user hasn't written themselves
-		const shouldSetTitle = !item.title && args.title;
-		const shouldSetDescription = !item.description && args.description;
-		const wantsTagging = item.taggingMode !== 'none';
+		// Only fill a title the user hasn't written themselves. og:description
+		// goes to its own machine-owned field (kept if a re-fetch returns none);
+		// description stays purely user notes.
+		const title = item.title || args.title || undefined;
+		const ogDescription = args.description ?? item.ogDescription;
+		// Text-mode items tag off the article (scheduled at add time), so a new
+		// image only triggers palette extraction, not visual tagging
+		const wantsVisualTagging = item.taggingMode !== 'none' && item.taggingMode !== 'text';
 
 		await ctx.db.patch(args.itemId, {
 			screenshotStatus: 'completed',
@@ -67,26 +71,27 @@ export const setCompleted = internalMutation({
 			imageWidth: args.imageWidth,
 			imageHeight: args.imageHeight,
 			screenshotError: undefined,
-			...(wantsTagging && { taggingStatus: 'pending' as const, taggingError: undefined }),
-			...(shouldSetTitle && { title: args.title }),
-			...(shouldSetDescription && { description: args.description }),
-			...((shouldSetTitle || shouldSetDescription) && {
-				searchText: buildSearchText({
-					title: shouldSetTitle ? args.title : item.title,
-					description: shouldSetDescription ? args.description : item.description,
-					url: item.url,
-					styles: item.styles,
-					aiTags: item.aiTags,
-					subject: item.subject,
-					paletteNames: item.paletteNames
-				})
+			...(wantsVisualTagging && { taggingStatus: 'pending' as const, taggingError: undefined }),
+			title,
+			ogDescription,
+			searchText: buildSearchText({
+				title,
+				description: item.description,
+				ogDescription,
+				url: item.url,
+				styles: item.styles,
+				aiTags: item.aiTags,
+				subject: item.subject,
+				paletteNames: item.paletteNames
 			})
 		});
 
-		// Palette runs on every new image; the LLM tagger only when tagging is on
+		// Palette runs on every new image; the LLM tagger only when visual tagging is on
 		await ctx.scheduler.runAfter(
 			0,
-			wantsTagging ? internal.taggingActions.preprocessItem : internal.taggingActions.repaletteItem,
+			wantsVisualTagging
+				? internal.taggingActions.preprocessItem
+				: internal.taggingActions.repaletteItem,
 			{ itemId: args.itemId }
 		);
 	}

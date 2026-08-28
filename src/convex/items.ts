@@ -49,16 +49,22 @@ export const add = authedMutation({
 		const defaultsSource = collections[0]
 			? await ctx.db.get(collections[0])
 			: await getPreferences(ctx, 'home');
-		const taggingMode = defaultsSource?.taggingMode;
+		// 'text' tagging only applies to URL items; images in a text-mode
+		// collection fall back to visual tagging
+		const rawTaggingMode = defaultsSource?.taggingMode;
+		const taggingMode =
+			args.type === 'image' && rawTaggingMode === 'text' ? 'visual' : rawTaggingMode;
 		const linkImageMode = defaultsSource?.linkImageMode;
 		const wantsTagging = taggingMode !== 'none';
+		const wantsTextTagging = args.type === 'url' && !!args.url && taggingMode === 'text';
 
-		// URL items: screenshot/og image lands first, then tagging runs against it.
-		// Image items: tagging runs directly off the uploaded image.
+		// URL items in visual mode: screenshot/og image lands first, then tagging
+		// runs against it. Text mode tags off the article, in parallel with the
+		// image fetch. Image items: tagging runs directly off the uploaded image.
 		const screenshotFields =
 			args.type === 'url' && args.url ? { screenshotStatus: 'pending' as const } : {};
 		const taggingFields =
-			args.type === 'image' && args.imageKey && wantsTagging
+			(args.type === 'image' && args.imageKey && wantsTagging) || wantsTextTagging
 				? { taggingStatus: 'pending' as const }
 				: {};
 
@@ -96,7 +102,7 @@ export const add = authedMutation({
 		}
 
 		// Trigger tagging for image items (palette always runs, even untagged).
-		// URL items wait for their image to land.
+		// URL items in visual mode wait for their image to land.
 		if (args.type === 'image' && args.imageKey) {
 			await ctx.scheduler.runAfter(
 				0,
@@ -105,6 +111,11 @@ export const add = authedMutation({
 					: internal.taggingActions.repaletteItem,
 				{ itemId }
 			);
+		}
+
+		// Text-mode tagging runs off the article content, independent of the image
+		if (wantsTextTagging) {
+			await ctx.scheduler.runAfter(0, internal.tagging.tagTextItem, { itemId });
 		}
 
 		return itemId;
@@ -152,6 +163,7 @@ export const update = authedMutation({
 			searchText: buildSearchText({
 				title: newTitle,
 				description: newDescription,
+				ogDescription: existing.ogDescription,
 				url: newUrl,
 				styles: existing.styles,
 				aiTags: existing.aiTags,
