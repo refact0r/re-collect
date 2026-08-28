@@ -41,6 +41,12 @@
 		if (item.url) return item.url;
 		return 'Untitled';
 	}
+
+	// Secondary line: AI summary, else captured og:description; text items
+	// show their own content
+	function getSecondaryText(item: DisplayItem): string | undefined {
+		return item.subject ?? item.ogDescription ?? (item.type === 'text' ? item.content : undefined);
+	}
 </script>
 
 <div class="list">
@@ -75,8 +81,8 @@
 					{/if}
 				</div>
 				<span class="item-title">{getDisplayText(item)}</span>
-				{#if item.subject ?? item.ogDescription}
-					<span class="item-description">{item.subject ?? item.ogDescription}</span>
+				{#if getSecondaryText(item)}
+					<span class="item-description">{getSecondaryText(item)}</span>
 				{/if}
 			</a>
 			{#if item.url}

@@ -19,7 +19,11 @@ async function listSorted(ctx: QueryCtx) {
 
 export const create = authedMutation({
 	args: {
-		name: v.string()
+		name: v.string(),
+		sortMode: v.optional(collectionSortModeValidator),
+		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
+		taggingMode: v.optional(taggingModeValidator),
+		linkImageMode: v.optional(linkImageModeValidator)
 	},
 	handler: async (ctx, args) => {
 		// New collections go to the bottom of the manual order
@@ -28,7 +32,11 @@ export const create = authedMutation({
 		return await ctx.db.insert('collections', {
 			name: args.name,
 			dateCreated: Date.now(),
-			position: generateKeyBetween(lastPos, null)
+			position: generateKeyBetween(lastPos, null),
+			sortMode: args.sortMode,
+			viewMode: args.viewMode,
+			taggingMode: args.taggingMode,
+			linkImageMode: args.linkImageMode
 		});
 	}
 });
