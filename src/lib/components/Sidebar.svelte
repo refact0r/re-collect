@@ -34,6 +34,12 @@
 			class:active={page.url.pathname === '/collections'}
 			onclick={() => (mobileOpen = false)}>collections</a
 		>
+		<a
+			href="/atlas"
+			class="nav-link"
+			class:active={page.url.pathname === '/atlas'}
+			onclick={() => (mobileOpen = false)}>atlas</a
+		>
 		{#if isAuthenticated}
 			<form method="POST" action="/logout" class="logout-form">
 				<button class="nav-link" onclick={() => (mobileOpen = false)}>logout</button>

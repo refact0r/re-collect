@@ -118,6 +118,7 @@
 			<a href="/collections" class="nav-link" class:active={page.url.pathname === '/collections'}
 				>collections</a
 			>
+			<a href="/atlas" class="nav-link" class:active={page.url.pathname === '/atlas'}>atlas</a>
 		</div>
 		<div class="nav-search">
 			<IconSearch />
