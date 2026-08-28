@@ -10,10 +10,15 @@ import { colorNamesForPalette } from './lib/colorNames';
 
 const PROMPT_VERSION = 'v4';
 const TEXT_PROMPT_VERSION = 'text-v2';
-const DEFAULT_MODEL = 'qwen/qwen3.7-flash';
+// Adopted 2026-08-28 after the round-2 bake-off (experiments/tagging/
+// model-comparison-2026-08-round2.md): beat qwen3.7-flash on style accuracy
+// and OCR in both tagging modes at ~7x the (still trivial) cost.
+const DEFAULT_MODEL = 'openai/gpt-5.6-luna';
 const TEMPERATURE = 0.3;
 const MAX_TOKENS = 600;
 const TIMEOUT_MS = 60_000;
+const RETRIES = 2; // plus the initial attempt = 3 total
+const RETRY_BACKOFF_MS = [1000, 3000];
 
 // Ported byte-for-byte from experiments/tagging/tag_qwen.py.
 const PROMPT = `You are tagging an image for a personal visual reference library. The image will be one of: an artwork or illustration, a graphic design piece, a screenshot of a website or digital interface, or a photograph. Your job is to produce structured tags so the user can rediscover this item later. Aesthetic style is the primary axis — spend the most thought there. Also capture the literal content (subject, concrete tags), since those help recall too.
@@ -76,8 +81,20 @@ const FETCH_HEADERS = {
 	Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
 };
 
-// Words ending in -s that aren't actually plurals.
-const KEEP_PLURAL = new Set(['lens', 'iris', 'series', 'species', 'analysis', 'axis', 'chaos']);
+// Words ending in -s that aren't actually plurals, plus proper nouns the
+// models emit that a naive singularizer would mangle (climeworks →
+// "climework"). Add as we find more false positives.
+const KEEP_PLURAL = new Set([
+	'lens',
+	'iris',
+	'series',
+	'species',
+	'analysis',
+	'axis',
+	'chaos',
+	'climeworks',
+	'beaux-arts'
+]);
 const GENERIC_MODIFIERS = new Set(['aesthetic', 'style', 'vibes', 'vibe']);
 // Words that are noise as a suffix — either as a trailing space-separated
 // word ("editorial design" → "editorial") or as a hyphenated tail
@@ -125,7 +142,11 @@ export function normalizeTag(s: string): string {
 			}
 		}
 	}
-	return words.map(singularizeWord).join(' ');
+	// Singularize only the head noun. Interior plural words are usually part
+	// of proper names or compounds ("substans conference", "systems design")
+	// where singularizing corrupts the search anchor.
+	words[words.length - 1] = singularizeWord(words[words.length - 1]);
+	return words.join(' ');
 }
 
 export function dedupePreserveOrder(items: string[]): string[] {
@@ -423,6 +444,34 @@ async function openRouterChat(
 	return content_;
 }
 
+// One call + parse + validate, retried on transport, parse, and schema
+// failures alike — temperature > 0 means a re-roll can succeed, and provider
+// blips (429/502) are common enough that a single attempt fails items
+// needlessly.
+async function tagWithRetries<T>(
+	apiKey: string,
+	model: string,
+	content: unknown,
+	logLabel: string,
+	validate: (parsed: unknown) => T
+): Promise<T> {
+	let lastError: unknown;
+	for (let attempt = 0; attempt <= RETRIES; attempt++) {
+		if (attempt > 0) {
+			const backoff = RETRY_BACKOFF_MS[Math.min(attempt - 1, RETRY_BACKOFF_MS.length - 1)];
+			await new Promise((resolve) => setTimeout(resolve, backoff));
+		}
+		try {
+			const raw = await openRouterChat(apiKey, model, content, logLabel);
+			return validate(parseJsonLenient(raw));
+		} catch (error) {
+			lastError = error;
+			console.warn(`tagging attempt ${attempt + 1} failed for ${logLabel}:`, error);
+		}
+	}
+	throw lastError;
+}
+
 export const callOpenRouter = internalAction({
 	args: {
 		itemId: v.id('items'),
@@ -443,17 +492,16 @@ export const callOpenRouter = internalAction({
 		const dataUrl = `data:${args.mime};base64,${args.downscaledBase64}`;
 
 		try {
-			const content = await openRouterChat(
+			const validated = await tagWithRetries(
 				apiKey,
 				model,
 				[
 					{ type: 'text', text: PROMPT },
 					{ type: 'image_url', image_url: { url: dataUrl } }
 				],
-				args.itemId
+				args.itemId,
+				validateTags
 			);
-
-			const validated = validateTags(parseJsonLenient(content));
 
 			await ctx.runMutation(internal.tagging.setCompleted, {
 				itemId: args.itemId,
@@ -500,13 +548,13 @@ export const tagTextItem = internalAction({
 				.filter((line) => line !== null)
 				.join('\n');
 
-			const content = await openRouterChat(
+			const validated = await tagWithRetries(
 				apiKey,
 				model,
 				`${TEXT_PROMPT}\n\n${input}`,
-				args.itemId
+				args.itemId,
+				validateTextTags
 			);
-			const validated = validateTextTags(parseJsonLenient(content));
 
 			await ctx.runMutation(internal.tagging.setCompleted, {
 				itemId: args.itemId,

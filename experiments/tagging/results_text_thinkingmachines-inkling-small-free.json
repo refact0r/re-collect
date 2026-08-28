@@ -1,0 +1,36 @@
+{
+  "model": "thinkingmachines/inkling-small:free",
+  "mode": "text",
+  "results": {
+    "good-room": {
+      "ok": false,
+      "elapsed_s": 7.33,
+      "error": "RuntimeError: chat failed after 3 attempts: HTTP 403: {\"error\":{\"message\":\"thinkingmachines/inkling-small:free is only available on agentic harnesses. Try plugging it into a coding agent or productivity app listed on https://openrouter.ai/apps\",\"code\":403}}"
+    },
+    "greatwork": {
+      "ok": false,
+      "elapsed_s": 7.33,
+      "error": "RuntimeError: chat failed after 3 attempts: HTTP 403: {\"error\":{\"message\":\"thinkingmachines/inkling-small:free is only available on agentic harnesses. Try plugging it into a coding agent or productivity app listed on https://openrouter.ai/apps\",\"code\":403}}"
+    },
+    "jpeg": {
+      "ok": false,
+      "elapsed_s": 7.33,
+      "error": "RuntimeError: chat failed after 3 attempts: HTTP 403: {\"error\":{\"message\":\"thinkingmachines/inkling-small:free is only available on agentic harnesses. Try plugging it into a coding agent or productivity app listed on https://openrouter.ai/apps\",\"code\":403}}"
+    },
+    "keyboard-latency": {
+      "ok": false,
+      "elapsed_s": 7.33,
+      "error": "RuntimeError: chat failed after 3 attempts: HTTP 403: {\"error\":{\"message\":\"thinkingmachines/inkling-small:free is only available on agentic harnesses. Try plugging it into a coding agent or productivity app listed on https://openrouter.ai/apps\",\"code\":403}}"
+    },
+    "olivine": {
+      "ok": false,
+      "elapsed_s": 7.22,
+      "error": "RuntimeError: chat failed after 3 attempts: HTTP 403: {\"error\":{\"message\":\"thinkingmachines/inkling-small:free is only available on agentic harnesses. Try plugging it into a coding agent or productivity app listed on https://openrouter.ai/apps\",\"code\":403}}"
+    },
+    "syntax-highlighting": {
+      "ok": false,
+      "elapsed_s": 7.2,
+      "error": "RuntimeError: chat failed after 3 attempts: HTTP 403: {\"error\":{\"message\":\"thinkingmachines/inkling-small:free is only available on agentic harnesses. Try plugging it into a coding agent or productivity app listed on https://openrouter.ai/apps\",\"code\":403}}"
+    }
+  }
+}

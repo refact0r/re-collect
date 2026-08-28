@@ -1,0 +1,306 @@
+{
+  "model": "openai/gpt-5.6-luna",
+  "mode": "text",
+  "results": {
+    "good-room": {
+      "ok": true,
+      "elapsed_s": 3.0,
+      "result": {
+        "styles": [
+          "talk transcript",
+          "design criticism",
+          "architecture",
+          "technology criticism"
+        ],
+        "subject": "Frank Chimero compares libraries and other civic spaces with digital technology to imagine more generous, comfortable ways of living with technology.",
+        "tags": [
+          "frank chimero",
+          "the good room",
+          "substan conference",
+          "new york public library",
+          "rose reading room",
+          "penn station",
+          "public space",
+          "digital technology",
+          "attention economy",
+          "technology and society"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2076,
+        "completion_tokens": 89,
+        "total_tokens": 2165,
+        "cost": 0.00062565,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 2073,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00062565,
+          "upstream_inference_prompt_cost": 0.00051885,
+          "upstream_inference_completions_cost": 0.0001068
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0005219999999999999,
+      "provider": "OpenAI"
+    },
+    "greatwork": {
+      "ok": true,
+      "elapsed_s": 3.68,
+      "result": {
+        "styles": [
+          "personal essay",
+          "career advice",
+          "productivity philosophy"
+        ],
+        "subject": "Paul Graham presents a general method for doing great work by following curiosity, choosing meaningful projects, reaching knowledge frontiers, and exploring overlooked questions.",
+        "tags": [
+          "paul graham",
+          "great work",
+          "ambition",
+          "curiosity",
+          "career choice",
+          "personal project",
+          "knowledge frontier",
+          "discovery",
+          "outlier idea",
+          "education",
+          "luck",
+          "interestingness"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1993,
+        "completion_tokens": 110,
+        "total_tokens": 2103,
+        "cost": 0.0006301,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 1990,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0006301,
+          "upstream_inference_prompt_cost": 0.0004981,
+          "upstream_inference_completions_cost": 0.000132
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0005306,
+      "provider": "OpenAI"
+    },
+    "jpeg": {
+      "ok": true,
+      "elapsed_s": 3.2,
+      "result": {
+        "styles": [
+          "technical explainer",
+          "tutorial",
+          "image processing"
+        ],
+        "subject": "A technical explanation of JPEG compression, covering color-space conversion, chroma subsampling, DCT, quantization, entropy coding, and decoding.",
+        "tags": [
+          "jpeg",
+          "image compression",
+          "ycbcr",
+          "chroma subsampling",
+          "discrete cosine transform",
+          "quantization",
+          "huffman coding",
+          "zigzag scanning",
+          "spatial frequency",
+          "human visual perception"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1888,
+        "completion_tokens": 111,
+        "total_tokens": 1999,
+        "cost": 0.00060505,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 1885,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00060505,
+          "upstream_inference_prompt_cost": 0.00047185,
+          "upstream_inference_completions_cost": 0.0001332
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0005108,
+      "provider": "OpenAI"
+    },
+    "keyboard-latency": {
+      "ok": true,
+      "elapsed_s": 3.14,
+      "result": {
+        "styles": [
+          "benchmarking report",
+          "hardware analysis",
+          "performance engineering"
+        ],
+        "subject": "An empirical investigation measures keyboard latency, compares gaming and conventional keyboards, and examines its impact on overall computer responsiveness.",
+        "tags": [
+          "keyboard latency",
+          "gaming keyboard",
+          "input lag",
+          "usb polling",
+          "high-speed camera",
+          "logic analyzer",
+          "human perception",
+          "apple ii",
+          "modern computer",
+          "n-key rollover",
+          "mechanical keyboard"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2109,
+        "completion_tokens": 104,
+        "total_tokens": 2213,
+        "cost": 0.0006519,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 2106,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0006519,
+          "upstream_inference_prompt_cost": 0.0005271,
+          "upstream_inference_completions_cost": 0.0001248
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0005466,
+      "provider": "OpenAI"
+    },
+    "olivine": {
+      "ok": true,
+      "elapsed_s": 2.36,
+      "result": {
+        "styles": [
+          "environmental science explainer",
+          "climate policy analysis",
+          "popular science feature"
+        ],
+        "subject": "The article examines olivine weathering and other carbon-removal methods as ways to reduce atmospheric CO\u2082 and counter climate change.",
+        "tags": [
+          "olivine",
+          "carbon capture",
+          "carbon dioxide removal",
+          "direct air capture",
+          "mineral weathering",
+          "climate change",
+          "geological carbon sequestration",
+          "climework",
+          "carbon engineering",
+          "1pointfive",
+          "tree planting",
+          "fossil fuel"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2000,
+        "completion_tokens": 106,
+        "total_tokens": 2106,
+        "cost": 0.00062705,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 1997,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00062705,
+          "upstream_inference_prompt_cost": 0.00049985,
+          "upstream_inference_completions_cost": 0.0001272
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0005272,
+      "provider": "OpenAI"
+    },
+    "syntax-highlighting": {
+      "ok": true,
+      "elapsed_s": 3.47,
+      "result": {
+        "styles": [
+          "design criticism",
+          "typography",
+          "software interface"
+        ],
+        "subject": "An argument for minimalist, memorable syntax highlighting that prioritizes useful distinctions, readable contrast, and meaningful code structure.",
+        "tags": [
+          "syntax highlighting",
+          "color theme",
+          "code editor",
+          "alabaster",
+          "light theme",
+          "dark theme",
+          "color theory",
+          "comment",
+          "oklab",
+          "developer experience"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2108,
+        "completion_tokens": 97,
+        "total_tokens": 2205,
+        "cost": 0.00064325,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 2105,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00064325,
+          "upstream_inference_prompt_cost": 0.00052685,
+          "upstream_inference_completions_cost": 0.0001164
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.000538,
+      "provider": "OpenAI"
+    }
+  }
+}

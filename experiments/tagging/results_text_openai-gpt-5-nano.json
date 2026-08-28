@@ -1,0 +1,307 @@
+{
+  "model": "openai/gpt-5-nano",
+  "mode": "text",
+  "results": {
+    "good-room": {
+      "ok": true,
+      "elapsed_s": 21.43,
+      "result": {
+        "styles": [
+          "talk transcript",
+          "design criticism",
+          "retrospective"
+        ],
+        "subject": "Frank Chimero reflects on how technology shapes daily life and argues for redesigning tech to preserve comfort, attention, and humaneness, using libraries and public spaces as lessons.",
+        "tags": [
+          "frank chimero",
+          "the good room",
+          "design philosophy",
+          "technology",
+          "public library",
+          "new york public library",
+          "rose reading room",
+          "beaux-art",
+          "attention economy",
+          "comfort in tech",
+          "substan conference",
+          "bergen norway"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2076,
+        "completion_tokens": 2084,
+        "total_tokens": 4160,
+        "cost": 0.000851,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1920,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000851,
+          "upstream_inference_prompt_cost": 1.74e-05,
+          "upstream_inference_completions_cost": 0.0008336
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1920,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0009374,
+      "reasoning_forced": true,
+      "provider": "OpenAI"
+    },
+    "greatwork": {
+      "ok": true,
+      "elapsed_s": 68.09,
+      "result": {
+        "styles": [
+          "personal essay",
+          "manifesto",
+          "tutorial",
+          "career advice"
+        ],
+        "subject": "An across-field guide to doing great work by choosing a field you love, reaching its frontier, identifying gaps, and pursuing ambitious, curious projects.",
+        "tags": [
+          "paul graham",
+          "great work",
+          "curiosity",
+          "ambition",
+          "frontier of knowledge",
+          "identify gap",
+          "own project",
+          "learning by doing",
+          "interdisciplinary connection"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1993,
+        "completion_tokens": 2314,
+        "total_tokens": 4307,
+        "cost": 0.00102525,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00102525,
+          "upstream_inference_prompt_cost": 9.965e-05,
+          "upstream_inference_completions_cost": 0.0009256
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2176,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00102525,
+      "reasoning_forced": true,
+      "provider": "OpenAI"
+    },
+    "jpeg": {
+      "ok": true,
+      "elapsed_s": 19.08,
+      "result": {
+        "styles": [
+          "tutorial",
+          "documentation",
+          "explanation"
+        ],
+        "subject": "Overview of how JPEG compression works, including color space conversion to Y'CbCr, chroma subsampling, DCT, quantization, and entropy coding.",
+        "tags": [
+          "jpeg",
+          "compression",
+          "ycbcr",
+          "luminance-chrominance",
+          "chroma_subsampling",
+          "dct",
+          "quantization",
+          "huffman coding",
+          "zigzag scan",
+          "dc-coefficient"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1888,
+        "completion_tokens": 1701,
+        "total_tokens": 3589,
+        "cost": 0.00069416,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00069416,
+          "upstream_inference_prompt_cost": 1.376e-05,
+          "upstream_inference_completions_cost": 0.0006804
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1536,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0007748,
+      "reasoning_forced": true,
+      "provider": "OpenAI"
+    },
+    "keyboard-latency": {
+      "ok": true,
+      "elapsed_s": 17.59,
+      "result": {
+        "styles": [
+          "case study",
+          "technical analysis",
+          "hardware engineering"
+        ],
+        "subject": "Hands-on measurement of keyboard latency across models, debunking 1000Hz claims and evaluating whether keyboard latency impacts real user performance.",
+        "tags": [
+          "keyboard-latency",
+          "polling-rate-1000hz",
+          "usb-latency",
+          "gaming-keyboard",
+          "keystroke-latency",
+          "latency-perception",
+          "end-to-end-latency",
+          "apple-ii",
+          "n-key-rollover",
+          "logic-analyzer"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2109,
+        "completion_tokens": 1539,
+        "total_tokens": 3648,
+        "cost": 0.00072105,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00072105,
+          "upstream_inference_prompt_cost": 0.00010545,
+          "upstream_inference_completions_cost": 0.0006156
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1408,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00072105,
+      "reasoning_forced": true,
+      "provider": "OpenAI"
+    },
+    "olivine": {
+      "ok": true,
+      "elapsed_s": 18.74,
+      "result": {
+        "styles": [
+          "retrospective",
+          "review"
+        ],
+        "subject": "Explores olivine weathering as a natural, slow mechanism to sequester atmospheric CO2 and contrasts it with modern direct-air capture approaches.",
+        "tags": [
+          "olivine weathering",
+          "carbon sequestration",
+          "direct-air capture",
+          "amine sorbent",
+          "climework",
+          "carbon engineering",
+          "1pointfive",
+          "carbonate mineral",
+          "silicate weathering",
+          "climate change"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2000,
+        "completion_tokens": 1963,
+        "total_tokens": 3963,
+        "cost": 0.0007988,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1920,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0007988,
+          "upstream_inference_prompt_cost": 1.36e-05,
+          "upstream_inference_completions_cost": 0.0007852
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1792,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0008852,
+      "reasoning_forced": true,
+      "provider": "OpenAI"
+    },
+    "syntax-highlighting": {
+      "ok": true,
+      "elapsed_s": 17.66,
+      "result": {
+        "styles": [
+          "design critique",
+          "tutorial",
+          "opinion"
+        ],
+        "subject": "A persuasive guide on building effective, minimal syntax highlighting by prioritizing readability, contrast, and selective highlighting in code editors.",
+        "tags": [
+          "syntax-highlighting",
+          "color-theme",
+          "code-editor",
+          "alabaster",
+          "oklab-color-space",
+          "contrast",
+          "dark-vs-light-theme",
+          "comments-highlighting",
+          "disabled-code",
+          "clojure"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2108,
+        "completion_tokens": 1815,
+        "total_tokens": 3923,
+        "cost": 0.00073924,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2048,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00073924,
+          "upstream_inference_prompt_cost": 1.324e-05,
+          "upstream_inference_completions_cost": 0.000726
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1664,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0008313999999999999,
+      "reasoning_forced": true,
+      "provider": "OpenAI"
+    }
+  }
+}

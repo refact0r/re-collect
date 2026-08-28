@@ -1,0 +1,38 @@
+[
+  {
+    "slug": "olivine",
+    "url": "https://worksinprogress.co/issue/olivine-weathering",
+    "title": "Carbon capture using olivine - Works in Progress Magazine",
+    "chars": 8000
+  },
+  {
+    "slug": "syntax-highlighting",
+    "url": "https://tonsky.me/blog/syntax-highlighting/",
+    "title": "I am sorry, but everyone is getting syntax highlighting wrong",
+    "chars": 8000
+  },
+  {
+    "slug": "jpeg",
+    "url": "https://www.sophielwang.com/blog/jpeg",
+    "title": "JPEG compression",
+    "chars": 6101
+  },
+  {
+    "slug": "greatwork",
+    "url": "https://paulgraham.com/greatwork.html",
+    "title": "How to Do Great Work",
+    "chars": 8000
+  },
+  {
+    "slug": "keyboard-latency",
+    "url": "https://danluu.com/keyboard-latency/",
+    "title": "Keyboard latency",
+    "chars": 8000
+  },
+  {
+    "slug": "good-room",
+    "url": "https://frankchimero.com/blog/2018/the-good-room/",
+    "title": "Frank Chimero · The Good Room",
+    "chars": 8000
+  }
+]

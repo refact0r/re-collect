@@ -1,0 +1,444 @@
+{
+  "model": "z-ai/glm-5.3-flash",
+  "mode": "visual",
+  "results": {
+    "11cb983c-234b-4dbd-8d75-9d52a60ebef3.png": {
+      "ok": true,
+      "elapsed_s": 17.16,
+      "result": {
+        "styles": [
+          "concept art",
+          "anime",
+          "monochrome",
+          "brutalist",
+          "industrial sci-fi",
+          "digital painting"
+        ],
+        "subject": "An anime girl sits alone on a concrete ledge in an industrial utility corridor with pipes, gauges, and a deep descending shaft.",
+        "tags": [
+          "concrete wall",
+          "exposed pipe",
+          "pressure gauge",
+          "ventilation grille",
+          "backpack",
+          "white boot",
+          "bundled blanket",
+          "descending stairwell",
+          "yellow safety stripe",
+          "g6 wall marking",
+          "concrete solitude title"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1685,
+        "completion_tokens": 1108,
+        "total_tokens": 2793,
+        "cost": 0.000303535,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1664,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000303535,
+          "upstream_inference_prompt_cost": 2.6535e-05,
+          "upstream_inference_completions_cost": 0.000277
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 977,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.000403375,
+      "reasoning_forced": true,
+      "provider": "Z.AI"
+    },
+    "2be91ec1-de91-4a44-ae34-cebb090f3d3a.png": {
+      "ok": true,
+      "elapsed_s": 4.58,
+      "result": {
+        "styles": [
+          "graphic",
+          "book cover",
+          "minimalist",
+          "halftone",
+          "typographic",
+          "editorial illustration"
+        ],
+        "subject": "A minimalist book cover with large stylized Chinese typography over a halftone crumpled paper texture on a teal background.",
+        "tags": [
+          "chinese character",
+          "crumpled paper",
+          "halftone dot",
+          "teal background",
+          "cream paper texture",
+          "small pink door illustration",
+          "vertical text",
+          "author name",
+          "publisher mark",
+          "two-color palette",
+          "deconstructed typography",
+          "negative space"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1550,
+        "completion_tokens": 120,
+        "total_tokens": 1670,
+        "cost": 0.0002925,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0002925,
+          "upstream_inference_prompt_cost": 0.0002325,
+          "upstream_inference_completions_cost": 6e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00014625,
+      "reasoning_forced": true,
+      "provider": "Together"
+    },
+    "3bd44aaf-2379-4221-9ff6-56a9eb4cefb9.png": {
+      "ok": true,
+      "elapsed_s": 6.34,
+      "result": {
+        "styles": [
+          "collage",
+          "post-internet",
+          "ascii",
+          "glitch",
+          "risograph",
+          "surreal",
+          "maximalist"
+        ],
+        "subject": "A dense collage of vintage fish illustrations overlaid with ASCII text blocks, yellow stars, pixelated outlines, and a blue circle on cream paper.",
+        "tags": [
+          "fish",
+          "vintage engraving",
+          "ascii text block",
+          "yellow star",
+          "blue circle",
+          "pixelated outline shape",
+          "cream paper texture",
+          "iridescent color shift",
+          "vertical panel strip",
+          "halftone dot",
+          "random letter string",
+          "aquatic"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1951,
+        "completion_tokens": 135,
+        "total_tokens": 2086,
+        "cost": 0.00036015,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00036015,
+          "upstream_inference_prompt_cost": 0.00029265,
+          "upstream_inference_completions_cost": 6.75e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.000180075,
+      "reasoning_forced": true,
+      "provider": "Reka"
+    },
+    "52d7d6c6-090e-489d-b080-5718142518c4.png": {
+      "ok": true,
+      "elapsed_s": 4.74,
+      "result": {
+        "styles": [
+          "minimalist",
+          "swiss",
+          "brutalist",
+          "monochrome",
+          "editorial typography",
+          "dark mode web"
+        ],
+        "subject": "Design agency portfolio website with dark hero section, grid overlay, and a light project index listing seventeen works with locations and categories.",
+        "tags": [
+          "fiddle.digital",
+          "stringtune",
+          "kaleida",
+          "xe.work",
+          "dispatch bike",
+          "eyewear junkie",
+          "aeve",
+          "kira rudik",
+          "tarotoo",
+          "triumph arcade",
+          "project index table",
+          "grid overlay"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1439,
+        "completion_tokens": 142,
+        "total_tokens": 1581,
+        "cost": 0.00028685,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00028685,
+          "upstream_inference_prompt_cost": 0.00021585,
+          "upstream_inference_completions_cost": 7.1e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00014342499999999998,
+      "reasoning_forced": true,
+      "provider": "Together"
+    },
+    "58fe738e-3a78-48ec-9c8d-d04ba80e9a52.png": {
+      "ok": true,
+      "elapsed_s": 13.71,
+      "result": {
+        "styles": [
+          "technical illustration",
+          "isometric",
+          "minimalist",
+          "monochrome blue",
+          "pixel typography",
+          "editorial",
+          "retro computing"
+        ],
+        "subject": "Screenshot of a technical manual website explaining touchscreens and Gaussian blur, featuring an exploded isometric diagram of a floppy disk in blue line art.",
+        "tags": [
+          "floppy disk",
+          "exploded view diagram",
+          "callout label",
+          "pixel typeface headline",
+          "blue line art on white",
+          "gaussian blur explanation",
+          "touchscreen electrode grid",
+          "dotted divider pattern",
+          "magnetic disk",
+          "write protect tab",
+          "making software",
+          "dan hollick"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1426,
+        "completion_tokens": 1098,
+        "total_tokens": 2524,
+        "cost": 0.00034305,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 640,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00034305,
+          "upstream_inference_prompt_cost": 6.855e-05,
+          "upstream_inference_completions_cost": 0.0002745
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 952,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00038145,
+      "reasoning_forced": true,
+      "provider": "Z.AI"
+    },
+    "bbf2a4de-f0f1-4d7d-8fe4-814f919250c6.png": {
+      "ok": true,
+      "elapsed_s": 14.1,
+      "result": {
+        "styles": [
+          "ps2-era 3d",
+          "y2k",
+          "video game ui",
+          "cel-shaded",
+          "liminal",
+          "high-contrast",
+          "japanese urban"
+        ],
+        "subject": "A masked figure holding a small white creature stands on concrete stairs in a stylized 3D cityscape with red pipes, a bicycle, and game menu interface elements.",
+        "tags": [
+          "red pipe",
+          "yellow tactile paving",
+          "chain-link fence",
+          "floating red petal",
+          "red bicycle",
+          "city skyline silhouette",
+          "white mask character",
+          "cobalt blue sky",
+          "street lamp",
+          "caeruleum title text",
+          "a.26 wall marking",
+          "start button"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1759,
+        "completion_tokens": 1296,
+        "total_tokens": 3055,
+        "cost": 0.000455925,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000455925,
+          "upstream_inference_prompt_cost": 0.000131925,
+          "upstream_inference_completions_cost": 0.000324
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1143,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00045592499999999993,
+      "reasoning_forced": true,
+      "provider": "Z.AI"
+    },
+    "f72d5c2a-c6c4-4e3a-aaad-4b3d43c16678.png": {
+      "ok": true,
+      "elapsed_s": 28.97,
+      "result": {
+        "styles": [
+          "risograph",
+          "graphic",
+          "print production",
+          "minimalist",
+          "flat lay photography",
+          "halftone"
+        ],
+        "subject": "A fan of risograph tritone color test charts spread on a white surface, showing gradient swatches, registration marks, and screen frequency labels.",
+        "tags": [
+          "tritone gradient swatch",
+          "registration mark",
+          "crop mark",
+          "asterisk motif",
+          "percentage scale 0-100",
+          "halftone print texture",
+          "tritone color chart",
+          "risograph tool book",
+          "60lpi screen",
+          "flat lay fan arrangement",
+          "paper swatch card"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2018,
+        "completion_tokens": 1190,
+        "total_tokens": 3208,
+        "cost": 0.00032981,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1984,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00032981,
+          "upstream_inference_prompt_cost": 3.231e-05,
+          "upstream_inference_completions_cost": 0.0002975
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1047,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00044885,
+      "reasoning_forced": true,
+      "provider": "Z.AI"
+    },
+    "j970dmwy4f59mtvhx82z9gvt957zet99-1768699057177.webp": {
+      "ok": true,
+      "elapsed_s": 9.59,
+      "result": {
+        "styles": [
+          "post-internet",
+          "ascii",
+          "minimalist",
+          "brutalist web",
+          "typographic"
+        ],
+        "subject": "Landing page for '.soft', a web design and code studio, with a large lowercase headline layered over ASCII art.",
+        "tags": [
+          "ascii art",
+          "soft",
+          "welcome to our soft space for webdesign and code",
+          "tab-style navigation",
+          "drag me label",
+          "italic serif annotation",
+          "lowercase sans-serif headline",
+          "monochrome palette",
+          "info imprint link",
+          "concept and html parenthetical"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1500,
+        "completion_tokens": 718,
+        "total_tokens": 2218,
+        "cost": 0.0002536,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 640,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0002536,
+          "upstream_inference_prompt_cost": 7.41e-05,
+          "upstream_inference_completions_cost": 0.0001795
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 588,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.000292,
+      "reasoning_forced": true,
+      "provider": "Z.AI"
+    }
+  }
+}

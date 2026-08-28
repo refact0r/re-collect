@@ -1,0 +1,406 @@
+{
+  "model": "openai/gpt-5-nano",
+  "mode": "visual",
+  "results": {
+    "11cb983c-234b-4dbd-8d75-9d52a60ebef3.png": {
+      "ok": true,
+      "elapsed_s": 27.55,
+      "result": {
+        "styles": [
+          "concept art",
+          "brutalist",
+          "monochrome"
+        ],
+        "subject": "A girl sits on a concrete ledge in a dim, industrial corridor, surrounded by exposed pipes and vents.",
+        "tags": [
+          "girl sitting on concrete ledge",
+          "gray concrete wall",
+          "exposed pipe and vent",
+          "vent grate",
+          "yellow safety stripe along edge",
+          "backpack beside girl",
+          "sneaker",
+          "stair descending below",
+          "dim industrial lighting",
+          "concrete solitude"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1725,
+        "completion_tokens": 2587,
+        "total_tokens": 4312,
+        "cost": 0.00112105,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00112105,
+          "upstream_inference_prompt_cost": 8.625e-05,
+          "upstream_inference_completions_cost": 0.0010348
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2432,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00112105,
+      "reasoning_forced": true,
+      "provider": "OpenAI"
+    },
+    "2be91ec1-de91-4a44-ae34-cebb090f3d3a.png": {
+      "ok": true,
+      "elapsed_s": 30.47,
+      "result": {
+        "styles": [
+          "graphic",
+          "minimalist",
+          "vector flat",
+          "halftone",
+          "editorial illustration"
+        ],
+        "subject": "A turquoise poster with a white crumpled-paper silhouette and black geometric line work, accented by a pink rectangle and vertical text on the left.",
+        "tags": [
+          "crumpled white paper silhouette",
+          "turquoise background",
+          "black geometric line art",
+          "kanji-like glyph",
+          "pink rectangular accent",
+          "vertical text 'reprint publisher",
+          "halftone texture on paper",
+          "left-edge typography"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1677,
+        "completion_tokens": 2503,
+        "total_tokens": 4180,
+        "cost": 0.00108505,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00108505,
+          "upstream_inference_prompt_cost": 8.385e-05,
+          "upstream_inference_completions_cost": 0.0010012
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2368,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00108505,
+      "reasoning_forced": true,
+      "provider": "OpenAI"
+    },
+    "3bd44aaf-2379-4221-9ff6-56a9eb4cefb9.png": {
+      "ok": true,
+      "elapsed_s": 32.84,
+      "result": {
+        "styles": [
+          "editorial illustration",
+          "surrealist",
+          "memphis",
+          "post-internet"
+        ],
+        "subject": "A colorful fish silhouette made of scattered letters with yellow stars and geometric panels on a beige backdrop.",
+        "tags": [
+          "fish silhouette",
+          "letter forming texture",
+          "yellow star",
+          "beige parchment background",
+          "blue circular backdrop",
+          "green and yellow fish scale",
+          "black vertical panel overlaying the fish",
+          "alphabet mosaic",
+          "collage-inspired composition",
+          "rainbow color palette",
+          "geometric shape",
+          "digital illustration"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2109,
+        "completion_tokens": 3066,
+        "total_tokens": 5175,
+        "cost": 0.00133185,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00133185,
+          "upstream_inference_prompt_cost": 0.00010545,
+          "upstream_inference_completions_cost": 0.0012264
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2880,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0013318499999999999,
+      "reasoning_forced": true,
+      "provider": "OpenAI"
+    },
+    "52d7d6c6-090e-489d-b080-5718142518c4.png": {
+      "ok": true,
+      "elapsed_s": 35.09,
+      "result": {
+        "styles": [
+          "international typographic",
+          "grid",
+          "minimalist",
+          "monochrome"
+        ],
+        "subject": "A dark, grid-based portfolio site mockup with white typography and a long list of designer names under a lavender band.",
+        "tags": [
+          "fiddle.digital",
+          "stringtune",
+          "kaleida",
+          "lavender band",
+          "grid line",
+          "top navigation with work/about/let' talk",
+          "white sans-serif typography",
+          "\u00a9 symbol",
+          "two-column list of brand"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1533,
+        "completion_tokens": 3249,
+        "total_tokens": 4782,
+        "cost": 0.00137625,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00137625,
+          "upstream_inference_prompt_cost": 7.665e-05,
+          "upstream_inference_completions_cost": 0.0012996
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3072,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0013762499999999999,
+      "reasoning_forced": true,
+      "provider": "OpenAI"
+    },
+    "58fe738e-3a78-48ec-9c8d-d04ba80e9a52.png": {
+      "ok": true,
+      "elapsed_s": 21.91,
+      "result": {
+        "styles": [
+          "blueprint",
+          "technical illustration",
+          "retro-futurism",
+          "vector art"
+        ],
+        "subject": "Exploded blueprint-style diagram of a magnetic disk drive with blue line art on a white grid, beside a pixelated header 'MAKING SOFTWARE'.",
+        "tags": [
+          "exploded-view diagram",
+          "magnetic disk hub",
+          "top shell",
+          "dust liner",
+          "grid background",
+          "blue line art",
+          "pixel font title making software",
+          "manual/technical illustration",
+          "blue monochrome"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1437,
+        "completion_tokens": 1977,
+        "total_tokens": 3414,
+        "cost": 0.00086265,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00086265,
+          "upstream_inference_prompt_cost": 7.185e-05,
+          "upstream_inference_completions_cost": 0.0007908
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1792,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00086265,
+      "reasoning_forced": true,
+      "provider": "OpenAI"
+    },
+    "bbf2a4de-f0f1-4d7d-8fe4-814f919250c6.png": {
+      "ok": true,
+      "elapsed_s": 37.96,
+      "result": {
+        "styles": [
+          "concept art",
+          "isometric",
+          "vaporwave",
+          "post-internet"
+        ],
+        "subject": "A futuristic urban scene with a stairway in the foreground, a blue sky, red-orange trees, and a lone figure near a wall with pipes and QR-like markings.",
+        "tags": [
+          "staircase",
+          "yellow tactile paving",
+          "green pipe",
+          "red-orange tree",
+          "bicycle",
+          "concrete wall",
+          "qr-like marking",
+          "person wearing helmet",
+          "caeruleum",
+          "a26"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1821,
+        "completion_tokens": 3470,
+        "total_tokens": 5291,
+        "cost": 0.00147905,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00147905,
+          "upstream_inference_prompt_cost": 9.105e-05,
+          "upstream_inference_completions_cost": 0.001388
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 3328,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00147905,
+      "reasoning_forced": true,
+      "provider": "OpenAI"
+    },
+    "f72d5c2a-c6c4-4e3a-aaad-4b3d43c16678.png": {
+      "ok": true,
+      "elapsed_s": 30.67,
+      "result": {
+        "styles": [
+          "photography",
+          "still life",
+          "graphic",
+          "color theory"
+        ],
+        "subject": "Overlapping color swatch sheets forming a rainbow gradient, used as a printing color chart.",
+        "tags": [
+          "color swatch sheet",
+          "rainbow gradient",
+          "print color chart",
+          "overlapping card",
+          "tritone color chart",
+          "calibration mark on edge",
+          "color chip on paper",
+          "white background"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2109,
+        "completion_tokens": 2370,
+        "total_tokens": 4479,
+        "cost": 0.00105345,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00105345,
+          "upstream_inference_prompt_cost": 0.00010545,
+          "upstream_inference_completions_cost": 0.000948
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2240,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00105345,
+      "reasoning_forced": true,
+      "provider": "OpenAI"
+    },
+    "j970dmwy4f59mtvhx82z9gvt957zet99-1768699057177.webp": {
+      "ok": true,
+      "elapsed_s": 28.31,
+      "result": {
+        "styles": [
+          "ascii",
+          "glitch",
+          "monochrome",
+          "high-contrast"
+        ],
+        "subject": "A web-design themed typographic collage with oversized script text over ASCII art in black on a white background.",
+        "tags": [
+          "ascii art background",
+          "oversized script typography",
+          "black on white",
+          "soft space",
+          "html",
+          "web"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1533,
+        "completion_tokens": 2366,
+        "total_tokens": 3899,
+        "cost": 0.00102305,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00102305,
+          "upstream_inference_prompt_cost": 7.665e-05,
+          "upstream_inference_completions_cost": 0.0009464
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2240,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00102305,
+      "reasoning_forced": true,
+      "provider": "OpenAI"
+    }
+  }
+}

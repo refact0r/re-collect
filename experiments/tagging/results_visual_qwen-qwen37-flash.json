@@ -1,0 +1,428 @@
+{
+  "model": "qwen/qwen3.7-flash",
+  "mode": "visual",
+  "results": {
+    "11cb983c-234b-4dbd-8d75-9d52a60ebef3.png": {
+      "ok": true,
+      "elapsed_s": 6.57,
+      "result": {
+        "styles": [
+          "concept art",
+          "sci-fi",
+          "minimalist",
+          "digital painting",
+          "atmospheric"
+        ],
+        "subject": "A lone character in a hooded sleeping bag sits on a concrete ledge within a vast, grey industrial facility featuring exposed pipes and floating stairs.",
+        "tags": [
+          "industrial interior",
+          "concrete architecture",
+          "exposed piping",
+          "floating stair",
+          "sleeping bag",
+          "backpack",
+          "boot",
+          "pressure gauge",
+          "yellow warning label",
+          "g6 text",
+          "concrete solitude",
+          "monochromatic grey palette"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1374,
+        "completion_tokens": 172,
+        "total_tokens": 1546,
+        "cost": 6.358e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 6.358e-05,
+          "upstream_inference_prompt_cost": 4.122e-05,
+          "upstream_inference_completions_cost": 2.236e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 6.358e-05,
+      "provider": "Alibaba"
+    },
+    "2be91ec1-de91-4a44-ae34-cebb090f3d3a.png": {
+      "ok": true,
+      "elapsed_s": 6.85,
+      "result": {
+        "styles": [
+          "experimental typography",
+          "contemporary graphic",
+          "collage art",
+          "minimalist poster",
+          "mixed media"
+        ],
+        "subject": "A vertical graphic design piece featuring a crumpled paper texture with halftone shading overlaid by thin, geometric Chinese characters on a solid teal background.",
+        "tags": [
+          "crumpled paper texture",
+          "halftone pattern",
+          "teal background",
+          "geometric line",
+          "chinese character",
+          "abstract typography",
+          "book cover",
+          "simplified illustration",
+          "renjian publisher",
+          "contrast between organic and linear",
+          "beige and black ink"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1342,
+        "completion_tokens": 179,
+        "total_tokens": 1521,
+        "cost": 6.353e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 6.353e-05,
+          "upstream_inference_prompt_cost": 4.026e-05,
+          "upstream_inference_completions_cost": 2.327e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 6.353e-05,
+      "provider": "Alibaba"
+    },
+    "3bd44aaf-2379-4221-9ff6-56a9eb4cefb9.png": {
+      "ok": true,
+      "elapsed_s": 6.58,
+      "result": {
+        "styles": [
+          "collage",
+          "surrealism",
+          "pixel art",
+          "risograph",
+          "digital glitch"
+        ],
+        "subject": "A surreal digital collage featuring iridescent fish and yellow stars overlaid on a fragmented map with scattered alphanumeric text and pixelated geometric borders.",
+        "tags": [
+          "iridescent fish",
+          "yellow star",
+          "alphanumeric text",
+          "fragmented map",
+          "pixelated border",
+          "blue circle",
+          "mixed media",
+          "textured paper background",
+          "sci-fi",
+          "layered composition",
+          "geometric shape",
+          "vibrant color"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1630,
+        "completion_tokens": 171,
+        "total_tokens": 1801,
+        "cost": 7.113e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 7.113e-05,
+          "upstream_inference_prompt_cost": 4.89e-05,
+          "upstream_inference_completions_cost": 2.223e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 7.112999999999999e-05,
+      "provider": "Alibaba"
+    },
+    "52d7d6c6-090e-489d-b080-5718142518c4.png": {
+      "ok": true,
+      "elapsed_s": 5.12,
+      "result": {
+        "styles": [
+          "brutalist",
+          "swiss",
+          "international typographic",
+          "minimalist"
+        ],
+        "subject": "A dark-themed website portfolio for Fiddle.Digital featuring a grid layout, bold typography, and a categorized list of design projects with metadata.",
+        "tags": [
+          "fiddle.digital",
+          "grid system",
+          "portfolio",
+          "dark mode",
+          "typography",
+          "project list",
+          "metadata",
+          "e-commerce",
+          "start up",
+          "corporate",
+          "product",
+          "navigation bar"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1246,
+        "completion_tokens": 153,
+        "total_tokens": 1399,
+        "cost": 5.727e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 5.727e-05,
+          "upstream_inference_prompt_cost": 3.738e-05,
+          "upstream_inference_completions_cost": 1.989e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 5.727e-05,
+      "provider": "Alibaba"
+    },
+    "58fe738e-3a78-48ec-9c8d-d04ba80e9a52.png": {
+      "ok": true,
+      "elapsed_s": 6.05,
+      "result": {
+        "styles": [
+          "technical illustration",
+          "isometric",
+          "blueprint",
+          "pixel art typography",
+          "minimalist editorial",
+          "diagrammatic"
+        ],
+        "subject": "A digital book page titled 'Making Software' featuring blue isometric exploded diagrams of a floppy disk and grid graphics on a white background with explanatory text.",
+        "tags": [
+          "making software",
+          "dan hollick",
+          "3.5 inch floppy disk",
+          "hd notch",
+          "magnetic disk",
+          "hub",
+          "write protect tab",
+          "dust layer",
+          "gaussian blur diagram",
+          "grid background",
+          "blue monochrome",
+          "exploded view"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1182,
+        "completion_tokens": 191,
+        "total_tokens": 1373,
+        "cost": 6.029e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 6.029e-05,
+          "upstream_inference_prompt_cost": 3.546e-05,
+          "upstream_inference_completions_cost": 2.483e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 6.0289999999999994e-05,
+      "provider": "Alibaba"
+    },
+    "bbf2a4de-f0f1-4d7d-8fe4-814f919250c6.png": {
+      "ok": true,
+      "elapsed_s": 6.83,
+      "result": {
+        "styles": [
+          "vaporwave",
+          "cyberpunk",
+          "retrowave",
+          "lo-fi",
+          "digital surrealism",
+          "isometric"
+        ],
+        "subject": "A stylized, high-contrast digital scene of a futuristic urban overpass featuring a masked figure holding a white bear, overlaid with pixelated UI elements and floating text against a deep blue sky.",
+        "tags": [
+          "caeruleum",
+          "a26",
+          "pixel art typography",
+          "white teddy bear",
+          "masked character",
+          "red bicycle",
+          "yellow tactile paving",
+          "green industrial pipe",
+          "chain-link fence",
+          "city skyline silhouette",
+          "floating red petal",
+          "hud interface overlay"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1438,
+        "completion_tokens": 197,
+        "total_tokens": 1635,
+        "cost": 6.875e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 6.875e-05,
+          "upstream_inference_prompt_cost": 4.314e-05,
+          "upstream_inference_completions_cost": 2.561e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 6.874999999999999e-05,
+      "provider": "Alibaba"
+    },
+    "f72d5c2a-c6c4-4e3a-aaad-4b3d43c16678.png": {
+      "ok": true,
+      "elapsed_s": 8.41,
+      "result": {
+        "styles": [
+          "industrial",
+          "functional graphic",
+          "archival photography",
+          "minimalist still life",
+          "print production"
+        ],
+        "subject": "A fanned-out arrangement of printed tritone color charts and screen test strips featuring gradient blocks, registration marks, and technical typography on a white background.",
+        "tags": [
+          "tritone color chart",
+          "screen covered 60lpi",
+          "registration mark",
+          "color gradient",
+          "risograph tool book",
+          "\u5370\u5237\u6d4b\u8bd5\u6761",
+          "cmyk separation",
+          "halftone pattern",
+          "typographic border",
+          "fanned layout",
+          "odotype",
+          "taipei taiwan"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1630,
+        "completion_tokens": 188,
+        "total_tokens": 1818,
+        "cost": 7.334e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 7.334e-05,
+          "upstream_inference_prompt_cost": 4.89e-05,
+          "upstream_inference_completions_cost": 2.444e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 7.334e-05,
+      "provider": "Alibaba"
+    },
+    "j970dmwy4f59mtvhx82z9gvt957zet99-1768699057177.webp": {
+      "ok": true,
+      "elapsed_s": 5.85,
+      "result": {
+        "styles": [
+          "brutalist",
+          "terminal",
+          "ascii art",
+          "typographic",
+          "post-internet"
+        ],
+        "subject": "A monochrome web design landing page featuring large serif typography overlaid on a background of ASCII code characters, with navigation tabs at the top.",
+        "tags": [
+          "monochrome",
+          "serif font",
+          "code background",
+          "web",
+          "soft space",
+          "soft glossary",
+          "soft inspiration",
+          "high contrast",
+          "concept",
+          "html"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1246,
+        "completion_tokens": 162,
+        "total_tokens": 1408,
+        "cost": 5.844e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 5.844e-05,
+          "upstream_inference_prompt_cost": 3.738e-05,
+          "upstream_inference_completions_cost": 2.106e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 5.8439999999999996e-05,
+      "provider": "Alibaba"
+    }
+  }
+}

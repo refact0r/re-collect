@@ -1,0 +1,303 @@
+{
+  "model": "qwen/qwen3.7-flash",
+  "mode": "text",
+  "results": {
+    "good-room": {
+      "ok": true,
+      "elapsed_s": 3.27,
+      "result": {
+        "styles": [
+          "talk transcript",
+          "design criticism",
+          "personal essay"
+        ],
+        "subject": "A reflection on designing technology with human comfort in mind, using the New York Public Library as a model for generous, non-transactional public spaces.",
+        "tags": [
+          "frank chimero",
+          "substance conference",
+          "new york public library",
+          "rose reading room",
+          "penn station",
+          "digital wellbeing",
+          "attention economy",
+          "public space",
+          "beaux-art architecture",
+          "technology design philosophy",
+          "monetization vs access"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2133,
+        "completion_tokens": 155,
+        "total_tokens": 2288,
+        "cost": 8.414e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 8.414e-05,
+          "upstream_inference_prompt_cost": 6.399e-05,
+          "upstream_inference_completions_cost": 2.015e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 8.413999999999999e-05,
+      "provider": "Alibaba"
+    },
+    "greatwork": {
+      "ok": true,
+      "elapsed_s": 1.99,
+      "result": {
+        "styles": [
+          "personal essay",
+          "career advice"
+        ],
+        "subject": "A guide to identifying natural aptitudes and deep interests to pursue ambitious, original work across any field.",
+        "tags": [
+          "paul graham",
+          "great work",
+          "career guidance",
+          "ambition",
+          "curiosity",
+          "self-directed learning",
+          "finding your niche",
+          "creative process",
+          "knowledge frontier",
+          "optimizing for interestingness"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2083,
+        "completion_tokens": 127,
+        "total_tokens": 2210,
+        "cost": 7.9e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 7.9e-05,
+          "upstream_inference_prompt_cost": 6.249e-05,
+          "upstream_inference_completions_cost": 1.651e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 7.9e-05,
+      "provider": "Alibaba"
+    },
+    "jpeg": {
+      "ok": true,
+      "elapsed_s": 1.8,
+      "result": {
+        "styles": [
+          "technical explanation",
+          "computer science"
+        ],
+        "subject": "A detailed technical breakdown of the JPEG image compression algorithm, covering color space conversion, DCT, and entropy coding.",
+        "tags": [
+          "jpeg",
+          "image compression",
+          "discrete cosine transform",
+          "dct",
+          "color space",
+          "ycbcr",
+          "rgb",
+          "chroma subsampling",
+          "quantization",
+          "huffman coding",
+          "entropy coding",
+          "human vision"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1974,
+        "completion_tokens": 138,
+        "total_tokens": 2112,
+        "cost": 7.716e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 7.716e-05,
+          "upstream_inference_prompt_cost": 5.922e-05,
+          "upstream_inference_completions_cost": 1.794e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 7.716e-05,
+      "provider": "Alibaba"
+    },
+    "keyboard-latency": {
+      "ok": true,
+      "elapsed_s": 2.21,
+      "result": {
+        "styles": [
+          "technical analysis",
+          "empirical study"
+        ],
+        "subject": "Empirical benchmarking of keyboard latency reveals modern devices often exceed the total system latency of vintage computers from the 1970s and 80s.",
+        "tags": [
+          "keyboard latency",
+          "usb polling rate",
+          "human-computer interaction",
+          "input lag",
+          "gaming peripheral",
+          "hhkb lite",
+          "razer ornata chroma",
+          "apple magic keyboard",
+          "latency measurement",
+          "computer history",
+          "usb full speed",
+          "response time"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2231,
+        "completion_tokens": 157,
+        "total_tokens": 2388,
+        "cost": 8.734e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 8.734e-05,
+          "upstream_inference_prompt_cost": 6.693e-05,
+          "upstream_inference_completions_cost": 2.041e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 8.734e-05,
+      "provider": "Alibaba"
+    },
+    "olivine": {
+      "ok": true,
+      "elapsed_s": 1.47,
+      "result": {
+        "styles": [
+          "science journalism",
+          "technical analysis"
+        ],
+        "subject": "An exploration of enhanced olivine weathering as a scalable method for removing excess atmospheric carbon dioxide and mitigating climate change.",
+        "tags": [
+          "carbon capture",
+          "olivine",
+          "weathering",
+          "climate change",
+          "direct air capture",
+          "climework",
+          "carbon engineering",
+          "silicate mineral",
+          "carbon sequestration",
+          "greenhouse gas",
+          "renewable energy transition"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2066,
+        "completion_tokens": 140,
+        "total_tokens": 2206,
+        "cost": 8.018e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 8.018e-05,
+          "upstream_inference_prompt_cost": 6.198e-05,
+          "upstream_inference_completions_cost": 1.82e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 8.018e-05,
+      "provider": "Alibaba"
+    },
+    "syntax-highlighting": {
+      "ok": true,
+      "elapsed_s": 1.69,
+      "result": {
+        "styles": [
+          "personal essay",
+          "design criticism"
+        ],
+        "subject": "A critique of common syntax highlighting practices advocating for minimal color palettes and strategic emphasis to improve code readability.",
+        "tags": [
+          "syntax highlighting",
+          "code editor theme",
+          "visual",
+          "typography",
+          "color theory",
+          "developer experience",
+          "alabaster theme",
+          "tonsky",
+          "dark mode vs light mode",
+          "code readability",
+          "comment styling",
+          "minimalism"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2150,
+        "completion_tokens": 138,
+        "total_tokens": 2288,
+        "cost": 8.244e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 8.244e-05,
+          "upstream_inference_prompt_cost": 6.45e-05,
+          "upstream_inference_completions_cost": 1.794e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 8.244e-05,
+      "provider": "Alibaba"
+    }
+  }
+}

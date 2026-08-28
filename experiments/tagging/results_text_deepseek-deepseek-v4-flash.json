@@ -1,0 +1,303 @@
+{
+  "model": "deepseek/deepseek-v4-flash",
+  "mode": "text",
+  "results": {
+    "good-room": {
+      "ok": true,
+      "elapsed_s": 3.11,
+      "result": {
+        "styles": [
+          "talk transcript",
+          "design criticism"
+        ],
+        "subject": "A designer reflects on how digital technology can be reframed as a place rather than a tool.",
+        "tags": [
+          "frank chimero",
+          "the good room",
+          "substan conference",
+          "new york public library",
+          "rose reading room",
+          "penn station",
+          "digital technology",
+          "attention economy",
+          "public space",
+          "design philosophy",
+          "convenience vs comfort"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2110,
+        "completion_tokens": 101,
+        "total_tokens": 2211,
+        "cost": 0.000204857072,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000204857072,
+          "upstream_inference_prompt_cost": 0.00018695866,
+          "upstream_inference_completions_cost": 1.7898412e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.000204857072,
+      "provider": "StreamLake"
+    },
+    "greatwork": {
+      "ok": true,
+      "elapsed_s": 2.03,
+      "result": {
+        "styles": [
+          "essay",
+          "career advice"
+        ],
+        "subject": "A guide to doing great work by choosing the right field and working hard.",
+        "tags": [
+          "ambition",
+          "curiosity",
+          "work ethic",
+          "paul graham",
+          "great work",
+          "field selection",
+          "knowledge frontier",
+          "discovery",
+          "passion",
+          "productivity"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2070,
+        "completion_tokens": 86,
+        "total_tokens": 2156,
+        "cost": 0.0004484,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0004484,
+          "upstream_inference_prompt_cost": 0.000414,
+          "upstream_inference_completions_cost": 3.44e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.000198654652,
+      "provider": "Phala"
+    },
+    "jpeg": {
+      "ok": true,
+      "elapsed_s": 2.33,
+      "result": {
+        "styles": [
+          "tutorial",
+          "software engineering",
+          "image compression"
+        ],
+        "subject": "How JPEG compression exploits human vision to reduce image file size.",
+        "tags": [
+          "jpeg",
+          "discrete cosine transform",
+          "chroma subsampling",
+          "y'cbcr color space",
+          "quantization",
+          "huffman coding",
+          "human visual system",
+          "luminance",
+          "spatial frequency",
+          "rgb to y'cbcr conversion"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1853,
+        "completion_tokens": 97,
+        "total_tokens": 1950,
+        "cost": 0.00018423,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00018423,
+          "upstream_inference_prompt_cost": 0.00016677,
+          "upstream_inference_completions_cost": 1.746e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00018137648200000002,
+      "provider": "DeepInfra"
+    },
+    "keyboard-latency": {
+      "ok": true,
+      "elapsed_s": 3.43,
+      "result": {
+        "styles": [
+          "case study",
+          "software engineering",
+          "hardware review"
+        ],
+        "subject": "Measuring and comparing keyboard latency across gaming and non-gaming keyboards",
+        "tags": [
+          "keyboard latency",
+          "gaming keyboard",
+          "usb polling",
+          "input lag",
+          "dan luu",
+          "apple magic keyboard",
+          "razer ornata chroma",
+          "hhkb",
+          "logitech k120",
+          "cherry mx",
+          "apple 2",
+          "latency perception"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2159,
+        "completion_tokens": 104,
+        "total_tokens": 2263,
+        "cost": 0.00033138,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00033138,
+          "upstream_inference_prompt_cost": 0.00030226,
+          "upstream_inference_completions_cost": 2.912e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.000209730402,
+      "provider": "NextBit"
+    },
+    "olivine": {
+      "ok": true,
+      "elapsed_s": 3.86,
+      "result": {
+        "styles": [
+          "case study",
+          "science writing",
+          "climate technology"
+        ],
+        "subject": "Olivine weathering as a method for carbon capture and climate change mitigation",
+        "tags": [
+          "olivine",
+          "carbon capture",
+          "weathering",
+          "co2 sequestration",
+          "climate change",
+          "silicate",
+          "direct-air capture",
+          "carbonic acid",
+          "carbonate mineral",
+          "atmospheric co2",
+          "renewable energy transition",
+          "work in progress magazine"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1988,
+        "completion_tokens": 102,
+        "total_tokens": 2090,
+        "cost": 0.0002225664,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 256,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0002225664,
+          "upstream_inference_prompt_cost": 0.0001997184,
+          "upstream_inference_completions_cost": 2.2848e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.000194224352,
+      "provider": "GMICloud"
+    },
+    "syntax-highlighting": {
+      "ok": true,
+      "elapsed_s": 2.5,
+      "result": {
+        "styles": [
+          "essay",
+          "software engineering",
+          "design criticism"
+        ],
+        "subject": "Why most syntax highlighting themes fail and how to fix them",
+        "tags": [
+          "syntax highlighting",
+          "color theme",
+          "alabaster theme",
+          "code readability",
+          "editor",
+          "dark vs light theme",
+          "comment highlighting",
+          "color minimalism",
+          "programming tool",
+          "nikita tonsky"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2187,
+        "completion_tokens": 89,
+        "total_tokens": 2276,
+        "cost": 0.000473,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000473,
+          "upstream_inference_prompt_cost": 0.0004374,
+          "upstream_inference_completions_cost": 3.56e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00020955319000000002,
+      "provider": "Phala"
+    }
+  }
+}

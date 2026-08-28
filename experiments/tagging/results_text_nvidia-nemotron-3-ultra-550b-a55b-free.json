@@ -1,0 +1,308 @@
+{
+  "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "mode": "text",
+  "results": {
+    "good-room": {
+      "ok": true,
+      "elapsed_s": 8.98,
+      "result": {
+        "styles": [
+          "talk transcript",
+          "design criticism",
+          "personal essay"
+        ],
+        "subject": "Frank Chimero contrasts the New York Public Library and Penn Station as metaphors for humane versus exploitative technology design.",
+        "tags": [
+          "frank chimero",
+          "substan conference",
+          "bergen norway",
+          "new york public library",
+          "rose reading room",
+          "penn station",
+          "pennsylvania railroad",
+          "technology ethic",
+          "attention economy",
+          "digital wellbeing",
+          "public space",
+          "design philosophy"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2143,
+        "completion_tokens": 115,
+        "total_tokens": 2258,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "Nvidia"
+    },
+    "greatwork": {
+      "ok": true,
+      "elapsed_s": 6.09,
+      "result": {
+        "styles": [
+          "personal essay",
+          "career advice"
+        ],
+        "subject": "Paul Graham outlines a framework for doing great work by following curiosity, finding frontiers of knowledge, and embracing ambitious projects.",
+        "tags": [
+          "paul graham",
+          "great work",
+          "ambition",
+          "curiosity",
+          "career choice",
+          "learning",
+          "frontier knowledge",
+          "outlier idea",
+          "project selection",
+          "youth advice",
+          "interest-driven work",
+          "discovery"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2088,
+        "completion_tokens": 104,
+        "total_tokens": 2192,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "Nvidia"
+    },
+    "jpeg": {
+      "ok": true,
+      "elapsed_s": 1.91,
+      "result": {
+        "styles": [
+          "tutorial",
+          "technical explanation"
+        ],
+        "subject": "A detailed walkthrough of the JPEG compression algorithm covering color space conversion, chroma subsampling, discrete cosine transform, quantization, and entropy coding.",
+        "tags": [
+          "jpeg",
+          "image compression",
+          "discrete cosine transform",
+          "chroma subsampling",
+          "y'cbcr color space",
+          "quantization matrix",
+          "huffman coding",
+          "perceptual coding",
+          "digital image processing",
+          "rgb to ycbcr"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1948,
+        "completion_tokens": 110,
+        "total_tokens": 2058,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "Nvidia"
+    },
+    "keyboard-latency": {
+      "ok": true,
+      "elapsed_s": 6.09,
+      "result": {
+        "styles": [
+          "case study",
+          "benchmarking",
+          "software engineering",
+          "retrospective"
+        ],
+        "subject": "Measured keyboard latency reveals modern keyboards often slower than 1970s-80s computers, and gaming keyboards not faster than regular ones.",
+        "tags": [
+          "keyboard latency",
+          "input latency",
+          "usb polling rate",
+          "gaming keyboard",
+          "apple 2",
+          "kaby lake",
+          "logic analyzer",
+          "human perception latency",
+          "n-key rollover",
+          "cherry mx switch",
+          "razer",
+          "das keyboard"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2236,
+        "completion_tokens": 121,
+        "total_tokens": 2357,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "Nvidia"
+    },
+    "olivine": {
+      "ok": true,
+      "elapsed_s": 1.48,
+      "result": {
+        "styles": [
+          "longform journalism",
+          "science communication",
+          "climate technology analysis"
+        ],
+        "subject": "Explores olivine weathering as a scalable carbon removal method to address climate change beyond emissions reduction.",
+        "tags": [
+          "olivine",
+          "enhanced weathering",
+          "carbon dioxide removal",
+          "climate change",
+          "direct air capture",
+          "climework",
+          "carbon engineering",
+          "mineralization",
+          "ocean alkalinity",
+          "negative emission",
+          "carbon cycle",
+          "geoengineering"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2066,
+        "completion_tokens": 111,
+        "total_tokens": 2177,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "Nvidia"
+    },
+    "syntax-highlighting": {
+      "ok": true,
+      "elapsed_s": 4.43,
+      "result": {
+        "styles": [
+          "tutorial",
+          "design criticism",
+          "software engineering"
+        ],
+        "subject": "The article critiques common syntax highlighting practices and proposes a minimalist approach using few memorable colors to improve code readability.",
+        "tags": [
+          "syntax highlighting",
+          "color theme",
+          "code readability",
+          "alabaster theme",
+          "editor configuration",
+          "visual",
+          "programming tool",
+          "dark mode",
+          "light mode",
+          "background highlighting",
+          "tonsky"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2165,
+        "completion_tokens": 98,
+        "total_tokens": 2263,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "Nvidia"
+    }
+  }
+}

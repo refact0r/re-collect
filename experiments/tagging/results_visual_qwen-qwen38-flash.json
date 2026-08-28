@@ -1,0 +1,412 @@
+{
+  "model": "qwen/qwen3.8-flash",
+  "mode": "visual",
+  "results": {
+    "11cb983c-234b-4dbd-8d75-9d52a60ebef3.png": {
+      "ok": true,
+      "elapsed_s": 42.58,
+      "result": {
+        "styles": [
+          "concept art",
+          "brutalist",
+          "lo-fi",
+          "digital painting",
+          "sci-fi"
+        ],
+        "subject": "A small anime-style character sits huddled in a recessed ledge of a vast, grey concrete industrial shaft filled with pipes and vents.",
+        "tags": [
+          "concrete architecture",
+          "industrial pipe",
+          "ventilation grate",
+          "pressure gauge",
+          "backpack",
+          "sneaker",
+          "yellow hazard stripe",
+          "isometric perspective",
+          "concrete solitude"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1373,
+        "completion_tokens": 151,
+        "total_tokens": 1524,
+        "cost": 0.0001054,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1280,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0001054,
+          "upstream_inference_prompt_cost": 3.443e-05,
+          "upstream_inference_completions_cost": 7.097e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00027692,
+      "provider": "Alibaba"
+    },
+    "2be91ec1-de91-4a44-ae34-cebb090f3d3a.png": {
+      "ok": true,
+      "elapsed_s": 6.06,
+      "result": {
+        "styles": [
+          "graphic",
+          "editorial illustration",
+          "minimalist",
+          "halftone",
+          "typographic",
+          "modern"
+        ],
+        "subject": "A teal book cover featuring a large halftone crumpled paper texture overlaid with thin, stylized black Chinese typography.",
+        "tags": [
+          "crumpled paper",
+          "teal background",
+          "black line art",
+          "chinese character",
+          "dot pattern",
+          "book cover",
+          "pink door icon",
+          "vertical text",
+          "abstract typography"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1341,
+        "completion_tokens": 150,
+        "total_tokens": 1491,
+        "cost": 0.000203042,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 512,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000203042,
+          "upstream_inference_prompt_cost": 0.000132542,
+          "upstream_inference_completions_cost": 7.05e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00027165,
+      "provider": "Alibaba"
+    },
+    "3bd44aaf-2379-4221-9ff6-56a9eb4cefb9.png": {
+      "ok": true,
+      "elapsed_s": 10.21,
+      "result": {
+        "styles": [
+          "collage",
+          "mixed media",
+          "surrealist",
+          "vintage scientific illustration",
+          "graphic"
+        ],
+        "subject": "A collage of iridescent fish swimming through a fragmented map of the United States, overlaid with genetic code sequences and yellow stars.",
+        "tags": [
+          "rainbow trout",
+          "us map",
+          "dna sequence",
+          "genetic code",
+          "yellow star",
+          "vertical slice",
+          "cream background",
+          "topography",
+          "fish scale",
+          "data visualization"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1629,
+        "completion_tokens": 150,
+        "total_tokens": 1779,
+        "cost": 0.000246242,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 512,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000246242,
+          "upstream_inference_prompt_cost": 0.000175742,
+          "upstream_inference_completions_cost": 7.05e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00031485,
+      "provider": "Alibaba"
+    },
+    "52d7d6c6-090e-489d-b080-5718142518c4.png": {
+      "ok": true,
+      "elapsed_s": 30.38,
+      "result": {
+        "styles": [
+          "brutalist",
+          "swiss",
+          "international typographic",
+          "minimalist",
+          "monochrome"
+        ],
+        "subject": "A screenshot of a dark-themed, grid-based portfolio website for a design agency featuring a list of projects.",
+        "tags": [
+          "website interface",
+          "navigation menu",
+          "project list",
+          "sans-serif typography",
+          "grid layout",
+          "fiddle.digital",
+          "stringtune",
+          "kaleida"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1245,
+        "completion_tokens": 134,
+        "total_tokens": 1379,
+        "cost": 0.000181122,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 512,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000181122,
+          "upstream_inference_prompt_cost": 0.000118142,
+          "upstream_inference_completions_cost": 6.298e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00024973,
+      "provider": "Alibaba"
+    },
+    "58fe738e-3a78-48ec-9c8d-d04ba80e9a52.png": {
+      "ok": true,
+      "elapsed_s": 25.89,
+      "result": {
+        "styles": [
+          "technical illustration",
+          "blueprint",
+          "isometric",
+          "minimalist",
+          "monochrome",
+          "editorial"
+        ],
+        "subject": "A page from a design reference manual featuring isometric blueprints of a floppy disk and touchscreen layers.",
+        "tags": [
+          "making software",
+          "floppy disk",
+          "exploded view",
+          "touchscreen diagram",
+          "dan hollick",
+          "grid background",
+          "pixelated typography",
+          "magnetic disk",
+          "write protect tab",
+          "blue ink"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1181,
+        "completion_tokens": 153,
+        "total_tokens": 1334,
+        "cost": 0.000180452,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 512,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000180452,
+          "upstream_inference_prompt_cost": 0.000108542,
+          "upstream_inference_completions_cost": 7.191e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00024906,
+      "provider": "Alibaba"
+    },
+    "bbf2a4de-f0f1-4d7d-8fe4-814f919250c6.png": {
+      "ok": true,
+      "elapsed_s": 9.97,
+      "result": {
+        "styles": [
+          "post-internet",
+          "vaporwave",
+          "low-poly",
+          "brutalist",
+          "glitch art",
+          "y2k"
+        ],
+        "subject": "A surreal, low-poly digital cityscape featuring a stylized figure and UI elements overlaid on a blue sky.",
+        "tags": [
+          "caeruleum",
+          "pixelated typography",
+          "red maple leaf",
+          "concrete stair",
+          "bicycle",
+          "street lamp",
+          "white mask",
+          "digital interface",
+          "city skyline",
+          "tactile paving"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1437,
+        "completion_tokens": 161,
+        "total_tokens": 1598,
+        "cost": 0.000222612,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 512,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000222612,
+          "upstream_inference_prompt_cost": 0.000146942,
+          "upstream_inference_completions_cost": 7.567e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00029121999999999997,
+      "provider": "Alibaba"
+    },
+    "f72d5c2a-c6c4-4e3a-aaad-4b3d43c16678.png": {
+      "ok": true,
+      "elapsed_s": 46.57,
+      "result": {
+        "styles": [
+          "risograph",
+          "graphic",
+          "print production",
+          "color theory",
+          "technical illustration"
+        ],
+        "subject": "A fanned-out collection of printed color charts and registration marks used for screen and risograph printing.",
+        "tags": [
+          "tritone color chart",
+          "registration mark",
+          "screen covered 60lpi",
+          "bilingual risograph tool book",
+          "gradient scale",
+          "cmyk swatch",
+          "halftone dot",
+          "paper texture",
+          "overlapping sheet",
+          "cyan magenta yellow black"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1629,
+        "completion_tokens": 158,
+        "total_tokens": 1787,
+        "cost": 0.000112786,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1536,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000112786,
+          "upstream_inference_prompt_cost": 3.8526e-05,
+          "upstream_inference_completions_cost": 7.426e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00031861,
+      "provider": "Alibaba"
+    },
+    "j970dmwy4f59mtvhx82z9gvt957zet99-1768699057177.webp": {
+      "ok": true,
+      "elapsed_s": 27.25,
+      "result": {
+        "styles": [
+          "brutalist",
+          "post-internet",
+          "experimental web",
+          "typographic",
+          "glitch",
+          "minimalist"
+        ],
+        "subject": "A website landing page featuring large sans-serif text overlaid on a dense background of raw HTML code.",
+        "tags": [
+          "html source code",
+          "welcome to our soft space",
+          "webdesign and code",
+          "sofi space",
+          "drag me",
+          "monochrome interface",
+          "navigation menu",
+          "raw markup"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1245,
+        "completion_tokens": 143,
+        "total_tokens": 1388,
+        "cost": 0.000116744,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000116744,
+          "upstream_inference_prompt_cost": 4.9534e-05,
+          "upstream_inference_completions_cost": 6.721e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00025396,
+      "provider": "Alibaba"
+    }
+  }
+}

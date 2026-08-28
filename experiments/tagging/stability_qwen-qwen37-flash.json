@@ -1,0 +1,70 @@
+{
+  "model": "qwen/qwen3.7-flash",
+  "runs": {
+    "11cb983c-234b-4dbd-8d75-9d52a60ebef3.png": [
+      [
+        "concept art",
+        "cyberpunk",
+        "industrial",
+        "lo-fi",
+        "digital painting"
+      ],
+      [
+        "concept art",
+        "sci-fi",
+        "cyberpunk",
+        "minimalist",
+        "digital painting"
+      ]
+    ],
+    "2be91ec1-de91-4a44-ae34-cebb090f3d3a.png": [
+      [
+        "experimental typography",
+        "collage",
+        "risograph",
+        "minimalist graphic",
+        "book cover"
+      ],
+      [
+        "risograph",
+        "typographic",
+        "contemporary poster",
+        "collage art",
+        "minimalist"
+      ]
+    ],
+    "bbf2a4de-f0f1-4d7d-8fe4-814f919250c6.png": [
+      [
+        "vaporwave",
+        "cyberpunk",
+        "retrowave",
+        "lo-fi",
+        "isometric",
+        "digital surrealism"
+      ],
+      [
+        "vaporwave",
+        "cyberpunk",
+        "lo-fi",
+        "retrowave",
+        "isometric",
+        "digital art"
+      ]
+    ],
+    "j970dmwy4f59mtvhx82z9gvt957zet99-1768699057177.webp": [
+      [
+        "terminal",
+        "brutalist",
+        "post-internet",
+        "typographic",
+        "monochrome"
+      ],
+      [
+        "terminal",
+        "brutalist",
+        "post-internet",
+        "typographic"
+      ]
+    ]
+  }
+}

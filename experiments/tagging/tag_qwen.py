@@ -39,7 +39,7 @@ if not API_KEY:
     sys.exit("set OPENROUTER_API_KEY")
 
 # Keep in sync with DEFAULT_MODEL / PROMPT_VERSION in src/convex/tagging.ts.
-DEFAULT_MODEL = "qwen/qwen3.7-flash"
+DEFAULT_MODEL = "openai/gpt-5.6-luna"
 PROMPT_VERSION = "v4"
 MAX_EDGE_PX = 1024  # downscale long edge to this before sending
 TEMPERATURE = 0.3  # low; re-tagging same item should be ~stable
@@ -130,9 +130,13 @@ def downscale_to_data_url(
 # ---------------------------------------------------------------------------
 # Tag normalization
 # ---------------------------------------------------------------------------
-# Words ending in -s that aren't actually plurals. Singularizing these would
-# produce nonsense ("lens" → "len"). Add as we find more false positives.
-KEEP_PLURAL = {"lens", "iris", "series", "species", "analysis", "axis", "chaos"}
+# Words ending in -s that aren't actually plurals ("lens" → "len"), plus
+# proper nouns the singularizer would mangle ("climeworks" → "climework").
+# Add as we find more false positives.
+KEEP_PLURAL = {
+    "lens", "iris", "series", "species", "analysis", "axis", "chaos",
+    "climeworks", "beaux-arts",
+}
 
 # Trailing modifier words that add no search value when attached to a real
 # tag ("low-poly aesthetic" → "low-poly"). Only stripped when there's at
@@ -181,7 +185,10 @@ def normalize_tag(s: str) -> str:
             if last.endswith(ending) and len(last) > len(ending):
                 words[-1] = last[: -len(ending)]
                 break
-    words = [singularize_word(w) for w in words]
+    # Singularize only the head noun. Interior plural words are usually part
+    # of proper names or compounds ("substans conference", "systems design")
+    # where singularizing corrupts the search anchor.
+    words[-1] = singularize_word(words[-1])
     return " ".join(words)
 
 

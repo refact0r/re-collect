@@ -12,6 +12,10 @@ node_modules
 .DS_Store
 Thumbs.db
 
+# Python (experiments)
+__pycache__/
+*.pyc
+
 # Env
 .env
 .env.*

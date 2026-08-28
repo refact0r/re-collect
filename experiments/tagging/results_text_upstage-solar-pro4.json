@@ -1,0 +1,315 @@
+{
+  "model": "upstage/solar-pro4",
+  "mode": "text",
+  "results": {
+    "good-room": {
+      "ok": true,
+      "elapsed_s": 5.5,
+      "result": {
+        "styles": [
+          "talk transcript",
+          "design criticism",
+          "personal essay"
+        ],
+        "subject": "A 2018 conference talk arguing that digital technology has become a place we live in, using libraries and train stations as architectural metaphors to advocate for more humane, generous design.",
+        "tags": [
+          "frank chimero",
+          "substan conference",
+          "bergen norway",
+          "digital technology",
+          "attention economy",
+          "new york public library",
+          "rose reading room",
+          "beaux-art architecture",
+          "pennsylvania railroad",
+          "penn station",
+          "alexander cassatt",
+          "human-centered"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2152,
+        "completion_tokens": 151,
+        "total_tokens": 2303,
+        "cost": 8.268e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 8.268e-05,
+          "upstream_inference_prompt_cost": 6.456e-05,
+          "upstream_inference_completions_cost": 1.812e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 8.267999999999999e-05,
+      "provider": "Upstage"
+    },
+    "greatwork": {
+      "ok": true,
+      "elapsed_s": 4.11,
+      "result": {
+        "styles": [
+          "essay",
+          "career advice",
+          "creative methodology",
+          "self-improvement"
+        ],
+        "subject": "Paul Graham outlines a universal framework for achieving great work by following curiosity, identifying knowledge gaps, and pursuing ambitious personal projects.",
+        "tags": [
+          "paul graham",
+          "great work",
+          "curiosity",
+          "ambition",
+          "knowledge gap",
+          "personal project",
+          "interdisciplinary discovery",
+          "luck",
+          "frontier of knowledge",
+          "educational system",
+          "intrinsic motivation"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2097,
+        "completion_tokens": 132,
+        "total_tokens": 2229,
+        "cost": 7.875e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 7.875e-05,
+          "upstream_inference_prompt_cost": 6.291e-05,
+          "upstream_inference_completions_cost": 1.584e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 7.874999999999999e-05,
+      "provider": "Upstage"
+    },
+    "jpeg": {
+      "ok": true,
+      "elapsed_s": 5.43,
+      "result": {
+        "styles": [
+          "tutorial",
+          "technical explanation",
+          "software engineering",
+          "web"
+        ],
+        "subject": "An explanation of the JPEG compression algorithm, covering color space conversion, chroma subsampling, DCT, quantization, and entropy coding.",
+        "tags": [
+          "jpeg",
+          "image compression",
+          "ycbcr",
+          "chroma subsampling",
+          "discrete cosine transform",
+          "dct",
+          "quantization",
+          "huffman coding",
+          "human visual system",
+          "luminance",
+          "chroma",
+          "8-bit image"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1932,
+        "completion_tokens": 130,
+        "total_tokens": 2062,
+        "cost": 7.356e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 7.356e-05,
+          "upstream_inference_prompt_cost": 5.796e-05,
+          "upstream_inference_completions_cost": 1.56e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 7.356e-05,
+      "provider": "Upstage"
+    },
+    "keyboard-latency": {
+      "ok": true,
+      "elapsed_s": 4.25,
+      "result": {
+        "styles": [
+          "technical analysis",
+          "benchmark study",
+          "hardware review",
+          "engineering critique"
+        ],
+        "subject": "This article benchmarks keyboard latency across various models, debunking gaming keyboard marketing claims and comparing modern input lag to vintage computer responsiveness.",
+        "tags": [
+          "keyboard latency",
+          "gaming keyboard",
+          "usb polling",
+          "cherry mx",
+          "razer",
+          "logitech",
+          "apple magic keyboard",
+          "hhkb",
+          "apple 2",
+          "logic analyzer",
+          "input lag",
+          "n-key rollover"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2236,
+        "completion_tokens": 131,
+        "total_tokens": 2367,
+        "cost": 8.28e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 8.28e-05,
+          "upstream_inference_prompt_cost": 6.708e-05,
+          "upstream_inference_completions_cost": 1.572e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 8.279999999999998e-05,
+      "provider": "Upstage"
+    },
+    "olivine": {
+      "ok": true,
+      "elapsed_s": 2.69,
+      "result": {
+        "styles": [
+          "science journalism",
+          "climate technology",
+          "geochemistry",
+          "environmental policy"
+        ],
+        "subject": "Explores olivine weathering and direct-air capture as chemical carbon sequestration methods to complement emissions reductions and address climate change.",
+        "tags": [
+          "olivine weathering",
+          "carbon sequestration",
+          "direct-air capture",
+          "silicate weathering",
+          "carbonic acid",
+          "climework",
+          "carbon engineering",
+          "1pointfive",
+          "amine sorbent",
+          "haber-bosch process",
+          "climate change mitigation"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2035,
+        "completion_tokens": 132,
+        "total_tokens": 2167,
+        "cost": 7.689e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 7.689e-05,
+          "upstream_inference_prompt_cost": 6.105e-05,
+          "upstream_inference_completions_cost": 1.584e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 7.688999999999999e-05,
+      "provider": "Upstage"
+    },
+    "syntax-highlighting": {
+      "ok": true,
+      "elapsed_s": 5.95,
+      "result": {
+        "styles": [
+          "design criticism",
+          "software engineering",
+          "tutorial",
+          "personal essay"
+        ],
+        "subject": "A critique of common syntax highlighting practices arguing for minimal, functional color themes that prioritize readability and utility over decorative aesthetics.",
+        "tags": [
+          "syntax highlighting",
+          "code editor",
+          "color theme",
+          "alabaster",
+          "dark mode",
+          "light mode",
+          "code readability",
+          "comment styling",
+          "visual hierarchy",
+          "tonsky",
+          "oklab",
+          "developer tool"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2160,
+        "completion_tokens": 125,
+        "total_tokens": 2285,
+        "cost": 7.98e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 7.98e-05,
+          "upstream_inference_prompt_cost": 6.48e-05,
+          "upstream_inference_completions_cost": 1.5e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 7.979999999999999e-05,
+      "provider": "Upstage"
+    }
+  }
+}

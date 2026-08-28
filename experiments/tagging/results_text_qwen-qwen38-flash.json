@@ -1,0 +1,299 @@
+{
+  "model": "qwen/qwen3.8-flash",
+  "mode": "text",
+  "results": {
+    "good-room": {
+      "ok": true,
+      "elapsed_s": 83.65,
+      "result": {
+        "styles": [
+          "talk transcript",
+          "design criticism",
+          "personal essay"
+        ],
+        "subject": "Frank Chimero explores the tension between digital convenience and human comfort, using the New York Public Library as a model for generous, non-transactional spaces.",
+        "tags": [
+          "frank chimero",
+          "substan conference",
+          "new york public library",
+          "rose reading room",
+          "technology ethic",
+          "digital fatigue",
+          "public space",
+          "samuel tilden",
+          "andrew carnegie",
+          "penn station",
+          "attention economy"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2146,
+        "completion_tokens": 154,
+        "total_tokens": 2300,
+        "cost": 0.000119848,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2048,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000119848,
+          "upstream_inference_prompt_cost": 4.7468e-05,
+          "upstream_inference_completions_cost": 7.238e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00039427999999999995,
+      "provider": "Alibaba"
+    },
+    "greatwork": {
+      "ok": true,
+      "elapsed_s": 33.57,
+      "result": {
+        "styles": [
+          "personal essay",
+          "career advice"
+        ],
+        "subject": "Paul Graham outlines a universal framework for achieving great work by identifying natural aptitudes, pursuing deep curiosity, and exploring gaps at the frontier of knowledge.",
+        "tags": [
+          "paul graham",
+          "great work",
+          "curiosity",
+          "frontier of knowledge",
+          "career choice",
+          "ambition",
+          "intrinsic motivation",
+          "discovery",
+          "self-directed learning",
+          "ycombinator"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2096,
+        "completion_tokens": 136,
+        "total_tokens": 2232,
+        "cost": 0.000103888,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2048,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000103888,
+          "upstream_inference_prompt_cost": 3.9968e-05,
+          "upstream_inference_completions_cost": 6.392e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00037832,
+      "provider": "Alibaba"
+    },
+    "jpeg": {
+      "ok": true,
+      "elapsed_s": 79.13,
+      "result": {
+        "styles": [
+          "technical explainer",
+          "software engineering",
+          "signal processing"
+        ],
+        "subject": "A detailed breakdown of the JPEG compression algorithm, covering color space conversion, chroma subsampling, discrete cosine transform, quantization, and entropy coding.",
+        "tags": [
+          "jpeg",
+          "image compression",
+          "dct",
+          "y'cbcr",
+          "chroma subsampling",
+          "quantization",
+          "huffman coding",
+          "zigzag scan",
+          "human visual system",
+          "luminance",
+          "discrete cosine transform"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1987,
+        "completion_tokens": 151,
+        "total_tokens": 2138,
+        "cost": 0.000128892,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000128892,
+          "upstream_inference_prompt_cost": 5.7922e-05,
+          "upstream_inference_completions_cost": 7.097e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00036902,
+      "provider": "Alibaba"
+    },
+    "keyboard-latency": {
+      "ok": true,
+      "elapsed_s": 52.57,
+      "result": {
+        "styles": [
+          "technical analysis",
+          "benchmark report",
+          "hardware review"
+        ],
+        "subject": "A benchmarking study comparing keyboard latency across gaming and standard models, revealing that marketing claims often ignore significant input delays compared to older computers.",
+        "tags": [
+          "keyboard latency",
+          "gaming keyboard",
+          "usb polling rate",
+          "input lag",
+          "dan luu",
+          "apple magic keyboard",
+          "hhkb lite",
+          "logitech k120",
+          "razer ornata chroma",
+          "performance benchmark",
+          "human-computer interaction"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2244,
+        "completion_tokens": 153,
+        "total_tokens": 2397,
+        "cost": 0.000134078,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2048,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000134078,
+          "upstream_inference_prompt_cost": 6.2168e-05,
+          "upstream_inference_completions_cost": 7.191e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00040851,
+      "provider": "Alibaba"
+    },
+    "olivine": {
+      "ok": true,
+      "elapsed_s": 68.67,
+      "result": {
+        "styles": [
+          "science journalism",
+          "climate policy analysis"
+        ],
+        "subject": "An exploration of enhanced olivine weathering as a scalable method for carbon capture to mitigate climate change.",
+        "tags": [
+          "olivine",
+          "carbon capture",
+          "climate change",
+          "mineral weathering",
+          "direct air capture",
+          "carbon sequestration",
+          "silicate mineral",
+          "climework",
+          "ocean acidification",
+          "work in progress"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2079,
+        "completion_tokens": 132,
+        "total_tokens": 2211,
+        "cost": 9.9458e-05,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2048,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 9.9458e-05,
+          "upstream_inference_prompt_cost": 3.7418e-05,
+          "upstream_inference_completions_cost": 6.204e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00037389,
+      "provider": "Alibaba"
+    },
+    "syntax-highlighting": {
+      "ok": true,
+      "elapsed_s": 50.34,
+      "result": {
+        "styles": [
+          "design criticism",
+          "tutorial"
+        ],
+        "subject": "An argument for minimalist syntax highlighting that prioritizes cognitive load reduction and functional utility over decorative color variety.",
+        "tags": [
+          "syntax highlighting",
+          "code readability",
+          "color theory",
+          "ui",
+          "developer experience",
+          "dark mode",
+          "light mode",
+          "alabaster theme",
+          "tonsky"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2163,
+        "completion_tokens": 114,
+        "total_tokens": 2277,
+        "cost": 0.000103598,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 2048,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000103598,
+          "upstream_inference_prompt_cost": 5.0018e-05,
+          "upstream_inference_completions_cost": 5.358e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00037803,
+      "provider": "Alibaba"
+    }
+  }
+}

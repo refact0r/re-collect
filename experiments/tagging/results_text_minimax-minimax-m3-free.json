@@ -1,0 +1,306 @@
+{
+  "model": "minimax/minimax-m3:free",
+  "mode": "text",
+  "results": {
+    "good-room": {
+      "ok": true,
+      "elapsed_s": 4.81,
+      "result": {
+        "styles": [
+          "talk transcript",
+          "personal essay",
+          "design criticism"
+        ],
+        "subject": "Frank Chimero's talk arguing that technology should be designed and used like good places\u2014generous, comfortable, and free\u2014using the New York Public Library as a model.",
+        "tags": [
+          "frank chimero",
+          "substan conference",
+          "nypl",
+          "rose reading room",
+          "penn station",
+          "design philosophy",
+          "technology criticism",
+          "attention economy",
+          "public space",
+          "beaux-art",
+          "andrew carnegie",
+          "digital wellness"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2220,
+        "completion_tokens": 122,
+        "total_tokens": 2342,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 144,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "GMICloud"
+    },
+    "greatwork": {
+      "ok": true,
+      "elapsed_s": 9.26,
+      "result": {
+        "styles": [
+          "personal essay",
+          "manifesto",
+          "career advice"
+        ],
+        "subject": "Paul Graham's essay outlining a universal recipe for doing great work, centered on choosing a field, learning to its frontier, and exploring gaps driven by curiosity.",
+        "tags": [
+          "paul graham",
+          "finding your calling",
+          "curiosity",
+          "creativity",
+          "ambition",
+          "self-directed learning",
+          "choosing a field",
+          "productivity",
+          "great work",
+          "personal project",
+          "figuring out what to do"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2137,
+        "completion_tokens": 95,
+        "total_tokens": 2232,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 144,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "GMICloud"
+    },
+    "jpeg": {
+      "ok": true,
+      "elapsed_s": 4.16,
+      "result": {
+        "styles": [
+          "tutorial",
+          "technical documentation"
+        ],
+        "subject": "A detailed technical explanation of the JPEG image compression algorithm, covering color space conversion, chroma subsampling, DCT, quantization, and entropy coding.",
+        "tags": [
+          "jpeg",
+          "image compression",
+          "discrete cosine transform",
+          "chroma subsampling",
+          "ycbcr color space",
+          "quantization",
+          "huffman coding",
+          "signal processing",
+          "computer graphic",
+          "image processing"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1982,
+        "completion_tokens": 96,
+        "total_tokens": 2078,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 144,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "GMICloud"
+    },
+    "keyboard-latency": {
+      "ok": true,
+      "elapsed_s": 5.98,
+      "result": {
+        "styles": [
+          "case study",
+          "technical analysis"
+        ],
+        "subject": "Empirical benchmarking of keyboard input latency revealing that gaming-marketed keyboards often perform no better than standard ones.",
+        "tags": [
+          "keyboard latency",
+          "input device",
+          "gaming keyboard",
+          "usb polling rate",
+          "n-key rollover",
+          "hardware benchmarking",
+          "logic analyzer",
+          "hci",
+          "end-to-end latency",
+          "dan luu",
+          "cherry mx",
+          "retro computing"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2255,
+        "completion_tokens": 95,
+        "total_tokens": 2350,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 144,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "GMICloud"
+    },
+    "olivine": {
+      "ok": true,
+      "elapsed_s": 2.99,
+      "result": {
+        "styles": [
+          "feature article",
+          "science explainer",
+          "environmental journalism"
+        ],
+        "subject": "Explores olivine weathering as a method of carbon capture and direct-air removal to address atmospheric CO\u2082 beyond emissions reduction alone.",
+        "tags": [
+          "olivine",
+          "carbon capture",
+          "direct air capture",
+          "enhanced weathering",
+          "climate change",
+          "co2 sequestration",
+          "climework",
+          "silicate",
+          "carbon cycle",
+          "geochemistry",
+          "renewable energy",
+          "haber-bosch"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2110,
+        "completion_tokens": 106,
+        "total_tokens": 2216,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 144,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "GMICloud"
+    },
+    "syntax-highlighting": {
+      "ok": true,
+      "elapsed_s": 15.22,
+      "result": {
+        "styles": [
+          "design criticism",
+          "tutorial",
+          "personal essay"
+        ],
+        "subject": "Critiques common syntax highlighting practices and offers principles for designing functional, minimal color themes for code editors.",
+        "tags": [
+          "syntax highlighting",
+          "color theme",
+          "alabaster",
+          "code editor",
+          "ui",
+          "light vs dark theme",
+          "developer tool",
+          "readability",
+          "code comment",
+          "typography",
+          "visual"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2251,
+        "completion_tokens": 89,
+        "total_tokens": 2340,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 144,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "GMICloud"
+    }
+  }
+}

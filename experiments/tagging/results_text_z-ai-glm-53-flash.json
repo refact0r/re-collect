@@ -1,0 +1,317 @@
+{
+  "model": "z-ai/glm-5.3-flash",
+  "mode": "text",
+  "results": {
+    "good-room": {
+      "ok": true,
+      "elapsed_s": 13.82,
+      "result": {
+        "styles": [
+          "talk transcript",
+          "design criticism",
+          "personal essay"
+        ],
+        "subject": "Frank Chimero's conference talk exploring how technology became a place we live in, using libraries and architecture to imagine a more generous digital life.",
+        "tags": [
+          "frank chimero",
+          "new york public library",
+          "rose reading room",
+          "library",
+          "technology and society",
+          "attention economy",
+          "convenience vs comfort",
+          "digital wellbeing",
+          "bryant park",
+          "penn station",
+          "new york city",
+          "public space"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2093,
+        "completion_tokens": 152,
+        "total_tokens": 2245,
+        "cost": 0.00038995,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00038995,
+          "upstream_inference_prompt_cost": 0.00031395,
+          "upstream_inference_completions_cost": 7.6e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 42,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00019497499999999998,
+      "reasoning_forced": true,
+      "provider": "Venice"
+    },
+    "greatwork": {
+      "ok": true,
+      "elapsed_s": 7.4,
+      "result": {
+        "styles": [
+          "personal essay",
+          "career advice",
+          "manifesto"
+        ],
+        "subject": "Paul Graham's essay distills cross-field techniques for doing great work: choosing a field, following curiosity, reaching the frontier of knowledge, and exploring gaps.",
+        "tags": [
+          "paul graham",
+          "ambition",
+          "curiosity",
+          "career choice",
+          "great work",
+          "motivation",
+          "self-directed project",
+          "education",
+          "luck",
+          "discovery",
+          "frontier of knowledge",
+          "hard work"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2061,
+        "completion_tokens": 552,
+        "total_tokens": 2613,
+        "cost": 0.000585091485,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.000585091485,
+          "upstream_inference_prompt_cost": 0.000309119085,
+          "upstream_inference_completions_cost": 0.0002759724
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 438,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.000292575,
+      "reasoning_forced": true,
+      "provider": "Modal"
+    },
+    "jpeg": {
+      "ok": true,
+      "elapsed_s": 29.65,
+      "result": {
+        "styles": [
+          "tutorial",
+          "software engineering",
+          "image processing"
+        ],
+        "subject": "A step-by-step explanation of how JPEG compression works, from RGB-to-YCbCr color conversion and chroma subsampling through DCT, quantization, and Huffman entropy coding.",
+        "tags": [
+          "jpeg",
+          "image compression",
+          "lossy compression",
+          "discrete cosine transform",
+          "chroma subsampling",
+          "ycbcr color space",
+          "quantization",
+          "huffman coding",
+          "human visual perception",
+          "signal processing",
+          "digital image"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1964,
+        "completion_tokens": 1116,
+        "total_tokens": 3080,
+        "cost": 0.0004263,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0004263,
+          "upstream_inference_prompt_cost": 0.0001473,
+          "upstream_inference_completions_cost": 0.000279
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 995,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0004263,
+      "reasoning_forced": true,
+      "provider": "Novita"
+    },
+    "keyboard-latency": {
+      "ok": true,
+      "elapsed_s": 30.59,
+      "result": {
+        "styles": [
+          "case study",
+          "hardware engineering",
+          "human-computer interaction"
+        ],
+        "subject": "Dan Luu benchmarks keypress-to-USB latency across keyboards, showing modern keyboards add significant latency and gaming keyboards aren't faster despite marketing claims.",
+        "tags": [
+          "keyboard latency",
+          "input latency",
+          "gaming keyboard",
+          "usb polling",
+          "logic analyzer",
+          "latency measurement",
+          "apple 2",
+          "apple magic keyboard",
+          "model m",
+          "kinesis advantage",
+          "n-key rollover",
+          "reaction time"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2188,
+        "completion_tokens": 1109,
+        "total_tokens": 3297,
+        "cost": 0.00044135,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00044135,
+          "upstream_inference_prompt_cost": 0.0001641,
+          "upstream_inference_completions_cost": 0.00027725
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 990,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00044134999999999997,
+      "reasoning_forced": true,
+      "provider": "Z.AI"
+    },
+    "olivine": {
+      "ok": true,
+      "elapsed_s": 8.66,
+      "result": {
+        "styles": [
+          "essay",
+          "science journalism",
+          "climate policy analysis"
+        ],
+        "subject": "Explores how olivine, a green mineral that reacts with CO2, could enable enhanced weathering as a scalable method of carbon capture to slow or reverse climate change.",
+        "tags": [
+          "carbon capture",
+          "olivine",
+          "enhanced weathering",
+          "climate change",
+          "carbon sequestration",
+          "direct-air capture",
+          "climework",
+          "carbon engineering",
+          "silicate weathering",
+          "geochemistry",
+          "carbon dioxide removal",
+          "tree planting"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2010,
+        "completion_tokens": 137,
+        "total_tokens": 2147,
+        "cost": 0.00037,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00037,
+          "upstream_inference_prompt_cost": 0.0003015,
+          "upstream_inference_completions_cost": 6.85e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.000185,
+      "reasoning_forced": true,
+      "provider": "Reka"
+    },
+    "syntax-highlighting": {
+      "ok": true,
+      "elapsed_s": 34.44,
+      "result": {
+        "styles": [
+          "design criticism",
+          "personal essay",
+          "manifesto"
+        ],
+        "subject": "A critique of common syntax highlighting practices arguing for minimal, memorable color themes that highlight comments and constants while avoiding keyword highlighting and dark themes.",
+        "tags": [
+          "syntax highlighting",
+          "color theme",
+          "code editor",
+          "alabaster theme",
+          "tonsky",
+          "dark theme vs light theme",
+          "comment in code",
+          "oklab",
+          "clojure",
+          "readability",
+          "minimalism",
+          "contrast"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2114,
+        "completion_tokens": 410,
+        "total_tokens": 2524,
+        "cost": 0.0005221,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0005221,
+          "upstream_inference_prompt_cost": 0.0003171,
+          "upstream_inference_completions_cost": 0.000205
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 301,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00026105,
+      "reasoning_forced": true,
+      "provider": "Parasail"
+    }
+  }
+}

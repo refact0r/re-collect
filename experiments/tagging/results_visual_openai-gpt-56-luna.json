@@ -1,0 +1,430 @@
+{
+  "model": "openai/gpt-5.6-luna",
+  "mode": "visual",
+  "results": {
+    "11cb983c-234b-4dbd-8d75-9d52a60ebef3.png": {
+      "ok": true,
+      "elapsed_s": 2.9,
+      "result": {
+        "styles": [
+          "anime",
+          "concept art",
+          "industrial sci-fi",
+          "surreal",
+          "monochromatic",
+          "environmental illustration"
+        ],
+        "subject": "A dark-haired anime girl in bulky outerwear sits inside a vast industrial mechanical interior above a descending stairwell.",
+        "tags": [
+          "industrial pipe",
+          "ventilation duct",
+          "pressure gauge",
+          "metal stairwell",
+          "yellow hazard label",
+          "bulky gray spacesuit",
+          "backpack",
+          "anime girl",
+          "concrete wall",
+          "floating architectural platform",
+          "white sneaker",
+          "day 127"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1495,
+        "completion_tokens": 103,
+        "total_tokens": 1598,
+        "cost": 0.0004972,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 1492,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0004972,
+          "upstream_inference_prompt_cost": 0.0003736,
+          "upstream_inference_completions_cost": 0.0001236
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00042259999999999997,
+      "provider": "OpenAI"
+    },
+    "2be91ec1-de91-4a44-ae34-cebb090f3d3a.png": {
+      "ok": true,
+      "elapsed_s": 2.62,
+      "result": {
+        "styles": [
+          "experimental typography",
+          "constructivist",
+          "editorial poster",
+          "halftone",
+          "minimalist",
+          "high-contrast"
+        ],
+        "subject": "A turquoise editorial poster featuring a halftone portrait of a seated figure overlaid with oversized abstract black typography and a small lamp motif.",
+        "tags": [
+          "turquoise background",
+          "halftone portrait",
+          "seated figure",
+          "abstract black lettering",
+          "chinese character",
+          "rencan publisher",
+          "geometric floor lamp",
+          "cream and cyan palette",
+          "screenprint texture"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1457,
+        "completion_tokens": 106,
+        "total_tokens": 1563,
+        "cost": 0.0004913,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 1454,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0004913,
+          "upstream_inference_prompt_cost": 0.0003641,
+          "upstream_inference_completions_cost": 0.0001272
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0004186,
+      "provider": "OpenAI"
+    },
+    "3bd44aaf-2379-4221-9ff6-56a9eb4cefb9.png": {
+      "ok": true,
+      "elapsed_s": 2.96,
+      "result": {
+        "styles": [
+          "surrealist collage",
+          "maximalist",
+          "psychedelic",
+          "vintage print",
+          "experimental typography",
+          "pop surrealism"
+        ],
+        "subject": "A fragmented colorful fish swims across a typographic collage of stars, geometric outlines, and painted color fields.",
+        "tags": [
+          "fish",
+          "fish eye",
+          "yellow star",
+          "scattered alphabet letter",
+          "black outlined geometric shape",
+          "blue circular field",
+          "green and purple color block",
+          "cut-and-paste collage",
+          "textured paper background",
+          "bright yellow-green-magenta palette"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1802,
+        "completion_tokens": 107,
+        "total_tokens": 1909,
+        "cost": 0.00057875,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 1799,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00057875,
+          "upstream_inference_prompt_cost": 0.00045035,
+          "upstream_inference_completions_cost": 0.0001284
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0004888,
+      "provider": "OpenAI"
+    },
+    "52d7d6c6-090e-489d-b080-5718142518c4.png": {
+      "ok": true,
+      "elapsed_s": 2.83,
+      "result": {
+        "styles": [
+          "brutalist",
+          "swiss",
+          "international typographic",
+          "minimalist",
+          "monochrome",
+          "editorial web"
+        ],
+        "subject": "A dark, grid-based design agency portfolio interface with a project index displayed in a pale lavender lower section.",
+        "tags": [
+          "fiddle.digital",
+          "design agency",
+          "black background",
+          "visible modular grid",
+          "thin white rule",
+          "large sans-serif typography",
+          "japanese subtitle",
+          "project list",
+          "all filter heading",
+          "pale lavender section",
+          "two-column portfolio index",
+          "stringtune"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1342,
+        "completion_tokens": 109,
+        "total_tokens": 1451,
+        "cost": 0.00046615,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 1339,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00046615,
+          "upstream_inference_prompt_cost": 0.00033535,
+          "upstream_inference_completions_cost": 0.0001308
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00039919999999999995,
+      "provider": "OpenAI"
+    },
+    "58fe738e-3a78-48ec-9c8d-d04ba80e9a52.png": {
+      "ok": true,
+      "elapsed_s": 2.17,
+      "result": {
+        "styles": [
+          "technical editorial",
+          "swiss-inspired",
+          "retro-futurist",
+          "blueprint illustration",
+          "pixel typography",
+          "minimalist"
+        ],
+        "subject": "An editorial spread explaining touchscreen sensing and computer hardware through text and labeled technical diagrams.",
+        "tags": [
+          "making software",
+          "touchscreen electrode",
+          "gaussian blur",
+          "kernel matrix",
+          "floppy disk exploded view",
+          "magnetic disk hub",
+          "dust liner",
+          "write protect tab",
+          "blue monoline diagram",
+          "pixel display headline"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1265,
+        "completion_tokens": 117,
+        "total_tokens": 1382,
+        "cost": 0.0004565,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 1262,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0004565,
+          "upstream_inference_prompt_cost": 0.0003161,
+          "upstream_inference_completions_cost": 0.0001404
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00039339999999999997,
+      "provider": "OpenAI"
+    },
+    "bbf2a4de-f0f1-4d7d-8fe4-814f919250c6.png": {
+      "ok": true,
+      "elapsed_s": 2.67,
+      "result": {
+        "styles": [
+          "ps2",
+          "low-poly",
+          "futurist",
+          "cyberpunk",
+          "video game concept art",
+          "high-contrast",
+          "editorial typography"
+        ],
+        "subject": "A futuristic urban transit platform with a seated figure, bicycle, industrial pipes, and a distant city skyline beneath vivid blue skies.",
+        "tags": [
+          "caeruleum",
+          "terra a26",
+          "blue sky",
+          "tactile yellow paving",
+          "red and green utility pipe",
+          "chain-link fence",
+          "bicycle",
+          "masked seated figure",
+          "city skyline",
+          "red autumn leaf",
+          "transit stair",
+          "hud interface text"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1572,
+        "completion_tokens": 169,
+        "total_tokens": 1741,
+        "cost": 0.00059565,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 1569,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00059565,
+          "upstream_inference_prompt_cost": 0.00039285,
+          "upstream_inference_completions_cost": 0.0002028
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0005172,
+      "provider": "OpenAI"
+    },
+    "f72d5c2a-c6c4-4e3a-aaad-4b3d43c16678.png": {
+      "ok": true,
+      "elapsed_s": 3.05,
+      "result": {
+        "styles": [
+          "graphic",
+          "print",
+          "modernist",
+          "color chart",
+          "editorial still life",
+          "minimalist"
+        ],
+        "subject": "A fan of overlapping printed color charts displays vivid CMYK-like swatches and calibration markings on a white background.",
+        "tags": [
+          "tritone color chart",
+          "screen-printed paper",
+          "color swatch",
+          "registration mark",
+          "crop mark",
+          "gradient band",
+          "overlapping sheet",
+          "pink orange green yellow",
+          "printed typography",
+          "white background"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1802,
+        "completion_tokens": 118,
+        "total_tokens": 1920,
+        "cost": 0.00059195,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 1799,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00059195,
+          "upstream_inference_prompt_cost": 0.00045035,
+          "upstream_inference_completions_cost": 0.0001416
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.000502,
+      "provider": "OpenAI"
+    },
+    "j970dmwy4f59mtvhx82z9gvt957zet99-1768699057177.webp": {
+      "ok": true,
+      "elapsed_s": 2.93,
+      "result": {
+        "styles": [
+          "brutalist web",
+          "experimental editorial",
+          "monochrome",
+          "typographic",
+          "ascii art",
+          "minimalist"
+        ],
+        "subject": "A monochrome experimental web page presenting a soft-themed design space through oversized typography and an ASCII-art landscape.",
+        "tags": [
+          "welcome to our soft space",
+          "soft glossary",
+          "soft inspiration",
+          "soft space navigation",
+          "oversized thin sans-serif typography",
+          "italic serif accent",
+          "ascii-art mountain landscape",
+          "white background",
+          "black text",
+          "drag me prompt",
+          "concept code",
+          "html label"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1342,
+        "completion_tokens": 156,
+        "total_tokens": 1498,
+        "cost": 0.00052255,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 1339,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00052255,
+          "upstream_inference_prompt_cost": 0.00033535,
+          "upstream_inference_completions_cost": 0.0001872
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.00045559999999999996,
+      "provider": "OpenAI"
+    }
+  }
+}

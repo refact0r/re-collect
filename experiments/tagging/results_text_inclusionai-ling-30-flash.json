@@ -1,0 +1,263 @@
+{
+  "model": "inclusionai/ling-3.0-flash",
+  "mode": "text",
+  "results": {
+    "good-room": {
+      "ok": true,
+      "elapsed_s": 22.31,
+      "result": {
+        "styles": [
+          "talk transcript",
+          "personal essay",
+          "design criticism"
+        ],
+        "subject": "A designer reflects on how technology has shifted from a tool to a place we live in, using the New York Public Library and Penn Station as historical examples to explore how spaces shape culture, and argues for designing technology with generosity, comfort, and human purpose over mere convenience.",
+        "tags": [
+          "new york public library",
+          "rose reading room",
+          "penn station",
+          "bryant park",
+          "andrew carnegie samuel tilden",
+          "design philosophy",
+          "technology and place",
+          "generous",
+          "digital comfort",
+          "public space",
+          "urban infrastructure",
+          "attention economy"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2143,
+        "completion_tokens": 146,
+        "total_tokens": 2289,
+        "cost": 0.00015486,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00015486,
+          "upstream_inference_prompt_cost": 0.00012858,
+          "upstream_inference_completions_cost": 2.628e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 5.420099999999999e-05,
+      "provider": "DeepInfra"
+    },
+    "greatwork": {
+      "ok": true,
+      "elapsed_s": 20.29,
+      "result": {
+        "styles": [
+          "personal essay",
+          "manifesto"
+        ],
+        "subject": "A guide to doing great work by choosing ambitious projects driven by natural aptitude and deep interest, learning to the frontier, noticing gaps, and exploring them with curiosity and delight.",
+        "tags": [
+          "ambition",
+          "curiosity",
+          "career advice",
+          "productivity",
+          "creativity",
+          "paul graham",
+          "personal development",
+          "work ethic",
+          "discovery",
+          "frontier of knowledge",
+          "fractal bud",
+          "interest-driven work"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2090,
+        "completion_tokens": 109,
+        "total_tokens": 2199,
+        "cost": 0.00014502,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00014502,
+          "upstream_inference_prompt_cost": 0.0001254,
+          "upstream_inference_completions_cost": 1.962e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 5.0757e-05,
+      "provider": "DeepInfra"
+    },
+    "jpeg": {
+      "ok": false,
+      "elapsed_s": 18.3,
+      "error": "TagSchemaError: styles must have at least 1 entry"
+    },
+    "keyboard-latency": {
+      "ok": true,
+      "elapsed_s": 26.75,
+      "result": {
+        "styles": [
+          "personal essay",
+          "tutorial",
+          "case study"
+        ],
+        "subject": "A benchmark and analysis of keyboard latency across gaming and non-gaming keyboards, challenging marketing claims and exploring why modern keyboards often feel slower than decades-old computers despite greater computational power.",
+        "tags": [
+          "keyboard latency",
+          "gaming keyboard",
+          "polling rate",
+          "usb full speed",
+          "logic analyzer",
+          "high-speed camera",
+          "benchmark",
+          "keycap",
+          "cherry mx red",
+          "apple 2",
+          "imac g4",
+          "kaby lake"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2237,
+        "completion_tokens": 190,
+        "total_tokens": 2427,
+        "cost": 0.00016842,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00016842,
+          "upstream_inference_prompt_cost": 0.00013422,
+          "upstream_inference_completions_cost": 3.42e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 5.8947e-05,
+      "provider": "DeepInfra"
+    },
+    "olivine": {
+      "ok": true,
+      "elapsed_s": 8.28,
+      "result": {
+        "styles": [
+          "personal essay",
+          "case study",
+          "design criticism"
+        ],
+        "subject": "Explores olivine weathering as a natural carbon capture mechanism and evaluates its potential alongside engineered solutions like direct-air capture to address climate change, comparing geological timescales with human intervention.",
+        "tags": [
+          "olivine weathering",
+          "carbon capture",
+          "climate change",
+          "direct-air capture",
+          "climework",
+          "carbon engineering",
+          "1pointfive",
+          "carbon sequestration",
+          "sorbent",
+          "amine sorbent",
+          "co2 removal",
+          "geological formation"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2062,
+        "completion_tokens": 144,
+        "total_tokens": 2206,
+        "cost": 0.00014964,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00014964,
+          "upstream_inference_prompt_cost": 0.00012372,
+          "upstream_inference_completions_cost": 2.592e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 5.2374e-05,
+      "provider": "DeepInfra"
+    },
+    "syntax-highlighting": {
+      "ok": true,
+      "elapsed_s": 16.36,
+      "result": {
+        "styles": [
+          "personal essay",
+          "tutorial"
+        ],
+        "subject": "A critique of common syntax highlighting practices in code editors and guidelines for designing functional, minimal color themes that improve code readability and orientation.",
+        "tags": [
+          "syntax highlighting",
+          "color theme",
+          "code readability",
+          "alabaster theme",
+          "ton sky",
+          "programming font",
+          "developer tool",
+          "ui",
+          "accessibility",
+          "color theory",
+          "text editor"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2161,
+        "completion_tokens": 93,
+        "total_tokens": 2254,
+        "cost": 0.0001464,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0001464,
+          "upstream_inference_prompt_cost": 0.00012966,
+          "upstream_inference_completions_cost": 1.674e-05
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 5.124e-05,
+      "provider": "DeepInfra"
+    }
+  }
+}

@@ -1,0 +1,432 @@
+{
+  "model": "minimax/minimax-m3:free",
+  "mode": "visual",
+  "results": {
+    "11cb983c-234b-4dbd-8d75-9d52a60ebef3.png": {
+      "ok": true,
+      "elapsed_s": 14.93,
+      "result": {
+        "styles": [
+          "concept art",
+          "post-apocalyptic",
+          "brutalist",
+          "atmospheric",
+          "anime",
+          "environmental storytelling"
+        ],
+        "subject": "A hooded figure resting on a ledge in a dim, brutalist concrete industrial interior with exposed pipes and boots nearby.",
+        "tags": [
+          "concrete architecture",
+          "exposed pipe",
+          "pressure gauge",
+          "yellow caution sign",
+          "room code g8",
+          "hiking boot",
+          "backpack",
+          "alphanumeric label t-182-c, fr 182-119, a-148-3c",
+          "title text concrete solitude",
+          "stairwell",
+          "single warm light source",
+          "anime character"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1757,
+        "completion_tokens": 143,
+        "total_tokens": 1900,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 144,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "GMICloud"
+    },
+    "2be91ec1-de91-4a44-ae34-cebb090f3d3a.png": {
+      "ok": true,
+      "elapsed_s": 3.88,
+      "result": {
+        "styles": [
+          "contemporary chinese graphic",
+          "experimental typography",
+          "halftone",
+          "risograph",
+          "minimalist",
+          "post-internet",
+          "surreal"
+        ],
+        "subject": "A bold graphic composition featuring a halftone-rendered figure intertwined with large Chinese character typography on a vivid cyan background.",
+        "tags": [
+          "cyan background",
+          "halftone texture",
+          "chinese character",
+          "ren jian publisher",
+          "\u5b6b\u983b",
+          "peach colored door",
+          "fragmented figure",
+          "high contrast",
+          "experimental type",
+          "overlapping typography"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1683,
+        "completion_tokens": 117,
+        "total_tokens": 1800,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 144,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "GMICloud"
+    },
+    "3bd44aaf-2379-4221-9ff6-56a9eb4cefb9.png": {
+      "ok": true,
+      "elapsed_s": 4.26,
+      "result": {
+        "styles": [
+          "mixed-media collage",
+          "vintage graphic",
+          "psychedelic",
+          "lo-fi",
+          "risograph",
+          "surrealist",
+          "maximalist"
+        ],
+        "subject": "A layered composition of iridescent fish silhouettes, scattered letter typography, a blue circular form, and yellow stars against a cream paper background.",
+        "tags": [
+          "fish illustration",
+          "iridescent scale",
+          "yellow star",
+          "scattered letter",
+          "blue circle",
+          "cream paper texture",
+          "pixelated fish",
+          "rectangular outline frame",
+          "noisy halftone",
+          "vintage"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2090,
+        "completion_tokens": 124,
+        "total_tokens": 2214,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 144,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "GMICloud"
+    },
+    "52d7d6c6-090e-489d-b080-5718142518c4.png": {
+      "ok": true,
+      "elapsed_s": 4.24,
+      "result": {
+        "styles": [
+          "brutalist",
+          "swiss",
+          "minimalist",
+          "monochrome",
+          "editorial",
+          "grid"
+        ],
+        "subject": "A dark-mode portfolio website for design agency Fiddle.Digital featuring a grid layout and a list of project entries below.",
+        "tags": [
+          "dark theme",
+          "grid line",
+          "navigation bar",
+          "project list",
+          "sans-serif typography",
+          "logo mark",
+          "hover state",
+          "light lavender section",
+          "client portfolio",
+          "two-column layout"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1572,
+        "completion_tokens": 102,
+        "total_tokens": 1674,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 144,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "GMICloud"
+    },
+    "58fe738e-3a78-48ec-9c8d-d04ba80e9a52.png": {
+      "ok": true,
+      "elapsed_s": 4.43,
+      "result": {
+        "styles": [
+          "technical illustration",
+          "blueprint",
+          "editorial",
+          "isometric",
+          "schematic",
+          "minimalist"
+        ],
+        "subject": "An illustrated reference page titled 'Making Software' explaining touchscreen technology and Gaussian blur with exploded-view diagrams in blue line art.",
+        "tags": [
+          "touchscreen electrode",
+          "exploded view",
+          "hard disk component",
+          "gaussian blur 3d plot",
+          "technical drawing",
+          "blue monochrome",
+          "isometric diagram",
+          "labeled part",
+          "dan hollick",
+          "page 41-42"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1498,
+        "completion_tokens": 110,
+        "total_tokens": 1608,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 144,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "GMICloud"
+    },
+    "bbf2a4de-f0f1-4d7d-8fe4-814f919250c6.png": {
+      "ok": true,
+      "elapsed_s": 5.71,
+      "result": {
+        "styles": [
+          "anime",
+          "cyberpunk",
+          "concept art",
+          "graphic",
+          "illustrative"
+        ],
+        "subject": "An anime-style character with a panda sitting on an urban overpass with city skyline, pixel art logo, and UI overlays in the background.",
+        "tags": [
+          "cityscape",
+          "overpass",
+          "panda",
+          "red leaf",
+          "bicycle",
+          "pixel art",
+          "logo",
+          "ui overlay",
+          "tactile paving",
+          "street lamp",
+          "graffiti",
+          "stair"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1831,
+        "completion_tokens": 106,
+        "total_tokens": 1937,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 144,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "GMICloud"
+    },
+    "f72d5c2a-c6c4-4e3a-aaad-4b3d43c16678.png": {
+      "ok": true,
+      "elapsed_s": 4.64,
+      "result": {
+        "styles": [
+          "risograph",
+          "retro",
+          "analog",
+          "print",
+          "zine",
+          "maximalist",
+          "hand-drawn"
+        ],
+        "subject": "A fanned-out array of colorful riso-style color charts and reference cards on a white surface.",
+        "tags": [
+          "color swatch",
+          "gradient",
+          "starburst icon",
+          "percentage scale",
+          "screen printed",
+          "tritone color chart",
+          "graph room, tapei taiwan",
+          "neon pink",
+          "fluorescent green",
+          "orange",
+          "halftone",
+          "numbered ruler mark"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 2090,
+        "completion_tokens": 118,
+        "total_tokens": 2208,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 144,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "GMICloud"
+    },
+    "j970dmwy4f59mtvhx82z9gvt957zet99-1768699057177.webp": {
+      "ok": true,
+      "elapsed_s": 4.32,
+      "result": {
+        "styles": [
+          "swiss",
+          "minimalist",
+          "monochrome",
+          "generative",
+          "brutalist",
+          "editorial"
+        ],
+        "subject": "A monochrome web design portfolio homepage featuring ASCII art of a frog and large serif headline text on a light background.",
+        "tags": [
+          "ascii art",
+          "frog",
+          "serif typography",
+          "lowercase text",
+          "navigation menu",
+          "(concept)",
+          "(html)",
+          "drag me cursor",
+          "black and white",
+          "sans-serif menu",
+          "monospace character",
+          "mouse interaction hint"
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 1572,
+        "completion_tokens": 109,
+        "total_tokens": 1681,
+        "cost": 0,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 144,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0,
+          "upstream_inference_prompt_cost": 0,
+          "upstream_inference_completions_cost": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "cost_usd": 0.0,
+      "provider": "GMICloud"
+    }
+  }
+}
