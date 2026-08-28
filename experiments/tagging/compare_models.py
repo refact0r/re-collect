@@ -66,15 +66,15 @@ MODELS_TEXT = MODELS_VISION + [
     "upstage/solar-pro4",
 ]
 
-# Byte-for-byte copy of TEXT_PROMPT (text-v2) in src/convex/tagging.ts.
+# Byte-for-byte copy of TEXT_PROMPT (text-v3) in src/convex/tagging.ts.
 TEXT_PROMPT = """You are tagging a saved web article for a personal reference library. Based on the article text below, produce genre labels, a summary, and topic tags so the user can rediscover this item later via search.
 
 Return ONLY a JSON object matching this schema. No prose, no markdown fences.
 
 {
-  "styles": string[],  // 1-4 high-level genre labels — what kind of piece this is and what field it belongs to.
-  "subject": string,   // one sentence under 30 words — what the article is about
-  "tags": string[]     // 5-12 topic tags: subjects, technologies, people, places, concepts covered. Lowercase, short phrases the user might search for later. Distinct from styles; do not duplicate.
+  "styles": string[],  // 1-4 high-level genre labels — the form of the piece and the field(s) it belongs to.
+  "subject": string,   // one sentence under 30 words — what the article is about.
+  "tags": string[]     // 5-12 topic tags, 1-4 words each, lowercase — subjects, technologies, people, places, concepts covered that the user might search for later. Distinct from styles; do not duplicate.
 }
 
 Style vocabulary guidance (inspirational, not prescriptive):
@@ -82,10 +82,9 @@ Style vocabulary guidance (inspirational, not prescriptive):
 - Field: design criticism, typography, software engineering, web design, photography, architecture, career advice.
 
 Rules:
-- NEVER use generic form labels like "blog post", "article", or "writing" — pick the specific form.
-- Tags must be specific to this article's content — never generic labels like "article", "blog post", or "technology".
-- Include proper nouns (products, companies, people) when they are central to the piece.
-- The article text may be truncated; tag only what is present."""
+- NEVER use generic labels in styles or tags — no "blog post", "article", "writing", "technology". Pick the specific form and specific topics.
+- Include proper nouns (products, companies, people) that are central to the piece, and the author's name if identifiable.
+- The article text may be truncated. The subject may describe the piece's overall scope as stated or implied; tags must come only from content actually present."""
 
 
 def load_pricing() -> dict:

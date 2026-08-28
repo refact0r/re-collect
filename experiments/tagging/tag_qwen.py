@@ -40,7 +40,7 @@ if not API_KEY:
 
 # Keep in sync with DEFAULT_MODEL / PROMPT_VERSION in src/convex/tagging.ts.
 DEFAULT_MODEL = "openai/gpt-5.6-luna"
-PROMPT_VERSION = "v4"
+PROMPT_VERSION = "v5"
 MAX_EDGE_PX = 1024  # downscale long edge to this before sending
 TEMPERATURE = 0.3  # low; re-tagging same item should be ~stable
 MAX_TOKENS = 600  # JSON output is small; cap to control runaway
@@ -52,20 +52,25 @@ RETRY_BACKOFF_S = (1, 3)
 # ---------------------------------------------------------------------------
 # Prompt
 # ---------------------------------------------------------------------------
-# Notes on this revision:
+# Notes on v4:
 # - Example style vocabulary is no longer inside the JSON schema field
 #   comment, where small models tended to copy it back verbatim. It now sits
 #   in a separate "guidance" paragraph with an explicit anti-copy instruction.
 # - The vocabulary list is broader and grouped by domain so the model has more
 #   to draw on without being anchored to one set.
-PROMPT = """You are tagging an image for a personal visual reference library. The image will be one of: an artwork or illustration, a graphic design piece, a screenshot of a website or digital interface, or a photograph. Your job is to produce structured tags so the user can rediscover this item later. Aesthetic style is the primary axis — spend the most thought there. Also capture the literal content (subject, concrete tags), since those help recall too.
+# Notes on v5 (post luna adoption):
+# - Tags capped at 1-4 words (text anchors exempt but kept short) so they
+#   work as visible chips later.
+# - "will be one of" softened to "typically" — the enumeration is guidance,
+#   not a closed set.
+PROMPT = """You are tagging an image for a personal visual reference library. The image is typically an artwork or illustration, a graphic design piece, a screenshot of a website or digital interface, or a photograph. Your job is to produce structured tags so the user can rediscover this item later. Aesthetic style is the primary axis — spend the most thought there. Also capture the literal content (subject, concrete tags), since those help recall too.
 
 Return ONLY a JSON object matching this schema. No prose, no markdown fences.
 
 {
-  "styles": string[],    // PRIMARY FIELD. 2-8 specific aesthetic/genre labels — what categories does this belong to.
+  "styles": string[],    // PRIMARY FIELD. 2-8 specific aesthetic/genre labels — the categories this image belongs to.
   "subject": string,     // one sentence under 30 words — what's depicted at a glance, not an exhaustive description.
-  "tags": string[]       // 5-12 concrete observations — specific objects, materials, motifs, technical details that the user could later search for. Distinct from styles; do not duplicate.
+  "tags": string[]       // 5-12 concrete observations, 1-4 words each — specific objects, materials, motifs, technical details the user could later search for. Distinct from styles; do not duplicate.
 }
 
 Style vocabulary guidance (inspirational, not prescriptive):
@@ -79,7 +84,7 @@ DO NOT pick a label merely because it appears in the list above. If none of thes
 Rules:
 - Do NOT name specific artists, designers, studios, or brands unless their identity is unambiguous from a visible signature, logo, or watermark in the image.
 - For each style, pick the label that most accurately describes the image — neither broader nor narrower than the image warrants.
-- If the image contains text that would itself act as a distinct/memorable search anchor later — a title, headline, signage with real content, distinctive graffiti, or a brand/product name — include up to 3 of them as tags (no longer than a short phrase). Skip generic UI chrome, serial numbers, version strings, and any text that isn't recognizable out of context.
+- If the image contains text that would itself act as a distinct/memorable search anchor later — a title, headline, signage with real content, distinctive graffiti, or a brand/product name — include up to 3 of them as tags (a text anchor may exceed the word cap, but keep it a short phrase). Skip generic UI chrome, serial numbers, version strings, and any text that isn't recognizable out of context.
 """
 
 

@@ -8,8 +8,8 @@ import { authedMutation } from './lib/auth';
 import { buildSearchText } from './lib/searchText';
 import { colorNamesForPalette } from './lib/colorNames';
 
-const PROMPT_VERSION = 'v4';
-const TEXT_PROMPT_VERSION = 'text-v2';
+const PROMPT_VERSION = 'v5';
+const TEXT_PROMPT_VERSION = 'text-v3';
 // Adopted 2026-08-28 after the round-2 bake-off (experiments/tagging/
 // model-comparison-2026-08-round2.md): beat qwen3.7-flash on style accuracy
 // and OCR in both tagging modes at ~7x the (still trivial) cost.
@@ -21,14 +21,14 @@ const RETRIES = 2; // plus the initial attempt = 3 total
 const RETRY_BACKOFF_MS = [1000, 3000];
 
 // Ported byte-for-byte from experiments/tagging/tag_qwen.py.
-const PROMPT = `You are tagging an image for a personal visual reference library. The image will be one of: an artwork or illustration, a graphic design piece, a screenshot of a website or digital interface, or a photograph. Your job is to produce structured tags so the user can rediscover this item later. Aesthetic style is the primary axis — spend the most thought there. Also capture the literal content (subject, concrete tags), since those help recall too.
+const PROMPT = `You are tagging an image for a personal visual reference library. The image is typically an artwork or illustration, a graphic design piece, a screenshot of a website or digital interface, or a photograph. Your job is to produce structured tags so the user can rediscover this item later. Aesthetic style is the primary axis — spend the most thought there. Also capture the literal content (subject, concrete tags), since those help recall too.
 
 Return ONLY a JSON object matching this schema. No prose, no markdown fences.
 
 {
-  "styles": string[],    // PRIMARY FIELD. 2-8 specific aesthetic/genre labels — what categories does this belong to.
+  "styles": string[],    // PRIMARY FIELD. 2-8 specific aesthetic/genre labels — the categories this image belongs to.
   "subject": string,     // one sentence under 30 words — what's depicted at a glance, not an exhaustive description.
-  "tags": string[]       // 5-12 concrete observations — specific objects, materials, motifs, technical details that the user could later search for. Distinct from styles; do not duplicate.
+  "tags": string[]       // 5-12 concrete observations, 1-4 words each — specific objects, materials, motifs, technical details the user could later search for. Distinct from styles; do not duplicate.
 }
 
 Style vocabulary guidance (inspirational, not prescriptive):
@@ -42,7 +42,7 @@ DO NOT pick a label merely because it appears in the list above. If none of thes
 Rules:
 - Do NOT name specific artists, designers, studios, or brands unless their identity is unambiguous from a visible signature, logo, or watermark in the image.
 - For each style, pick the label that most accurately describes the image — neither broader nor narrower than the image warrants.
-- If the image contains text that would itself act as a distinct/memorable search anchor later — a title, headline, signage with real content, distinctive graffiti, or a brand/product name — include up to 3 of them as tags (no longer than a short phrase). Skip generic UI chrome, serial numbers, version strings, and any text that isn't recognizable out of context.
+- If the image contains text that would itself act as a distinct/memorable search anchor later — a title, headline, signage with real content, distinctive graffiti, or a brand/product name — include up to 3 of them as tags (a text anchor may exceed the word cap, but keep it a short phrase). Skip generic UI chrome, serial numbers, version strings, and any text that isn't recognizable out of context.
 `;
 
 // Text-mode prompt: articles get a summary + topic tags instead of visual
@@ -52,9 +52,9 @@ const TEXT_PROMPT = `You are tagging a saved web article for a personal referenc
 Return ONLY a JSON object matching this schema. No prose, no markdown fences.
 
 {
-  "styles": string[],  // 1-4 high-level genre labels — what kind of piece this is and what field it belongs to.
-  "subject": string,   // one sentence under 30 words — what the article is about
-  "tags": string[]     // 5-12 topic tags: subjects, technologies, people, places, concepts covered. Lowercase, short phrases the user might search for later. Distinct from styles; do not duplicate.
+  "styles": string[],  // 1-4 high-level genre labels — the form of the piece and the field(s) it belongs to.
+  "subject": string,   // one sentence under 30 words — what the article is about.
+  "tags": string[]     // 5-12 topic tags, 1-4 words each, lowercase — subjects, technologies, people, places, concepts covered that the user might search for later. Distinct from styles; do not duplicate.
 }
 
 Style vocabulary guidance (inspirational, not prescriptive):
@@ -62,10 +62,9 @@ Style vocabulary guidance (inspirational, not prescriptive):
 - Field: design criticism, typography, software engineering, web design, photography, architecture, career advice.
 
 Rules:
-- NEVER use generic form labels like "blog post", "article", or "writing" — pick the specific form.
-- Tags must be specific to this article's content — never generic labels like "article", "blog post", or "technology".
-- Include proper nouns (products, companies, people) when they are central to the piece.
-- The article text may be truncated; tag only what is present.`;
+- NEVER use generic labels in styles or tags — no "blog post", "article", "writing", "technology". Pick the specific form and specific topics.
+- Include proper nouns (products, companies, people) that are central to the piece, and the author's name if identifiable.
+- The article text may be truncated. The subject may describe the piece's overall scope as stated or implied; tags must come only from content actually present.`;
 
 // Article extraction limits
 const FETCH_TIMEOUT_MS = 15_000;

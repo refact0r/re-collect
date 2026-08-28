@@ -50,7 +50,7 @@ paletteHex: v.optional(v.array(v.string())),  // ["#rrggbb", ...], population-or
 paletteNames: v.optional(v.array(v.string())),
 taggingStatus: v.optional(v.union('pending' | 'processing' | 'completed' | 'failed')),
 taggingError: v.optional(v.string()),
-taggingModelVersion: v.optional(v.string()),  // `${model}:${PROMPT_VERSION}`, e.g. "qwen/qwen3.7-flash:v4"
+taggingModelVersion: v.optional(v.string()),  // `${model}:${PROMPT_VERSION}`, e.g. "openai/gpt-5.6-luna:v5"
 ```
 
 `searchText` **does** include tagging output: `buildSearchText()` in
@@ -63,11 +63,11 @@ any of those fields (`setCompleted`, `setPaletteHex`, item edits).
 `tag_qwen.py` is the source of truth for the prompt and params; production
 constants live at the top of `src/convex/tagging.ts`.
 
-- Model: `qwen/qwen3.7-flash` by default (adopted Aug 2026 after the
-  bake-off in `model-comparison-2026-08.md`); `TAGGING_MODEL` env var overrides
-  without a code change (useful for A/B trials — `taggingModelVersion`
-  records which model tagged each item).
-- `PROMPT_VERSION`: `v4`. Bump on any prompt change.
+- Model: `openai/gpt-5.6-luna` by default (adopted 2026-08-28 after the
+  round-2 bake-off in `model-comparison-2026-08-round2.md`); `TAGGING_MODEL`
+  env var overrides without a code change (useful for A/B trials —
+  `taggingModelVersion` records which model tagged each item).
+- `PROMPT_VERSION`: `v5` (visual), `text-v3` (text). Bump on any prompt change.
 - Temperature 0.3, `max_tokens` 600, `response_format: { type: 'json_object' }`.
 - `reasoning: { enabled: false }` — a matrix sweep (4 images × 6 treatments ×
   3 trials) showed reasoning drifts the model away from specific
