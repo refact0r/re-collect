@@ -39,10 +39,10 @@
 	const MIN_COL_WIDTH = 320;
 	const MAX_COLS = 6;
 	const MIN_COLS = 1;
-	// Card has padding: 0.5rem (8px) on each side = 16px total, border: 1px on each side = 2px total
-	const CARD_PADDING = 16; // 8px * 2
+	// Card padding: 0.5rem (8px) top/left/right, 0.25rem (4px) bottom; border: 1px on each side
 	const CARD_BORDER = 2; // 1px * 2
-	const CARD_CHROME = CARD_PADDING + CARD_BORDER; // 18px total vertical chrome
+	const CARD_CHROME_X = 16 + CARD_BORDER; // 8px * 2 + border = 18px
+	const CARD_CHROME_Y = 12 + CARD_BORDER; // 8px + 4px + border = 14px
 	const TITLE_HEIGHT = 25;
 	const IMAGE_FALLBACK_ASPECT = 0.75;
 	const TEXT_CARD_PADDING = 16;
@@ -96,19 +96,19 @@
 
 	function estimateHeight(item: DisplayItem): number {
 		const titleHeight = item.title ? TITLE_HEIGHT : 0;
-		const innerWidth = columnWidth - CARD_CHROME;
+		const innerWidth = columnWidth - CARD_CHROME_X;
 
 		if (shouldDisplayAsImage(item)) {
 			if (item.imageWidth && item.imageHeight) {
 				const imageHeight = innerWidth * (item.imageHeight / item.imageWidth);
-				return imageHeight + CARD_CHROME + titleHeight;
+				return imageHeight + CARD_CHROME_Y + titleHeight;
 			}
-			return innerWidth * IMAGE_FALLBACK_ASPECT + CARD_CHROME + titleHeight;
+			return innerWidth * IMAGE_FALLBACK_ASPECT + CARD_CHROME_Y + titleHeight;
 		}
 
 		if (item.type === 'url' && item.screenshotStatus && item.screenshotStatus !== 'completed') {
 			const screenshotHeight = innerWidth * (900 / 1440);
-			return screenshotHeight + CARD_CHROME + titleHeight;
+			return screenshotHeight + CARD_CHROME_Y + titleHeight;
 		}
 
 		if (item.type === 'url' || item.type === 'text') {
@@ -119,12 +119,12 @@
 				// CSS max-height is calc(1.5rem * 10 - 0.125rem) = 238px
 				const maxTextHeight = TEXT_MAX_LINES * TEXT_LINE_HEIGHT - 2;
 				const clampedHeight = Math.min(result.height, maxTextHeight);
-				return clampedHeight + TEXT_CARD_PADDING + CARD_CHROME + titleHeight;
+				return clampedHeight + TEXT_CARD_PADDING + CARD_CHROME_Y + titleHeight;
 			}
-			return DEFAULT_HEIGHT + CARD_CHROME + titleHeight;
+			return DEFAULT_HEIGHT + CARD_CHROME_Y + titleHeight;
 		}
 
-		return DEFAULT_HEIGHT + CARD_CHROME + titleHeight;
+		return DEFAULT_HEIGHT + CARD_CHROME_Y + titleHeight;
 	}
 
 	// ============ MASONRY DISTRIBUTION ============
@@ -554,7 +554,7 @@
 	}
 
 	.card {
-		padding: 0.5rem;
+		padding: 0.5rem 0.5rem 0.25rem;
 	}
 
 	.card img {
