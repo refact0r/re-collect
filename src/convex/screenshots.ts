@@ -186,7 +186,8 @@ export const generateScreenshotInternal = internalAction({
 			// Worker unreachable - throw so the workpool retries; onScreenshotComplete
 			// records the failure if retries run out
 			throw new Error(
-				`Screenshot service unreachable: ${error instanceof Error ? error.message : 'Unknown error'}`
+				`Screenshot service unreachable: ${error instanceof Error ? error.message : 'Unknown error'}`,
+				{ cause: error }
 			);
 		}
 
