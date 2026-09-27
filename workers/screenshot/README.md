@@ -10,10 +10,10 @@ Cloudflare Worker that captures website screenshots using Browser Rendering API.
 
 ## Setup
 
-1. Install dependencies:
+1. Install dependencies (from the repo root; the worker is a pnpm workspace package):
 
    ```bash
-   npm install
+   pnpm install
    ```
 
 2. Update `wrangler.toml`:
