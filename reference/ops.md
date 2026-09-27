@@ -51,4 +51,4 @@ Cache invalidation:
 
 - Source: `workers/screenshot/`. Deploy: `pnpm run deploy:screenshot` (from repo root).
 - Bindings (`wrangler.toml`): `BROWSER` (Browser Rendering), `R2_BUCKET` (bound to `re-collect`).
-- Secret `API_KEY`: set via `wrangler secret put API_KEY` in `workers/screenshot/`. Must match `CLOUDFLARE_SCREENSHOT_KEY`.
+- Secret `API_KEY`: set via `pnpm exec wrangler secret put API_KEY` in `workers/screenshot/`. Must match `CLOUDFLARE_SCREENSHOT_KEY`.

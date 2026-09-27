@@ -7,10 +7,10 @@
 		"dev": "vite dev",
 		"dev:all": "concurrently \"convex dev\" \"vite dev\"",
 		"build": "vite build",
-		"deploy": "npm run deploy:convex && npm run deploy:app",
+		"deploy": "pnpm run deploy:convex && pnpm run deploy:app",
 		"deploy:convex": "convex deploy",
 		"deploy:app": "vite build && wrangler deploy",
-		"deploy:screenshot": "cd workers/screenshot && npx wrangler deploy",
+		"deploy:screenshot": "pnpm -C workers/screenshot run deploy",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -18,7 +18,7 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
 		"test:unit": "vitest",
-		"test": "npm run test:unit -- --run"
+		"test": "pnpm run test:unit --run"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.1.1",

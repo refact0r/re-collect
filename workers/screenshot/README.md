@@ -6,7 +6,6 @@ Cloudflare Worker that captures website screenshots using Browser Rendering API.
 
 1. Cloudflare account with Workers and Browser Rendering enabled
 2. R2 bucket created (must match the bucket used by the main app)
-3. Wrangler CLI installed: `npm install -g wrangler`
 
 ## Setup
 
@@ -22,7 +21,7 @@ Cloudflare Worker that captures website screenshots using Browser Rendering API.
 3. Set up API key as a secret:
 
    ```bash
-   wrangler secret put API_KEY
+   pnpm exec wrangler secret put API_KEY
    ```
 
    Enter a secure random string when prompted.
@@ -30,7 +29,7 @@ Cloudflare Worker that captures website screenshots using Browser Rendering API.
 4. Deploy the worker:
 
    ```bash
-   npm run deploy
+   pnpm run deploy
    ```
 
 5. Note the worker URL (e.g., `https://screenshot-worker.<your-subdomain>.workers.dev`)
@@ -44,13 +43,13 @@ Cloudflare Worker that captures website screenshots using Browser Rendering API.
 Run locally:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 View logs:
 
 ```bash
-npm run tail
+pnpm run tail
 ```
 
 ## API
