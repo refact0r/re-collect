@@ -38,6 +38,7 @@
 	// navigation drops it) wins until the mutation round-trips
 	let sortOverride = $state<{ id: string; value: CollectionSortOption } | null>(null);
 	let viewOverride = $state<{ id: string; value: ViewMode } | null>(null);
+	let columnOffsetOverride = $state<{ id: string; value: number } | null>(null);
 	const sortBy = $derived(
 		sortOverride && sortOverride.id === collectionId
 			? sortOverride.value
@@ -47,6 +48,11 @@
 		viewOverride && viewOverride.id === collectionId
 			? viewOverride.value
 			: (collection.data?.viewMode ?? 'grid')
+	);
+	const columnOffset = $derived(
+		columnOffsetOverride && columnOffsetOverride.id === collectionId
+			? columnOffsetOverride.value
+			: (collection.data?.columnOffset ?? 0)
 	);
 
 	// Use dedicated query for collection items with sort option
@@ -78,6 +84,17 @@
 			client.mutation(api.collections.update, {
 				id: collectionId,
 				viewMode: newMode,
+				token
+			})
+		);
+	}
+
+	async function handleColumnOffsetChange(offset: number) {
+		columnOffsetOverride = { id: collectionId, value: offset };
+		await mutate(writeToken, (token) =>
+			client.mutation(api.collections.update, {
+				id: collectionId,
+				columnOffset: offset,
 				token
 			})
 		);
@@ -188,9 +205,11 @@
 			{collectionId}
 			{sortBy}
 			{viewMode}
+			{columnOffset}
 			showManualSort={true}
 			onSortChange={handleSortChange}
 			onViewModeChange={handleViewModeChange}
+			onColumnOffsetChange={handleColumnOffsetChange}
 		/>
 
 		{#if items.isLoading}
@@ -203,6 +222,7 @@
 			<ItemGrid
 				items={items.data ?? []}
 				{collectionId}
+				{columnOffset}
 				onReorder={sortBy === 'manual' ? handleReorder : undefined}
 				onRetryScreenshot={handleRetryScreenshot}
 			/>

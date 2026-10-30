@@ -60,6 +60,7 @@ export const update = authedMutation({
 		name: v.optional(v.string()),
 		sortMode: v.optional(collectionSortModeValidator),
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
+		columnOffset: v.optional(v.number()),
 		taggingMode: v.optional(taggingModeValidator),
 		linkImageMode: v.optional(linkImageModeValidator)
 	},

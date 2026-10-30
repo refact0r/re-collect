@@ -19,11 +19,12 @@
 	interface Props {
 		items: DisplayItem[];
 		collectionId?: Id<'collections'>;
+		columnOffset?: number;
 		onReorder?: (itemId: Id<'items'>, newPosition: string) => void;
 		onRetryScreenshot?: (itemId: Id<'items'>) => void;
 	}
 
-	let { items, collectionId, onReorder, onRetryScreenshot }: Props = $props();
+	let { items, collectionId, columnOffset = 0, onReorder, onRetryScreenshot }: Props = $props();
 
 	async function handleDeleteItem(itemId: Id<'items'>) {
 		await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
@@ -37,7 +38,8 @@
 	// Layout constants
 	const GAP = 16;
 	const MIN_COL_WIDTH = 320;
-	const MAX_COLS = 6;
+	const MAX_COLS = 6; // for the width-derived count, before columnOffset
+	const MAX_OFFSET_COLS = 12;
 	const MIN_COLS = 1;
 	// Card padding: 0.5rem (8px) top/left/right, 0.25rem (4px) bottom; border: 1px on each side
 	const CARD_BORDER = 2; // 1px * 2
@@ -79,13 +81,17 @@
 		return null;
 	}
 
-	let columnCount = $derived(
+	let autoColumnCount = $derived(
 		containerWidth === 0
 			? MIN_COLS
 			: Math.min(
 					MAX_COLS,
 					Math.max(MIN_COLS, Math.floor((containerWidth + GAP) / (MIN_COL_WIDTH + GAP)))
 				)
+	);
+
+	let columnCount = $derived(
+		Math.min(MAX_OFFSET_COLS, Math.max(MIN_COLS, autoColumnCount + columnOffset))
 	);
 
 	let columnWidth = $derived(

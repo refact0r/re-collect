@@ -2,6 +2,7 @@
 	import ItemInput from './ItemInput.svelte';
 	import IngestSettings from './IngestSettings.svelte';
 	import ViewToggle, { type ViewMode } from './ViewToggle.svelte';
+	import ColumnControl from './ColumnControl.svelte';
 	import CollectionFilter from './CollectionFilter.svelte';
 	import SortDropdown from './SortDropdown.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
@@ -11,9 +12,11 @@
 		collectionId?: Id<'collections'>;
 		sortBy: CollectionSortOption;
 		viewMode: ViewMode;
+		columnOffset: number;
 		showManualSort?: boolean;
 		onSortChange: (sort: CollectionSortOption) => void;
 		onViewModeChange: (mode: ViewMode) => void;
+		onColumnOffsetChange: (offset: number) => void;
 		collections?: { _id: Id<'collections'>; name: string }[];
 		filterCollectionIds?: Set<string>;
 		onFilterChange?: (selected: Set<string>) => void;
@@ -23,9 +26,11 @@
 		collectionId,
 		sortBy,
 		viewMode,
+		columnOffset,
 		showManualSort = false,
 		onSortChange,
 		onViewModeChange,
+		onColumnOffsetChange,
 		collections,
 		filterCollectionIds,
 		onFilterChange
@@ -41,6 +46,9 @@
 			<CollectionFilter {collections} selected={filterCollectionIds} onchange={onFilterChange} />
 		{/if}
 		<SortDropdown value={sortBy} {showManualSort} onchange={onSortChange} />
+		{#if viewMode === 'grid'}
+			<ColumnControl value={columnOffset} onchange={onColumnOffsetChange} />
+		{/if}
 		<ViewToggle value={viewMode} onchange={onViewModeChange} />
 	</div>
 	<div class="settings-slot">

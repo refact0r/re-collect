@@ -27,8 +27,10 @@
 	const savedPrefs = useQuery(api.viewPreferences.get, () => ({ key: 'home' }));
 	let sortOverride = $state<SortOption | null>(null);
 	let viewOverride = $state<ViewMode | null>(null);
+	let columnOffsetOverride = $state<number | null>(null);
 	const sortBy = $derived(sortOverride ?? savedPrefs.data?.sortMode ?? 'dateAddedNewest');
 	const viewMode = $derived(viewOverride ?? savedPrefs.data?.viewMode ?? 'grid');
+	const columnOffset = $derived(columnOffsetOverride ?? savedPrefs.data?.columnOffset ?? 0);
 
 	// The filter set needs both prefs and collections loaded, so it's initialized once
 	let filterCollectionIds = $state.raw(new SvelteSet<string>());
@@ -61,6 +63,13 @@
 		viewOverride = newMode;
 		mutate(writeToken, (token) =>
 			client.mutation(api.viewPreferences.set, { key: 'home', viewMode: newMode, token })
+		);
+	}
+
+	function handleColumnOffsetChange(offset: number) {
+		columnOffsetOverride = offset;
+		mutate(writeToken, (token) =>
+			client.mutation(api.viewPreferences.set, { key: 'home', columnOffset: offset, token })
 		);
 	}
 
@@ -113,8 +122,10 @@
 	<TopControls
 		{sortBy}
 		{viewMode}
+		{columnOffset}
 		onSortChange={handleSortChange}
 		onViewModeChange={handleViewModeChange}
+		onColumnOffsetChange={handleColumnOffsetChange}
 		collections={collectionsQuery.data ?? []}
 		{filterCollectionIds}
 		onFilterChange={handleFilterChange}
@@ -129,6 +140,6 @@
 	{:else if viewMode === 'list'}
 		<ItemList items={items.data ?? []} />
 	{:else}
-		<ItemGrid items={items.data ?? []} onRetryScreenshot={handleRetryScreenshot} />
+		<ItemGrid items={items.data ?? []} {columnOffset} onRetryScreenshot={handleRetryScreenshot} />
 	{/if}
 </div>

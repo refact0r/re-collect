@@ -6,6 +6,7 @@
 	import ItemGrid from '$lib/components/ItemGrid.svelte';
 	import ItemList from '$lib/components/ItemList.svelte';
 	import ViewToggle, { type ViewMode } from '$lib/components/ViewToggle.svelte';
+	import ColumnControl from '$lib/components/ColumnControl.svelte';
 	import { mutate, retryScreenshot } from '$lib/mutationHelper.js';
 	import { getWriteTokenContext, getCurrentItemsContext } from '$lib/context.js';
 
@@ -17,12 +18,21 @@
 	// Load saved preferences; the local override wins until the mutation round-trips
 	const savedPrefs = useQuery(api.viewPreferences.get, () => ({ key: 'search' }));
 	let viewOverride = $state<ViewMode | null>(null);
+	let columnOffsetOverride = $state<number | null>(null);
 	const viewMode = $derived(viewOverride ?? savedPrefs.data?.viewMode ?? 'grid');
+	const columnOffset = $derived(columnOffsetOverride ?? savedPrefs.data?.columnOffset ?? 0);
 
 	function handleViewModeChange(newMode: ViewMode) {
 		viewOverride = newMode;
 		mutate(writeToken, (token) =>
 			client.mutation(api.viewPreferences.set, { key: 'search', viewMode: newMode, token })
+		);
+	}
+
+	function handleColumnOffsetChange(offset: number) {
+		columnOffsetOverride = offset;
+		mutate(writeToken, (token) =>
+			client.mutation(api.viewPreferences.set, { key: 'search', columnOffset: offset, token })
 		);
 	}
 
@@ -54,12 +64,21 @@
 				{searchResults.data?.length}
 				{searchResults.data?.length === 1 ? 'result' : 'results'}
 			</p>
-			<ViewToggle value={viewMode} onchange={handleViewModeChange} />
+			<div class="view-controls">
+				{#if viewMode === 'grid'}
+					<ColumnControl value={columnOffset} onchange={handleColumnOffsetChange} />
+				{/if}
+				<ViewToggle value={viewMode} onchange={handleViewModeChange} />
+			</div>
 		</div>
 		{#if viewMode === 'list'}
 			<ItemList items={searchResults.data ?? []} />
 		{:else}
-			<ItemGrid items={searchResults.data ?? []} onRetryScreenshot={handleRetryScreenshot} />
+			<ItemGrid
+				items={searchResults.data ?? []}
+				{columnOffset}
+				onRetryScreenshot={handleRetryScreenshot}
+			/>
 		{/if}
 	{/if}
 </div>
@@ -70,6 +89,11 @@
 		justify-content: space-between;
 		align-items: center;
 		margin-bottom: 0.5rem;
+	}
+
+	.view-controls {
+		display: flex;
+		gap: 0.5rem;
 	}
 
 	.result-count {
