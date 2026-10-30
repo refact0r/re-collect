@@ -15,10 +15,9 @@ Cloudflare Worker that captures website screenshots using Browser Rendering API.
    pnpm install
    ```
 
-2. Update `wrangler.toml`:
-   - Set `bucket_name` to your R2 bucket name
+2. Check `bucket_name` in `wrangler.toml` matches the app's R2 bucket (`re-collect`)
 
-3. Set up API key as a secret:
+3. Set up API key as a secret (from this directory):
 
    ```bash
    pnpm exec wrangler secret put API_KEY
@@ -26,10 +25,10 @@ Cloudflare Worker that captures website screenshots using Browser Rendering API.
 
    Enter a secure random string when prompted.
 
-4. Deploy the worker:
+4. Deploy the worker (from the repo root):
 
    ```bash
-   pnpm run deploy
+   pnpm run deploy:screenshot
    ```
 
 5. Note the worker URL (e.g., `https://screenshot-worker.<your-subdomain>.workers.dev`)
@@ -75,7 +74,8 @@ Takes a screenshot of a URL and uploads it to R2.
 
 `mode` is optional: `"og"` tries the page's og:image first (via a plain fetch,
 then via the browser), falling back to a screenshot; `"screenshot"` (default)
-always captures a viewport screenshot.
+always captures a viewport screenshot. A stored og:image is returned under an
+`og/` key with its own dimensions instead.
 
 **Response (success):**
 
@@ -101,7 +101,8 @@ always captures a viewport screenshot.
 ## Limitations
 
 - Screenshots are 1440x900 viewport (not full page)
-- 15 second navigation timeout, then up to 10s waiting for network idle plus a
+- 10 second navigation timeout, then up to 10s waiting for network idle plus a
   forced 5s settle delay before capture
+- og:images narrower than 400px are rejected in favor of a screenshot
 - Blocked URLs: localhost, private/link-local IPs (v4 and v6), .local/.internal domains
 - Only HTTP/HTTPS URLs allowed

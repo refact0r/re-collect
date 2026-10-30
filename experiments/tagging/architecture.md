@@ -1,9 +1,11 @@
 # AI Tagging — Implementation Architecture (as built)
 
 Describes the shipped tagging pipeline. Companion to `design.md` (product
-framing) and `tag_qwen.py` (canonical source of the prompt, model params, and
-validation logic — production in `src/convex/tagging.ts` is a byte-for-byte
-port; iterate in the sandbox first, then port and bump `PROMPT_VERSION`).
+framing) and `tag_qwen.py` (canonical source of the visual prompt, model
+params, and validation logic — production in `src/convex/tagging.ts` is a
+byte-for-byte port; iterate in the sandbox first, then port and bump
+`PROMPT_VERSION`). The text-tagging prompt has no sandbox copy; it lives only
+in `tagging.ts`.
 
 Originally this file was the build plan. The feature has shipped; deltas from
 the plan are listed at the bottom.
@@ -80,7 +82,8 @@ constants live at the top of `src/convex/tagging.ts`.
 
 ## Validation
 
-Ported from `tag_qwen.py` (tested in `src/convex/lib/searchText.spec.ts`):
+Ported from `tag_qwen.py` (`normalizeTag` and `dedupePreserveOrder` are
+tested in `src/convex/lib/searchText.spec.ts`):
 
 - `parseJsonLenient` — strip markdown fences, locate the outermost `{...}`,
   `JSON.parse`.
@@ -95,15 +98,22 @@ Ported from `tag_qwen.py` (tested in `src/convex/lib/searchText.spec.ts`):
   (`swiss-influenced` → `swiss`), then singularize (with a `KEEP_PLURAL`
   exception list).
 
-Validation failure → action throws → `setFailed`.
+Text tagging validates the same way but caps `styles` (genre labels) at 4.
+
+Validation failure → retried (see below) → action throws → `setFailed`.
 
 ## Triggers
 
-| Source                     | When                                      | Schedules                                |
-| -------------------------- | ----------------------------------------- | ---------------------------------------- |
-| `items.add`                | `type === 'image'` and `imageKey` present | `internal.taggingActions.preprocessItem` |
-| `screenshots.setCompleted` | after patching imageKey/dimensions        | `internal.taggingActions.preprocessItem` |
-| `tagging.retagItem`        | public mutation, auth-gated               | `internal.taggingActions.preprocessItem` |
+| Source                     | When                                      | Schedules                                                      |
+| -------------------------- | ----------------------------------------- | -------------------------------------------------------------- |
+| `items.add`                | `type === 'image'` and `imageKey` present | `preprocessItem` if visual tagging is on, else `repaletteItem` |
+| `items.add`                | URL item with `taggingMode: 'text'`       | `tagging.tagTextItem`                                          |
+| `screenshots.setCompleted` | after patching imageKey/dimensions        | `preprocessItem` if visual tagging is on, else `repaletteItem` |
+| `tagging.retagItem`        | public mutation, auth-gated               | `preprocessItem` or `tagTextItem` (per requested mode)         |
+
+"Visual tagging is on" means `taggingMode` is neither `'none'` nor `'text'`;
+palette extraction always runs on a new image. `retagItem` also switches the
+item's `taggingMode` to the mode it ran.
 
 Text items are never tagged. URL items with `taggingMode: 'text'` skip visual
 tagging entirely: `tagging.tagTextItem` (scheduled from `items.add` and
@@ -118,10 +128,12 @@ fan this trigger out further without an idempotency guard.
 
 ## Retry semantics
 
-No automatic retries. A failed action sets `taggingStatus: 'failed'` +
-`taggingError`; the user re-invokes via `retagItem` (which rejects if a run
-is already `pending`/`processing`). Old tag fields are overwritten by the
-next successful `setCompleted`.
+Each tagging action retries in place (`tagWithRetries`): up to 3 attempts
+with 1s / 3s backoff, covering transport, JSON-parse and schema failures
+alike. If all attempts fail it sets `taggingStatus: 'failed'` +
+`taggingError`; there is no scheduler-level retry, so the user re-invokes via
+`retagItem` (which rejects if a run is already `pending`/`processing`). Old
+tag fields are overwritten by the next successful `setCompleted`.
 
 ## Env vars (Convex deployment)
 
@@ -144,5 +156,9 @@ Documented in `reference/ops.md`, set via `npx convex env set`:
 - Bulk re-tag migration shipped as `src/convex/migrations/004_bulk_retag.ts`,
   and the regenerate-tags UI button shipped in `ItemEditor.svelte` (via
   `tagging.retagItem`).
-- Still unbuilt: `semanticText`/embeddings/vector search, `/tags` index
+- Text tagging (`taggingMode: 'text'`) and per-collection ingestion defaults
+  were added after the plan.
+- The `/atlas` page (color fingerprint + style constellation) is the first
+  tag-browsing surface, computed client-side from the loaded items.
+- Still unbuilt: `semanticText`/embeddings/vector search, a `/tags` index
   page, tag-quality eval harness beyond the sandbox scripts here.

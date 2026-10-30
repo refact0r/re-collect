@@ -2,55 +2,48 @@
 
 A personal web application for collecting, organizing, and rediscovering design inspiration, web screenshots, articles, and visual references. Similar to Are.na.
 
-Consult `/reference` docs (R2 integration, icon system) when working with those systems. `reference/ops.md` documents external configuration.
+Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads/serving), `icons.md` (icon system), `ops.md` (external configuration, env vars, deploys), `TODO.md` (future ideas).
 
-`experiments/tagging/` is the sandbox for the AI image-tagging feature.
+`experiments/tagging/` is the sandbox for the AI tagging feature; `architecture.md` there describes the shipped pipeline.
+
+## Commands
+
+- `pnpm dev:all` — Convex dev + Vite dev server
+- `pnpm check` — svelte-check / type check
+- `pnpm test` — vitest (single run)
+- `pnpm lint` / `pnpm format` — prettier + eslint
+- Deploys are in `reference/ops.md`; `npx convex deploy` targets production
 
 ## Development Guidelines
 
-- Do not excessively preserve backward compatibility, remove obsolte paths and unused code.
+- Do not excessively preserve backward compatibility, remove obsolete paths and unused code.
 - Choose the simplest implementation that works, avoid overengineering.
+- Write readable, clean, beautiful code.
 - Use SvelteKit and Convex best practices, refer to the documentation if unsure.
 - Add comments only when logical/necessary, avoid excessive comments.
 
 ## Architecture & Conventions
 
-- Single-user app - no multi-user or social features. Auth is a single password cookie gate (`AUTH_PASSWORD`) plus a `CONVEX_WRITE_TOKEN` checked by mutations via `requireAuth`
-- **3 item types**: URL (auto-screenshots via Cloudflare Worker), image (R2-stored), text
+- Single-user app - no multi-user or social features. Auth is a single password cookie gate (`AUTH_PASSWORD`) plus a `CONVEX_WRITE_TOKEN`; public mutations are defined with `authedMutation` (`src/convex/lib/auth.ts`), which adds and checks the `token` arg
+- **3 item types**: URL (screenshot or og:image via Cloudflare Worker), image (R2-stored), text
+- **Ingestion modes**: `taggingMode` (`visual` / `text` / `none`) and `linkImageMode` (`screenshot` / `og`) are per-collection defaults (home defaults live in `viewPreferences`), snapshotted onto the item at add time
 - Items can belong to multiple collections
 - **Modal routing**: Items open via `?item=<id>` query param (preserves page context)
-- **Context sharing**: Collections and items lists passed down via Svelte context
-- **Manual ordering**: Fractional indexing (lexicographical position strings) in `itemCollectionPositions` table
-- **`searchText` is derived**: combined from title + description (user notes) + ogDescription + url + AI-tagging output (subject, styles, aiTags); rebuild via `buildSearchText()` in `searchText.ts` on any write that changes those fields
+- **Context sharing**: Collections and items lists passed down via Svelte context (typed helpers in `src/lib/context.ts`)
+- **Manual ordering**: Fractional indexing (lexicographical position strings) — `collections.position` for collections, `itemCollectionPositions` table for items within a collection
+- **Collection membership**: `item.collections` (denormalized array), `itemCollectionPositions` (junction table) and `collections.itemCount` must stay in sync — always go through `addItemToCollection` / `removeItemFromCollection` in `itemCollectionPositions.ts`
+- **`searchText` is derived**: combined from title + description (user notes) + ogDescription + url + AI-tagging output (subject, styles, aiTags) + paletteNames; rebuild via `buildSearchText()` in `src/convex/lib/searchText.ts` on any write that changes those fields
 - **Prose field ownership**: `description` is user notes (never machine-written), `ogDescription` is worker-captured, `subject` is AI-generated; display shows `subject ?? ogDescription`
-- **R2 images served via public custom domain** (`R2_PUBLIC_URL` env var): URLs are stable `${R2_PUBLIC_URL}/${imageKey}`, no presigning
-- **Dual collection bookkeeping**: `item.collections` (denormalized array) and `itemCollectionPositions` (junction table for ordering) must both be updated when adding/removing items from collections
+- **R2 images served via public custom domain** (`R2_PUBLIC_URL` env var): URLs are stable `${R2_PUBLIC_URL}/${imageKey}`, no presigning; R2 keys are immutable, never overwrite one
 - Svelte 5 only - do not use deprecated Svelte features
 - Use global styles/colors from `app.css` (`--bg-*`, `--txt-*`); prefer scoped styles over inline
 
 ## Svelte MCP
 
-You are able to use the Svelte MCP server, where you have access to comprehensive Svelte 5 and SvelteKit documentation. Here's how to use the available tools effectively:
+The Svelte MCP server provides Svelte 5 / SvelteKit docs and a code checker:
 
-### 1. list-sections
-
-Use this FIRST to discover all available documentation sections. Returns a structured list with titles, use_cases, and paths.
-When asked about Svelte or SvelteKit topics, ALWAYS use this tool at the start of the chat to find relevant sections.
-
-### 2. get-documentation
-
-Retrieves full documentation content for specific sections. Accepts single or multiple sections.
-After calling the list-sections tool, you MUST analyze the returned documentation sections (especially the use_cases field) and then use the get-documentation tool to fetch ALL documentation sections that are relevant for the user's task.
-
-### 3. svelte-autofixer
-
-Analyzes Svelte code and returns issues and suggestions.
-You MUST use this tool whenever writing Svelte code before sending it to the user. Keep calling it until no issues or suggestions are returned.
-
-### 4. playground-link
-
-Generates a Svelte Playground link with the provided code.
-After completing the code, ask the user if they want a playground link. Only call this tool after user confirmation and NEVER if code was written to files in their project.
+- `list-sections` → `get-documentation`: look up the relevant docs sections when unsure about a Svelte or SvelteKit API.
+- `svelte-autofixer`: run on any Svelte code you write, and repeat until it reports no issues or suggestions.
 
 ## Convex Guidelines
 

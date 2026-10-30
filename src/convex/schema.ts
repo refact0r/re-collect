@@ -69,7 +69,7 @@ export default defineSchema({
 		// Ingestion prefs snapshotted from the first collection at add time
 		taggingMode: v.optional(taggingModeValidator),
 		linkImageMode: v.optional(linkImageModeValidator), // URL items only
-		searchText: v.optional(v.string()), // Combined field for full-text search (title + description + url)
+		searchText: v.optional(v.string()), // Derived full-text search field, see lib/searchText.ts
 		collections: v.array(v.id('collections')),
 		dateAdded: v.number(),
 		dateModified: v.number()
