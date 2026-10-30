@@ -61,6 +61,7 @@ export const update = authedMutation({
 		sortMode: v.optional(collectionSortModeValidator),
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
 		columnOffset: v.optional(v.number()),
+		showTitles: v.optional(v.boolean()),
 		taggingMode: v.optional(taggingModeValidator),
 		linkImageMode: v.optional(linkImageModeValidator)
 	},

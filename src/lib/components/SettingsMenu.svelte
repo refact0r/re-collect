@@ -8,11 +8,14 @@
 	import IconSettings from '~icons/material-symbols-light/settings-outline';
 
 	interface Props {
-		// Without a collection, settings apply to collection-less adds (home defaults)
+		// Without a collection, ingestion settings apply to collection-less adds (home defaults)
 		collectionId?: Id<'collections'>;
+		showIngestion?: boolean;
+		showTitles: boolean;
+		onShowTitlesChange: (show: boolean) => void;
 	}
 
-	let { collectionId }: Props = $props();
+	let { collectionId, showIngestion = true, showTitles, onShowTitlesChange }: Props = $props();
 
 	const client = useConvexClient();
 	const collections = getCollectionsContext();
@@ -34,6 +37,10 @@
 		{ value: 'text', label: 'text' },
 		{ value: 'none', label: 'none' }
 	] as const;
+	const titleOptions = [
+		{ value: false, label: 'hidden' },
+		{ value: true, label: 'shown' }
+	] as const;
 	const linkImageOptions = [
 		{ value: 'screenshot', label: 'screenshot' },
 		{ value: 'og', label: 'og image' }
@@ -51,42 +58,54 @@
 	}
 </script>
 
-<div class="ingest-settings">
+<div class="settings-menu">
 	<Dropdown label="">
 		{#snippet icon()}
 			<IconSettings />
 		{/snippet}
 		{#snippet content()}
 			<div class="panel">
-				<p class="hint">
-					{collectionId ? 'defaults for new items' : 'defaults for uncollected items'}
-				</p>
 				<div class="group">
-					<span class="group-label">ai tagging</span>
+					<span class="group-label">titles</span>
 					<div class="mode-options">
-						{#each taggingOptions as opt (opt.value)}
+						{#each titleOptions as opt (opt.value)}
 							<button
-								class:active={taggingMode === opt.value}
-								onclick={() => setDefaults({ taggingMode: opt.value })}
+								class:active={showTitles === opt.value}
+								onclick={() => onShowTitlesChange(opt.value)}
 							>
 								{opt.label}
 							</button>
 						{/each}
 					</div>
 				</div>
-				<div class="group">
-					<span class="group-label">link image</span>
-					<div class="mode-options">
-						{#each linkImageOptions as opt (opt.value)}
-							<button
-								class:active={linkImageMode === opt.value}
-								onclick={() => setDefaults({ linkImageMode: opt.value })}
-							>
-								{opt.label}
-							</button>
-						{/each}
+				{#if showIngestion}
+					<div class="group">
+						<span class="group-label">ai tagging default</span>
+						<div class="mode-options">
+							{#each taggingOptions as opt (opt.value)}
+								<button
+									class:active={taggingMode === opt.value}
+									onclick={() => setDefaults({ taggingMode: opt.value })}
+								>
+									{opt.label}
+								</button>
+							{/each}
+						</div>
 					</div>
-				</div>
+					<div class="group">
+						<span class="group-label">link image default</span>
+						<div class="mode-options">
+							{#each linkImageOptions as opt (opt.value)}
+								<button
+									class:active={linkImageMode === opt.value}
+									onclick={() => setDefaults({ linkImageMode: opt.value })}
+								>
+									{opt.label}
+								</button>
+							{/each}
+						</div>
+					</div>
+				{/if}
 			</div>
 		{/snippet}
 	</Dropdown>
@@ -94,12 +113,17 @@
 
 <style>
 	/* Match the icon-filled buttons this sits next to in the controls row */
-	.ingest-settings :global(.trigger) {
+	.settings-menu :global(.trigger) {
 		aspect-ratio: 1;
 		padding: 0.5rem;
 	}
 
-	.ingest-settings :global(.trigger svg) {
+	/* The default dropdown height cap is for long lists; this panel is short and fixed */
+	.settings-menu :global(.dropdown) {
+		max-height: none;
+	}
+
+	.settings-menu :global(.trigger svg) {
 		width: 1.5rem;
 		height: 1.5rem;
 	}
@@ -110,11 +134,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
-	}
-
-	.hint {
-		color: var(--txt-3);
-		font-size: 0.875rem;
 	}
 
 	.group {

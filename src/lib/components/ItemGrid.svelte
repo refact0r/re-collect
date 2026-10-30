@@ -20,11 +20,19 @@
 		items: DisplayItem[];
 		collectionId?: Id<'collections'>;
 		columnOffset?: number;
+		showTitles?: boolean;
 		onReorder?: (itemId: Id<'items'>, newPosition: string) => void;
 		onRetryScreenshot?: (itemId: Id<'items'>) => void;
 	}
 
-	let { items, collectionId, columnOffset = 0, onReorder, onRetryScreenshot }: Props = $props();
+	let {
+		items,
+		collectionId,
+		columnOffset = 0,
+		showTitles = false,
+		onReorder,
+		onRetryScreenshot
+	}: Props = $props();
 
 	async function handleDeleteItem(itemId: Id<'items'>) {
 		await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
@@ -41,10 +49,11 @@
 	const MAX_COLS = 6; // for the width-derived count, before columnOffset
 	const MAX_OFFSET_COLS = 12;
 	const MIN_COLS = 1;
-	// Card padding: 0.5rem (8px) top/left/right, 0.25rem (4px) bottom; border: 1px on each side
+	// Card padding: 0.5rem (8px) on each side, 0.25rem (4px) bottom when a title follows; border: 1px on each side
 	const CARD_BORDER = 2; // 1px * 2
 	const CARD_CHROME_X = 16 + CARD_BORDER; // 8px * 2 + border = 18px
-	const CARD_CHROME_Y = 12 + CARD_BORDER; // 8px + 4px + border = 14px
+	const CARD_CHROME_Y_TITLED = 12 + CARD_BORDER; // 8px + 4px + border = 14px
+	const CARD_CHROME_Y = 16 + CARD_BORDER; // 8px * 2 + border = 18px
 	const TITLE_HEIGHT = 25;
 	const IMAGE_FALLBACK_ASPECT = 0.75;
 	const TEXT_CARD_PADDING = 16;
@@ -100,21 +109,23 @@
 			: (containerWidth - (columnCount - MIN_COLS) * GAP) / columnCount
 	);
 
+	const chromeY = $derived(showTitles ? CARD_CHROME_Y_TITLED : CARD_CHROME_Y);
+
 	function estimateHeight(item: DisplayItem): number {
-		const titleHeight = item.title ? TITLE_HEIGHT : 0;
+		const titleHeight = showTitles && item.title ? TITLE_HEIGHT : 0;
 		const innerWidth = columnWidth - CARD_CHROME_X;
 
 		if (shouldDisplayAsImage(item)) {
 			if (item.imageWidth && item.imageHeight) {
 				const imageHeight = innerWidth * (item.imageHeight / item.imageWidth);
-				return imageHeight + CARD_CHROME_Y + titleHeight;
+				return imageHeight + chromeY + titleHeight;
 			}
-			return innerWidth * IMAGE_FALLBACK_ASPECT + CARD_CHROME_Y + titleHeight;
+			return innerWidth * IMAGE_FALLBACK_ASPECT + chromeY + titleHeight;
 		}
 
 		if (item.type === 'url' && item.screenshotStatus && item.screenshotStatus !== 'completed') {
 			const screenshotHeight = innerWidth * (900 / 1440);
-			return screenshotHeight + CARD_CHROME_Y + titleHeight;
+			return screenshotHeight + chromeY + titleHeight;
 		}
 
 		if (item.type === 'url' || item.type === 'text') {
@@ -125,12 +136,12 @@
 				// CSS max-height is calc(1.5rem * 10 - 0.125rem) = 238px
 				const maxTextHeight = TEXT_MAX_LINES * TEXT_LINE_HEIGHT - 2;
 				const clampedHeight = Math.min(result.height, maxTextHeight);
-				return clampedHeight + TEXT_CARD_PADDING + CARD_CHROME_Y + titleHeight;
+				return clampedHeight + TEXT_CARD_PADDING + chromeY + titleHeight;
 			}
-			return DEFAULT_HEIGHT + CARD_CHROME_Y + titleHeight;
+			return DEFAULT_HEIGHT + chromeY + titleHeight;
 		}
 
-		return DEFAULT_HEIGHT + CARD_CHROME_Y + titleHeight;
+		return DEFAULT_HEIGHT + chromeY + titleHeight;
 	}
 
 	// ============ MASONRY DISTRIBUTION ============
@@ -489,7 +500,7 @@
 			<p>{item.content}</p>
 		</div>
 	{/if}
-	{#if item.title}
+	{#if showTitles && item.title}
 		<div class="card-title">{item.title}</div>
 	{/if}
 {/snippet}
@@ -504,7 +515,7 @@
 					{@const realItem = item as DisplayItem}
 					{@const isDragging = draggedItem?._id === realItem._id}
 					<div class="card-wrapper" class:dragging={isDragging}>
-						<a href={getItemUrl(realItem._id)} class="clickable card">
+						<a href={getItemUrl(realItem._id)} class="clickable card" class:titled={showTitles}>
 							{@render cardContent(realItem)}
 						</a>
 						{#if isDraggable}
@@ -528,7 +539,7 @@
 		style:top="{dragPosition.y - dragOffset.y}px"
 		style:width="{columnWidth}px"
 	>
-		<div class="clickable card">
+		<div class="clickable card" class:titled={showTitles}>
 			{@render cardContent(draggedItem)}
 		</div>
 	</div>
@@ -560,7 +571,11 @@
 	}
 
 	.card {
-		padding: 0.5rem 0.5rem 0.25rem;
+		padding: 0.5rem;
+	}
+
+	.card.titled {
+		padding-bottom: 0.25rem;
 	}
 
 	.card img {

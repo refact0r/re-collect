@@ -39,6 +39,7 @@
 	let sortOverride = $state<{ id: string; value: CollectionSortOption } | null>(null);
 	let viewOverride = $state<{ id: string; value: ViewMode } | null>(null);
 	let columnOffsetOverride = $state<{ id: string; value: number } | null>(null);
+	let showTitlesOverride = $state<{ id: string; value: boolean } | null>(null);
 	const sortBy = $derived(
 		sortOverride && sortOverride.id === collectionId
 			? sortOverride.value
@@ -53,6 +54,11 @@
 		columnOffsetOverride && columnOffsetOverride.id === collectionId
 			? columnOffsetOverride.value
 			: (collection.data?.columnOffset ?? 0)
+	);
+	const showTitles = $derived(
+		showTitlesOverride && showTitlesOverride.id === collectionId
+			? showTitlesOverride.value
+			: (collection.data?.showTitles ?? false)
 	);
 
 	// Use dedicated query for collection items with sort option
@@ -95,6 +101,17 @@
 			client.mutation(api.collections.update, {
 				id: collectionId,
 				columnOffset: offset,
+				token
+			})
+		);
+	}
+
+	async function handleShowTitlesChange(show: boolean) {
+		showTitlesOverride = { id: collectionId, value: show };
+		await mutate(writeToken, (token) =>
+			client.mutation(api.collections.update, {
+				id: collectionId,
+				showTitles: show,
 				token
 			})
 		);
@@ -206,10 +223,12 @@
 			{sortBy}
 			{viewMode}
 			{columnOffset}
+			{showTitles}
 			showManualSort={true}
 			onSortChange={handleSortChange}
 			onViewModeChange={handleViewModeChange}
 			onColumnOffsetChange={handleColumnOffsetChange}
+			onShowTitlesChange={handleShowTitlesChange}
 		/>
 
 		{#if items.isLoading}
@@ -223,6 +242,7 @@
 				items={items.data ?? []}
 				{collectionId}
 				{columnOffset}
+				{showTitles}
 				onReorder={sortBy === 'manual' ? handleReorder : undefined}
 				onRetryScreenshot={handleRetryScreenshot}
 			/>

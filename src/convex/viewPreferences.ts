@@ -23,6 +23,7 @@ export const set = authedMutation({
 		sortMode: v.optional(sortModeValidator),
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
 		columnOffset: v.optional(v.number()),
+		showTitles: v.optional(v.boolean()),
 		filterCollectionIds: v.optional(v.array(v.id('collections'))),
 		includeUncollected: v.optional(v.boolean()),
 		taggingMode: v.optional(taggingModeValidator),

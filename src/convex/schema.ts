@@ -89,6 +89,7 @@ export default defineSchema({
 		sortMode: v.optional(collectionSortModeValidator), // Defaults to 'manual'
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))), // Defaults to 'grid'
 		columnOffset: v.optional(v.number()), // Added to the width-derived grid column count
+		showTitles: v.optional(v.boolean()), // Defaults to false
 		// Ingestion defaults applied to items added into this collection
 		taggingMode: v.optional(taggingModeValidator),
 		linkImageMode: v.optional(linkImageModeValidator)
@@ -100,6 +101,7 @@ export default defineSchema({
 		sortMode: v.optional(sortModeValidator),
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
 		columnOffset: v.optional(v.number()),
+		showTitles: v.optional(v.boolean()),
 		filterCollectionIds: v.optional(v.array(v.id('collections'))),
 		includeUncollected: v.optional(v.boolean()),
 		// Ingestion defaults for collection-less adds (stored on the "home" row)

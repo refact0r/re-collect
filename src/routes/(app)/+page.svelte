@@ -28,9 +28,11 @@
 	let sortOverride = $state<SortOption | null>(null);
 	let viewOverride = $state<ViewMode | null>(null);
 	let columnOffsetOverride = $state<number | null>(null);
+	let showTitlesOverride = $state<boolean | null>(null);
 	const sortBy = $derived(sortOverride ?? savedPrefs.data?.sortMode ?? 'dateAddedNewest');
 	const viewMode = $derived(viewOverride ?? savedPrefs.data?.viewMode ?? 'grid');
 	const columnOffset = $derived(columnOffsetOverride ?? savedPrefs.data?.columnOffset ?? 0);
+	const showTitles = $derived(showTitlesOverride ?? savedPrefs.data?.showTitles ?? false);
 
 	// The filter set needs both prefs and collections loaded, so it's initialized once
 	let filterCollectionIds = $state.raw(new SvelteSet<string>());
@@ -70,6 +72,13 @@
 		columnOffsetOverride = offset;
 		mutate(writeToken, (token) =>
 			client.mutation(api.viewPreferences.set, { key: 'home', columnOffset: offset, token })
+		);
+	}
+
+	function handleShowTitlesChange(show: boolean) {
+		showTitlesOverride = show;
+		mutate(writeToken, (token) =>
+			client.mutation(api.viewPreferences.set, { key: 'home', showTitles: show, token })
 		);
 	}
 
@@ -123,9 +132,11 @@
 		{sortBy}
 		{viewMode}
 		{columnOffset}
+		{showTitles}
 		onSortChange={handleSortChange}
 		onViewModeChange={handleViewModeChange}
 		onColumnOffsetChange={handleColumnOffsetChange}
+		onShowTitlesChange={handleShowTitlesChange}
 		collections={collectionsQuery.data ?? []}
 		{filterCollectionIds}
 		onFilterChange={handleFilterChange}
@@ -140,6 +151,11 @@
 	{:else if viewMode === 'list'}
 		<ItemList items={items.data ?? []} />
 	{:else}
-		<ItemGrid items={items.data ?? []} {columnOffset} onRetryScreenshot={handleRetryScreenshot} />
+		<ItemGrid
+			items={items.data ?? []}
+			{columnOffset}
+			{showTitles}
+			onRetryScreenshot={handleRetryScreenshot}
+		/>
 	{/if}
 </div>

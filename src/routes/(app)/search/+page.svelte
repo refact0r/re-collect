@@ -7,6 +7,7 @@
 	import ItemList from '$lib/components/ItemList.svelte';
 	import ViewToggle, { type ViewMode } from '$lib/components/ViewToggle.svelte';
 	import ColumnControl from '$lib/components/ColumnControl.svelte';
+	import SettingsMenu from '$lib/components/SettingsMenu.svelte';
 	import { mutate, retryScreenshot } from '$lib/mutationHelper.js';
 	import { getWriteTokenContext, getCurrentItemsContext } from '$lib/context.js';
 
@@ -19,8 +20,10 @@
 	const savedPrefs = useQuery(api.viewPreferences.get, () => ({ key: 'search' }));
 	let viewOverride = $state<ViewMode | null>(null);
 	let columnOffsetOverride = $state<number | null>(null);
+	let showTitlesOverride = $state<boolean | null>(null);
 	const viewMode = $derived(viewOverride ?? savedPrefs.data?.viewMode ?? 'grid');
 	const columnOffset = $derived(columnOffsetOverride ?? savedPrefs.data?.columnOffset ?? 0);
+	const showTitles = $derived(showTitlesOverride ?? savedPrefs.data?.showTitles ?? false);
 
 	function handleViewModeChange(newMode: ViewMode) {
 		viewOverride = newMode;
@@ -33,6 +36,13 @@
 		columnOffsetOverride = offset;
 		mutate(writeToken, (token) =>
 			client.mutation(api.viewPreferences.set, { key: 'search', columnOffset: offset, token })
+		);
+	}
+
+	function handleShowTitlesChange(show: boolean) {
+		showTitlesOverride = show;
+		mutate(writeToken, (token) =>
+			client.mutation(api.viewPreferences.set, { key: 'search', showTitles: show, token })
 		);
 	}
 
@@ -69,6 +79,11 @@
 					<ColumnControl value={columnOffset} onchange={handleColumnOffsetChange} />
 				{/if}
 				<ViewToggle value={viewMode} onchange={handleViewModeChange} />
+				<SettingsMenu
+					showIngestion={false}
+					{showTitles}
+					onShowTitlesChange={handleShowTitlesChange}
+				/>
 			</div>
 		</div>
 		{#if viewMode === 'list'}
@@ -77,6 +92,7 @@
 			<ItemGrid
 				items={searchResults.data ?? []}
 				{columnOffset}
+				{showTitles}
 				onRetryScreenshot={handleRetryScreenshot}
 			/>
 		{/if}

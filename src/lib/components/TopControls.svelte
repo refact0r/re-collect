@@ -1,6 +1,6 @@
 <script lang="ts">
 	import ItemInput from './ItemInput.svelte';
-	import IngestSettings from './IngestSettings.svelte';
+	import SettingsMenu from './SettingsMenu.svelte';
 	import ViewToggle, { type ViewMode } from './ViewToggle.svelte';
 	import ColumnControl from './ColumnControl.svelte';
 	import CollectionFilter from './CollectionFilter.svelte';
@@ -13,10 +13,12 @@
 		sortBy: CollectionSortOption;
 		viewMode: ViewMode;
 		columnOffset: number;
+		showTitles: boolean;
 		showManualSort?: boolean;
 		onSortChange: (sort: CollectionSortOption) => void;
 		onViewModeChange: (mode: ViewMode) => void;
 		onColumnOffsetChange: (offset: number) => void;
+		onShowTitlesChange: (show: boolean) => void;
 		collections?: { _id: Id<'collections'>; name: string }[];
 		filterCollectionIds?: Set<string>;
 		onFilterChange?: (selected: Set<string>) => void;
@@ -27,10 +29,12 @@
 		sortBy,
 		viewMode,
 		columnOffset,
+		showTitles,
 		showManualSort = false,
 		onSortChange,
 		onViewModeChange,
 		onColumnOffsetChange,
+		onShowTitlesChange,
 		collections,
 		filterCollectionIds,
 		onFilterChange
@@ -52,7 +56,7 @@
 		<ViewToggle value={viewMode} onchange={onViewModeChange} />
 	</div>
 	<div class="settings-slot">
-		<IngestSettings {collectionId} />
+		<SettingsMenu {collectionId} {showTitles} {onShowTitlesChange} />
 	</div>
 </div>
 
