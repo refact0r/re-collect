@@ -83,15 +83,28 @@
 		);
 	}
 
-	// Reorder handler for drag-drop
+	// Reorder handler for drag-drop; optimistic so the grid doesn't snap back before the server responds
 	async function handleReorder(itemId: Id<'items'>, newPosition: string) {
+		const queryArgs = { collectionId, sortBy };
 		await mutate(writeToken, (token) =>
-			client.mutation(api.itemCollectionPositions.reorderItem, {
-				itemId,
-				collectionId,
-				newPosition,
-				token
-			})
+			client.mutation(
+				api.itemCollectionPositions.reorderItem,
+				{ itemId, collectionId, newPosition, token },
+				{
+					optimisticUpdate: (store) => {
+						const current = store.getQuery(api.items.listByCollection, queryArgs);
+						if (!current) return;
+						const updated = current
+							.map((i) => (i._id === itemId ? { ...i, position: newPosition } : i))
+							.sort((a, b) => {
+								const posA = a.position ?? '￿';
+								const posB = b.position ?? '￿';
+								return posA < posB ? -1 : posA > posB ? 1 : 0;
+							});
+						store.setQuery(api.items.listByCollection, queryArgs, updated);
+					}
+				}
+			)
 		);
 	}
 
