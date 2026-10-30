@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
-	import { mutate } from '$lib/mutationHelper.js';
-	import { getWriteTokenContext } from '$lib/context.js';
-	import type { CollectionSortOption } from '$lib/types.js';
+	import { mutate } from '#lib/mutationHelper.js';
+	import { getWriteTokenContext } from '#lib/context.js';
+	import type { CollectionSortOption } from '#lib/types.js';
 
 	interface Props {
 		onClose: () => void;

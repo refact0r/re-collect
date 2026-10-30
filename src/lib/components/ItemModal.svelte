@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import ItemEditor from './ItemEditor.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { getCurrentItemsContext } from '$lib/context.js';
+	import { getCurrentItemsContext } from '#lib/context.js';
 
 	interface Props {
 		itemId: Id<'items'>;
@@ -27,9 +27,9 @@
 	async function navigateToItem(newItemId: Id<'items'>) {
 		editor?.save();
 
-		const params = new URLSearchParams(page.url.searchParams);
+		const params = new URLSearchParams(page.url.search);
 		params.set('item', newItemId);
-		await goto(`${page.url.pathname}?${params}`, { replaceState: false, noScroll: true });
+		await goto(`${page.url.pathname}?${params}`, { reset: false });
 	}
 
 	function handleBackdropClick(event: MouseEvent) {

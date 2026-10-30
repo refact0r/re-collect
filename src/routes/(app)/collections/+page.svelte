@@ -4,13 +4,13 @@
 	import { generateKeyBetween } from 'fractional-indexing';
 	import { api } from '../../../convex/_generated/api.js';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
-	import CollectionCreateModal from '$lib/components/CollectionCreateModal.svelte';
-	import { mutate } from '$lib/mutationHelper.js';
+	import CollectionCreateModal from '#lib/components/CollectionCreateModal.svelte';
+	import { mutate } from '#lib/mutationHelper.js';
 	import {
 		getWriteTokenContext,
 		getCollectionsContext,
 		type CollectionsData
-	} from '$lib/context.js';
+	} from '#lib/context.js';
 	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
 
 	type CollectionCard = CollectionsData[number];

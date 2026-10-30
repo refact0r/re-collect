@@ -12,7 +12,7 @@ export function shouldDisplayAsImage(item: DisplayItem): boolean {
 
 // Link that opens the item modal while preserving the current page context
 export function getItemUrl(itemId: Id<'items'>): string {
-	const params = new URLSearchParams(page.url.searchParams);
+	const params = new URLSearchParams(page.url.search);
 	params.set('item', itemId);
 	return `${page.url.pathname}?${params}`;
 }

@@ -1,5 +1,5 @@
-import type { Handle } from '@sveltejs/kit';
-import { COOKIE_NAME, isValidSession } from '$lib/server/auth';
+import type { Handle } from '@sveltejs/kit/hooks';
+import { COOKIE_NAME, isValidSession } from '#lib/server/auth.js';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const sessionCookie = event.cookies.get(COOKIE_NAME);

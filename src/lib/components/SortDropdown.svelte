@@ -1,7 +1,7 @@
 <script lang="ts">
 	import IconSort from '~icons/material-symbols-light/sort';
 	import Dropdown from './Dropdown.svelte';
-	import type { CollectionSortOption } from '$lib/types.js';
+	import type { CollectionSortOption } from '#lib/types.js';
 
 	interface Props {
 		value: CollectionSortOption;

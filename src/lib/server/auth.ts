@@ -1,4 +1,4 @@
-import { env } from '$env/dynamic/private';
+import { AUTH_PASSWORD } from '$app/env/private';
 
 export const COOKIE_NAME = 'auth-session';
 
@@ -9,7 +9,7 @@ const encoder = new TextEncoder();
 async function hmacHex(message: string): Promise<string> {
 	const key = await crypto.subtle.importKey(
 		'raw',
-		encoder.encode(env.AUTH_PASSWORD),
+		encoder.encode(AUTH_PASSWORD),
 		{ name: 'HMAC', hash: 'SHA-256' },
 		false,
 		['sign']
@@ -26,17 +26,17 @@ export function sessionToken(): Promise<string> {
 // Timing-safe comparison: HMAC both sides so the string compare leaks nothing.
 // Fails closed when AUTH_PASSWORD is unset.
 export async function safeEqual(a: string, b: string): Promise<boolean> {
-	if (!env.AUTH_PASSWORD) return false;
+	if (!AUTH_PASSWORD) return false;
 	const [ha, hb] = await Promise.all([hmacHex(a), hmacHex(b)]);
 	return ha === hb;
 }
 
 export async function verifyPassword(password: string): Promise<boolean> {
-	if (!env.AUTH_PASSWORD) return false;
-	return safeEqual(password, env.AUTH_PASSWORD);
+	if (!AUTH_PASSWORD) return false;
+	return safeEqual(password, AUTH_PASSWORD);
 }
 
 export async function isValidSession(cookie: string): Promise<boolean> {
-	if (!env.AUTH_PASSWORD) return false;
+	if (!AUTH_PASSWORD) return false;
 	return safeEqual(cookie, await sessionToken());
 }

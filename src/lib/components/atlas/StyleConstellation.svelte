@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { StyleCount, StylePair } from '$lib/atlas.js';
+	import type { StyleCount, StylePair } from '#lib/atlas.js';
 
 	let { styles, pairs }: { styles: StyleCount[]; pairs: StylePair[] } = $props();
 

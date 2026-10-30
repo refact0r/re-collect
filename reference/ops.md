@@ -7,7 +7,7 @@ Notes on external configuration that isn't visible from the codebase.
 - Deploy: `pnpm run deploy:app` (builds then `wrangler deploy`). `pnpm run deploy` deploys the Convex backend first, then the app (`pnpm deploy` without `run` is a pnpm built-in — use `run`).
 - `PUBLIC_CONVEX_URL` / `PUBLIC_CONVEX_SITE_URL` are baked into the bundle at build time. Production values come from the checked-in `.env.production`, which overrides `.env.local` during `vite build` — local dev values can't leak into a deploy.
 - Secrets are runtime worker env (rotate without rebuilding, via dashboard or `wrangler secret put`):
-  - `AUTH_PASSWORD` — the login password (`$env/dynamic/private`).
+  - `AUTH_PASSWORD` — the login password (declared in `src/env.ts`, read via `$app/env/private`).
   - `CONVEX_WRITE_TOKEN` — must match the Convex deployment's env var of the same name.
 
 ## Convex env vars

@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { getItemsContext, getCurrentItemsContext } from '$lib/context.js';
-	import { buildAtlas } from '$lib/atlas.js';
-	import ColorFingerprint from '$lib/components/atlas/ColorFingerprint.svelte';
-	import StyleConstellation from '$lib/components/atlas/StyleConstellation.svelte';
+	import { getItemsContext, getCurrentItemsContext } from '#lib/context.js';
+	import { buildAtlas } from '#lib/atlas.js';
+	import ColorFingerprint from '#lib/components/atlas/ColorFingerprint.svelte';
+	import StyleConstellation from '#lib/components/atlas/StyleConstellation.svelte';
 
 	const itemsQuery = getItemsContext();
 	const currentItemsContext = getCurrentItemsContext();

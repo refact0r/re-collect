@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { dev } from '$app/environment';
-import { COOKIE_NAME, verifyPassword, sessionToken } from '$lib/server/auth';
+import { dev } from '$app/env';
+import { COOKIE_NAME, verifyPassword, sessionToken } from '#lib/server/auth.js';
 import type { Actions } from './$types';
 
 export const actions = {

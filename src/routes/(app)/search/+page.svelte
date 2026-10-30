@@ -3,13 +3,13 @@
 	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../../convex/_generated/api.js';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
-	import ItemGrid from '$lib/components/ItemGrid.svelte';
-	import ItemList from '$lib/components/ItemList.svelte';
-	import ViewToggle, { type ViewMode } from '$lib/components/ViewToggle.svelte';
-	import ColumnControl from '$lib/components/ColumnControl.svelte';
-	import SettingsMenu from '$lib/components/SettingsMenu.svelte';
-	import { mutate, retryScreenshot } from '$lib/mutationHelper.js';
-	import { getWriteTokenContext, getCurrentItemsContext } from '$lib/context.js';
+	import ItemGrid from '#lib/components/ItemGrid.svelte';
+	import ItemList from '#lib/components/ItemList.svelte';
+	import ViewToggle, { type ViewMode } from '#lib/components/ViewToggle.svelte';
+	import ColumnControl from '#lib/components/ColumnControl.svelte';
+	import SettingsMenu from '#lib/components/SettingsMenu.svelte';
+	import { mutate, retryScreenshot } from '#lib/mutationHelper.js';
+	import { getWriteTokenContext, getCurrentItemsContext } from '#lib/context.js';
 
 	const client = useConvexClient();
 	const getWriteToken = getWriteTokenContext();

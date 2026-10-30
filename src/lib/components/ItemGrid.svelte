@@ -5,10 +5,10 @@
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { mutate } from '$lib/mutationHelper.js';
-	import { getWriteTokenContext } from '$lib/context.js';
-	import { shouldDisplayAsImage, getItemUrl } from '$lib/itemDisplay.js';
-	import type { DisplayItem } from '$lib/types.js';
+	import { mutate } from '#lib/mutationHelper.js';
+	import { getWriteTokenContext } from '#lib/context.js';
+	import { shouldDisplayAsImage, getItemUrl } from '#lib/itemDisplay.js';
+	import type { DisplayItem } from '#lib/types.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
 	import IconError from '~icons/material-symbols-light/error-outline';
 

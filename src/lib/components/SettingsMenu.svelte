@@ -2,8 +2,8 @@
 	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Doc, Id } from '../../convex/_generated/dataModel.js';
-	import { mutate } from '$lib/mutationHelper.js';
-	import { getCollectionsContext, getWriteTokenContext } from '$lib/context.js';
+	import { mutate } from '#lib/mutationHelper.js';
+	import { getCollectionsContext, getWriteTokenContext } from '#lib/context.js';
 	import Dropdown from './Dropdown.svelte';
 	import IconSettings from '~icons/material-symbols-light/settings-outline';
 

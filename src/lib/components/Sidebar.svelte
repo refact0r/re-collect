@@ -3,8 +3,8 @@
 	import IconClose from '~icons/material-symbols-light/close';
 	import IconChevronLeft from '~icons/material-symbols-light/chevron-left';
 	import IconChevronRight from '~icons/material-symbols-light/chevron-right';
-	import Logo from '$lib/assets/logo.svelte';
-	import { getCollectionsContext, getIsAuthenticatedContext } from '$lib/context.js';
+	import Logo from '#lib/assets/logo.svelte';
+	import { getCollectionsContext, getIsAuthenticatedContext } from '#lib/context.js';
 
 	const collections = getCollectionsContext();
 	const getIsAuthenticated = getIsAuthenticatedContext();

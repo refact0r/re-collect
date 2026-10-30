@@ -2,18 +2,18 @@
 	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import ItemGrid from '$lib/components/ItemGrid.svelte';
-	import ItemList from '$lib/components/ItemList.svelte';
-	import TopControls from '$lib/components/TopControls.svelte';
-	import { type ViewMode } from '$lib/components/ViewToggle.svelte';
-	import { mutate, retryScreenshot } from '$lib/mutationHelper.js';
+	import ItemGrid from '#lib/components/ItemGrid.svelte';
+	import ItemList from '#lib/components/ItemList.svelte';
+	import TopControls from '#lib/components/TopControls.svelte';
+	import { type ViewMode } from '#lib/components/ViewToggle.svelte';
+	import { mutate, retryScreenshot } from '#lib/mutationHelper.js';
 	import { SvelteSet } from 'svelte/reactivity';
 	import {
 		getWriteTokenContext,
 		getCollectionsContext,
 		getCurrentItemsContext
-	} from '$lib/context.js';
-	import type { CollectionSortOption, SortOption } from '$lib/types.js';
+	} from '#lib/context.js';
+	import type { CollectionSortOption, SortOption } from '#lib/types.js';
 
 	const client = useConvexClient();
 	const getWriteToken = getWriteTokenContext();

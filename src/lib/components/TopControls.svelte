@@ -6,7 +6,7 @@
 	import CollectionFilter from './CollectionFilter.svelte';
 	import SortDropdown from './SortDropdown.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import type { CollectionSortOption } from '$lib/types.js';
+	import type { CollectionSortOption } from '#lib/types.js';
 
 	interface Props {
 		collectionId?: Id<'collections'>;

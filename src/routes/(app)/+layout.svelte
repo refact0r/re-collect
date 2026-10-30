@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PUBLIC_CONVEX_URL } from '$env/static/public';
+	import { PUBLIC_CONVEX_URL } from '$app/env/public';
 	import { setupConvex, useQuery } from 'convex-svelte';
 	import { onDestroy } from 'svelte';
 	import {
@@ -8,15 +8,15 @@
 		setCurrentItemsContext,
 		setWriteTokenContext,
 		setIsAuthenticatedContext
-	} from '$lib/context.js';
+	} from '#lib/context.js';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 
-	import Logo from '$lib/assets/logo.svelte';
-	import ItemModal from '$lib/components/ItemModal.svelte';
-	import Sidebar from '$lib/components/Sidebar.svelte';
+	import Logo from '#lib/assets/logo.svelte';
+	import ItemModal from '#lib/components/ItemModal.svelte';
+	import Sidebar from '#lib/components/Sidebar.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import type { DisplayItem } from '$lib/types.js';
+	import type { DisplayItem } from '#lib/types.js';
 	import { api } from '../../convex/_generated/api.js';
 	import IconMenu from '~icons/material-symbols-light/menu';
 	import IconSearch from '~icons/material-symbols-light/search';
@@ -49,9 +49,9 @@
 	const editItemId = $derived(page.url.searchParams.get('item') as Id<'items'> | null);
 
 	function closeModal() {
-		const url = new URL(page.url);
+		const url = new URL(page.url.href);
 		url.searchParams.delete('item');
-		goto(url.pathname + url.search, { replaceState: false });
+		goto(url.pathname + url.search);
 	}
 
 	let searchInputRef: HTMLInputElement;
@@ -65,7 +65,7 @@
 
 	function handleSearchFocus() {
 		if (page.url.pathname !== '/search') {
-			goto('/search', { keepFocus: true });
+			goto('/search', { reset: false });
 		}
 	}
 
@@ -74,14 +74,14 @@
 		if (page.url.pathname === '/search') {
 			if (debounceTimer) clearTimeout(debounceTimer);
 			debounceTimer = setTimeout(() => {
-				const params = new URLSearchParams(page.url.searchParams);
+				const params = new URLSearchParams(page.url.search);
 				if (value.trim()) {
 					params.set('q', value);
 				} else {
 					params.delete('q');
 				}
 				params.delete('item');
-				goto(`/search?${params}`, { replaceState: true, keepFocus: true });
+				goto(`/search?${params}`, { replace: true, reset: false });
 			}, 300);
 		}
 	}

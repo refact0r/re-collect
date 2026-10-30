@@ -9,9 +9,9 @@
 	},
 	"devDependencies": {
 		"@cloudflare/puppeteer": "^1.4.0",
-		"@cloudflare/workers-types": "^5.20260926.1",
+		"@cloudflare/workers-types": "^5.20261029.1",
 		"typescript": "^6.0.3",
-		"wrangler": "^4.141.0"
+		"wrangler": "^4.155.0"
 	},
 	"dependencies": {
 		"image-size": "^2.0.4"

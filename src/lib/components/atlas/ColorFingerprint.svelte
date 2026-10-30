@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { getItemUrl } from '$lib/itemDisplay.js';
-	import type { Swatch } from '$lib/atlas.js';
+	import { getItemUrl } from '#lib/itemDisplay.js';
+	import type { Swatch } from '#lib/atlas.js';
 
 	let { swatches }: { swatches: Swatch[] } = $props();
 

@@ -2,8 +2,8 @@
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { mutate } from '$lib/mutationHelper.js';
-	import { getWriteTokenContext } from '$lib/context.js';
+	import { mutate } from '#lib/mutationHelper.js';
+	import { getWriteTokenContext } from '#lib/context.js';
 	import IconUpload from '~icons/material-symbols-light/upload-sharp';
 
 	interface Props {

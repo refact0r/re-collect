@@ -2,8 +2,8 @@
 	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Doc, Id } from '../../convex/_generated/dataModel.js';
-	import { mutate } from '$lib/mutationHelper.js';
-	import { getItemsContext, getCollectionsContext, getWriteTokenContext } from '$lib/context.js';
+	import { mutate } from '#lib/mutationHelper.js';
+	import { getItemsContext, getCollectionsContext, getWriteTokenContext } from '#lib/context.js';
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
 	import IconCheck from '~icons/material-symbols/check';
 	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';

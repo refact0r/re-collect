@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '@fontsource/dm-sans';
 	import '../app.css';
-	import { dev } from '$app/environment';
+	import { dev } from '$app/env';
 
 	let { children } = $props();
 </script>
