@@ -10,10 +10,11 @@ import { colorNamesForPalette } from './lib/colorNames';
 
 const PROMPT_VERSION = 'v5';
 const TEXT_PROMPT_VERSION = 'text-v3';
-// Adopted 2026-08-28 after the round-2 bake-off (experiments/tagging/
-// model-comparison-2026-08-round2.md): beat qwen3.7-flash on style accuracy
-// and OCR in both tagging modes at ~7x the (still trivial) cost.
-const DEFAULT_MODEL = 'openai/gpt-5.6-luna';
+// Luna adopted 2026-08-28 after the round-2 bake-off (experiments/tagging/
+// model-comparison-2026-08-round2.md): GPT-5.6 Luna beat qwen3.7-flash on
+// style accuracy and OCR in both tagging modes. Moved to GPT-6 Luna on
+// 2026-10-30, at about half the price.
+const DEFAULT_MODEL = 'openai/gpt-6-luna';
 const TEMPERATURE = 0.3;
 const MAX_TOKENS = 600;
 const TIMEOUT_MS = 60_000;

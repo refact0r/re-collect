@@ -39,7 +39,7 @@ if not API_KEY:
     sys.exit("set OPENROUTER_API_KEY")
 
 # Keep in sync with DEFAULT_MODEL / PROMPT_VERSION in src/convex/tagging.ts.
-DEFAULT_MODEL = "openai/gpt-5.6-luna"
+DEFAULT_MODEL = "openai/gpt-6-luna"
 PROMPT_VERSION = "v5"
 MAX_EDGE_PX = 1024  # downscale long edge to this before sending
 TEMPERATURE = 0.3  # low; re-tagging same item should be ~stable
