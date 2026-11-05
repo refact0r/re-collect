@@ -32,7 +32,7 @@ export default defineSchema({
 	}).index('by_tokenIdentifier', ['tokenIdentifier']),
 
 	items: defineTable({
-		userId: v.optional(v.id('users')),
+		userId: v.id('users'),
 		type: v.union(v.literal('url'), v.literal('image'), v.literal('text')),
 		title: v.optional(v.string()),
 		description: v.optional(v.string()), // User notes — never machine-written
@@ -90,7 +90,7 @@ export default defineSchema({
 		}),
 
 	collections: defineTable({
-		userId: v.optional(v.id('users')),
+		userId: v.id('users'),
 		name: v.string(),
 		dateCreated: v.number(),
 		position: v.optional(v.string()), // Lexicographical fractional index for manual ordering
@@ -106,7 +106,7 @@ export default defineSchema({
 
 	// View preferences for non-collection pages (home, search)
 	viewPreferences: defineTable({
-		userId: v.optional(v.id('users')),
+		userId: v.id('users'),
 		key: v.string(), // "home", "search"
 		sortMode: v.optional(sortModeValidator),
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),

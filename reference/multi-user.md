@@ -53,7 +53,8 @@ the new token args, so the old app breaks between steps 1 and 4: do it in one
 sitting. It takes a minute or two.
 
 1. **Widen**: in `src/convex/schema.ts`, temporarily wrap `userId` on `items`,
-   `collections` and `viewPreferences` in `v.optional(...)`, then deploy the
+   `collections` and `viewPreferences` in `v.optional(...)` (the branch's first
+   commit, "multi-user data model…", is exactly that state), then deploy the
    backend:
    ```bash
    npx convex deploy
