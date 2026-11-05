@@ -17,7 +17,10 @@
 	const currentItemsContext = getCurrentItemsContext();
 
 	// Load saved preferences; the local override wins until the mutation round-trips
-	const savedPrefs = useQuery(api.viewPreferences.get, () => ({ key: 'search' }));
+	const savedPrefs = useQuery(api.viewPreferences.get, () => ({
+		key: 'search',
+		token: writeToken
+	}));
 	let viewOverride = $state<ViewMode | null>(null);
 	let columnOffsetOverride = $state<number | null>(null);
 	let showTitlesOverride = $state<boolean | null>(null);
@@ -47,7 +50,10 @@
 	}
 
 	const searchQuery = $derived(page.url.searchParams.get('q') ?? '');
-	const searchResults = useQuery(api.items.search, () => ({ query: searchQuery }));
+	const searchResults = useQuery(api.items.search, () => ({
+		query: searchQuery,
+		token: writeToken
+	}));
 
 	$effect(() => {
 		if (searchResults.data) {

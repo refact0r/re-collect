@@ -24,7 +24,15 @@ export const sortModeValidator = v.union(...sortModes);
 export const collectionSortModeValidator = v.union(v.literal('manual'), ...sortModes);
 
 export default defineSchema({
+	// One row per account. tokenIdentifier is the stable identity key the auth
+	// seam (lib/auth.ts) resolves to; the shared write token maps to the owner.
+	users: defineTable({
+		name: v.string(),
+		tokenIdentifier: v.string()
+	}).index('by_tokenIdentifier', ['tokenIdentifier']),
+
 	items: defineTable({
+		userId: v.optional(v.id('users')),
 		type: v.union(v.literal('url'), v.literal('image'), v.literal('text')),
 		title: v.optional(v.string()),
 		description: v.optional(v.string()), // User notes — never machine-written
@@ -74,14 +82,15 @@ export default defineSchema({
 		dateAdded: v.number(),
 		dateModified: v.number()
 	})
-		.index('by_dateAdded', ['dateAdded'])
-		.index('by_dateModified', ['dateModified'])
+		.index('by_user_dateAdded', ['userId', 'dateAdded'])
+		.index('by_user_dateModified', ['userId', 'dateModified'])
 		.searchIndex('search_items', {
 			searchField: 'searchText',
-			filterFields: ['collections']
+			filterFields: ['userId']
 		}),
 
 	collections: defineTable({
+		userId: v.optional(v.id('users')),
 		name: v.string(),
 		dateCreated: v.number(),
 		position: v.optional(v.string()), // Lexicographical fractional index for manual ordering
@@ -93,10 +102,11 @@ export default defineSchema({
 		// Ingestion defaults applied to items added into this collection
 		taggingMode: v.optional(taggingModeValidator),
 		linkImageMode: v.optional(linkImageModeValidator)
-	}).index('by_name', ['name']),
+	}).index('by_user_position', ['userId', 'position']),
 
 	// View preferences for non-collection pages (home, search)
 	viewPreferences: defineTable({
+		userId: v.optional(v.id('users')),
 		key: v.string(), // "home", "search"
 		sortMode: v.optional(sortModeValidator),
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
@@ -107,9 +117,10 @@ export default defineSchema({
 		// Ingestion defaults for collection-less adds (stored on the "home" row)
 		taggingMode: v.optional(taggingModeValidator),
 		linkImageMode: v.optional(linkImageModeValidator)
-	}).index('by_key', ['key']),
+	}).index('by_user_key', ['userId', 'key']),
 
-	// Junction table for per-collection item ordering
+	// Junction table for per-collection item ordering. Unscoped: rows are only
+	// reached through an owned item or collection, and both sides share an owner.
 	itemCollectionPositions: defineTable({
 		itemId: v.id('items'),
 		collectionId: v.id('collections'),

@@ -1,23 +1,22 @@
 import { v } from 'convex/values';
-import { query, type QueryCtx } from './_generated/server';
-import { authedMutation } from './lib/auth';
+import { userMutation, userQuery, type UserQueryCtx } from './lib/auth';
 import { taggingModeValidator, linkImageModeValidator, sortModeValidator } from './schema';
 
-export async function getPreferences(ctx: QueryCtx, key: string) {
+export async function getPreferences(ctx: UserQueryCtx, key: string) {
 	return await ctx.db
 		.query('viewPreferences')
-		.withIndex('by_key', (q) => q.eq('key', key))
+		.withIndex('by_user_key', (q) => q.eq('userId', ctx.userId).eq('key', key))
 		.unique();
 }
 
-export const get = query({
+export const get = userQuery({
 	args: { key: v.string() },
 	handler: async (ctx, args) => {
 		return await getPreferences(ctx, args.key);
 	}
 });
 
-export const set = authedMutation({
+export const set = userMutation({
 	args: {
 		key: v.string(),
 		sortMode: v.optional(sortModeValidator),
@@ -35,7 +34,7 @@ export const set = authedMutation({
 		if (existing) {
 			await ctx.db.patch(existing._id, updates);
 		} else {
-			await ctx.db.insert('viewPreferences', { key, ...updates });
+			await ctx.db.insert('viewPreferences', { userId: ctx.userId, key, ...updates });
 		}
 	}
 });

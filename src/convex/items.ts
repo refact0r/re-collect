@@ -1,5 +1,4 @@
 import { v } from 'convex/values';
-import { query } from './_generated/server';
 import type { Doc } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { r2 } from './r2';
@@ -9,7 +8,7 @@ import {
 	deleteAllPositionsForItem,
 	getPositionsByCollection
 } from './itemCollectionPositions';
-import { authedMutation } from './lib/auth';
+import { getOwned, userMutation, userQuery } from './lib/auth';
 import { buildSearchText } from './lib/searchText';
 import { enqueueScreenshot } from './screenshots';
 import { getPreferences } from './viewPreferences';
@@ -27,7 +26,7 @@ export function getImageUrl(item: Doc<'items'>): string | null {
 	return null;
 }
 
-export const add = authedMutation({
+export const add = userMutation({
 	args: {
 		type: v.union(v.literal('url'), v.literal('image'), v.literal('text')),
 		title: v.optional(v.string()),
@@ -42,13 +41,13 @@ export const add = authedMutation({
 	handler: async (ctx, args) => {
 		const now = Date.now();
 		const collections = args.collections ?? [];
+		const ownedCollections = await Promise.all(collections.map((id) => getOwned(ctx, id)));
+		if (ownedCollections.includes(null)) throw new Error('Collection not found');
 
 		// Ingestion prefs come from the first collection at add time (or the home
 		// defaults for collection-less adds) and are snapshotted onto the item;
 		// later membership changes don't re-apply them.
-		const defaultsSource = collections[0]
-			? await ctx.db.get(collections[0])
-			: await getPreferences(ctx, 'home');
+		const defaultsSource = ownedCollections[0] ?? (await getPreferences(ctx, 'home'));
 		// 'text' tagging only applies to URL items; images in a text-mode
 		// collection fall back to visual tagging
 		const rawTaggingMode = defaultsSource?.taggingMode;
@@ -69,6 +68,7 @@ export const add = authedMutation({
 				: {};
 
 		const itemId = await ctx.db.insert('items', {
+			userId: ctx.userId,
 			type: args.type,
 			title: args.title,
 			description: args.description,
@@ -122,7 +122,7 @@ export const add = authedMutation({
 	}
 });
 
-export const update = authedMutation({
+export const update = userMutation({
 	args: {
 		id: v.id('items'),
 		title: v.optional(v.string()),
@@ -133,7 +133,7 @@ export const update = authedMutation({
 	},
 	handler: async (ctx, args) => {
 		const { id, collections, ...updates } = args;
-		const existing = await ctx.db.get(id);
+		const existing = await getOwned(ctx, id);
 		if (!existing) throw new Error('Item not found');
 
 		// Handle collection changes if collections array is provided
@@ -175,10 +175,10 @@ export const update = authedMutation({
 	}
 });
 
-export const remove = authedMutation({
+export const remove = userMutation({
 	args: { id: v.id('items') },
 	handler: async (ctx, args) => {
-		const item = await ctx.db.get(args.id);
+		const item = await getOwned(ctx, args.id);
 		if (!item) throw new Error('Item not found');
 
 		// Delete all position records for this item
@@ -193,27 +193,29 @@ export const remove = authedMutation({
 	}
 });
 
-export const addToCollection = authedMutation({
+export const addToCollection = userMutation({
 	args: {
 		itemId: v.id('items'),
 		collectionId: v.id('collections')
 	},
 	handler: async (ctx, args) => {
+		if (!(await getOwned(ctx, args.itemId))) throw new Error('Item not found');
 		await addItemToCollection(ctx, args.itemId, args.collectionId);
 	}
 });
 
-export const removeFromCollection = authedMutation({
+export const removeFromCollection = userMutation({
 	args: {
 		itemId: v.id('items'),
 		collectionId: v.id('collections')
 	},
 	handler: async (ctx, args) => {
+		if (!(await getOwned(ctx, args.itemId))) throw new Error('Item not found');
 		await removeItemFromCollection(ctx, args.itemId, args.collectionId);
 	}
 });
 
-export const list = query({
+export const list = userQuery({
 	args: {
 		sortBy: v.optional(sortModeValidator),
 		collectionIds: v.optional(v.array(v.id('collections'))),
@@ -221,27 +223,33 @@ export const list = query({
 	},
 	handler: async (ctx, args) => {
 		const sortBy = args.sortBy ?? 'dateAddedNewest';
+		const byDateAdded = ctx.db
+			.query('items')
+			.withIndex('by_user_dateAdded', (q) => q.eq('userId', ctx.userId));
+		const byDateModified = ctx.db
+			.query('items')
+			.withIndex('by_user_dateModified', (q) => q.eq('userId', ctx.userId));
 
 		let items: Doc<'items'>[];
 		switch (sortBy) {
 			case 'dateAddedNewest':
-				items = await ctx.db.query('items').withIndex('by_dateAdded').order('desc').collect();
+				items = await byDateAdded.order('desc').collect();
 				break;
 			case 'dateAddedOldest':
-				items = await ctx.db.query('items').withIndex('by_dateAdded').order('asc').collect();
+				items = await byDateAdded.order('asc').collect();
 				break;
 			case 'dateModifiedNewest':
-				items = await ctx.db.query('items').withIndex('by_dateModified').order('desc').collect();
+				items = await byDateModified.order('desc').collect();
 				break;
 			case 'dateModifiedOldest':
-				items = await ctx.db.query('items').withIndex('by_dateModified').order('asc').collect();
+				items = await byDateModified.order('asc').collect();
 				break;
 			case 'titleAsc':
-				items = await ctx.db.query('items').collect();
+				items = await byDateAdded.collect();
 				items.sort((a, b) => getSortTitle(a).localeCompare(getSortTitle(b)));
 				break;
 			case 'titleDesc':
-				items = await ctx.db.query('items').collect();
+				items = await byDateAdded.collect();
 				items.sort((a, b) => getSortTitle(b).localeCompare(getSortTitle(a)));
 				break;
 		}
@@ -264,13 +272,14 @@ export const list = query({
 	}
 });
 
-export const listByCollection = query({
+export const listByCollection = userQuery({
 	args: {
 		collectionId: v.id('collections'),
 		sortBy: v.optional(collectionSortModeValidator)
 	},
 	handler: async (ctx, args) => {
 		const sortBy = args.sortBy ?? 'manual';
+		if (!(await getOwned(ctx, args.collectionId))) return [];
 
 		const positions = await getPositionsByCollection(ctx, args.collectionId);
 		const positionMap = new Map(positions.map((p) => [p.itemId, p.position]));
@@ -328,7 +337,7 @@ export const listByCollection = query({
 	}
 });
 
-export const search = query({
+export const search = userQuery({
 	args: { query: v.string() },
 	handler: async (ctx, args) => {
 		if (!args.query.trim()) {
@@ -336,7 +345,9 @@ export const search = query({
 		}
 		const results = await ctx.db
 			.query('items')
-			.withSearchIndex('search_items', (q) => q.search('searchText', args.query))
+			.withSearchIndex('search_items', (q) =>
+				q.search('searchText', args.query).eq('userId', ctx.userId)
+			)
 			.take(50);
 
 		return results.map((item) => ({

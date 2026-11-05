@@ -22,7 +22,7 @@
 	const getWriteToken = getWriteTokenContext();
 	const writeToken = $derived(getWriteToken());
 
-	const homePrefs = useQuery(api.viewPreferences.get, () => ({ key: 'home' }));
+	const homePrefs = useQuery(api.viewPreferences.get, () => ({ key: 'home', token: writeToken }));
 
 	const source = $derived(
 		collectionId

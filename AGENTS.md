@@ -2,7 +2,7 @@
 
 A personal web application for collecting, organizing, and rediscovering design inspiration, web screenshots, articles, and visual references. Similar to Are.na.
 
-Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads/serving), `icons.md` (icon system), `ops.md` (external configuration, env vars, deploys), `TODO.md` (future ideas).
+Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads/serving), `icons.md` (icon system), `ops.md` (external configuration, env vars, deploys), `multi-user.md` (user scoping, auth options), `TODO.md` (future ideas).
 
 `experiments/tagging/` is the sandbox for the AI tagging feature; `architecture.md` there describes the shipped pipeline.
 
@@ -24,7 +24,8 @@ Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads
 
 ## Architecture & Conventions
 
-- Single-user app - no multi-user or social features. Auth is a single password cookie gate (`AUTH_PASSWORD`) plus a `CONVEX_WRITE_TOKEN`; public mutations are defined with `authedMutation` (`src/convex/lib/auth.ts`), which adds and checks the `token` arg
+- **Multi-user data model, single-owner auth for now** (see `reference/multi-user.md`): `items`, `collections` and `viewPreferences` carry `userId` and their indexes start with it (`itemCollectionPositions` is reached only through owned rows). Every public query/mutation is defined with `userQuery` / `userMutation` (`src/convex/lib/auth.ts`), which take a `token` arg and expose `ctx.userId`; today the shared `CONVEX_WRITE_TOKEN` resolves to the owner user, and `requireIdentity` is the one place to swap in a real auth provider. Load docs by id with `getOwned` (returns null for anyone else's). The SvelteKit side is still a single password cookie gate (`AUTH_PASSWORD`); logged-out visitors are redirected to `/login`
+- No social features: no sharing or public collections
 - **3 item types**: URL (screenshot or og:image via Cloudflare Worker), image (R2-stored), text
 - **Ingestion modes**: `taggingMode` (`visual` / `text` / `none`) and `linkImageMode` (`screenshot` / `og`) are per-collection defaults (home defaults live in `viewPreferences`), snapshotted onto the item at add time
 - Items can belong to multiple collections

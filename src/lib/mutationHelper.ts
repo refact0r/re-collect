@@ -7,10 +7,9 @@ import type { Id } from '../convex/_generated/dataModel.js';
  * Shows an alert if the user is not authenticated.
  */
 export async function mutate<T>(
-	token: string | null,
-	fn: (token: string | undefined) => Promise<T>
+	token: string,
+	fn: (token: string) => Promise<T>
 ): Promise<T | null> {
-	if (token === null) return null;
 	try {
 		return await fn(token);
 	} catch (e) {
@@ -23,6 +22,6 @@ export async function mutate<T>(
 }
 
 // Re-fetch a URL item's image in its current mode (shared by the listing pages)
-export function retryScreenshot(client: ConvexClient, token: string | null, itemId: Id<'items'>) {
+export function retryScreenshot(client: ConvexClient, token: string, itemId: Id<'items'>) {
 	return mutate(token, (t) => client.mutation(api.screenshots.reimageItem, { itemId, token: t }));
 }

@@ -4,11 +4,9 @@
 	import IconChevronLeft from '~icons/material-symbols-light/chevron-left';
 	import IconChevronRight from '~icons/material-symbols-light/chevron-right';
 	import Logo from '#lib/assets/logo.svelte';
-	import { getCollectionsContext, getIsAuthenticatedContext } from '#lib/context.js';
+	import { getCollectionsContext } from '#lib/context.js';
 
 	const collections = getCollectionsContext();
-	const getIsAuthenticated = getIsAuthenticatedContext();
-	const isAuthenticated = $derived(getIsAuthenticated());
 
 	let collapsed = $state(false);
 	let { mobileOpen = $bindable(false) } = $props();
@@ -40,13 +38,9 @@
 			class:active={page.url.pathname === '/atlas'}
 			onclick={() => (mobileOpen = false)}>atlas</a
 		>
-		{#if isAuthenticated}
-			<form method="POST" action="/logout" class="logout-form">
-				<button class="nav-link" onclick={() => (mobileOpen = false)}>logout</button>
-			</form>
-		{:else}
-			<a href="/login" class="nav-link" onclick={() => (mobileOpen = false)}>login</a>
-		{/if}
+		<form method="POST" action="/logout" class="logout-form">
+			<button class="nav-link" onclick={() => (mobileOpen = false)}>logout</button>
+		</form>
 	</nav>
 	<nav class="collections">
 		{#if collapsed}

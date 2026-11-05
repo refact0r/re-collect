@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { generateKeyBetween } from 'fractional-indexing';
-import { authedMutation } from './lib/auth';
+import { getOwned, userMutation } from './lib/auth';
 
 // Get position record for an item in a collection
 export async function getPositionRecord(
@@ -38,6 +38,7 @@ export async function getPositionsByCollection(ctx: QueryCtx, collectionId: Id<'
 // Add item to collection: creates the position record (at the top by default),
 // updates the item's denormalized collections array, and bumps the collection's
 // itemCount. All membership changes must go through this or removeItemFromCollection.
+// Item and collection must share an owner, so membership never crosses users.
 export async function addItemToCollection(
 	ctx: MutationCtx,
 	itemId: Id<'items'>,
@@ -47,7 +48,7 @@ export async function addItemToCollection(
 	const item = await ctx.db.get(itemId);
 	if (!item) throw new Error('Item not found');
 	const collection = await ctx.db.get(collectionId);
-	if (!collection) throw new Error('Collection not found');
+	if (!collection || collection.userId !== item.userId) throw new Error('Collection not found');
 
 	const existing = await getPositionRecord(ctx, itemId, collectionId);
 	if (!existing) {
@@ -119,17 +120,17 @@ export async function deleteAllPositionsForItem(ctx: MutationCtx, itemId: Id<'it
 }
 
 // Reorder an item within a collection
-export const reorderItem = authedMutation({
+export const reorderItem = userMutation({
 	args: {
 		itemId: v.id('items'),
 		collectionId: v.id('collections'),
 		newPosition: v.string()
 	},
 	handler: async (ctx, args) => {
-		const item = await ctx.db.get(args.itemId);
+		const item = await getOwned(ctx, args.itemId);
 		if (!item) throw new Error('Item not found');
 
-		const collection = await ctx.db.get(args.collectionId);
+		const collection = await getOwned(ctx, args.collectionId);
 		if (!collection) throw new Error('Collection not found');
 
 		// Check if item is actually in this collection

@@ -5,6 +5,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const sessionCookie = event.cookies.get(COOKIE_NAME);
 	event.locals.isAuthenticated = sessionCookie ? await isValidSession(sessionCookie) : false;
 
-	// Allow read-only access for unauthenticated users
+	// The (app) layout redirects unauthenticated visitors to /login
 	return resolve(event);
 };

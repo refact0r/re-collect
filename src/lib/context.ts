@@ -26,9 +26,5 @@ export const setCurrentItemsContext = (value: CurrentItemsContext) =>
 	setContext('currentItems', value);
 export const getCurrentItemsContext = () => getContext<CurrentItemsContext>('currentItems');
 
-export const setWriteTokenContext = (value: () => string | null) => setContext('writeToken', value);
-export const getWriteTokenContext = () => getContext<() => string | null>('writeToken');
-
-export const setIsAuthenticatedContext = (value: () => boolean) =>
-	setContext('isAuthenticated', value);
-export const getIsAuthenticatedContext = () => getContext<() => boolean>('isAuthenticated');
+export const setWriteTokenContext = (value: () => string) => setContext('writeToken', value);
+export const getWriteTokenContext = () => getContext<() => string>('writeToken');

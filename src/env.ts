@@ -1,6 +1,6 @@
 import { defineEnvVars } from '@sveltejs/kit/env';
 
-// Secrets are optional so a missing one degrades to read-only (auth fails closed)
+// Secrets are optional so a missing one sends everyone to login (auth fails closed)
 // instead of stopping the app from starting
 const optional = (input: string | undefined) => input;
 

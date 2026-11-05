@@ -6,8 +6,7 @@
 		setItemsContext,
 		setCollectionsContext,
 		setCurrentItemsContext,
-		setWriteTokenContext,
-		setIsAuthenticatedContext
+		setWriteTokenContext
 	} from '#lib/context.js';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
@@ -25,8 +24,8 @@
 	setupConvex(PUBLIC_CONVEX_URL);
 
 	// Fetch all items and collections on load (with real-time sync)
-	const items = useQuery(api.items.list, {});
-	const collections = useQuery(api.collections.listWithCounts, {});
+	const items = useQuery(api.items.list, () => ({ token: data.writeToken }));
+	const collections = useQuery(api.collections.listWithCounts, () => ({ token: data.writeToken }));
 
 	// State for current items being displayed (set by active page)
 	let currentItems = $state<DisplayItem[]>([]);
@@ -42,9 +41,8 @@
 			currentItems = newItems;
 		}
 	});
-	// Pass auth as reactive getters so consumers always get current value
+	// Pass the token as a reactive getter so consumers always get the current value
 	setWriteTokenContext(() => data.writeToken);
-	setIsAuthenticatedContext(() => data.isAuthenticated);
 
 	const editItemId = $derived(page.url.searchParams.get('item') as Id<'items'> | null);
 
@@ -103,10 +101,6 @@
 	}
 </script>
 
-{#if !data.isAuthenticated}
-	<div class="read-only-banner">not logged in. read-only mode</div>
-{/if}
-
 <header>
 	<nav>
 		<button class="icon menu-btn" onclick={toggleMobileMenu} aria-label="toggle menu">
@@ -132,13 +126,9 @@
 			/>
 		</div>
 		<div class="nav-actions">
-			{#if data.isAuthenticated}
-				<form method="POST" action="/logout">
-					<button class="nav-link">logout</button>
-				</form>
-			{:else}
-				<a href="/login" class="nav-link">login</a>
-			{/if}
+			<form method="POST" action="/logout">
+				<button class="nav-link">logout</button>
+			</form>
 		</div>
 	</nav>
 </header>
@@ -217,14 +207,6 @@
 	}
 	.mobile-backdrop {
 		display: none;
-	}
-	.read-only-banner {
-		padding: 0.5rem var(--spacing);
-		background: var(--danger-bg);
-		border-bottom: 1px solid var(--danger-border);
-		text-align: center;
-		font-size: 0.875rem;
-		color: var(--txt-1);
 	}
 	.layout {
 		display: flex;

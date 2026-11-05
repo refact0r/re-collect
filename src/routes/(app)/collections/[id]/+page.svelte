@@ -62,7 +62,11 @@
 	);
 
 	// Use dedicated query for collection items with sort option
-	const items = useQuery(api.items.listByCollection, () => ({ collectionId, sortBy }));
+	const items = useQuery(api.items.listByCollection, () => ({
+		collectionId,
+		sortBy,
+		token: writeToken
+	}));
 
 	// Update the current items when data changes
 	$effect(() => {

@@ -1,10 +1,10 @@
 import { v } from 'convex/values';
-import { query, type QueryCtx } from './_generated/server';
+import type { QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { generateKeyBetween } from 'fractional-indexing';
 import { removeItemFromCollection } from './itemCollectionPositions';
 import { getImageUrl } from './items';
-import { authedMutation } from './lib/auth';
+import { getOwned, userMutation, userQuery, type UserQueryCtx } from './lib/auth';
 import {
 	taggingModeValidator,
 	linkImageModeValidator,
@@ -12,12 +12,14 @@ import {
 } from './schema';
 
 // Manual order by fractional-index position (backfilled by migration 010)
-async function listSorted(ctx: QueryCtx) {
-	const collections = await ctx.db.query('collections').collect();
-	return collections.sort((a, b) => ((a.position ?? '') < (b.position ?? '') ? -1 : 1));
+async function listSorted(ctx: UserQueryCtx) {
+	return await ctx.db
+		.query('collections')
+		.withIndex('by_user_position', (q) => q.eq('userId', ctx.userId))
+		.collect();
 }
 
-export const create = authedMutation({
+export const create = userMutation({
 	args: {
 		name: v.string(),
 		sortMode: v.optional(collectionSortModeValidator),
@@ -30,6 +32,7 @@ export const create = authedMutation({
 		const sorted = await listSorted(ctx);
 		const lastPos = sorted[sorted.length - 1]?.position ?? null;
 		return await ctx.db.insert('collections', {
+			userId: ctx.userId,
 			name: args.name,
 			dateCreated: Date.now(),
 			position: generateKeyBetween(lastPos, null),
@@ -41,20 +44,20 @@ export const create = authedMutation({
 	}
 });
 
-export const reorder = authedMutation({
+export const reorder = userMutation({
 	args: {
 		id: v.id('collections'),
 		newPosition: v.string()
 	},
 	handler: async (ctx, args) => {
-		const existing = await ctx.db.get(args.id);
+		const existing = await getOwned(ctx, args.id);
 		if (!existing) throw new Error('Collection not found');
 
 		await ctx.db.patch(args.id, { position: args.newPosition });
 	}
 });
 
-export const update = authedMutation({
+export const update = userMutation({
 	args: {
 		id: v.id('collections'),
 		name: v.optional(v.string()),
@@ -67,7 +70,7 @@ export const update = authedMutation({
 	},
 	handler: async (ctx, args) => {
 		const { id, ...updates } = args;
-		const existing = await ctx.db.get(id);
+		const existing = await getOwned(ctx, id);
 		if (!existing) throw new Error('Collection not found');
 
 		await ctx.db.patch(id, updates);
@@ -75,10 +78,10 @@ export const update = authedMutation({
 });
 
 // Delete a collection (also removes it from all items)
-export const remove = authedMutation({
+export const remove = userMutation({
 	args: { id: v.id('collections') },
 	handler: async (ctx, args) => {
-		const collection = await ctx.db.get(args.id);
+		const collection = await getOwned(ctx, args.id);
 		if (!collection) throw new Error('Collection not found');
 
 		// Remove every item's membership (positions, collections array, count)
@@ -129,7 +132,7 @@ async function getCollectionPreviews(
 	return previews;
 }
 
-export const listWithCounts = query({
+export const listWithCounts = userQuery({
 	args: {},
 	handler: async (ctx) => {
 		const collections = await listSorted(ctx);

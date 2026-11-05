@@ -11,6 +11,7 @@ bun.lockb
 # Tool-managed files (Convex codegen, convex ai-files skills)
 /src/convex/_generated/
 /.agents/
+/.claude/
 /skills-lock.json
 /convex.json
 

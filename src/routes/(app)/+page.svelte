@@ -24,7 +24,7 @@
 	const UNCOLLECTED = 'uncollected';
 
 	// Load saved preferences; local overrides win until the mutation round-trips
-	const savedPrefs = useQuery(api.viewPreferences.get, () => ({ key: 'home' }));
+	const savedPrefs = useQuery(api.viewPreferences.get, () => ({ key: 'home', token: writeToken }));
 	let sortOverride = $state<SortOption | null>(null);
 	let viewOverride = $state<ViewMode | null>(null);
 	let columnOffsetOverride = $state<number | null>(null);
@@ -112,6 +112,7 @@
 
 	// Use query with sort option and optional collection filter
 	const items = useQuery(api.items.list, () => ({
+		token: writeToken,
 		sortBy,
 		...(!allSelected ? { collectionIds: queryCollectionIds, includeUncollected } : {})
 	}));

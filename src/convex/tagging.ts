@@ -4,7 +4,7 @@ import Defuddle from 'defuddle';
 import { internalAction, internalMutation, internalQuery } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
-import { authedMutation } from './lib/auth';
+import { getOwned, userMutation } from './lib/auth';
 import { buildSearchText } from './lib/searchText';
 import { colorNamesForPalette } from './lib/colorNames';
 
@@ -573,14 +573,14 @@ export const tagTextItem = internalAction({
 	}
 });
 
-export const retagItem = authedMutation({
+export const retagItem = userMutation({
 	args: {
 		itemId: v.id('items'),
 		// Omitted: retag in the item's current mode (defaulting to visual)
 		mode: v.optional(v.union(v.literal('visual'), v.literal('text')))
 	},
 	handler: async (ctx, args) => {
-		const item = await ctx.db.get(args.itemId);
+		const item = await getOwned(ctx, args.itemId);
 		if (!item) throw new Error('Item not found');
 		if (item.type === 'text') throw new Error('Text items cannot be tagged');
 		if (item.taggingStatus === 'processing' || item.taggingStatus === 'pending') {
