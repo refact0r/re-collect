@@ -27,6 +27,10 @@ Client-side flow in `ItemInput.svelte`, backed by two auth-gated mutations in
    so each object belongs to exactly one item (deleting the item deletes the
    object, which must never reach another user's image).
 
+Remote images from the browser extension skip the presigned PUT:
+`api.imageImport.addFromUrl` (a Node action) fetches the image server-side,
+stores it with `r2.store()` (UUID key, metadata synced) and creates the item.
+
 The screenshot worker (`workers/screenshot`) writes to the same bucket
 directly via its R2 binding (keys under `screenshots/` and `og/`), bypassing
 the component.

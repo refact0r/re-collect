@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>re-collect options</title>
+		<link rel="stylesheet" href="style.css" />
+		<style>
+			body {
+				max-width: 420px;
+			}
+			form {
+				display: flex;
+				flex-direction: column;
+				gap: 12px;
+			}
+			button {
+				align-self: flex-start;
+			}
+		</style>
+	</head>
+	<body>
+		<form id="form">
+			<label>
+				Convex deployment URL
+				<input
+					id="convexUrl"
+					type="url"
+					placeholder="https://your-deployment.convex.cloud"
+					required
+				/>
+			</label>
+			<label>
+				Write token
+				<input id="token" type="password" placeholder="CONVEX_WRITE_TOKEN" required />
+			</label>
+			<button type="submit">Save</button>
+		</form>
+		<p id="status" class="status"></p>
+		<script type="module" src="options.js"></script>
+	</body>
+</html>

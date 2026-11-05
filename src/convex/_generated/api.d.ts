@@ -9,6 +9,7 @@
  */
 
 import type * as collections from "../collections.js";
+import type * as imageImport from "../imageImport.js";
 import type * as itemCollectionPositions from "../itemCollectionPositions.js";
 import type * as items from "../items.js";
 import type * as lib_auth from "../lib/auth.js";
@@ -44,6 +45,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   collections: typeof collections;
+  imageImport: typeof imageImport;
   itemCollectionPositions: typeof itemCollectionPositions;
   items: typeof items;
   "lib/auth": typeof lib_auth;

@@ -1,0 +1,77 @@
+:root {
+	--bg-1: oklch(16% 0 0);
+	--bg-2: oklch(21% 0 0);
+	--bg-3: oklch(26% 0 0);
+	--txt-3: oklch(50% 0 0);
+	--txt-2: oklch(80% 0 0);
+	--txt-1: oklch(90% 0 0);
+	--danger: oklch(70% 0.12 20);
+	color-scheme: dark;
+}
+
+* {
+	box-sizing: border-box;
+	margin: 0;
+}
+
+body {
+	font:
+		14px/1.5 system-ui,
+		sans-serif;
+	background: var(--bg-1);
+	color: var(--txt-2);
+	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	color: var(--txt-3);
+}
+
+input,
+select,
+button {
+	font: inherit;
+	color: var(--txt-2);
+	background: var(--bg-2);
+	border: 1px solid var(--bg-3);
+	padding: 6px 8px;
+}
+
+input:focus,
+select:focus {
+	outline: none;
+	border-color: var(--txt-3);
+}
+
+button {
+	cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+	background: var(--bg-3);
+	color: var(--txt-1);
+}
+
+button:disabled {
+	color: var(--txt-3);
+	cursor: not-allowed;
+}
+
+a {
+	color: inherit;
+}
+
+.status {
+	min-height: 1.5em;
+	color: var(--txt-3);
+}
+
+.status.error {
+	color: var(--danger);
+}

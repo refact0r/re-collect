@@ -6,6 +6,8 @@ Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads
 
 `experiments/tagging/` is the sandbox for the AI tagging feature; `architecture.md` there describes the shipped pipeline.
 
+`extension/` is the browser extension (plain JS Manifest V3, no build step); its `README.md` covers loading and configuring it.
+
 ## Commands
 
 - `pnpm dev:all` — Convex dev + Vite dev server

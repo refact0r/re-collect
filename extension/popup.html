@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="stylesheet" href="style.css" />
+		<style>
+			body {
+				width: 300px;
+			}
+			.page {
+				overflow: hidden;
+			}
+			.page p {
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+			#title {
+				color: var(--txt-1);
+			}
+			#url {
+				color: var(--txt-3);
+			}
+		</style>
+	</head>
+	<body>
+		<div class="page">
+			<p id="title"></p>
+			<p id="url"></p>
+		</div>
+		<select id="collection" aria-label="Collection">
+			<option value="">Uncollected</option>
+		</select>
+		<button id="save" disabled>Save page</button>
+		<p id="status" class="status"></p>
+		<script type="module" src="popup.js"></script>
+	</body>
+</html>

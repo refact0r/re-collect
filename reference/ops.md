@@ -51,3 +51,9 @@ Cache invalidation:
 - Source: `workers/screenshot/`. Deploy: `pnpm run deploy:screenshot` (from repo root).
 - Bindings (`wrangler.toml`): `BROWSER` (Browser Rendering), `R2_BUCKET` (bound to `re-collect`).
 - Secret `API_KEY`: set via `pnpm exec wrangler secret put API_KEY` in `workers/screenshot/`. Must match `CLOUDFLARE_SCREENSHOT_KEY`.
+
+## Browser extension
+
+- Source: `extension/` (see its README). Loaded unpacked, not published to a store.
+- Configured in its options page with the Convex deployment URL (`.convex.cloud`) and `CONVEX_WRITE_TOKEN`, stored in `chrome.storage.local`.
+- Talks to Convex's HTTP API directly, so the backend needs no extension-specific config. Image saves need `imageImport.addFromUrl` deployed.
