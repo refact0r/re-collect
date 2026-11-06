@@ -1,28 +1,24 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { dev } from '$app/env';
-import { COOKIE_NAME, verifyPassword, sessionToken } from '#lib/server/auth.js';
-import type { Actions } from './$types';
+import { isValidCode, setSession } from '#lib/server/auth.js';
+import type { Actions, PageServerLoad } from './$types';
+
+// Login links (/login?code=...) sign in directly
+export const load: PageServerLoad = async ({ url, cookies }) => {
+	const code = url.searchParams.get('code');
+	if (code && (await isValidCode(code))) {
+		setSession(cookies, code);
+		redirect(303, '/');
+	}
+	return { invalidLink: !!code };
+};
 
 export const actions = {
 	default: async ({ request, cookies }) => {
-		const data = await request.formData();
-		const password = data.get('password');
-
-		if (typeof password === 'string' && (await verifyPassword(password))) {
-			cookies.set(COOKIE_NAME, await sessionToken(), {
-				path: '/',
-				httpOnly: true,
-				secure: !dev,
-				// NOTE: Using 'lax' in dev to allow cookies through ngrok (cross-site context).
-				// 'strict' blocks cookies when domain changes (localhost → ngrok).
-				// TODO: Decide if we want to keep 'lax' in dev or require local testing only.
-				sameSite: dev ? 'lax' : 'strict',
-				maxAge: 60 * 60 * 24 * 30
-			});
-
-			throw redirect(303, '/');
+		const code = (await request.formData()).get('code');
+		if (typeof code === 'string' && (await isValidCode(code.trim()))) {
+			setSession(cookies, code.trim());
+			redirect(303, '/');
 		}
-
-		return fail(400, { message: 'Invalid password' });
+		return fail(400, { message: 'invalid code' });
 	}
 } satisfies Actions;

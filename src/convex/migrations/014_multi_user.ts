@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { internalMutation, internalQuery } from '../_generated/server';
 import { internal } from '../_generated/api';
-import { OWNER_TOKEN_IDENTIFIER } from '../lib/auth';
+import { hashCode } from '../lib/auth';
 
 const BATCH_SIZE = 200;
 const ownedTable = v.union(
@@ -10,25 +10,26 @@ const ownedTable = v.union(
 	v.literal('viewPreferences')
 );
 
-// Create the owner user (the identity the shared write token resolves to) and
-// hand it every existing row. Backfills run as scheduled batches; rerun-safe.
-// Requires userId to be optional in the schema while it runs (widen → backfill
-// → narrow, see reference/multi-user.md).
+// Create the owner user and hand it every existing row. The owner's access
+// code is the old shared CONVEX_WRITE_TOKEN, so existing logins (via
+// /login?code=...) and the browser extension keep working. Backfills run as
+// scheduled batches; rerun-safe. Requires userId to be optional in the schema
+// while it runs (widen → backfill → narrow, see reference/multi-user.md).
 //
-// Run: npx convex run migrations/014_multi_user:migrateToMultiUser
+// Run: npx convex run migrations/014_multi_user:migrateToMultiUser '{"name": "..."}'
 export const migrateToMultiUser = internalMutation({
 	args: { name: v.optional(v.string()) },
 	handler: async (ctx, args) => {
+		const ownerCode = process.env.CONVEX_WRITE_TOKEN;
+		if (!ownerCode) throw new Error('CONVEX_WRITE_TOKEN is not set');
+		const codeHash = await hashCode(ownerCode);
+
 		const existing = await ctx.db
 			.query('users')
-			.withIndex('by_tokenIdentifier', (q) => q.eq('tokenIdentifier', OWNER_TOKEN_IDENTIFIER))
+			.withIndex('by_codeHash', (q) => q.eq('codeHash', codeHash))
 			.unique();
 		const userId =
-			existing?._id ??
-			(await ctx.db.insert('users', {
-				name: args.name ?? 'owner',
-				tokenIdentifier: OWNER_TOKEN_IDENTIFIER
-			}));
+			existing?._id ?? (await ctx.db.insert('users', { name: args.name ?? 'owner', codeHash }));
 
 		for (const table of ['items', 'collections', 'viewPreferences'] as const) {
 			await ctx.scheduler.runAfter(0, internal.migrations['014_multi_user'].backfillUserId, {

@@ -1,15 +1,14 @@
 # Multi-user
 
-re-collect's data model is per-user, but auth hasn't changed yet: there is one
-owner account, reached through the existing password gate and write token.
-This note covers what changed, how to roll it out to prod, and the open auth
-decision.
+Every item, collection and view preference belongs to a user. Users sign in
+with a **personal access code**: a long random secret you mint for each person
+and send them as a login link. There are no passwords, signup pages or external
+auth services, and page loads cost nothing extra.
 
-## What changed
+## Data model
 
-- **`users` table**: `{ name, tokenIdentifier }`, indexed `by_tokenIdentifier`.
-  `tokenIdentifier` is the stable identity key the auth seam resolves to (the
-  same field Convex's `ctx.auth.getUserIdentity()` returns).
+- **`users` table**: `{ name, codeHash }`, indexed `by_codeHash`. Only the
+  SHA-256 hash of each access code is stored.
 - **`userId` on owned tables**: `items`, `collections`, `viewPreferences`.
   Indexes are user-first: `items.by_user_dateAdded` / `by_user_dateModified`,
   `collections.by_user_position`, `viewPreferences.by_user_key`, and the
@@ -17,49 +16,76 @@ decision.
   has no `userId`: its rows are only reached through an owned item or
   collection, and `addItemToCollection` refuses to link an item and collection
   with different owners.
-- **One identity seam** (`src/convex/lib/auth.ts`):
-  - `requireIdentity(ctx, token)` is the only place that knows how a caller
-    is identified. It returns a `tokenIdentifier` and needs no database, so
-    actions can call it too. Today the shared `CONVEX_WRITE_TOKEN` resolves to
-    the owner (`tokenIdentifier: 'owner'`).
-  - `requireUser(ctx, token)` looks the identity up in `users`, or throws
-    `Unauthorized`.
-  - `userQuery` / `userMutation` replace `authedMutation`. They add the
-    optional `token` arg, resolve it, and pass `ctx.userId` to the handler.
-    Every public function uses them, queries included.
-  - `getOwned(ctx, id)` loads an item or collection only if the caller owns it,
-    and returns `null` otherwise, so someone else's id looks missing.
-- **Scoping**: every query filters by `ctx.userId`; every mutation that takes
-  an item or collection id goes through `getOwned`; new rows get
-  `userId: ctx.userId`. Internal functions (screenshots, tagging) only patch
-  existing items, so ownership carries through unchanged.
-- **Logged-out visitors get nothing**: the read-only public mode is gone. The
-  `(app)` layout redirects to `/login` when there is no valid session. Public
-  collections can come later.
-- **Browser extension**: `items.add` with the write token still works and the
-  item lands on the owner. After merging the extension branch, two follow-ups:
-  `extension/api.js` must send `token` on queries too, and
-  `imageImport.addFromUrl` (an action) should call
-  `await requireIdentity(ctx, args.token)` instead of the removed `requireAuth`.
-- **Migration** `migrations/014_multi_user.ts`: `migrateToMultiUser` creates the
-  owner user (idempotent) and schedules batched `userId` backfills per table;
-  `countUnowned` reports rows still missing one.
+
+## How a request is authenticated
+
+1. `/login?code=…` (or pasting the code into the login form) checks the code
+   against Convex (`users.me`) and stores it in a one-year, httpOnly
+   `access-code` cookie.
+2. The `(app)` layout reads the cookie and hands the code to the client as
+   `writeToken`. A request without the cookie is redirected to `/login`. The
+   server doesn't re-check the code on each load, so there is no extra round
+   trip.
+3. The client sends the code as the `token` arg on every Convex query and
+   mutation. `userQuery` / `userMutation` (`src/convex/lib/auth.ts`) call
+   `requireUser`, which hashes the token, looks up the user (one indexed read)
+   and passes `ctx.userId` to the handler. An unknown code throws
+   `Unauthorized`, and the app layout then sends the user back to `/login`.
+4. `getOwned(ctx, id)` loads an item or collection only if the caller owns it,
+   and returns `null` otherwise, so someone else's id looks missing. Every
+   mutation that takes an id goes through it, and new rows get
+   `userId: ctx.userId`. Internal functions (screenshots, tagging) only patch
+   existing items, so ownership carries through.
+
+`requireUser` is the one identity seam. Swapping in a real provider later
+(Better Auth, Clerk) means replacing it with `ctx.auth.getUserIdentity()` plus
+a users lookup, and removing the `token` plumbing from the client.
+
+## Managing users
+
+```bash
+# New user: prints their code once (it can't be recovered later)
+npx convex run users:invite '{"name": "sam"}'
+
+# Lost or leaked code: issue a new one; the old one stops working at once.
+# Also the way to lock someone out (just don't send them the new code)
+npx convex run users:resetCode '{"userId": "..."}'
+```
+
+Add `--prod` to target production. Send the person
+`https://<app domain>/login?code=<code>`. They're signed in for a year per
+browser. For the browser extension, they paste the same code into its token
+setting.
+
+## Browser extension
+
+The extension's token is the user's access code; `items.add` with it works
+unchanged. After merging the extension branch, two follow-ups:
+
+- `extension/api.js` must send `token` on queries too.
+- `imageImport.addFromUrl` (an action, so it has no `ctx.db`) should check the
+  caller before fetching anything, with
+  `await ctx.runQuery(api.users.me, { token: args.token })`, in place of the
+  removed `requireAuth`.
 
 ## Rolling out to prod
 
+The migration (`migrations/014_multi_user.ts`) creates the owner user and
+backfills `userId` on every existing row. **The owner's access code is the
+current `CONVEX_WRITE_TOKEN`**, so the extension keeps working, and you sign
+in with `/login?code=<CONVEX_WRITE_TOKEN>`.
+
 `userId` is required in the schema, and Convex rejects a push while existing
-documents don't match. So go widen → backfill → narrow. The app's queries need
-the new token args, so the old app breaks between steps 1 and 4: do it in one
-sitting. It takes a minute or two.
+documents don't match, so go widen → backfill → narrow. The deployed app breaks
+between steps 1 and 4: do it in one sitting. It takes a minute or two.
 
 1. **Widen**: in `src/convex/schema.ts`, temporarily wrap `userId` on `items`,
-   `collections` and `viewPreferences` in `v.optional(...)` (the branch's first
-   commit, "multi-user data model…", is exactly that state), then deploy the
+   `collections` and `viewPreferences` in `v.optional(...)`, then deploy the
    backend:
    ```bash
    npx convex deploy
    ```
-2. **Backfill** (pass your name if you like):
+2. **Backfill**:
    ```bash
    npx convex run --prod migrations/014_multi_user:migrateToMultiUser '{"name": "yifan"}'
    ```
@@ -68,35 +94,36 @@ sitting. It takes a minute or two.
    ```bash
    npx convex run --prod migrations/014_multi_user:countUnowned
    ```
-4. **Narrow**: revert the schema change and deploy both the backend and the app:
+4. **Narrow**: revert the schema change and deploy the backend and the app:
    ```bash
    pnpm run deploy
    ```
+5. **Sign in** at `/login?code=<CONVEX_WRITE_TOKEN>`. Old password cookies stop
+   working, so this is needed once per browser.
+6. **Clean up** secrets nothing reads any more: the worker's `AUTH_PASSWORD`
+   and `CONVEX_WRITE_TOKEN` (Cloudflare dashboard or `wrangler secret delete`).
+   Convex's `CONVEX_WRITE_TOKEN` is only read by the migration, so remove it
+   afterwards with `npx convex env remove --prod CONVEX_WRITE_TOKEN`.
 
-No env var changes are needed: `CONVEX_WRITE_TOKEN` stays as is.
+## Why access codes
 
-## The open decision: auth
+The goal was the least friction and no added load time, for an app shared with
+a few friends where strong security isn't the point.
 
-Whatever you pick, the change on the Convex side stays in
-`requireIdentity` (plus dropping the `token` arg from the wrappers and
-client calls if the provider sends a JWT instead). New users need a `users` row
-with their `tokenIdentifier`, created on first sign-in or by an invite flow.
-To move the owner over, set the owner row's `tokenIdentifier` to your new
-identity.
+| Option                    | Extra on page load                                                                | Friction                                             | External service                |
+| ------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------- |
+| **Access codes (chosen)** | none                                                                              | click a link once per browser                        | none                            |
+| Clerk                     | SDK bundle, a token fetch from Clerk, Convex verifying the JWT before queries run | Clerk's sign-in screens                              | Clerk                           |
+| Better Auth / Convex Auth | client library, a session/token fetch, JWT verification                           | signup form, password or email link                  | an email sender for magic links |
+| Magic links               | as above                                                                          | an email every time the session expires              | an email sender                 |
+| Cloudflare Access         | none in the app                                                                   | Cloudflare's login page; doesn't cover the extension | Cloudflare Zero Trust           |
 
-| Option                                        | How it fits                                                                                                                                                                                                                                 | Effort                                                                                                 | Downsides                                                                                                                            |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Per-user tokens + invite links**            | Generalizes today's model. Each user row holds a hash of a random secret; an invite/login link sets the session cookie, and the SvelteKit server hands that user's token to the client. `requireIdentity` hashes the token and looks it up. | Smallest: a `tokenHash` field and index, a link-redeem route, a script or mutation that mints invites. | Homemade. No password reset or OAuth: a lost cookie means you send a new link. Tokens are bearer secrets, so rotate one if it leaks. |
-| **Convex Auth** (password, magic link, OAuth) | Lives in Convex. Its `authTables` replace our `users`, and `getAuthUserId(ctx)` becomes the seam.                                                                                                                                           | Medium. Magic links need an email sender such as Resend.                                               | Officially React-first; SvelteKit relies on community bindings. Check that it's still actively maintained.                           |
-| **Better Auth** (Convex component)            | Open-source and runs on your Convex deployment. Email/password, magic link, OAuth and invite or admin plugins. The seam becomes `ctx.auth.getUserIdentity()`.                                                                               | Medium: component setup, `auth.config.ts`, and a SvelteKit client.                                     | The most moving parts. Check its SvelteKit + Convex support before committing.                                                       |
-| **Clerk**                                     | Hosted sign-in UI and user management, with a JWT to Convex through `auth.config.ts`. The seam becomes `ctx.auth.getUserIdentity()`.                                                                                                        | Low code, but you configure an external service.                                                       | A third-party vendor holding your users. The Svelte SDK is community-maintained. Overkill for a few friends.                         |
-| **Allowlist only**                            | Add an email allowlist on top of any of the above; it's just a check at user creation.                                                                                                                                                      | Trivial.                                                                                               | It's a gate, not auth by itself.                                                                                                     |
-
-**Recommendation:** for "me and a few friends", start with **per-user tokens and
-invite links**. It is the smallest step from today, has no vendor, and gives
-every user a token for the browser extension too. Move to **Better Auth** if
-you later want self-serve signup, password reset or OAuth. The seam means that
-move touches one function and the client's token plumbing.
+How secure it is: about as secure as an API key. Codes are 128-bit random
+values, so they can't be guessed, and a fast hash with no rate limiting is
+fine. The real risk is a leaked link or cookie: whoever holds it acts as that
+user until you run `resetCode`. Codes also sit in the browser's history if
+opened as a link. What you give up: self-serve signup, password reset and
+OAuth. If you ever want those, move to Better Auth through the seam above.
 
 ## Deliberately left for later
 
@@ -111,5 +138,5 @@ move touches one function and the client's token plumbing.
 - **Public or shared collections.** Everything is private to its owner; a
   logged-out visitor sees nothing. Sharing would need a `visibility` field on
   collections and a query path that doesn't require a user.
-- **Signup/login UI, account settings, deleting a user and their data.**
+- **Account settings, renaming or deleting a user and their data** (do it by hand in the dashboard for now).
 - **Pagination.** `items.list` still collects all of a user's items, as before.

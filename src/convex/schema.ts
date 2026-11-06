@@ -24,12 +24,12 @@ export const sortModeValidator = v.union(...sortModes);
 export const collectionSortModeValidator = v.union(v.literal('manual'), ...sortModes);
 
 export default defineSchema({
-	// One row per account. tokenIdentifier is the stable identity key the auth
-	// seam (lib/auth.ts) resolves to; the shared write token maps to the owner.
+	// One row per account. Users sign in with a personal access code; only its
+	// SHA-256 hash is stored (see lib/auth.ts and users.ts).
 	users: defineTable({
 		name: v.string(),
-		tokenIdentifier: v.string()
-	}).index('by_tokenIdentifier', ['tokenIdentifier']),
+		codeHash: v.string()
+	}).index('by_codeHash', ['codeHash']),
 
 	items: defineTable({
 		userId: v.id('users'),

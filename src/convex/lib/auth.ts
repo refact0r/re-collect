@@ -1,27 +1,22 @@
 import { ConvexError, v, type ObjectType, type PropertyValidators } from 'convex/values';
-import type { Auth } from 'convex/server';
 import { mutation, query, type MutationCtx, type QueryCtx } from '../_generated/server';
 import type { Doc, Id } from '../_generated/dataModel';
 
-// tokenIdentifier of the owner user, which the shared write token resolves to
-export const OWNER_TOKEN_IDENTIFIER = 'owner';
-
-// The one identity seam: returns the caller's tokenIdentifier (usable from
-// actions too). Today the shared CONVEX_WRITE_TOKEN (held by the SvelteKit
-// server and the browser extension) maps to the owner. With a real auth
-// provider this becomes `(await ctx.auth.getUserIdentity())?.tokenIdentifier`
-// and the `token` arg on the wrappers below goes away.
-export async function requireIdentity(ctx: { auth: Auth }, token: string | undefined) {
-	const expected = process.env.CONVEX_WRITE_TOKEN;
-	if (!expected || token !== expected) throw new ConvexError('Unauthorized');
-	return OWNER_TOKEN_IDENTIFIER;
+// Access codes are long random strings, so a fast unsalted hash is enough
+export async function hashCode(code: string) {
+	const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code));
+	return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// The one identity seam: resolves the caller's access code (the `token` arg,
+// sent by the SvelteKit client and the browser extension) to their user. A
+// real auth provider would replace this with `ctx.auth.getUserIdentity()`.
 export async function requireUser(ctx: QueryCtx, token: string | undefined) {
-	const tokenIdentifier = await requireIdentity(ctx, token);
+	if (!token) throw new ConvexError('Unauthorized');
+	const codeHash = await hashCode(token);
 	const user = await ctx.db
 		.query('users')
-		.withIndex('by_tokenIdentifier', (q) => q.eq('tokenIdentifier', tokenIdentifier))
+		.withIndex('by_codeHash', (q) => q.eq('codeHash', codeHash))
 		.unique();
 	if (!user) throw new ConvexError('Unauthorized');
 	return user._id;

@@ -44,6 +44,11 @@
 	// Pass the token as a reactive getter so consumers always get the current value
 	setWriteTokenContext(() => data.writeToken);
 
+	// A reset or revoked access code fails every query; sign in again
+	$effect(() => {
+		if (collections.error?.message.includes('Unauthorized')) goto('/login');
+	});
+
 	const editItemId = $derived(page.url.searchParams.get('item') as Id<'items'> | null);
 
 	function closeModal() {

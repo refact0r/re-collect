@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 
-	let password = $state('');
-	let error = $state('');
+	let { data } = $props();
+
+	let code = $state('');
+	// Writable derived: starts from the login-link result, then tracks form errors
+	let error = $derived(data.invalidLink ? 'invalid link' : '');
 	let isSubmitting = $state(false);
 </script>
 
@@ -19,8 +22,8 @@
 				return async ({ result, update }) => {
 					isSubmitting = false;
 					if (result.type === 'failure') {
-						error = String(result.data?.message || 'invalid password');
-						password = '';
+						error = String(result.data?.message || 'invalid code');
+						code = '';
 					}
 					await update();
 				};
@@ -28,9 +31,9 @@
 		>
 			<input
 				type="password"
-				name="password"
-				bind:value={password}
-				placeholder="Password"
+				name="code"
+				bind:value={code}
+				placeholder="Access code"
 				disabled={isSubmitting}
 				autocomplete="current-password"
 				required

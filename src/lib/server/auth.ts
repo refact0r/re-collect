@@ -1,42 +1,29 @@
-import { AUTH_PASSWORD } from '$app/env/private';
+import type { Cookies } from '@sveltejs/kit';
+import { ConvexHttpClient } from 'convex/browser';
+import { dev } from '$app/env';
+import { PUBLIC_CONVEX_URL } from '$app/env/public';
+import { api } from '../../convex/_generated/api.js';
 
-export const COOKIE_NAME = 'auth-session';
+// Holds the user's access code, which the client sends with every Convex call
+export const COOKIE_NAME = 'access-code';
 
-const encoder = new TextEncoder();
-
-// Read at runtime (Cloudflare worker secret in prod, .env.local in dev) so the
-// password can be rotated without rebuilding the app
-async function hmacHex(message: string): Promise<string> {
-	const key = await crypto.subtle.importKey(
-		'raw',
-		encoder.encode(AUTH_PASSWORD),
-		{ name: 'HMAC', hash: 'SHA-256' },
-		false,
-		['sign']
-	);
-	const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(message));
-	return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('');
+export async function isValidCode(code: string): Promise<boolean> {
+	try {
+		await new ConvexHttpClient(PUBLIC_CONVEX_URL).query(api.users.me, { token: code });
+		return true;
+	} catch {
+		return false;
+	}
 }
 
-// The cookie stores this derived token instead of the plaintext password
-export function sessionToken(): Promise<string> {
-	return hmacHex('session-v1');
-}
-
-// Timing-safe comparison: HMAC both sides so the string compare leaks nothing.
-// Fails closed when AUTH_PASSWORD is unset.
-export async function safeEqual(a: string, b: string): Promise<boolean> {
-	if (!AUTH_PASSWORD) return false;
-	const [ha, hb] = await Promise.all([hmacHex(a), hmacHex(b)]);
-	return ha === hb;
-}
-
-export async function verifyPassword(password: string): Promise<boolean> {
-	if (!AUTH_PASSWORD) return false;
-	return safeEqual(password, AUTH_PASSWORD);
-}
-
-export async function isValidSession(cookie: string): Promise<boolean> {
-	if (!AUTH_PASSWORD) return false;
-	return safeEqual(cookie, await sessionToken());
+export function setSession(cookies: Cookies, code: string) {
+	cookies.set(COOKIE_NAME, code, {
+		path: '/',
+		httpOnly: true,
+		secure: !dev,
+		// lax so the cookie survives the redirect after opening a login link
+		// from another site (chat app, email)
+		sameSite: 'lax',
+		maxAge: 60 * 60 * 24 * 365
+	});
 }

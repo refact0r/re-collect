@@ -32,6 +32,7 @@ import type * as r2 from "../r2.js";
 import type * as screenshots from "../screenshots.js";
 import type * as tagging from "../tagging.js";
 import type * as taggingActions from "../taggingActions.js";
+import type * as users from "../users.js";
 import type * as viewPreferences from "../viewPreferences.js";
 
 import type {
@@ -65,6 +66,7 @@ declare const fullApi: ApiFromModules<{
   screenshots: typeof screenshots;
   tagging: typeof tagging;
   taggingActions: typeof taggingActions;
+  users: typeof users;
   viewPreferences: typeof viewPreferences;
 }>;
 
