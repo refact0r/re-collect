@@ -3,9 +3,10 @@
 
 	let { data } = $props();
 
-	let code = $state('');
-	// Writable derived: starts from the login-link result, then tracks form errors
-	let error = $derived(data.invalidLink ? 'invalid link' : '');
+	const signup = $derived(!!data.invite);
+	let username = $state('');
+	let password = $state('');
+	let error = $state('');
 	let isSubmitting = $state(false);
 </script>
 
@@ -16,30 +17,51 @@
 		<form
 			class="form"
 			method="POST"
+			action={signup ? '?/signup' : '?/login'}
 			use:enhance={() => {
 				isSubmitting = true;
 				error = '';
 				return async ({ result, update }) => {
 					isSubmitting = false;
 					if (result.type === 'failure') {
-						error = String(result.data?.message || 'invalid code');
-						code = '';
+						error = String(result.data?.message || 'something went wrong');
+						password = '';
 					}
-					await update();
+					await update({ reset: false });
 				};
 			}}
 		>
+			{#if data.invite}
+				<input type="hidden" name="invite" value={data.invite} />
+			{/if}
+			<input
+				name="username"
+				bind:value={username}
+				placeholder="Username"
+				disabled={isSubmitting}
+				autocomplete="username"
+				autocapitalize="none"
+				required
+			/>
 			<input
 				type="password"
-				name="code"
-				bind:value={code}
-				placeholder="Access code"
+				name="password"
+				bind:value={password}
+				placeholder="Password"
 				disabled={isSubmitting}
-				autocomplete="current-password"
+				autocomplete={signup ? 'new-password' : 'current-password'}
+				minlength={signup ? 8 : undefined}
 				required
 			/>
 			<button type="submit" disabled={isSubmitting} class:error={!!error}>
-				{error || (isSubmitting ? 'logging in...' : 'login')}
+				{error ||
+					(signup
+						? isSubmitting
+							? 'creating account...'
+							: 'create account'
+						: isSubmitting
+							? 'logging in...'
+							: 'login')}
 			</button>
 		</form>
 	</div>

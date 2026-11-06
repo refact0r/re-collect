@@ -30,6 +30,7 @@ import type * as migrations_013_retag_by_collection_default from "../migrations/
 import type * as migrations_014_multi_user from "../migrations/014_multi_user.js";
 import type * as r2 from "../r2.js";
 import type * as screenshots from "../screenshots.js";
+import type * as sessions from "../sessions.js";
 import type * as tagging from "../tagging.js";
 import type * as taggingActions from "../taggingActions.js";
 import type * as users from "../users.js";
@@ -64,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   "migrations/014_multi_user": typeof migrations_014_multi_user;
   r2: typeof r2;
   screenshots: typeof screenshots;
+  sessions: typeof sessions;
   tagging: typeof tagging;
   taggingActions: typeof taggingActions;
   users: typeof users;

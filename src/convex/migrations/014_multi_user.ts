@@ -1,7 +1,8 @@
 import { v } from 'convex/values';
-import { internalMutation, internalQuery } from '../_generated/server';
+import { internalAction, internalMutation, internalQuery } from '../_generated/server';
 import { internal } from '../_generated/api';
-import { hashCode } from '../lib/auth';
+import type { Id } from '../_generated/dataModel';
+import { hashPassword, hashToken, normalizeUsername } from '../lib/auth';
 
 const BATCH_SIZE = 200;
 const ownedTable = v.union(
@@ -10,26 +11,49 @@ const ownedTable = v.union(
 	v.literal('viewPreferences')
 );
 
-// Create the owner user and hand it every existing row. The owner's access
-// code is the old shared CONVEX_WRITE_TOKEN, so existing logins (via
-// /login?code=...) and the browser extension keep working. Backfills run as
-// scheduled batches; rerun-safe. Requires userId to be optional in the schema
-// while it runs (widen → backfill → narrow, see reference/multi-user.md).
+// Create the owner account and hand it every existing row. The old shared
+// CONVEX_WRITE_TOKEN becomes one of the owner's sessions, so the browser
+// extension keeps working. Backfills run as scheduled batches; rerun-safe.
+// Requires userId to be optional in the schema while it runs (widen →
+// backfill → narrow, see reference/multi-user.md).
 //
-// Run: npx convex run migrations/014_multi_user:migrateToMultiUser '{"name": "..."}'
-export const migrateToMultiUser = internalMutation({
-	args: { name: v.optional(v.string()) },
-	handler: async (ctx, args) => {
-		const ownerCode = process.env.CONVEX_WRITE_TOKEN;
-		if (!ownerCode) throw new Error('CONVEX_WRITE_TOKEN is not set');
-		const codeHash = await hashCode(ownerCode);
+// Run: npx convex run migrations/014_multi_user:migrateToMultiUser '{"username": "...", "password": "..."}'
+export const migrateToMultiUser = internalAction({
+	args: { username: v.string(), password: v.string() },
+	handler: async (ctx, args): Promise<{ userId: Id<'users'> }> => {
+		const ownerToken = process.env.CONVEX_WRITE_TOKEN;
+		if (!ownerToken) throw new Error('CONVEX_WRITE_TOKEN is not set');
+		const userId: Id<'users'> = await ctx.runMutation(
+			internal.migrations['014_multi_user'].createOwner,
+			{
+				username: normalizeUsername(args.username),
+				passwordHash: await hashPassword(args.password),
+				tokenHash: await hashToken(ownerToken)
+			}
+		);
+		return { userId };
+	}
+});
 
+export const createOwner = internalMutation({
+	args: { username: v.string(), passwordHash: v.string(), tokenHash: v.string() },
+	handler: async (ctx, args) => {
 		const existing = await ctx.db
 			.query('users')
-			.withIndex('by_codeHash', (q) => q.eq('codeHash', codeHash))
+			.withIndex('by_username', (q) => q.eq('username', args.username))
 			.unique();
 		const userId =
-			existing?._id ?? (await ctx.db.insert('users', { name: args.name ?? 'owner', codeHash }));
+			existing?._id ??
+			(await ctx.db.insert('users', {
+				username: args.username,
+				passwordHash: args.passwordHash
+			}));
+
+		const session = await ctx.db
+			.query('sessions')
+			.withIndex('by_tokenHash', (q) => q.eq('tokenHash', args.tokenHash))
+			.unique();
+		if (!session) await ctx.db.insert('sessions', { userId, tokenHash: args.tokenHash });
 
 		for (const table of ['items', 'collections', 'viewPreferences'] as const) {
 			await ctx.scheduler.runAfter(0, internal.migrations['014_multi_user'].backfillUserId, {
@@ -38,7 +62,7 @@ export const migrateToMultiUser = internalMutation({
 				cursor: null
 			});
 		}
-		return { userId };
+		return userId;
 	}
 });
 

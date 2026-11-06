@@ -1,24 +1,40 @@
-import { fail, redirect } from '@sveltejs/kit';
-import { isValidCode, setSession } from '#lib/server/auth.js';
+import { fail, redirect, type Cookies } from '@sveltejs/kit';
+import { api } from '../../convex/_generated/api.js';
+import { convex, errorMessage, setSession } from '#lib/server/auth.js';
 import type { Actions, PageServerLoad } from './$types';
 
-// Login links (/login?code=...) sign in directly
-export const load: PageServerLoad = async ({ url, cookies }) => {
-	const code = url.searchParams.get('code');
-	if (code && (await isValidCode(code))) {
-		setSession(cookies, code);
-		redirect(303, '/');
+// Invite links (/login?invite=...) show the signup form instead
+export const load: PageServerLoad = ({ url }) => ({ invite: url.searchParams.get('invite') });
+
+async function signIn(cookies: Cookies, session: Promise<string>) {
+	try {
+		setSession(cookies, await session);
+	} catch (error) {
+		return fail(400, { message: errorMessage(error) });
 	}
-	return { invalidLink: !!code };
-};
+	redirect(303, '/');
+}
 
 export const actions = {
-	default: async ({ request, cookies }) => {
-		const code = (await request.formData()).get('code');
-		if (typeof code === 'string' && (await isValidCode(code.trim()))) {
-			setSession(cookies, code.trim());
-			redirect(303, '/');
-		}
-		return fail(400, { message: 'invalid code' });
+	login: async ({ request, cookies }) => {
+		const form = await request.formData();
+		return signIn(
+			cookies,
+			convex().action(api.sessions.login, {
+				username: String(form.get('username') ?? ''),
+				password: String(form.get('password') ?? '')
+			})
+		);
+	},
+	signup: async ({ request, cookies }) => {
+		const form = await request.formData();
+		return signIn(
+			cookies,
+			convex().action(api.sessions.signup, {
+				invite: String(form.get('invite') ?? ''),
+				username: String(form.get('username') ?? ''),
+				password: String(form.get('password') ?? '')
+			})
+		);
 	}
 } satisfies Actions;

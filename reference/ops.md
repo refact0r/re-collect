@@ -6,7 +6,7 @@ Notes on external configuration that isn't visible from the codebase.
 
 - Deploy: `pnpm run deploy:app` (builds then `wrangler deploy`). `pnpm run deploy` deploys the Convex backend first, then the app (`pnpm deploy` without `run` is a pnpm built-in — use `run`).
 - `PUBLIC_CONVEX_URL` / `PUBLIC_CONVEX_SITE_URL` are baked into the bundle at build time. Production values come from the checked-in `.env.production`, which overrides `.env.local` during `vite build` — local dev values can't leak into a deploy.
-- The worker has no secrets: users sign in with per-user access codes that Convex checks (see `reference/multi-user.md`).
+- The worker has no secrets: accounts, passwords and sessions live in Convex (see `reference/multi-user.md`).
 
 ## Convex env vars
 

@@ -24,8 +24,8 @@ Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads
 
 ## Architecture & Conventions
 
-- **Multi-user, signed in with per-user access codes** (see `reference/multi-user.md`): `items`, `collections` and `viewPreferences` carry `userId` and their indexes start with it (`itemCollectionPositions` is reached only through owned rows). Every public query/mutation is defined with `userQuery` / `userMutation` (`src/convex/lib/auth.ts`), which take a `token` arg (the user's access code) and expose `ctx.userId`; `requireUser` is the one identity seam. Load docs by id with `getOwned` (returns null for anyone else's)
-- **Auth is access codes, no passwords or providers**: `users:invite` mints a code (only its hash is stored), `/login?code=…` puts it in a one-year cookie, the `(app)` layout passes it to the client as `writeToken`, and logged-out visitors are redirected to `/login`
+- **Multi-user, username/password accounts** (see `reference/multi-user.md`): `items`, `collections` and `viewPreferences` carry `userId` and their indexes start with it (`itemCollectionPositions` is reached only through owned rows). Every public query/mutation is defined with `userQuery` / `userMutation` (`src/convex/lib/auth.ts`), which take a `token` arg (the caller's session token) and expose `ctx.userId`; `requireUser` is the one identity seam. Load docs by id with `getOwned` (returns null for anyone else's)
+- **Auth is self-hosted, no providers**: `users:invite` mints a one-time signup link (`/login?invite=…`); `sessions.login` / `sessions.signup` (PBKDF2 passwords, lockout after 10 failures) return a session token the SvelteKit server keeps in a one-year cookie and the `(app)` layout passes to the client as `writeToken`; logged-out visitors are redirected to `/login`
 - No social features: no sharing or public collections
 - **3 item types**: URL (screenshot or og:image via Cloudflare Worker), image (R2-stored), text
 - **Ingestion modes**: `taggingMode` (`visual` / `text` / `none`) and `linkImageMode` (`screenshot` / `og`) are per-collection defaults (home defaults live in `viewPreferences`), snapshotted onto the item at add time

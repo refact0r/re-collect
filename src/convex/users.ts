@@ -1,62 +1,81 @@
-import { v } from 'convex/values';
-import { internalAction, internalMutation } from './_generated/server';
+import { ConvexError, v } from 'convex/values';
+import { internalAction, internalMutation, type MutationCtx } from './_generated/server';
 import { internal } from './_generated/api';
-import type { Id } from './_generated/dataModel';
-import { hashCode, userQuery } from './lib/auth';
+import { hashPassword, hashToken, normalizeUsername, randomToken, userQuery } from './lib/auth';
 
-// Validates an access code (login page, actions that check the caller first)
+// The signed-in user; also how an action checks its caller's token
 export const me = userQuery({
 	args: {},
 	handler: async (ctx) => {
 		const user = await ctx.db.get(ctx.userId);
-		return { name: user?.name ?? '' };
+		return { username: user?.username ?? '' };
 	}
 });
 
-// Codes are minted in actions, where crypto randomness isn't seeded
-function generateCode() {
-	const bytes = crypto.getRandomValues(new Uint8Array(16));
-	return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+// Admin commands, run from the CLI (add --prod for production)
 
-// Create a user and print their access code; it is never shown again.
-// Run: npx convex run users:invite '{"name": "sam"}'
+// Mint a one-time signup link code; it is shown only here.
+// Run: npx convex run users:invite
 export const invite = internalAction({
-	args: { name: v.string() },
-	handler: async (ctx, args): Promise<{ userId: Id<'users'>; code: string }> => {
-		const code = generateCode();
-		const userId: Id<'users'> = await ctx.runMutation(internal.users.insert, {
-			name: args.name,
-			codeHash: await hashCode(code)
-		});
-		return { userId, code };
-	}
-});
-
-// Replace a user's code (lost or leaked); the old one stops working at once.
-// Run: npx convex run users:resetCode '{"userId": "..."}'
-export const resetCode = internalAction({
-	args: { userId: v.id('users') },
-	handler: async (ctx, args): Promise<{ code: string }> => {
-		const code = generateCode();
-		await ctx.runMutation(internal.users.setCodeHash, {
-			userId: args.userId,
-			codeHash: await hashCode(code)
-		});
+	args: {},
+	handler: async (ctx): Promise<{ code: string }> => {
+		const code = randomToken();
+		await ctx.runMutation(internal.users.insertInvite, { codeHash: await hashToken(code) });
 		return { code };
 	}
 });
 
-export const insert = internalMutation({
-	args: { name: v.string(), codeHash: v.string() },
+// Set a password (forgotten, or the owner's first one). Existing sessions stay.
+// Run: npx convex run users:setPassword '{"username": "sam", "password": "..."}'
+export const setPassword = internalAction({
+	args: { username: v.string(), password: v.string() },
 	handler: async (ctx, args) => {
-		return await ctx.db.insert('users', args);
+		await ctx.runMutation(internal.users.setPasswordHash, {
+			username: normalizeUsername(args.username),
+			passwordHash: await hashPassword(args.password)
+		});
 	}
 });
 
-export const setCodeHash = internalMutation({
-	args: { userId: v.id('users'), codeHash: v.string() },
+// End every session, extension included (e.g. after a leaked password).
+// Run: npx convex run users:signOut '{"username": "sam"}'
+export const signOut = internalMutation({
+	args: { username: v.string() },
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.userId, { codeHash: args.codeHash });
+		const user = await getUser(ctx, normalizeUsername(args.username));
+		const sessions = await ctx.db
+			.query('sessions')
+			.withIndex('by_user', (q) => q.eq('userId', user._id))
+			.collect();
+		for (const session of sessions) await ctx.db.delete(session._id);
+		return { ended: sessions.length };
 	}
 });
+
+export const insertInvite = internalMutation({
+	args: { codeHash: v.string() },
+	handler: async (ctx, args) => {
+		await ctx.db.insert('invites', args);
+	}
+});
+
+export const setPasswordHash = internalMutation({
+	args: { username: v.string(), passwordHash: v.string() },
+	handler: async (ctx, args) => {
+		const user = await getUser(ctx, args.username);
+		await ctx.db.patch(user._id, {
+			passwordHash: args.passwordHash,
+			failedLogins: undefined,
+			lastFailedLogin: undefined
+		});
+	}
+});
+
+async function getUser(ctx: MutationCtx, username: string) {
+	const user = await ctx.db
+		.query('users')
+		.withIndex('by_username', (q) => q.eq('username', username))
+		.unique();
+	if (!user) throw new ConvexError(`no user named ${username}`);
+	return user;
+}

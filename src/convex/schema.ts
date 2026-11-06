@@ -24,10 +24,25 @@ export const sortModeValidator = v.union(...sortModes);
 export const collectionSortModeValidator = v.union(v.literal('manual'), ...sortModes);
 
 export default defineSchema({
-	// One row per account. Users sign in with a personal access code; only its
-	// SHA-256 hash is stored (see lib/auth.ts and users.ts).
+	// One row per account (see lib/auth.ts, sessions.ts, users.ts)
 	users: defineTable({
-		name: v.string(),
+		username: v.string(), // Lowercase, unique
+		passwordHash: v.string(), // PBKDF2, format in lib/auth.ts
+		// Consecutive failed logins, for the lockout in sessions.login
+		failedLogins: v.optional(v.number()),
+		lastFailedLogin: v.optional(v.number())
+	}).index('by_username', ['username']),
+
+	// One per signed-in browser or extension; only the token's hash is stored
+	sessions: defineTable({
+		userId: v.id('users'),
+		tokenHash: v.string()
+	})
+		.index('by_tokenHash', ['tokenHash'])
+		.index('by_user', ['userId']),
+
+	// One-time signup links minted by users:invite
+	invites: defineTable({
 		codeHash: v.string()
 	}).index('by_codeHash', ['codeHash']),
 
