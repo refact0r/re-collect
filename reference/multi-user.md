@@ -98,16 +98,10 @@ out, run `signOut` and then `setPassword` with a password they don't know.
 "copy extension token" on the account page creates a separate session for the
 extension and copies its token (or shows it if the clipboard is blocked). The
 user pastes it into the extension's token setting, so the extension never sees
-the password. Copying a new token ends the old one. `items.add` with that token
-works unchanged. After merging the extension branch, three follow-ups:
-
-- `extension/api.js` must send `token` on queries too.
-- Anything there that creates an image item from a key it stored itself must
-  insert an `uploads` row for the caller first (see `r2.generateUploadUrl`).
-- `imageImport.addFromUrl` (an action, so it has no `ctx.db`) should check the
-  caller before fetching anything, with
-  `await ctx.runQuery(api.users.me, { token: args.token })`, in place of the
-  removed `requireAuth`.
+the password. Copying a new token ends the old one. The extension sends that
+token on every call, like the app does. The `imageImport` actions have no
+`ctx.db`, so they check the caller with `ctx.runQuery(api.users.me, { token })`
+before fetching anything.
 
 ## Rolling out to prod
 

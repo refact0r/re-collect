@@ -6,7 +6,6 @@ import { action } from './_generated/server';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { r2 } from './r2';
-import { requireAuth } from './lib/auth';
 
 // Accepts http(s) and data: URLs
 async function fetchImage(imageUrl: string, pageUrl?: string) {
@@ -35,8 +34,9 @@ export const addFromUrl = action({
 		type: v.union(v.literal('image'), v.literal('url'))
 	}),
 	handler: async (ctx, args): Promise<{ itemId: Id<'items'>; type: 'image' | 'url' }> => {
-		requireAuth(args.token);
 		const { imageUrl, pageUrl, collections, token } = args;
+		// Check the caller before fetching anything; items.add re-checks on write
+		await ctx.runQuery(api.users.me, { token });
 
 		let image;
 		try {
@@ -80,8 +80,8 @@ export const addPageWithImage = action({
 	},
 	returns: v.id('items'),
 	handler: async (ctx, args): Promise<Id<'items'>> => {
-		requireAuth(args.token);
 		const { imageUrl, ...rest } = args;
+		await ctx.runQuery(api.users.me, { token: args.token });
 
 		const image = await fetchImage(imageUrl);
 		const imageKey = await r2.store(ctx, image.data, { type: image.contentType });

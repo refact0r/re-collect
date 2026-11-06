@@ -1,4 +1,6 @@
 // Minimal client for Convex's HTTP API (POST /api/{query,mutation,action}).
+// Every call carries the extension's session token, from the app's "extension
+// token" button; the backend resolves it to the signed-in user.
 
 export async function getSettings() {
 	const { convexUrl = '', token = '' } = await chrome.storage.local.get(['convexUrl', 'token']);
@@ -25,15 +27,24 @@ async function call(kind, path, args = {}) {
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
 			path,
-			args: kind === 'query' ? args : { ...args, token },
+			args: { ...args, token },
 			format: 'json'
 		})
 	});
 	const body = await response.json().catch(() => null);
 	if (body?.status === 'success') return body.value;
 	// ConvexError payloads (e.g. 'Unauthorized') arrive as errorData
-	const message = typeof body?.errorData === 'string' ? body.errorData : body?.errorMessage;
+	if (body?.errorData === 'Unauthorized') {
+		throw new Error('Token not recognized — create a new extension token in re-collect');
+	}
+	if (typeof body?.errorData === 'string') throw new Error(body.errorData);
+	// Plain server errors arrive as "[Request ID: …] Server Error\nUncaught Error: <message>"
+	const message = body?.errorMessage?.match(/Uncaught \w*Error: (.*)/)?.[1] ?? body?.errorMessage;
 	throw new Error(message ?? `Request failed (${response.status})`);
+}
+
+export function getMe() {
+	return call('query', 'users:me');
 }
 
 export function listCollections() {

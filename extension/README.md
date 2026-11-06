@@ -22,9 +22,11 @@ Auto page saves and link saves call `items.add`, and the backend screenshots and
 2. Click **Load unpacked** and select this `extension/` folder.
 3. Open the extension's **Options** page and fill in:
    - **Convex deployment URL**: the `.convex.cloud` URL (`PUBLIC_CONVEX_URL`), not the `.convex.site` one.
-   - **Write token**: the deployment's `CONVEX_WRITE_TOKEN`.
+   - **Extension token**: in re-collect, click **extension token** in the header. That creates a separate session for the extension and copies its token, so paste it here.
 
-   Saving checks the URL by loading collections. The token is only checked on the first save.
+   Saving checks both and shows which account you're signed in as. Switching accounts resets the last-used collection.
+
+Everything you save belongs to the token's account. Signing that user out everywhere (`users:signOut`) also revokes the extension's token, so create a new one afterwards.
 
 After editing the source, click the reload icon on the extension's card.
 
