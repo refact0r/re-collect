@@ -8,7 +8,8 @@ import type { Id } from './_generated/dataModel';
 import { r2 } from './r2';
 import { requireAuth } from './lib/auth';
 
-async function fetchImage(imageUrl: string, pageUrl: string | undefined) {
+// Accepts http(s) and data: URLs
+async function fetchImage(imageUrl: string, pageUrl?: string) {
 	// Referer gets past basic hotlink protection on most CDNs
 	const response = await fetch(imageUrl, { headers: pageUrl ? { Referer: pageUrl } : {} });
 	if (!response.ok) throw new Error(`Image fetch failed: ${response.status}`);
@@ -63,5 +64,33 @@ export const addFromUrl = action({
 			token
 		});
 		return { itemId, type: 'image' };
+	}
+});
+
+// Saves a page as a URL item with an image captured client-side (the browser
+// extension's screenshot, as a data: URL) in place of the worker's
+export const addPageWithImage = action({
+	args: {
+		url: v.string(),
+		title: v.optional(v.string()),
+		ogDescription: v.optional(v.string()),
+		imageUrl: v.string(),
+		collections: v.optional(v.array(v.id('collections'))),
+		token: v.optional(v.string())
+	},
+	returns: v.id('items'),
+	handler: async (ctx, args): Promise<Id<'items'>> => {
+		requireAuth(args.token);
+		const { imageUrl, ...rest } = args;
+
+		const image = await fetchImage(imageUrl);
+		const imageKey = await r2.store(ctx, image.data, { type: image.contentType });
+		return await ctx.runMutation(api.items.add, {
+			type: 'url',
+			...rest,
+			imageKey,
+			imageWidth: image.width,
+			imageHeight: image.height
+		});
 	}
 });

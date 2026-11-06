@@ -30,6 +30,8 @@ Client-side flow in `ItemInput.svelte`, backed by two auth-gated mutations in
 Remote images from the browser extension skip the presigned PUT:
 `api.imageImport.addFromUrl` (a Node action) fetches the image server-side,
 stores it with `r2.store()` (UUID key, metadata synced) and creates the item.
+`api.imageImport.addPageWithImage` does the same for the extension's own
+screenshots (sent as a `data:` URL), attaching them to a URL item.
 
 The screenshot worker (`workers/screenshot`) writes to the same bucket
 directly via its R2 binding (keys under `screenshots/` and `og/`), bypassing

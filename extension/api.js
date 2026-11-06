@@ -62,3 +62,14 @@ export function saveImage({ imageUrl, pageUrl, collectionId }) {
 		collections: collectionsArg(collectionId)
 	});
 }
+
+// Saves a page with an extension-captured screenshot (data: URL) instead of the worker's
+export function savePageWithImage({ url, title, ogDescription, imageUrl, collectionId }) {
+	return call('action', 'imageImport:addPageWithImage', {
+		url,
+		title: title || undefined,
+		ogDescription: ogDescription || undefined,
+		imageUrl,
+		collections: collectionsArg(collectionId)
+	});
+}

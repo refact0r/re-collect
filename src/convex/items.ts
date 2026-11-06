@@ -31,6 +31,7 @@ export const add = userMutation({
 		type: v.union(v.literal('url'), v.literal('image'), v.literal('text')),
 		title: v.optional(v.string()),
 		description: v.optional(v.string()),
+		ogDescription: v.optional(v.string()),
 		url: v.optional(v.string()),
 		content: v.optional(v.string()),
 		imageKey: v.optional(v.string()),
@@ -62,24 +63,28 @@ export const add = userMutation({
 		const taggingMode =
 			args.type === 'image' && rawTaggingMode === 'text' ? 'visual' : rawTaggingMode;
 		const linkImageMode = defaultsSource?.linkImageMode;
-		const wantsTagging = taggingMode !== 'none';
 		const wantsTextTagging = args.type === 'url' && !!args.url && taggingMode === 'text';
+		// URL items may arrive with their image already captured (the browser
+		// extension's screenshot), which then stands in for the worker's
+		const hasImage = args.type !== 'text' && !!args.imageKey;
+		const wantsVisualTagging = hasImage && taggingMode !== 'none' && !wantsTextTagging;
 
 		// URL items in visual mode: screenshot/og image lands first, then tagging
 		// runs against it. Text mode tags off the article, in parallel with the
-		// image fetch. Image items: tagging runs directly off the uploaded image.
+		// image fetch. Items with an image: tagging runs directly off it.
 		const screenshotFields =
-			args.type === 'url' && args.url ? { screenshotStatus: 'pending' as const } : {};
-		const taggingFields =
-			(args.type === 'image' && args.imageKey && wantsTagging) || wantsTextTagging
-				? { taggingStatus: 'pending' as const }
+			args.type === 'url' && args.url
+				? { screenshotStatus: hasImage ? ('completed' as const) : ('pending' as const) }
 				: {};
+		const taggingFields =
+			wantsVisualTagging || wantsTextTagging ? { taggingStatus: 'pending' as const } : {};
 
 		const itemId = await ctx.db.insert('items', {
 			userId: ctx.userId,
 			type: args.type,
 			title: args.title,
 			description: args.description,
+			ogDescription: args.ogDescription,
 			url: args.url,
 			content: args.content,
 			imageKey: args.imageKey,
@@ -92,6 +97,7 @@ export const add = userMutation({
 			searchText: buildSearchText({
 				title: args.title,
 				description: args.description,
+				ogDescription: args.ogDescription,
 				url: args.url
 			}),
 			collections: [],
@@ -104,17 +110,17 @@ export const add = userMutation({
 			await addItemToCollection(ctx, itemId, collectionId);
 		}
 
-		// Trigger screenshot/og image generation for URL items
-		if (args.type === 'url' && args.url) {
+		// Trigger screenshot/og image generation for URL items without an image
+		if (args.type === 'url' && args.url && !hasImage) {
 			await enqueueScreenshot(ctx, { itemId, url: args.url, mode: linkImageMode });
 		}
 
-		// Trigger tagging for image items (palette always runs, even untagged).
-		// URL items in visual mode wait for their image to land.
-		if (args.type === 'image' && args.imageKey) {
+		// Trigger tagging off the item's image (palette always runs, even untagged).
+		// URL items still waiting on the worker are tagged once their image lands.
+		if (hasImage) {
 			await ctx.scheduler.runAfter(
 				0,
-				wantsTagging
+				wantsVisualTagging
 					? internal.taggingActions.preprocessItem
 					: internal.taggingActions.repaletteItem,
 				{ itemId }

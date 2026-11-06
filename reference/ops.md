@@ -56,4 +56,4 @@ Cache invalidation:
 
 - Source: `extension/` (see its README). Loaded unpacked, not published to a store.
 - Configured in its options page with the Convex deployment URL (`.convex.cloud`) and `CONVEX_WRITE_TOKEN`, stored in `chrome.storage.local`.
-- Talks to Convex's HTTP API directly, so the backend needs no extension-specific config. Image saves need `imageImport.addFromUrl` deployed.
+- Talks to Convex's HTTP API directly, so the backend needs no extension-specific config. Image saves and extension screenshots need the `imageImport` actions deployed.
