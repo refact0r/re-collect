@@ -108,7 +108,9 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2rem;
-		max-width: 24rem;
+		max-width: 64rem;
+		margin: 0 auto;
+		padding-bottom: 2rem;
 	}
 
 	.page-header {
@@ -123,7 +125,8 @@
 	}
 
 	section .form {
-		align-self: stretch;
+		width: 100%;
+		max-width: 24rem;
 	}
 
 	button.error {
