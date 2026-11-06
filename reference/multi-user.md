@@ -45,9 +45,13 @@ the work.
    `userId: ctx.userId`. Internal functions (screenshots, tagging) only patch
    existing items, so ownership carries through.
 
-Logging out deletes that browser's session. After 10 wrong passwords in a row,
-each further attempt for that username has to wait 15 minutes; a successful
-login or `users:setPassword` clears the count.
+The account page (`/account`, the "account" link in the top bar) shows who's
+signed in and lets the user copy an extension token, change their password
+(`sessions.changePassword`, which needs the current one) and log out. Logging
+out deletes that browser's session. After 10 wrong passwords in a row (at login
+or as the current password when changing it), each further attempt for that
+username has to wait 15 minutes; a successful login or a password change clears
+the count.
 
 `requireUser` is the one identity seam. Swapping in a real provider later
 (Better Auth, Clerk) means replacing it with `ctx.auth.getUserIdentity()` plus
@@ -59,7 +63,7 @@ a users lookup, and removing the `token` plumbing from the client.
 # Invite someone: prints a one-time code, shown only once
 npx convex run users:invite
 
-# Forgotten password (sessions stay signed in)
+# Forgotten password (sessions stay signed in; known ones change on /account)
 npx convex run users:setPassword '{"username": "sam", "password": "..."}'
 
 # Sign someone out everywhere, extension included (e.g. leaked password)
@@ -73,7 +77,7 @@ out, run `signOut` and then `setPassword` with a password they don't know.
 
 ## Browser extension
 
-The "extension token" button in the header creates a separate session for the
+"copy extension token" on the account page creates a separate session for the
 extension and copies its token (or shows it if the clipboard is blocked). The
 user pastes it into the extension's token setting, so the extension never sees
 the password. `items.add` with that token works unchanged. After merging the
@@ -138,9 +142,9 @@ load time, and no outside services.
 
 Security: passwords are slow-hashed and salted, guessing is throttled, and
 session tokens are 128-bit random values stored only as hashes. What's missing
-compared with a hosted provider: password reset by email, 2FA, OAuth, and
-self-serve password changes (you run `setPassword`). If you ever want those,
-move to Better Auth through the seam above.
+compared with a hosted provider: password reset by email (you run
+`setPassword` for a forgotten one), 2FA and OAuth. If you ever want those, move
+to Better Auth through the seam above.
 
 ## Deliberately left for later
 

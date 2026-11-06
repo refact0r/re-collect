@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { PUBLIC_CONVEX_URL } from '$app/env/public';
-	import { setupConvex, useConvexClient, useQuery } from 'convex-svelte';
+	import { setupConvex, useQuery } from 'convex-svelte';
 	import { onDestroy } from 'svelte';
 	import {
 		setItemsContext,
@@ -48,24 +48,6 @@
 	$effect(() => {
 		if (collections.error?.message.includes('Unauthorized')) goto('/login');
 	});
-
-	const client = useConvexClient();
-	let tokenCopied = $state(false);
-
-	// The browser extension gets its own session, so it never needs the password
-	async function copyExtensionToken() {
-		const token = await client.action(api.sessions.createExtensionToken, {
-			token: data.writeToken
-		});
-		try {
-			await navigator.clipboard.writeText(token);
-			tokenCopied = true;
-			setTimeout(() => (tokenCopied = false), 2000);
-		} catch {
-			// Clipboard blocked: show it for manual copying instead
-			prompt('Copy your extension token:', token);
-		}
-	}
 
 	const editItemId = $derived(page.url.searchParams.get('item') as Id<'items'> | null);
 
@@ -149,12 +131,8 @@
 			/>
 		</div>
 		<div class="nav-actions">
-			<button class="nav-link" onclick={copyExtensionToken}>
-				{tokenCopied ? 'copied' : 'extension token'}
-			</button>
-			<form method="POST" action="/logout">
-				<button class="nav-link">logout</button>
-			</form>
+			<a href="/account" class="nav-link" class:active={page.url.pathname === '/account'}>account</a
+			>
 		</div>
 	</nav>
 </header>

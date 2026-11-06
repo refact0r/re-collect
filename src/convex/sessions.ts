@@ -1,6 +1,13 @@
 import { ConvexError, v } from 'convex/values';
-import { action, internalMutation, internalQuery, mutation } from './_generated/server';
+import {
+	action,
+	internalMutation,
+	internalQuery,
+	mutation,
+	type ActionCtx
+} from './_generated/server';
 import { internal } from './_generated/api';
+import type { Doc } from './_generated/dataModel';
 import {
 	hashPassword,
 	hashToken,
@@ -15,25 +22,39 @@ const LOCKOUT_MS = 15 * 60 * 1000;
 
 const WRONG_LOGIN = 'wrong username or password';
 
+function checkNewPassword(password: string) {
+	if (password.length < 8) throw new ConvexError('passwords need 8+ characters');
+}
+
+// Throws unless `password` is the user's, counting failures toward the lockout
+async function checkPassword(
+	ctx: ActionCtx,
+	user: Doc<'users'>,
+	password: string,
+	wrongMessage: string
+) {
+	const now = Date.now();
+	if (
+		(user.failedLogins ?? 0) >= MAX_FAILED_LOGINS &&
+		now - (user.lastFailedLogin ?? 0) < LOCKOUT_MS
+	) {
+		throw new ConvexError('too many attempts, try again later');
+	}
+	if (!(await verifyPassword(password, user.passwordHash))) {
+		await ctx.runMutation(internal.sessions.recordFailedLogin, { userId: user._id, now });
+		throw new ConvexError(wrongMessage);
+	}
+}
+
 // Each returns a new session token for the SvelteKit server to keep in a cookie
 export const login = action({
 	args: { username: v.string(), password: v.string() },
 	handler: async (ctx, args): Promise<string> => {
-		const now = Date.now();
 		const user = await ctx.runQuery(internal.sessions.getUserByUsername, {
 			username: normalizeUsername(args.username)
 		});
 		if (!user) throw new ConvexError(WRONG_LOGIN);
-		if (
-			(user.failedLogins ?? 0) >= MAX_FAILED_LOGINS &&
-			now - (user.lastFailedLogin ?? 0) < LOCKOUT_MS
-		) {
-			throw new ConvexError('too many attempts, try again later');
-		}
-		if (!(await verifyPassword(args.password, user.passwordHash))) {
-			await ctx.runMutation(internal.sessions.recordFailedLogin, { userId: user._id, now });
-			throw new ConvexError(WRONG_LOGIN);
-		}
+		await checkPassword(ctx, user, args.password, WRONG_LOGIN);
 
 		const token = randomToken();
 		await ctx.runMutation(internal.sessions.startSession, {
@@ -51,7 +72,7 @@ export const signup = action({
 		if (!/^[a-z0-9_-]{2,32}$/.test(username)) {
 			throw new ConvexError('usernames are 2–32 letters, numbers, - or _');
 		}
-		if (args.password.length < 8) throw new ConvexError('passwords need 8+ characters');
+		checkNewPassword(args.password);
 
 		const token = randomToken();
 		await ctx.runMutation(internal.sessions.createAccount, {
@@ -77,6 +98,23 @@ export const createExtensionToken = action({
 	}
 });
 
+// Other sessions (other browsers, the extension) stay signed in
+export const changePassword = action({
+	args: { token: v.string(), currentPassword: v.string(), newPassword: v.string() },
+	handler: async (ctx, args) => {
+		checkNewPassword(args.newPassword);
+		const user = await ctx.runQuery(internal.sessions.getUserBySession, {
+			tokenHash: await hashToken(args.token)
+		});
+		if (!user) throw new ConvexError('Unauthorized');
+		await checkPassword(ctx, user, args.currentPassword, 'current password is wrong');
+		await ctx.runMutation(internal.users.setPasswordHash, {
+			username: user.username,
+			passwordHash: await hashPassword(args.newPassword)
+		});
+	}
+});
+
 // Holding the token is the authority to end its session
 export const logout = mutation({
 	args: { token: v.string() },
@@ -87,6 +125,17 @@ export const logout = mutation({
 			.withIndex('by_tokenHash', (q) => q.eq('tokenHash', tokenHash))
 			.unique();
 		if (session) await ctx.db.delete(session._id);
+	}
+});
+
+export const getUserBySession = internalQuery({
+	args: { tokenHash: v.string() },
+	handler: async (ctx, args) => {
+		const session = await ctx.db
+			.query('sessions')
+			.withIndex('by_tokenHash', (q) => q.eq('tokenHash', args.tokenHash))
+			.unique();
+		return session && (await ctx.db.get(session.userId));
 	}
 });
 

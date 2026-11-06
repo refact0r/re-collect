@@ -38,9 +38,12 @@
 			class:active={page.url.pathname === '/atlas'}
 			onclick={() => (mobileOpen = false)}>atlas</a
 		>
-		<form method="POST" action="/logout" class="logout-form">
-			<button class="nav-link" onclick={() => (mobileOpen = false)}>logout</button>
-		</form>
+		<a
+			href="/account"
+			class="nav-link"
+			class:active={page.url.pathname === '/account'}
+			onclick={() => (mobileOpen = false)}>account</a
+		>
 	</nav>
 	<nav class="collections">
 		{#if collapsed}
@@ -126,15 +129,6 @@
 
 	.main-nav {
 		display: none;
-	}
-
-	.logout-form {
-		display: contents;
-	}
-
-	.logout-form button {
-		width: 100%;
-		justify-content: flex-start;
 	}
 
 	@media (max-width: 768px) {
