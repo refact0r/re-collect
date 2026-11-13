@@ -5,6 +5,7 @@ import sharp from 'sharp';
 import { action, type ActionCtx } from './_generated/server';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import { taggingModeValidator } from './schema';
 
 type Image = Awaited<ReturnType<typeof fetchImage>>;
 
@@ -91,6 +92,7 @@ export const addPageWithImage = action({
 		ogDescription: v.optional(v.string()),
 		imageUrl: v.string(),
 		collections: v.optional(v.array(v.id('collections'))),
+		taggingMode: v.optional(taggingModeValidator),
 		token: v.string()
 	},
 	returns: v.id('items'),

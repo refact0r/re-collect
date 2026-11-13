@@ -51,16 +51,18 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 // The popup hands saves off here so area selection can happen after it closes
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 	if (message.type !== 'savePage') return;
+	const { tabId, collectionId, capture, overrides } = message;
 	chrome.tabs
-		.get(message.tabId)
-		.then((tab) => run(tab, () => savePage(tab, message.collectionId, message.capture)));
+		.get(tabId)
+		.then((tab) => run(tab, () => savePage(tab, collectionId, capture, overrides)));
 	sendResponse();
 });
 
-// Resolves to a confirmation message, or null if the user cancelled
-async function savePage(tab, collectionId, capture) {
+// Resolves to a confirmation message, or null if the user cancelled.
+// `overrides` ({ taggingMode, linkImageMode }) replace the collection's defaults.
+async function savePage(tab, collectionId, capture, overrides = {}) {
 	if (capture === 'auto') {
-		await saveUrl({ url: tab.url, title: tab.title, collectionId });
+		await saveUrl({ url: tab.url, title: tab.title, collectionId, ...overrides });
 		return 'Page saved';
 	}
 
@@ -73,7 +75,8 @@ async function savePage(tab, collectionId, capture) {
 		title: tab.title,
 		ogDescription,
 		imageUrl,
-		collectionId
+		collectionId,
+		taggingMode: overrides.taggingMode
 	});
 	return 'Page saved with screenshot';
 }

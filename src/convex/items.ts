@@ -12,7 +12,12 @@ import { getOwned, userMutation, userQuery } from './lib/auth';
 import { buildSearchText } from './lib/searchText';
 import { enqueueScreenshot } from './screenshots';
 import { getPreferences } from './viewPreferences';
-import { sortModeValidator, collectionSortModeValidator } from './schema';
+import {
+	sortModeValidator,
+	collectionSortModeValidator,
+	taggingModeValidator,
+	linkImageModeValidator
+} from './schema';
 
 // Get a sortable title string from an item
 function getSortTitle(item: { title?: string; url?: string }): string {
@@ -37,7 +42,10 @@ export const add = userMutation({
 		imageKey: v.optional(v.string()),
 		imageWidth: v.optional(v.number()),
 		imageHeight: v.optional(v.number()),
-		collections: v.optional(v.array(v.id('collections')))
+		collections: v.optional(v.array(v.id('collections'))),
+		// Per-save overrides of the ingestion defaults below
+		taggingMode: v.optional(taggingModeValidator),
+		linkImageMode: v.optional(linkImageModeValidator)
 	},
 	handler: async (ctx, args) => {
 		const now = Date.now();
@@ -53,16 +61,17 @@ export const add = userMutation({
 			await ctx.db.delete(upload._id);
 		}
 
-		// Ingestion prefs come from the first collection at add time (or the home
-		// defaults for collection-less adds) and are snapshotted onto the item;
-		// later membership changes don't re-apply them.
+		// Ingestion prefs come from the caller's overrides, else the first
+		// collection at add time (or the home defaults for collection-less adds),
+		// and are snapshotted onto the item; later membership changes don't
+		// re-apply them.
 		const defaultsSource = ownedCollections[0] ?? (await getPreferences(ctx, 'home'));
 		// 'text' tagging only applies to URL items; images in a text-mode
 		// collection fall back to visual tagging
-		const rawTaggingMode = defaultsSource?.taggingMode;
+		const rawTaggingMode = args.taggingMode ?? defaultsSource?.taggingMode;
 		const taggingMode =
 			args.type === 'image' && rawTaggingMode === 'text' ? 'visual' : rawTaggingMode;
-		const linkImageMode = defaultsSource?.linkImageMode;
+		const linkImageMode = args.linkImageMode ?? defaultsSource?.linkImageMode;
 		const wantsTextTagging = args.type === 'url' && !!args.url && taggingMode === 'text';
 		// URL items may arrive with their image already captured (the browser
 		// extension's screenshot), which then stands in for the worker's

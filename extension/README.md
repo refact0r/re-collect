@@ -2,15 +2,17 @@
 
 Save pages, links and images to re-collect from the browser. Plain JS Manifest V3, no build step.
 
-- **Toolbar popup**: saves the current tab, with an optional collection and a screenshot mode.
+- **Toolbar popup**: saves the current tab. You can pick a collection, the image source and the tagging mode for that save.
 - **Context menu**: a "Save to …" submenu with Page (in each screenshot mode), Link and Image. It saves to the collection last picked in the popup (or uncollected), and its title shows the target.
 - A badge on the toolbar icon and a toast in the page confirm success or failure.
 
-Page saves have three screenshot modes:
+Page saves can take their image from:
 
-- **Auto** (the default): the backend's screenshot worker captures the page, as for any URL item.
+- **re-collect's screenshot worker**, like any URL item: by default with the collection's image setting, or forced to a screenshot or the og image.
 - **Visible area**: the extension captures what's on screen.
 - **Selected area**: drag out a region on the page (Esc cancels) and the extension captures just that.
+
+The popup's tagging picker can likewise override the collection's tagging mode (visual, text or none) for that save. The "Default" options show what the selected collection would use. Context-menu saves always use the collection's defaults.
 
 Captures are taken at the screen's pixel density and saved as WebP. `imageImport.addPageWithImage` stores the image in R2 and creates a URL item that uses it in place of the worker's screenshot, so it's tagged right away. The page's og:description is read from the page.
 

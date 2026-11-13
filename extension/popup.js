@@ -1,7 +1,14 @@
-import { getLastCollection, getSettings, listCollections, setLastCollection } from './api.js';
+import {
+	getHomePreferences,
+	getLastCollection,
+	getSettings,
+	listCollections,
+	setLastCollection
+} from './api.js';
 
 const select = document.getElementById('collection');
-const capture = document.getElementById('capture');
+const image = document.getElementById('image');
+const tagging = document.getElementById('tagging');
 const saveButton = document.getElementById('save');
 const status = document.getElementById('status');
 
@@ -20,28 +27,48 @@ if (!(await getSettings()).convexUrl) {
 	loadCollections();
 }
 
+let collections = [];
+let home = null;
+
 async function loadCollections() {
 	try {
-		const [collections, last] = await Promise.all([listCollections(), getLastCollection()]);
+		const last = await getLastCollection();
+		[collections, home] = await Promise.all([listCollections(), getHomePreferences()]);
 		select.append(...collections.map((c) => new Option(c.name, c._id)));
 		if (collections.some((c) => c._id === last.id)) select.value = last.id;
+		showDefaults();
 	} catch (error) {
 		status.textContent = `Couldn't load collections: ${error.message}`;
 		status.classList.add('error');
 	}
 }
 
+// The "Default" options name what the selected collection (or home) would use
+function showDefaults() {
+	const source = collections.find((c) => c._id === select.value) ?? home;
+	document.getElementById('default-image').text =
+		`Default image (${source?.linkImageMode === 'og' ? 'og image' : 'screenshot'})`;
+	document.getElementById('default-tagging').text =
+		`Default tagging (${source?.taggingMode ?? 'visual'})`;
+}
+select.onchange = showDefaults;
+
 // The background worker does the save (and any area selection, which needs
 // the popup out of the way) and reports back with a toast in the page
 saveButton.onclick = async () => {
 	const collectionId = select.value;
 	const name = collectionId ? select.selectedOptions[0].text : '';
+	const capture = ['visible', 'area'].includes(image.value) ? image.value : 'auto';
 	await setLastCollection({ id: collectionId, name });
 	await chrome.runtime.sendMessage({
 		type: 'savePage',
 		tabId: tab.id,
 		collectionId,
-		capture: capture.value
+		capture,
+		overrides: {
+			taggingMode: tagging.value || undefined,
+			linkImageMode: capture === 'auto' ? image.value || undefined : undefined
+		}
 	});
 	window.close();
 };

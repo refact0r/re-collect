@@ -51,16 +51,24 @@ export function listCollections() {
 	return call('query', 'collections:listWithCounts');
 }
 
+// Ingestion defaults for uncollected saves
+export function getHomePreferences() {
+	return call('query', 'viewPreferences:get', { key: 'home' });
+}
+
 function collectionsArg(collectionId) {
 	return collectionId ? [collectionId] : undefined;
 }
 
-export function saveUrl({ url, title, collectionId }) {
+// taggingMode / linkImageMode override the collection's defaults when set
+export function saveUrl({ url, title, collectionId, taggingMode, linkImageMode }) {
 	return call('mutation', 'items:add', {
 		type: 'url',
 		url,
 		title: title || undefined,
-		collections: collectionsArg(collectionId)
+		collections: collectionsArg(collectionId),
+		taggingMode,
+		linkImageMode
 	});
 }
 
@@ -75,12 +83,20 @@ export function saveImage({ imageUrl, pageUrl, collectionId }) {
 }
 
 // Saves a page with an extension-captured screenshot (data: URL) instead of the worker's
-export function savePageWithImage({ url, title, ogDescription, imageUrl, collectionId }) {
+export function savePageWithImage({
+	url,
+	title,
+	ogDescription,
+	imageUrl,
+	collectionId,
+	taggingMode
+}) {
 	return call('action', 'imageImport:addPageWithImage', {
 		url,
 		title: title || undefined,
 		ogDescription: ogDescription || undefined,
 		imageUrl,
-		collections: collectionsArg(collectionId)
+		collections: collectionsArg(collectionId),
+		taggingMode
 	});
 }

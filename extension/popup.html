@@ -31,10 +31,22 @@
 		<select id="collection" aria-label="Collection">
 			<option value="">Uncollected</option>
 		</select>
-		<select id="capture" aria-label="Screenshot">
-			<option value="auto">Auto screenshot</option>
-			<option value="visible">Screenshot visible area</option>
-			<option value="area">Screenshot selected area…</option>
+		<select id="image" aria-label="Image">
+			<optgroup label="Captured by re-collect">
+				<option value="" id="default-image">Default image (screenshot)</option>
+				<option value="screenshot">Screenshot</option>
+				<option value="og">og image</option>
+			</optgroup>
+			<optgroup label="Captured here">
+				<option value="visible">Screenshot visible area</option>
+				<option value="area">Screenshot selected area…</option>
+			</optgroup>
+		</select>
+		<select id="tagging" aria-label="Tagging">
+			<option value="" id="default-tagging">Default tagging (visual)</option>
+			<option value="visual">Visual tagging</option>
+			<option value="text">Text tagging</option>
+			<option value="none">No tagging</option>
 		</select>
 		<button id="save" disabled>Save page</button>
 		<p id="status" class="status"></p>
