@@ -16,6 +16,7 @@ Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads
 
 ## Development Guidelines
 
+- You OWN the codebase. Do not be afraid to change things.
 - Do not excessively preserve backward compatibility, remove obsolete paths and unused code.
 - Choose the simplest implementation that works, avoid overengineering.
 - Write readable, clean, beautiful code.
