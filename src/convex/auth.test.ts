@@ -106,15 +106,16 @@ describe('uploads', () => {
 			t.mutation(api.items.add, { type: 'image', imageKey: 'a-key', token: b.token })
 		).rejects.toThrow('Upload not found');
 		await expect(
-			t.mutation(api.items.add, {
-				type: 'url',
-				url: 'https://example.com',
-				imageKey: 'a-key',
-				token: a.token
-			})
+			t.mutation(api.items.add, { type: 'text', content: 'hi', imageKey: 'a-key', token: a.token })
 		).rejects.toThrow('Upload not found');
 
-		await t.mutation(api.items.add, { type: 'image', imageKey: 'a-key', token: a.token });
+		// URL items may carry their own screenshot (the browser extension's)
+		await t.mutation(api.items.add, {
+			type: 'url',
+			url: 'https://example.com',
+			imageKey: 'a-key',
+			token: a.token
+		});
 		await expect(
 			t.mutation(api.items.add, { type: 'image', imageKey: 'a-key', token: a.token })
 		).rejects.toThrow('Upload not found');

@@ -2,10 +2,11 @@
 
 import { v } from 'convex/values';
 import sharp from 'sharp';
-import { action } from './_generated/server';
+import { action, type ActionCtx } from './_generated/server';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { r2 } from './r2';
+
+type Image = Awaited<ReturnType<typeof fetchImage>>;
 
 // Accepts http(s) and data: URLs
 async function fetchImage(imageUrl: string, pageUrl?: string) {
@@ -20,6 +21,20 @@ async function fetchImage(imageUrl: string, pageUrl?: string) {
 	return { data, contentType, width: autoOrient.width, height: autoOrient.height };
 }
 
+// Same path as the app's uploads, so the key gets the caller's `uploads` row
+// that items.add requires
+async function upload(ctx: ActionCtx, image: Image, token: string) {
+	const { url, key } = await ctx.runMutation(api.r2.generateUploadUrl, { token });
+	const response = await fetch(url, {
+		method: 'PUT',
+		headers: { 'Content-Type': image.contentType },
+		body: new Uint8Array(image.data)
+	});
+	if (!response.ok) throw new Error(`Image upload failed: ${response.status}`);
+	await ctx.runMutation(api.r2.syncMetadata, { key, token });
+	return key;
+}
+
 // Saves a remote image (e.g. from the browser extension) as an image item.
 // If the image can't be fetched, falls back to a URL item for its page.
 export const addFromUrl = action({
@@ -27,7 +42,7 @@ export const addFromUrl = action({
 		imageUrl: v.string(),
 		pageUrl: v.optional(v.string()),
 		collections: v.optional(v.array(v.id('collections'))),
-		token: v.optional(v.string())
+		token: v.string()
 	},
 	returns: v.object({
 		itemId: v.id('items'),
@@ -53,7 +68,7 @@ export const addFromUrl = action({
 			return { itemId, type: 'url' };
 		}
 
-		const imageKey = await r2.store(ctx, image.data, { type: image.contentType });
+		const imageKey = await upload(ctx, image, token);
 		const itemId = await ctx.runMutation(api.items.add, {
 			type: 'image',
 			url: pageUrl,
@@ -76,7 +91,7 @@ export const addPageWithImage = action({
 		ogDescription: v.optional(v.string()),
 		imageUrl: v.string(),
 		collections: v.optional(v.array(v.id('collections'))),
-		token: v.optional(v.string())
+		token: v.string()
 	},
 	returns: v.id('items'),
 	handler: async (ctx, args): Promise<Id<'items'>> => {
@@ -84,7 +99,7 @@ export const addPageWithImage = action({
 		await ctx.runQuery(api.users.me, { token: args.token });
 
 		const image = await fetchImage(imageUrl);
-		const imageKey = await r2.store(ctx, image.data, { type: image.contentType });
+		const imageKey = await upload(ctx, image, args.token);
 		return await ctx.runMutation(api.items.add, {
 			type: 'url',
 			...rest,

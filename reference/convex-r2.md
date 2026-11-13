@@ -11,7 +11,7 @@ upstream examples lean on presigned GET URLs, which this app deliberately does
 - Convex env vars (see `reference/ops.md`): `R2_TOKEN`, `R2_ACCESS_KEY_ID`,
   `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT`, `R2_BUCKET`.
 
-## Uploads (image items)
+## Uploads
 
 Client-side flow in `ItemInput.svelte`, backed by two auth-gated mutations in
 `src/convex/r2.ts`:
@@ -27,11 +27,11 @@ Client-side flow in `ItemInput.svelte`, backed by two auth-gated mutations in
    so each object belongs to exactly one item (deleting the item deletes the
    object, which must never reach another user's image).
 
-Remote images from the browser extension skip the presigned PUT:
-`api.imageImport.addFromUrl` (a Node action) fetches the image server-side,
-stores it with `r2.store()` (UUID key, metadata synced) and creates the item.
-`api.imageImport.addPageWithImage` does the same for the extension's own
-screenshots (sent as a `data:` URL), attaching them to a URL item.
+Images from the browser extension take the same path, server-side:
+`api.imageImport.addFromUrl` (a Node action) fetches a remote image and
+`api.imageImport.addPageWithImage` decodes the extension's own screenshot (a
+`data:` URL). Each then runs steps 1–3 from the action and creates the item, an
+image item or a URL item with that screenshot in place of the worker's.
 
 The screenshot worker (`workers/screenshot`) writes to the same bucket
 directly via its R2 binding (keys under `screenshots/` and `og/`), bypassing

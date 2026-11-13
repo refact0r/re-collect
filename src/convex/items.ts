@@ -48,7 +48,7 @@ export const add = userMutation({
 		// Deleting an item deletes its R2 object, so a key must be the caller's own
 		// fresh upload; consuming it ties the object to exactly this item
 		if (args.imageKey) {
-			const upload = args.type === 'image' ? await getOwnUpload(ctx, args.imageKey) : null;
+			const upload = args.type !== 'text' ? await getOwnUpload(ctx, args.imageKey) : null;
 			if (!upload) throw new Error('Upload not found');
 			await ctx.db.delete(upload._id);
 		}
