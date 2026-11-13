@@ -44,7 +44,20 @@ const FORMAT_WORD = /\s+(variable|vf)\b/gi;
 // and font-shop kits often report nothing usable
 const JUNK = /copyright|trademark|all rights|reserved|\.(com|net|org)\b/i;
 
+// CSS keywords for the visitor's system font, which has no name of its own
+const KEYWORD_NAMES: Record<string, string> = {
+	'system-ui': 'System UI',
+	'-apple-system': 'System UI',
+	blinkmacsystemfont: 'System UI',
+	'ui-sans-serif': 'UI Sans-serif',
+	'ui-serif': 'UI Serif',
+	'ui-monospace': 'UI Monospace',
+	'ui-rounded': 'UI Rounded'
+};
+
 function cleanName(raw: string): string | undefined {
+	const keyword = KEYWORD_NAMES[raw.trim().toLowerCase()];
+	if (keyword) return keyword;
 	let name = raw.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
 	// Split run-together CamelCase ("HelveticaNeue"), but only when the name has
 	// no spaces at all, so "JetBrains Mono" and "RoundHog Medium" stay intact

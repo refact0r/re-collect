@@ -7,7 +7,7 @@ The idea: the screenshot worker already loads every saved page in headless Chrom
 - **Worker** (`workers/screenshot/src/fonts.ts`, `extractFonts.js`): on screenshot captures only, after the screenshot and before the browser closes.
   - Reads the first declared `font-family` of every text-owning element in the first three screens, weighted by characters × font size.
   - Keeps up to 5 families with ≥3% share, plus the family of the largest text (usually the display face, even when it's a short headline).
-  - Skips generic families, framework `Fallback`/`Placeholder` faces and icon fonts.
+  - Skips bare generic families (`sans-serif`, `serif`, `monospace`: what unstyled text falls back to), framework `Fallback`/`Placeholder` faces and icon fonts. The system-font keywords (`system-ui`, `-apple-system`, `ui-monospace`, …) are kept and shown as "System UI", "UI Monospace" and so on, so sites set in the system font are findable too.
   - Then asks Chromium over CDP (`CSS.getPlatformFontsForNode`) for the font file's internal name. System fonts have none, and some font-shop kits report an empty one.
   - Best effort with an 8 s cap: it never fails a capture. The worker also pins `prefers-color-scheme: light`.
   - The response gains `fonts: { family, internalName? }[]`.

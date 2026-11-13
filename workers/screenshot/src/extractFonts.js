@@ -12,8 +12,6 @@ export async function extractFonts() {
 	const MAX_ELEMENTS = 4000;
 	const MAX_FAMILIES = 5;
 	const MIN_SHARE = 0.03;
-	const GENERIC =
-		/^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-sans-serif|ui-serif|ui-monospace|ui-rounded|-apple-system|blinkmacsystemfont|emoji|math|fangsong|inherit|initial)$/i;
 	// Whole-word "icon(s)" and known icon-font names, so text faces like
 	// "Faculty Glyphic" or "Silicon" stay
 	const ICON_FONT =
@@ -21,6 +19,10 @@ export async function extractFonts() {
 
 	// Until webfonts load, Chromium reports the fallback it rendered instead
 	await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1000))]);
+
+	// Bare generics are what unstyled text (cookie banners, defaults) falls back
+	// to. The system-ui/ui-* keywords stay: a page set in the system font chose it.
+	const GENERIC = /^(serif|sans-serif|monospace|cursive|fantasy|emoji|math|fangsong)$/i;
 
 	// First declared family, skipping framework metric fallbacks (next/font
 	// "X Fallback", Framer "X Placeholder")

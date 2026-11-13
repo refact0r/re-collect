@@ -48,6 +48,12 @@ describe('fontDisplayName', () => {
 		expect(fontDisplayName(font('Inter Display', 'Inter Variable Display'))).toBe('Inter Display');
 	});
 
+	it('labels CSS system-font keywords readably', () => {
+		expect(fontDisplayName(font('ui-monospace'))).toBe('UI Monospace');
+		expect(fontDisplayName(font('-apple-system'))).toBe('System UI');
+		expect(fontQuery(font('system-ui'))).toBe('fontsystemui');
+	});
+
 	it('keeps numbers that are part of the family name', () => {
 		expect(fontDisplayName(font('Source Sans 3', 'Source Sans 3 ExtraLight'))).toBe(
 			'Source Sans 3'
