@@ -1,0 +1,640 @@
+
+### https://typesafe.ai/  (load 11819ms, extract 72ms, scanned 316)
+roles    {"heading":"Die Grotesk C Medium","body":"LisaTerminal Paper 2X3Y Medium","ui":"sans-serif","mono":"JetBrains Mono"}
+fonts    LisaTerminal Paper 2X3Y Medium 40% [500] | sans-serif(sys) 21% [400] | Die Grotesk C Medium 20% [500] | JetBrains Mono 10% [300] | Die Grotesk C Regular 6% [400] | monospace(sys) 3% [400]
+truth    {"0":"LisaTerminal Paper 2X3Y*(27)","1":"Helvetica(106)","2":"Die Grotesk C Medium*(11)","3":"JetBrains Mono Light*(108)","4":"Die Grotesk C*(66)","5":""}
+sources  Framer-hosted,Google Fonts | files 4w6Hg5DeDzuWT6PSthKEwbacV0g.woff2, V2AZqQSDXyGgvnJfcbuPd1WaW0.woff2, tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8lqxTOlOV.woff2, AjH8uNDZvXKC9xfhOZo8jIJKVss.woff2, GrgcKwrN6d3Uz8EwcLHZxwEfC4.woff2  
+type     display 150/0.8 w500 ls0 capitalize Die Grotesk C Medium || h1 150/0.8 w500 ls0 capitalize Die Grotesk C Medium || h2 64/0.9 w500 ls0 capitalize Die Grotesk C Medium || body 18/1 w500 ls0.01 LisaTerminal Paper 2X3Y Medium || small 10/1.2 w300 ls0.05 capitalize JetBrains Mono
+sizes    18:34 12:14 14:11 150:10 10:10 20:8 17:6 16:5 64:2 36:2
+bg       #fefefe:90 #161616:6 #dedede:3 #1e1e1e:0 #ffffff:0 media 0 canvas 0 dark false theme-color null scheme null/normal
+text     #1e1e1e:62 #ffffff:26 #dedede:5 #f386a1:4 | accent #f386a1:100
+vars     2 total, 0 color  | font {}
+dark     rules 0, probe changed false
+layout   container 1240:57 1004:27 1024:8 | radii  sharp 1 pill 0 (n=51) | spacing 2,10,3,4,5,1 div4 0.22 div8 0.09 | grid 0 flex 171
+shadows  rgba(0, 0, 0, 0.25) 0px 4px 4px 0px || rgba(0, 0, 0, 0.533) 0px 8px 24px 0px
+motion   durations  | easing  | anim 0 running 14 kf 15 rm 0
+tech     Framer, React (gen: Framer cc6f8b6) | sheets 16/0 blocked | cmp 0.07 | iconRuns 0
+
+### https://zzz-zuji.zocomputer.io/  (load 8420ms, extract 65ms, scanned 27)
+roles    {"heading":"EB Garamond","body":null,"ui":null,"mono":"DM Mono"}
+fonts    DM Mono 93% [400,500] | EB Garamond 7% [400]
+truth    {"0":"DM Mono*(8)","1":"EB Garamond*(27)"}
+sources  Google Fonts | files  | gf DM Mono,EB Garamond 
+type     display 103.68/1.04 w400 ls-0.045 EB Garamond || h1 103.68/1.04 w400 ls-0.045 EB Garamond || h2 - || body - || small 13/normal w400 ls0 DM Mono
+sizes    14:47 22:17 13:12 16:10 103.68:7 15:7
+bg       #fbfaf6:95 media 0.05 canvas 0 dark false theme-color null scheme null/normal
+text     #373940:38 #33353b:18 #474950:11 #3f4148:9 | accent 
+vars     9 total, 9 color --ink=#25262b --muted=#61636b --line=#3e444b/0.16 --paper=#fbfaf6 --cyan=#b7dfeb --gold=#f2e8ca | font {}
+dark     rules 0, probe changed false
+layout   container  | radii 34:100 sharp 0 pill 0.8 (n=5) | spacing 28,14,12,24,86,43 div4 0.45 div8 0.14 | grid 2 flex 9
+shadows  rgba(0, 0, 0, 0.12) 0px 1px 1px 0px || rgba(255, 255, 255, 0.13) 0px 1px 0px 0px inset, rgba(0, 0,  || rgba(255, 255, 255, 0.9) 0px 1px 0px 0px inset, rgba(0, 0, 0
+motion   durations 150:100 | easing ease | anim 1 running 1 kf 1 rm 1
+tech       | sheets 2/1 blocked | cmp 0 | iconRuns 0
+
+### https://www.youtube.com/watch?v=oUaOucZRlmE  (load 8755ms, extract 111ms, scanned 463)
+roles    {"heading":"Roboto","body":"Roboto","ui":"Roboto","mono":null}
+fonts    Roboto 100% [400,500,700]
+truth    {"0":"Roboto*(34)"}
+sources  Google Fonts | files  | gf Roboto,YouTube Sans 
+type     display 28/1.36 w700 ls0 Roboto || h1 - || h2 - || body 14/1.43 w500 ls0 Roboto || small 12/1.5 w400 ls0 Roboto
+sizes    14:61 12:20 20:8 16:6 28:5 18:1
+bg       #ffffff:55 #0f0f0f:43 #000000:2 #f8f8f8:0 media 0 canvas 0 dark false theme-color rgba(255, 255, 255, 0.98) scheme null/normal
+text     #0f0f0f:52 #131313:16 #606060:16 #ffffff:14 | accent 
+vars     1274 total, 613 color --td176b92ada598f8f=#7d81fc --td851cd75a8793667=#26288c --tc58f4bf5a9869b3e=#1d1f71 --t3a480c2f814ef19c=#fbfee6 --t77e217518bcd986b=#8abb03 --tc5e0863356bf5767=#5c7e00 | font {"--yt-sys-typography-typestack--action-l-default--font-names":"Roboto,Arial,sans-serif","--yt-sys-typography-typestack--action-l-heavy--font-names":"Roboto,Ari
+dark     rules 0, probe changed false
+layout   container  | radii 4:67 12:33 sharp 0.08 pill 0.56 (n=25) | spacing 4,8,16,1,2,12 div4 0.75 div8 0.43 | grid 0 flex 139
+shadows  rgb(238, 238, 238) 0px 1px 2px 0px inset || rgba(0, 0, 0, 0.2) 0px 0px 0px 1px
+motion   durations 300:67 280:33 | easing cubic-bezier(0.05, 0, 0, 1) ; cubic-bezier(0.4, 0, 0.2, 1) | anim 0 running 0 kf 272 rm 73
+tech     Lottie  | sheets 16/1 blocked | cmp 0 | iconRuns 0
+
+### https://www.sophielwang.com/blog/jpeg  (load 20288ms, extract 120ms, scanned 723)
+roles    {"heading":"warnock-pro","body":"warnock-pro","ui":"warnock-pro","mono":"ui-monospace"}
+fonts    warnock-pro 97% [300,400,500,600] | KaTeX Math 2% [400] | ui-monospace(sys) 1% [300] | KaTeX Caligraphic 0% [400] | KaTeX AMS 0% [400]
+truth    {"0":"Warnock Pro Light*(4)","1":"KaTeX_Math*(1)","2":"Menlo(5)","3":"KaTeX_Caligraphic*(1)","4":"KaTeX_AMS*(1)"}
+sources  Adobe Fonts,self-hosted | files l, KaTeX_Math-Italic.f28c23ac.woff2, KaTeX_AMS-Regular.a79f1c31.woff2, KaTeX_Caligraphic-Regular.55fac258.woff2, KaTeX_Size3-Regular.b4230e7e.woff2  
+type     display 28/1.25 w500 ls0 warnock-pro || h1 28/1.25 w500 ls0 warnock-pro || h2 - || body 16/1.5 w300 ls0 warnock-pro || small 11/1.5 w300 ls0 warnock-pro
+sizes    16:79 19.36:13 12:2 11:2 14:1 13.6:1 13.7456:1 13.552:1 28:1 1:0
+bg       #ffffff:96 media 0 canvas 0.04 dark false theme-color null scheme null/light
+text     #000000:99 #787168:1 #ce7b9a:0 #b0b273:0 | accent #ce7b9a:100
+vars     162 total, 94 color --color-red-50=#fef2f2 --color-red-100=#ffe2e2 --color-red-200=#ffc9c9 --color-red-400=#ff6467 --color-red-500=#fb2c36 --color-red-600=#e7000b | font {"--font-sans":"ui-sans-serif,system-ui,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\"","--font-mono":"ui-monospac
+dark     rules 0, probe changed false
+layout   container 736:60 768:27 704:13 | radii  sharp 1 pill 0 (n=20) | spacing 8,2,10,16,4,12 div4 0.64 div8 0.45 | grid 2 flex 20
+shadows  rgb(255, 255, 255) 1px 1px 0px 0px inset, rgba(0, 0, 0, 0.25 || rgba(0, 0, 0, 0.25) 1px 1px 0px 0px inset, rgb(255, 255, 255
+motion   durations 150:100 | easing cubic-bezier(0.4, 0, 0.2, 1) | anim 0 running 0 kf 3 rm 2
+tech     Next.js, Tailwind, React, Three.js  | sheets 3/0 blocked | cmp 0 | iconRuns 0
+
+### https://www.edoardolunardi.dev/  (load 13404ms, extract 28ms, scanned 1053)
+roles    {"heading":"Inter","body":"Inter","ui":"Inter","mono":"Ubuntu Mono"}
+fonts    Inter 92% [400,600] | Ubuntu Mono 8% [400]
+truth    {"0":"Inter*(15)","1":"Ubuntu Mono*(1)"}
+sources  self-hosted | files 07c7676b89ed2778-s.p.45535valc9rzk.woff2, ab9a37342091cc9d-s.p.3xg3lh-o8ilz9.woff2  
+type     display 13.7388/1.3 w600 ls0 Inter || h1 13.7388/1.3 w400 ls0 Inter || h2 13.7388/1.3 w400 ls0 Ubuntu Mono || body 13.7388/1.3 w400 ls0 Inter || small -
+sizes    13.7388:100
+bg       #232323:87 #ffffff:0 media 0.13 canvas 0 dark true theme-color null scheme null/normal
+text     #ffffff:100 | accent 
+vars     80 total, 19 color --color-background=#232323 --color-foreground=#ffffff --color-black=#000000 --color-error=#ff5f57 --color-crash-cyan=#54fcfc --color-crash-light=#d4d4d4 | font {"--font-sans":"\"Inter\", \"Inter Fallback\", ui-sans-serif, system-ui, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\"","--font-mono":"\"Ubuntu
+dark     rules 0, probe changed false
+layout   container  | radii 2:57 4:43 sharp 0.36 pill 0 (n=11) | spacing 4,8,16,14 div4 0.97 div8 0.17 | grid 2 flex 65
+shadows  rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0
+motion   durations  | easing  | anim 6 running 7 kf 4 rm 1
+tech     Next.js, Tailwind, React, Lenis, Three.js  | sheets 2/0 blocked | cmp 0 | iconRuns 0
+
+### https://www.desktopgeneration.com/  (load 6252ms, extract 39ms, scanned 171)
+roles    {"heading":"Helvetica","body":"Helvetica","ui":null,"mono":null}
+fonts    Helvetica(sys) 100% [400,500,700,900]
+truth    {"0":"Helvetica(35)"}
+sources   | files   
+type     display 16/normal w700 ls-0.01 Helvetica || h1 - || h2 - || body 10/normal w700 ls-0.016 Helvetica || small -
+sizes    10:42 16:39 15:20
+bg       #ffffff:29 #000000:1 media 0.7 canvas 0 dark false theme-color #000000 scheme null/normal
+text     #000000:100 | accent 
+vars     5 total, 4 color --primarycolour=#000000 --darkprimarycolour=#5f5f5f --bgcolour=#fff7f7 --darkbgcolour=#ffe9ea | font {}
+dark     rules 0, probe changed false
+layout   container  | radii  sharp 1 pill 0 (n=17) | spacing 10,16,20,14,27,8 div4 0.37 div8 0.29 | grid 0 flex 13
+shadows  
+motion   durations 160:95 250:5 | easing ease-in ; ease-out | anim 0 running 0 kf 2 rm 0
+tech     React  | sheets 1/0 blocked | cmp 0 | iconRuns 0
+
+### https://www.daytona.io/dotfiles  (load 4748ms, extract 32ms, scanned 124)
+roles    {"heading":null,"body":"Inter","ui":null,"mono":"Berkeley Mono"}
+fonts    Berkeley Mono 84% [400] | Inter 16% [400]
+truth    {"0":"Berkeley Mono*(16)","1":"Inter*(135)"}
+sources  self-hosted | files BerkeleyMono-Regular.otf, Inter-Regular.ttf, Inter-Medium.ttf  
+type     display 48/1.2 w400 ls-0.04 Berkeley Mono || h1 48/1.2 w400 ls-0.04 Berkeley Mono || h2 32/1.2 w400 ls-0.04 Berkeley Mono || body 16/1.6 w400 ls-0.01 Inter || small 14/1.2 w400 ls-0.04 uppercase Berkeley Mono
+sizes    16:39 14:29 32:28 48:3 12:2
+bg       #0a0a0a:68 #252525:0 media 0.32 canvas 0 dark true theme-color null scheme null/normal
+text     #ffffff:63 #a2a2a2:37 | accent 
+vars     42 total, 32 color --background-primary=#0a0a0a --background-secondary=#161616 --content-neutral-primary=#ffffff --content-neutral-secondary=#a2a2a2 --content-neutral-negative=#161616 --content-neutral-on-brand=#ffffff | font {}
+dark     rules 0, probe changed false
+layout   container 1248:100 | radii 4:100 sharp 0.96 pill 0 (n=26) | spacing 48,16,20,40,4,8 div4 1 div8 0.77 | grid 1 flex 39
+shadows  
+motion   durations 600:100 | easing ease | anim 0 running 0 kf 4 rm 1
+tech     Astro, React (gen: Astro v4.5.7) | sheets 4/0 blocked | cmp 0 | iconRuns 0
+
+### https://www.area.tech/  (load 5180ms, extract 36ms, scanned 26)
+roles    {"heading":null,"body":"ui-sans-serif","ui":null,"mono":null}
+fonts    ui-sans-serif(sys) 100% [500]
+truth    {"0":".SF NS(44)"}
+sources   | files   
+type     display 11/1.36 w500 ls0.025 uppercase ui-sans-serif || h1 - || h2 - || body 11/1.36 w500 ls0.025 uppercase ui-sans-serif || small -
+sizes    11:100
+bg       #ffffff:19 media 0.81 canvas 0 dark false theme-color null scheme null/normal
+text     #8696a4:100 | accent 
+vars     24 total, 8 color --color-gray-100=#f3f4f6 --color-gray-300=#d1d5dc --color-gray-500=#6a7282 --color-gray-600=#4a5565 --color-gray-800=#1e2939 --color-gray-900=#101828 | font {"--font-sans":"ui-sans-serif,system-ui,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\"","--font-mono":"ui-monospac
+dark     rules 0, probe changed false
+layout   container 1376:100 | radii  sharp null pill null (n=0) | spacing 24,8,32,12,16,40 div4 1 div8 0.87 | grid 0 flex 14
+shadows  
+motion   durations 300:67 700:33 | easing cubic-bezier(0, 0, 0.2, 1) ; cubic-bezier(0.4, 0, 0.2, 1) | anim 0 running 0 kf 0 rm 0
+tech     Next.js, Tailwind, React  | sheets 1/0 blocked | cmp 0 | iconRuns 0
+
+### https://worksinprogress.co/issue/olivine-weathering  (load 7286ms, extract 44ms, scanned 110)
+roles    {"heading":"Editor-Regular","body":"Editor-Regular","ui":"Editor-Bold","mono":"GT America Mono Light"}
+fonts    Editor-Regular 77% [400] | GT America Mono Light 18% [400] | Editor-Bold 3% [400] | GT America Mono Bold 1% [400] | Editor-Italic 1% [400]
+truth    {"0":"*(174)","1":"GT America Mono*(8)","2":"*(11)","3":"GT America Mono*(11)","4":"*(12)"}
+sources  self-hosted | files 3B2802_1_0.Cmmc8Q0i.woff2, GT-America-Mono-Light.Cjwsqzxj.woff2, 3B2802_0_0.B8ED7aX2.woff2, GT-America-Mono-Bold.VfBU4SOo.woff2, 3B2802_2_0.DlW72lYj.woff2  
+type     display 48/1.3 w400 ls0 Editor-Bold || h1 48/1.3 w400 ls0 Editor-Bold || h2 32/1.25 w400 ls0 Editor-Regular || body 18/1.5 w400 ls0 Editor-Regular || small 14/1.29 w400 ls0 GT America Mono Light
+sizes    18:72 14:11 32:7 24:4 16:3 12:2 20:1 48:1
+bg       #fff7f4:13 #ffffff:5 #f4d06f:1 media 0.82 canvas 0 dark false theme-color null scheme null/normal
+text     #000000:100 #fff7f4:0 | accent #f4d06f:100
+vars     17 total, 8 color --color--science=#363b8f --color--science-alt=#d8d9f1 --color--economics=#e20a39 --color--economics-alt=#f8e6ea --color--culture=#cee0dc --color--culture-alt=#073429 | font {}
+dark     rules 0, probe changed false
+layout   container  | radii  sharp 1 pill 0 (n=18) | spacing 10,20,30,40,5,12 div4 0.37 div8 0.11 | grid 5 flex 32
+shadows  rgba(0, 0, 0, 0.1) -2px 5px 8px 0px
+motion   durations 150:79 250:13 500:3 300:3 | easing ease-in-out ; ease | anim 0 running 0 kf 10 rm 4
+tech     Astro, Tailwind, React  | sheets 3/0 blocked | cmp 0 | iconRuns 0
+
+### https://tonsky.me/blog/syntax-highlighting/  (load 7721ms, extract 31ms, scanned 34)
+roles    {"heading":"IBM Plex Sans","body":"IBM Plex Sans","ui":null,"mono":null}
+fonts    IBM Plex Sans 100% [400,600]
+truth    {"0":"IBM Plex Sans*(4)"}
+sources  self-hosted | files IBMPlexSans-Regular-Latin1.woff2, IBMPlexSans-SemiBold-Latin1.woff2, IBMPlexSans-Italic-Latin1.woff2, IBMPlexMono-Regular-Latin1.woff2, IBMPlexSans-Regular-Pi.woff2  
+type     display 44.7708/1.1 w600 ls0 IBM Plex Sans || h1 44.7708/1.1 w600 ls0 IBM Plex Sans || h2 - || body 17.9083/1.5 w400 ls0 IBM Plex Sans || small -
+sizes    17.9083:91 44.7708:7 30.4441:3
+bg       #fddb29:51 media 0.49 canvas 0 dark false theme-color #FDDB29 scheme null/normal
+text     #000000:100 | accent #fddb29:100
+vars     20 total, 5 color --gray-text=#000000/0.4 --gray-line=#000000/0.2 --gray-bg=#000000/0.06 --text=#000000 --bg=#fddb29 | font {"--font-size":"calc(calc(1rem * 12.5 / 16) * calc(1 / 0.698))","--font-smaller":"calc(calc(1rem * 12.5 / 16) * 11 / 12 * calc(1 / 0.698))","--font-small":"calc
+dark     rules 0, probe changed false
+layout   container 720:99 575:1 | radii  sharp null pill null (n=0) | spacing 13,50,25 div4 0 div8 0 | grid 0 flex 7
+shadows  
+motion   durations 100:100 | easing ease | anim 0 running 0 kf 4 rm 0
+tech       | sheets 2/0 blocked | cmp 0 | iconRuns 0
+
+### https://symposium.socratica.info/  (load 6053ms, extract 43ms, scanned 214)
+roles    {"heading":"FormaDJRDeck","body":"FormaDJRDeck","ui":"FormaDJRDeck","mono":null}
+fonts    FormaDJRDeck 89% [400,500,600,700] | Semack 11% [400]
+truth    {"0":"Forma DJR Deck*(5)","1":"Semack*(11)"}
+sources  self-hosted | files FormaDJRDeck-Regular.CHPQZGu2.woff2, FormaDJRDeck-Medium.k7tqA_zW.woff2, Semack-Regular.Bba1uX0b.woff2, FormaDJRDeck-Bold.CFd5y4I-.woff2, tiempos-headline-light.OnYOKLR3.woff2  
+type     display 86.4/normal w700 ls0 FormaDJRDeck || h1 - || h2 - || body 24/normal w400 ls0 FormaDJRDeck || small 19.2/normal w400 ls0 FormaDJRDeck
+sizes    24:49 19.2:16 54.4:10 44.8:7 29.52:6 30.4:4 32:4 86.4:1 72:1 22.4:1
+bg       #dfdfdf:38 #f1eee9:16 #fffcf3:4 #efefef:1 media 0.41 canvas 0 dark false theme-color #f1eee9 scheme null/normal
+text     #000000:81 #3e1212:11 #885900:7 #0284c7:1 | accent #885900:89 #0284c7:9 #06b5d3:1 #473403:1
+vars     1 total, 0 color  | font {}
+dark     rules 0, probe changed false
+layout   container 1172:36 1344:21 1340:18 | radii 7:50 8:25 10:25 sharp 0.64 pill 0 (n=11) | spacing 48,16,36,29,5,13 div4 0.76 div8 0.66 | grid 3 flex 21
+shadows  rgba(6, 152, 190, 0.8) 0px 2.688px 2.688px 0px || rgb(136, 89, 0) 0px 2.688px 2.688px 0px || rgba(0, 0, 0, 0.1) 0px 4px 6px 0px
+motion   durations 200:63 300:25 100:13 | easing ease-in-out ; linear ; ease-out | anim 5 running 8 kf 7 rm 0
+tech     Astro, React, Vue  | sheets 3/0 blocked | cmp 0 | iconRuns 0
+
+### https://stripe.dev/  (load 5117ms, extract 61ms, scanned 395)
+roles    {"heading":"sohne-var","body":"sohne-var","ui":"sohne-var","mono":"sohne-mono"}
+fonts    sohne-var 68% [300,500,700] | sohne-mono 32% [300]
+truth    {"0":"Copyright Klim Type Foundry*(21)","1":"Söhne Mono*(8)"}
+sources  self-hosted | files Sohne.woff2, SohneMono-Buch.woff2  
+type     display 143.75/0.84 w300 ls-0.07 sohne-var || h1 32/normal w700 ls0 sohne-var || h2 101.085/0.84 w300 ls-0.06 sohne-var || body 25.75/1.2 w300 ls-0.04 sohne-var || small 19.4932/1 w300 ls-0.03 sohne-var
+sizes    25.75:40 12:32 19.4932:8 14:8 38.0493:4 31.5124:4 32:1 24:1 143.75:1 101.085:1
+bg       #e8e8e8:86 media 0 canvas 0.14 dark false theme-color null scheme null/normal
+text     #1e1e1e:100 | accent 
+vars     21 total, 17 color --fontColorStatic=#1e1e1e --fontColor=#1e1e1e --fontInvertColor=#eaeaea --buttonColor=#1e1e1e/0.07 --borderColorLight=#1e1e1e/0.27 --inactiveColor=#8d8d8d | font {}
+dark     rules 0, probe changed false
+layout   container  | radii 3:86 2:7 20:7 sharp 0.27 pill 0.03 (n=63) | spacing 8,5,4,2,12,10 div4 0.54 div8 0.31 | grid 60 flex 98
+shadows  
+motion   durations 100:67 500:17 80:17 | easing ease ; ease-in-out | anim 7 running 21 kf 7 rm 2
+tech     Next.js, React  | sheets 4/0 blocked | cmp 0 | iconRuns 0
+
+### https://space.ong.ac/escaping-flatland  (load 4332ms, extract 50ms, scanned 122)
+roles    {"heading":"Schibsted Grotesk","body":"Source Sans Pro","ui":"Source Sans Pro","mono":null}
+fonts    Source Sans Pro 97% [400,600] | Schibsted Grotesk 3% [600,700]
+truth    {"0":"Source Sans Pro*(6)","1":"Schibsted Grotesk*(12)"}
+sources  Google Fonts | files  | gf IBM Plex Mono,Schibsted Grotesk,Source Sans Pro 
+type     display 28/normal w600 ls0 Schibsted Grotesk || h1 28/normal w700 ls0 Schibsted Grotesk || h2 16/normal w700 ls0 Schibsted Grotesk || body 16/1.6 w400 ls0 Source Sans Pro || small -
+sizes    16:98 22.4:1 28:1
+bg       #faf8f8:75 media 0.21 canvas 0.04 dark false theme-color null scheme null/light
+text     #4e4e4e:91 #2b2b2b:7 #284b63:1 #b8b8b8:0 | accent 
+vars     14 total, 9 color --light=#faf8f8 --lightgray=#e5e5e5 --gray=#b8b8b8 --darkgray=#4e4e4e --dark=#2b2b2b --secondary=#284b63 | font {}
+dark     rules 0, probe changed false
+layout   container 790:100 | radii 4:50 5:50 sharp 0.6 pill 0 (n=5) | spacing 16,32,8,5,96,30 div4 0.83 div8 0.82 | grid 3 flex 13
+shadows  
+motion   durations 200:34 300:26 500:24 350:16 | easing ease ; ease-in-out | anim 0 running 0 kf 1 rm 0
+tech      (gen: Quartz) | sheets 3/2 blocked | cmp 0 | iconRuns 0
+
+### https://softglossary.space/  (load 4473ms, extract 16ms, scanned 75)
+roles    {"heading":"New Edge","body":"New Edge","ui":null,"mono":"courier new"}
+fonts    New Edge 50% [100,400] | courier new(sys) 41% [400] | Favorit Variable 6% [400] | Saol 3% [100,400] | Favorit Mono Variable 0% [400]
+truth    {"0":"Saol Display*(5), New Edge Soft Power 4 Light Rounded*(5)","1":"Courier New(7097)","2":".*(9)","3":"Saol Display*(5)","4":".*(4)"}
+sources  self-hosted | files NewEdgeSoftPower4-LightRounded.otf, SaolDisplay-LightItalic.woff2, ABCFavoritVariableEdu.woff2, ABCFavoritMonoVariableEdu.woff2  
+type     display 113.4/0.99 w400 ls0 New Edge || h1 - || h2 - || body - || small -
+sizes    28.8:49 13.3333:41 17.82:6 48.6:1 113.4:1 19.44:1 36:1 14.4:0 16.2:0
+bg       #ffffff:69 #f7f7f7:31 media 0 canvas 0 dark false theme-color null scheme null/normal
+text     #000000:99 #ffffff:1 | accent 
+vars     2 total, 2 color --black=#000000 --white=#ffffff | font {}
+dark     rules 0, probe changed false
+layout   container 1354:100 | radii 10:100 sharp 0.4 pill 0 (n=5) | spacing 18,5,32,20,19,49 div4 0.26 div8 0.16 | grid 0 flex 17
+shadows  
+motion   durations 200:67 300:33 | easing ease-in | anim 0 running 1 kf 23 rm 0
+tech     Three.js  | sheets 1/0 blocked | cmp 0 | iconRuns 0
+
+### https://randoma11y.com/  (load 4276ms, extract 36ms, scanned 199)
+roles    {"heading":"-apple-system","body":"-apple-system","ui":"-apple-system","mono":"source-code-pro"}
+fonts    -apple-system(sys) 84% [400,500,600,700,800,900] | source-code-pro(sys) 16% [400]
+truth    {"0":".SF NS(10)","1":"Menlo(22)"}
+sources   | files   
+type     display 128/1 w900 ls0 -apple-system || h1 - || h2 32/1.25 w800 ls0 -apple-system || body 12/1.5 w400 ls0 -apple-system || small 10/1.15 w400 ls0 -apple-system
+sizes    12:79 10:10 16:5 128:3 14:2 32:1 11:1 8:0
+bg       #fce7f3:63 #9d174d:33 media 0 canvas 0.03 dark false theme-color #fce7f3 scheme null/light
+text     #9d174d:60 #fce7f3:40 | accent #9d174d:100
+vars     394 total, 230 color --tint-0=#ffffff/0.04 --tint-1=#ffffff/0.1 --tint-2=#ffffff/0.19 --tint-3=#ffffff/0.28 --tint-4=#ffffff/0.36 --tint-5=#ffffff/0.45 | font {"--font-family-heading":"Inter, -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, a
+dark     rules 0, probe changed false
+layout   container 1352:100 | radii  sharp 0.88 pill 0.13 (n=64) | spacing 8,4,16,32,48,2 div4 0.91 div8 0.62 | grid 13 flex 62
+shadows  rgb(157, 23, 77) 0px 0px 0px 1px inset || rgb(252, 231, 243) 0px 0px 0px 1px inset
+motion   durations 100:71 150:14 160:14 | easing ease-out ; ease | anim 0 running 0 kf 17 rm 3
+tech     React  | sheets 2/0 blocked | cmp 0 | iconRuns 0
+
+### https://procedural.computer/  (load 4255ms, extract 28ms, scanned 21)
+roles    {"heading":"fhd","body":null,"ui":"fhd","mono":"ui-monospace"}
+fonts    fhd 95% [300] | ui-monospace(sys) 5% [300]
+truth    {"0":"FH Dfaalt*(10)","1":"Menlo(1)"}
+sources  self-hosted | files FHDfaalt_Medium-s.p.03hk1dc3c6epo.woff, FHDfaalt_Regular-s.p.25qxa0zjbe65a.woff  
+type     display 24/1 w300 ls0 fhd || h1 - || h2 - || body - || small 10/1 w300 ls0.05 uppercase ui-monospace
+sizes    12:59 24:24 14:12 10:5
+bg       #c1c1c1:99 #dadada:1 media 0 canvas 0 dark false theme-color #c4c4c4 scheme light dark/normal
+text     #000000:100 | accent 
+vars     10 total, 6 color --fg=#000000 --bg=#c1c1c1 --fg-40=#000000/0.4 --button-bg=#dadada --button-bg-hover=#cacaca --bg-hover=#b4b4b4 | font {}
+dark     rules 0, probe changed false
+layout   container  | radii 6:50 3:50 sharp 0 pill 0 (n=4) | spacing 8,2,4 div4 0.75 div8 0.63 | grid 0 flex 6
+shadows  
+motion   durations 300:58 150:33 500:8 | easing cubic-bezier(0, 0, 0.2, 1) ; cubic-bezier(0.4, 0, 0.2, 1) | anim 1 running 2 kf 3 rm 1
+tech     Next.js, Tailwind, React (gen: Next.js) | sheets 2/0 blocked | cmp 0 | iconRuns 0
+
+### https://posthog.com/  (load 11354ms, extract 121ms, scanned 981)
+roles    {"heading":"RoundHog","body":"RoundHog","ui":"RoundHog","mono":"ui-monospace"}
+fonts    RoundHog 68% [400,500,600,700,800] | ui-monospace(sys) 30% [400,500] | Source Code Pro 1% [500]
+truth    {"0":"RoundHog Medium*(8)","1":"Menlo(17)","2":"Source Code Pro ExtraLight*(29)"}
+sources  self-hosted | files squeak-bold-webfont.woff2, squeak-bold-webfont.woff, RoundHog-SemiBold-d86cd114131655b9b47995a1777e9d76.woff2, RoundHog-Medium-93eadd6a93e9cba289ce176c2443e545.woff2, RoundHog-ad20905153cad02fadd7da79ee771d57.woff2  
+type     display 36/1.11 w800 ls-0.025 RoundHog || h1 36/1.11 w800 ls-0.025 RoundHog || h2 24/1.33 w700 ls-0.025 RoundHog || body 18/1.78 w500 ls0 RoundHog || small 15/1.5 w500 ls0 ui-monospace
+sizes    15:30 18:20 14:12 12:6 12.0599:5 13:4 11:4 13.8561:2 10.7769:2 12.8297:2
+bg       #d3dac6:35 #eeefe9:20 #ffffff:20 #cbd5b9:8 #f3f4ee:7 media 0.01 canvas 0 dark false theme-color #E5E7E0 scheme null/normal
+text     #65675e:30 #000000:26 #111111:21 #374151:10 | accent #cd8407:36 #b62ad9:32 #eb9d2a:29 #f54e00:1
+vars     60 total, 4 color --swiper-pagination-color=#f54e00 --swiper-pagination-bullet-inactive-color=#000000 --tw-ring-color=#3c81f5/0.5 --swiper-theme-color=#007aff | font {}
+dark     rules 0, probe changed false
+layout   container 979:53 1139:43 963:2 | radii 6:32 4:26 5:18 8:8 3:7 sharp 0.09 pill 0.26 (n=96) | spacing 6,4,8,2,12,16 div4 0.51 div8 0.21 | grid 22 flex 275
+shadows  rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0 || rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0 || rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0
+motion   durations 500:46 150:39 200:5 700:3 | easing cubic-bezier(0.4, 0, 0.2, 1) ; cubic-bezier(0, 0, 0.2, 1) ; ease-out | anim 9 running 24 kf 74 rm 27
+tech     Gatsby, Tailwind, React (gen: Gatsby 4.25.9) | sheets 4/0 blocked | cmp 0 | iconRuns 0
+
+### https://pipeline.one/  (load 4429ms, extract 77ms, scanned 137)
+roles    {"heading":"Besley","body":"Graphik LC","ui":"Graphik LC","mono":null}
+fonts    Graphik LC(sys) 80% [400,600] | Besley 20% [400]
+truth    {"0":".SF NS(92)","1":"Besley*(40)"}
+sources  self-hosted | files Besley-VariableFont_wght.ttf  
+type     display 64/1 w400 ls0 Besley || h1 - || h2 - || body 16/1.38 w400 ls0.019 Graphik LC || small 12/1.33 w400 ls0 Graphik LC
+sizes    12:42 16:38 48:10 28:8 64:3
+bg       #ebeae9:64 #000080:15 media 0.21 canvas 0 dark false theme-color null scheme null/normal
+text     #393735:44 #262524:32 #000080:20 #ffffff:4 | accent #000080:100
+vars     31 total, 13 color --color-red-500=#fb2c36 --color-black=#000000 --color-white=#ffffff --color-bg-primary=#f8f7f6 --color-bg-secondary=#ffffff --color-bg-tertiary=#ebeae9 | font {"--font-sans":"\"Graphik LC\", ui-sans-serif, system-ui, sans-serif","--font-mono":"ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\",
+dark     rules 0, probe changed false
+layout   container 1344:100 | radii 4:100 sharp 0.05 pill 0 (n=21) | spacing 8,4,32,16,56,24 div4 0.99 div8 0.72 | grid 5 flex 48
+shadows  
+motion   durations 300:100 | easing cubic-bezier(0.4, 0, 0.2, 1) | anim 0 running 0 kf 0 rm 0
+tech     Tailwind, React  | sheets 1/0 blocked | cmp 0 | iconRuns 0
+
+### https://operate.so/  (load 4121ms, extract 62ms, scanned 531)
+roles    {"heading":"denim","body":"muoto","ui":"denim","mono":"geistMono"}
+fonts    muoto 45% [400,450,500,700] | denim 45% [400,600] | cinetype 9% [400] | geistMono 1% [400]
+truth    {"0":"Muoto VAR*(9)","1":"Denim SemiBold*(47)","2":"GT Cinetype*(7)","3":"Geist Mono*(9)"}
+sources  self-hosted | files 205TF_Muoto_Variable-s.p.350syuw1smhk5.woff2, Denim_Regular-s.p.3p2rpf-e0w2_y.woff2, GT_Cinetype_Regular-s.p.3542o7l2yeifo.woff2, Denim_RegularItalic-s.p.2-okkbg3i7rqs.woff2, Denim_SemiBold-s.p.0haakjq11jk4x.woff2  
+type     display 48/1.17 w600 ls0 denim || h1 48/1.17 w600 ls0 denim || h2 32/1.13 w600 ls0 denim || body 20/1.35 w400 ls0 denim || small 14/1.43 w400 ls0 muoto
+sizes    20:38 14:31 12:21 18:2 32:2 48:2 13:2 9.2:1 15:1 10:1
+bg       #005c00:51 #f7f7f7:23 #ffffff:1 #f6f6f6:0 media 0.25 canvas 0 dark true theme-color #85C093 scheme null/normal
+text     #117025:29 #29211e:24 #254540:17 #5f6d6b:11 | accent #005c00:56 #117025:42 #008125:1 #eb5c14:0
+vars     224 total, 47 color --color-white=#ffffff --color-black=#000000 --color-gray-50=#ffffff --color-gray-75=#fcfcfc --color-gray-100=#f7f7f7 --color-gray-200=#edefef | font {"--font-sans":"\"muoto\", \"muoto Fallback\"","--font-mono":"\"geistMono\", \"geistMono Fallback\", monospace","--default-font-family":"\"muoto\", \"muoto Fall
+dark     rules 0, probe changed false
+layout   container 1364:42 1362:19 1214:18 | radii 8:41 10:15 12:13 16:10 3:10 sharp 0.17 pill 0.35 (n=81) | spacing 8,6,4,12,2,24 div4 0.61 div8 0.38 | grid 10 flex 124
+shadows  rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0 || rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0 || rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0
+motion   durations 150:71 120:29 | easing cubic-bezier(0, 0, 0.2, 1) ; cubic-bezier(0.4, 0, 0.2, 1) | anim 0 running 0 kf 7 rm 5
+tech     Next.js, Tailwind, React  | sheets 3/0 blocked | cmp 0 | iconRuns 0
+
+### https://nostalgebraist.tumblr.com/post/785766737747574784/the-void  (load 4261ms, extract 33ms, scanned 34)
+roles    {"heading":"Helvetica Neue","body":"Helvetica Neue","ui":"Helvetica Neue","mono":null}
+fonts    Helvetica Neue(sys) 100% [400,500]
+truth    {"0":"Helvetica Neue(20)"}
+sources   | files   
+type     display 32/normal w500 ls0 Helvetica Neue || h1 32/normal w500 ls0 Helvetica Neue || h2 - || body 16/normal w400 ls0 Helvetica Neue || small -
+sizes    16:89 32:11
+bg       #ffffff:99 #f7f8fe:1 media 0 canvas 0 dark false theme-color null scheme null/normal
+text     #111516:100 | accent 
+vars     0 total, 0 color  | font {}
+dark     rules 0, probe changed false
+layout   container  | radii 4:100 sharp 0 pill 0 (n=1) | spacing 24 div4 1 div8 1 | grid 0 flex 1
+shadows  
+motion   durations  | easing  | anim 0 running 0 kf 1 rm 0
+tech     Tumblr  | sheets 1/0 blocked | cmp 0 | iconRuns 0
+
+### https://nordquantique.ca/en  (load 5504ms, extract 52ms, scanned 193)
+roles    {"heading":"Outfit","body":"Outfit","ui":null,"mono":null}
+fonts    Outfit 90% [400,500] | ATsurt 10% [400,500]
+truth    {"0":"Outfit Thin*(48)","1":"AT Surt Light*(25)"}
+sources  self-hosted | files outfit-97312486.woff2, ATSurt-Light.woff2, fa-solid-900.woff2, poppins-93818c37.woff2, eicons.woff2  
+type     display 36/1.19 w500 ls0 ATsurt || h1 36/1.11 w500 ls0 ATsurt || h2 36/1.19 w500 ls0 ATsurt || body 16/1.5 w400 ls0 Outfit || small -
+sizes    16:80 33:7 36:6 22:5 24:2
+bg       #24222e:87 media 0.14 canvas 0 dark true theme-color null scheme null/normal
+text     #24222e:72 #aa987d:26 #ffffff:2 | accent 
+vars     59 total, 13 color --wp--preset--color--black=#000000 --wp--preset--color--cyan-bluish-gray=#abb8c3 --wp--preset--color--white=#ffffff --wp--preset--color--pale-pink=#f78da7 --wp--preset--color--vivid-red=#cf2e2e --wp--preset--color--luminous-vivid-orange=#ff6900 | font {"--fa-style-family-brands":"'Font Awesome 6 Brands'","--fa-font-brands":"normal 400 1em/1 'Font Awesome 6 Brands'","--fa-font-regular":"normal 400 1em/1 'Font 
+dark     rules 0, probe changed false
+layout   container 1360:78 634:22 | radii  sharp 0.75 pill 0.25 (n=4) | spacing 20,40,10,15,16,5 div4 0.67 div8 0.38 | grid 0 flex 27
+shadows  
+motion   durations 300:76 400:21 1000:2 100:1 | easing ease ; cubic-bezier(0, 0.33, 0.07, 1.03) | anim 0 running 0 kf 25 rm 4
+tech     WordPress, Swiper (gen: WordPress 7.1.4) | sheets 43/0 blocked | cmp 0.04 | iconRuns 0
+
+### https://nlc.obys.agency/  (load 9023ms, extract 38ms, scanned 1322)
+roles    {"heading":"Obys","body":"Obys","ui":"Obys","mono":null}
+fonts    Obys 100% [400]
+truth    {"0":"Obys Sans*(6)"}
+sources  self-hosted | files ObysSans4.woff2  
+type     display 79.9999/1 w400 ls-0.03 Obys || h1 - || h2 - || body 11/1.2 w400 ls-0.01 Obys || small -
+sizes    11:92 79.9999:8
+bg       #000000:100 media 0 canvas 0 dark true theme-color #ffffff scheme null/normal
+text     #000000:99 #c9c9c9:1 #ffffff:1 | accent 
+vars     6 total, 2 color --white=#ffffff --black=#000000 | font {}
+dark     rules 0, probe changed false
+layout   container  | radii  sharp 1 pill 0 (n=1) | spacing 1,10,5,30,80 div4 0 div8 0 | grid 1 flex 46
+shadows  
+motion   durations 800:49 1600:48 600:1 400:1 | easing cubic-bezier(0.16, 1, 0.3, 1) ; ease-out | anim 0 running 39 kf 0 rm 0
+tech       | sheets 2/0 blocked | cmp 0 | iconRuns 0
+
+### https://micheledu.com/  (load 6991ms, extract 43ms, scanned 430)
+roles    {"heading":"Beausite Classic Light","body":"Beausite Classic Clear","ui":"Beausite Classic Clear","mono":"Fira Code"}
+fonts    Beausite Classic Clear 33% [350,400,500] | Beausite Classic Light 33% [300,400] | Fira Code 26% [300,400] | Beausite Classic Regular 6% [400] | Beausite Classic Medium 2% [500] | Beausite Classic Semibold 1% [600]
+truth    {"0":"Beausite Classic Clear*(10)","1":"Beausite Classic Light*(9)","2":"Fira Code Light*(82)","3":"Beausite Classic Regular*(17)","4":"Beausite Classic Medium*(13)","5":"Beausite Classic Semibold*(5)"}
+sources  Framer-hosted,Google Fonts | files SU2CPPeg8Bk6vXzIZF1JBBfhq9U.woff2, HGxEhWVgikzBMrcieA0gPCCqwBQ.woff2, uU9NCBsR6Z2vfE9aq3bh3dSD.woff2, Wqw1c5sXED5xQCM8PaZ7f1elFuw.woff2, ncbFssJRLgF0HcgD3NqIz5HUqww.woff2 | gf Inter Tight,Fira Code 
+type     display 48/1 w300 ls-0.03 Beausite Classic Light || h1 - || h2 - || body 15/1.1 w300 ls-0.03 Beausite Classic Light || small 10/1.4 w400 ls-0.04 Fira Code
+sizes    15:25 10:22 14:17 12:17 9:13 48:4 16:2
+bg       #000000:94 #161617:3 #080809:3 #1e1e20:1 media 0 canvas 0 dark true theme-color null scheme null/normal
+text     #ffffff:89 #161617:4 #878a8c:2 #ff79fa:2 | accent #ff79fa:42 #dfe301:29 #03c37b:29
+vars     2 total, 0 color  | font {}
+dark     rules 0, probe changed false
+layout   container  | radii 4:50 12:50 sharp 0.13 pill 0.63 (n=8) | spacing 10,6,2,8,1,5 div4 0.18 div8 0.13 | grid 1 flex 97
+shadows  rgba(0, 0, 0, 0.22) 0px 8px 24px -14px || rgba(255, 255, 255, 0.25) 0px 0px 0px 1px inset, rgba(255, 2 || rgba(255, 255, 255, 0.1) 0px 0px 0px 1px inset
+motion   durations 350:44 200:44 260:11 | easing ease ; cubic-bezier(0.3, 1.4, 0.5, 1) | anim 1 running 43 kf 14 rm 4
+tech     Framer, React (gen: Framer 559aa4d) | sheets 28/1 blocked | cmp 0 | iconRuns 0
+
+### https://meganyap.me/home  (load 5971ms, extract 50ms, scanned 306)
+roles    {"heading":"Gelica","body":"Segoe UI","ui":null,"mono":"Source Code Pro"}
+fonts    Source Code Pro 50% [400] | Segoe UI(sys) 41% [400] | Gelica 9% [300]
+truth    {"0":"Source Code Pro ExtraLight*(25)","1":".SF NS(47)","2":"Gelica Light*(9)"}
+sources  self-hosted,Google Fonts | files Gelica-Light.woff2 | gf Source Code Pro 
+type     display 36/1 w300 ls0 Gelica || h1 36/1 w300 ls0 Gelica || h2 - || body 13.5/1.4 w400 ls0 Segoe UI || small 12/1.4 w400 ls0 Segoe UI
+sizes    15:28 12:18 13.5:16 16:16 10:6 18:4 11:3 24:3 20:2 19:2
+bg       #eae6db:35 #f3f1eb:14 #242424:12 #ddd6c0:4 media 0.35 canvas 0 dark false theme-color null scheme null/normal
+text     #6b6553:28 #e599b1:27 #666666:24 #242424:8 | accent #e599b1:100
+vars     89 total, 35 color --color-red-50=#fef2f2 --color-red-100=#ffe2e2 --color-red-600=#e7000b --color-black=#000000 --color-white=#ffffff --color-bg=#f3f1eb | font {"--font-sans":"ui-sans-serif,system-ui,sans-serif,\"Apple Color Emoji\",\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Noto Color Emoji\"","--font-mono":"\"Source Co
+dark     rules 0, probe changed false
+layout   container  | radii 4:48 3:16 16:16 12:8 6:8 sharp 0.22 pill 0.08 (n=36) | spacing 6,4,8,2,40,10 div4 0.56 div8 0.37 | grid 25 flex 70
+shadows  rgba(255, 255, 255, 0.6) 0px 0px 3px 0px || oklab(0.654815 0.000489384 0.0345482 / 0.32) 0px 0px 0px 1px || rgba(36, 36, 36, 0.25) 0px 2px 4px -2px
+motion   durations 240:46 160:17 320:13 480:11 | easing cubic-bezier(0.22, 1, 0.36, 1) ; ease-out ; cubic-bezier(0.4, 0, 0.2, 1) | anim 16 running 18 kf 34 rm 19
+tech     Astro, Tailwind (gen: Astro v7.1.6) | sheets 13/1 blocked | cmp 0 | iconRuns 0
+
+### https://jackiezhang.co.za/  (load 6184ms, extract 128ms, scanned 1004)
+roles    {"heading":"Gochi Hand","body":"Gochi Hand","ui":null,"mono":"Geist Mono"}
+fonts    Gochi Hand 95% [400] | Averia Serif Libre 3% [300,400] | Geist Mono 2% [400]
+truth    {"0":"Gochi Hand*(5)","1":"Averia Serif Libre*(1)","2":"Geist Mono*(24)"}
+sources  Google Fonts,Framer-hosted,self-hosted | files hES06XlsOjtJsgCkx1Pkfon_-w.woff2, neIWzD2ms4wxr6GvjeD0X88SHPyX2xYOoguP.woff2, neIVzD2ms4wxr6GvjeD0X88SHPyX2xYGCSmaxq0r.woff2, kzDYp87eCBccspBRhgFROOw54Q.woff2, 5YvMEl8GNfNLfRRXK0Ot98gkg.woff2  
+type     display 51/1.2 w400 ls0 Gochi Hand || h1 - || h2 - || body 16/1.2 w400 ls0 Gochi Hand || small -
+sizes    16:90 32:2 27:2 20:2 22:1 26:1 51:1
+bg       #212121:43 #f2e3cf:22 media 0.35 canvas 0 dark true theme-color null scheme null/normal
+text     #e35342:94 #171717:5 #f2e3cf:1 | accent #e35342:100
+vars     2 total, 0 color  | font {}
+dark     rules 1, probe changed true
+layout   container 932:19 928:19 883:18 | radii 20:64 60:9 3:9 2:9 4:9 sharp 0 pill 0 (n=11) | spacing 10,2,1,28,120,50 div4 0.05 div8 0.02 | grid 0 flex 267
+shadows  rgba(0, 0, 0, 0.25) 0px 1px 2px 0px || rgba(0, 0, 0, 0.6) 0px 0.602187px 0px -1.25px, rgba(0, 0, 0, || rgba(0, 0, 0, 0.47) 0px 4px 5px 2px
+motion   durations  | easing  | anim 0 running 0 kf 1 rm 0
+tech     Framer, React, Lenis (gen: Framer beb597f) | sheets 7/0 blocked | cmp 0 | iconRuns 4
+
+### https://interludeapp.net/  (load 4925ms, extract 29ms, scanned 50)
+roles    {"heading":"Nanum Myeongjo","body":null,"ui":null,"mono":"IBM Plex Mono"}
+fonts    IBM Plex Mono 84% [400,500] | Nanum Myeongjo 16% [400,700]
+truth    {"0":"IBM Plex Mono Medium*(16)","1":"NanumMyeongjo*(64), NanumMyeongjo*(19)"}
+sources  Google Fonts | files -F6qfjptAgt5VM-kVkqdyU8n3twJwlBFgg.woff2, 9Btx3DZF0dXLMZlywRbVRNhxy2LscnU.woff2, -F63fjptAgt5VM-kVkqdyU8n1i8q1w.woff2, 9Bty3DZF0dXLMZlywRbVRNhxy2pXV2Azr_E.woff2  
+type     display 100/1 w400 ls-0.06 Nanum Myeongjo || h1 16/1.56 w500 ls-0.02 uppercase IBM Plex Mono || h2 - || body - || small 16/1.56 w500 ls-0.02 uppercase IBM Plex Mono
+sizes    22:81 100:16 16:3
+bg       #ffffff:34 #000000:1 media 0.65 canvas 0 dark false theme-color null scheme null/normal
+text     #000000:97 #ffffff:3 | accent 
+vars     2 total, 0 color  | font {}
+dark     rules 0, probe changed false
+layout   container 1200:37 1120:35 900:18 | radii  sharp 0 pill 1 (n=1) | spacing 40,10,20,70,16,50 div4 0.58 div8 0.37 | grid 1 flex 10
+shadows  
+motion   durations  | easing  | anim 0 running 0 kf 1 rm 0
+tech     Framer, React (gen: Framer a72a541) | sheets 5/0 blocked | cmp 0 | iconRuns 0
+
+### https://integrated-reasoning.com  (load 4779ms, extract 60ms, scanned 71)
+roles    {"heading":"PP Neue Montreal","body":null,"ui":null,"mono":"Berkeley Mono"}
+fonts    Berkeley Mono 76% [400] | PP Neue Montreal 25% [500]
+truth    {"0":"Berkeley Mono*(81)","1":"PP Neue Montreal Medium*(44)"}
+sources  self-hosted | files BerkeleyMono-Regular.woff2, PPNeueMontreal-Medium.woff2  
+type     display 80/1 w500 ls0 uppercase PP Neue Montreal || h1 - || h2 80/1 w500 ls0 uppercase PP Neue Montreal || body - || small 12/normal w400 ls0 uppercase Berkeley Mono
+sizes    16:42 12:33 40:15 80:10
+bg       #000000:100 media 0 canvas 0 dark true theme-color #ffffff scheme null/normal
+text     #b7b7b7:100 | accent 
+vars     9 total, 6 color --primary=#b7b7b7 --secondary=#000000 --background=#000000 --cardBackground=#000000 --textNegative=#000000 --textPositive=#b7b7b7 | font {}
+dark     rules 0, probe changed false
+layout   container 1360:49 524:25 600:14 | radii  sharp 1 pill 0 (n=6) | spacing 16,24,180,240,80,51 div4 0.91 div8 0.82 | grid 0 flex 5
+shadows  
+motion   durations  | easing  | anim 0 running 0 kf 0 rm 0
+tech     Three.js  | sheets 1/0 blocked | cmp 0 | iconRuns 0
+
+### https://handmade-web.net/  (load 4257ms, extract 34ms, scanned 76)
+roles    {"heading":null,"body":"selectric","ui":"selectric","mono":null}
+fonts    selectric 100% [400]
+truth    {"0":"Selectric*(12)"}
+sources  self-hosted | files selectric-roman.woff2  
+type     display 15.68/1.4 w400 ls0.045 selectric || h1 - || h2 - || body 15.68/1.4 w400 ls0.045 selectric || small -
+sizes    15.68:100
+bg       #d6e1a1:100 media 0 canvas 0 dark false theme-color null scheme null/normal
+text     #5d4e31:100 | accent #d6e1a1:100
+vars     22 total, 16 color --bg=#d6e1a1 --night=#4e4e5c --acc=#9a9a9a/0.15 --select=#ffaf60/0.5 --select-night=#ad7cb3/0.5 --sun=#ff0000 | font {}
+dark     rules 0, probe changed false
+layout   container  | radii  sharp 1 pill 0 (n=6) | spacing 16,8,31,11,1,6 div4 0.73 div8 0.73 | grid 0 flex 11
+shadows  
+motion   durations 300:100 | easing ease | anim 0 running 0 kf 0 rm 0
+tech       | sheets 2/0 blocked | cmp 0 | iconRuns 0
+
+### https://gt-mechanik.com/  (load 4499ms, extract 92ms, scanned 340)
+roles    {"heading":"GT Mechanik VF","body":"GT Mechanik VF","ui":"GT Mechanik VF","mono":null}
+fonts    GT Mechanik VF 100% [100,400,500,800]
+truth    {"0":"GT Mechanik VF*(7)"}
+sources  self-hosted | files GT-Mechanik-VF-CIUgz0UY.woff2  
+type     display 619.2/0.75 w800 ls-0.05 uppercase GT Mechanik VF || h1 - || h2 - || body 30/1 w500 ls-0.025 uppercase GT Mechanik VF || small 14/1.43 w400 ls0 uppercase GT Mechanik VF
+sizes    30:57 14:28 16:13 619.2:2 885.35:1
+bg       #f8f8f6:96 #ffffff:3 #90991a:1 #ff4cb2:0 media 0 canvas 0 dark false theme-color null scheme null/normal
+text     #90991a:78 #0b6b00:12 #ff4cb2:10 | accent #90991a:79 #0b6b00:11 #ff4cb2:10
+vars     70 total, 13 color --grid-color=#cee4db --color-black=#000000 --color-white=#ffffff --color-off-white=#f8f8f6 --color-green=#90991a --color-dark-green=#0b6b00 | font {"--font-sans":"ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"","--font-mono":"\"GT 
+dark     rules 0, probe changed false
+layout   container 1360:87 1392:10 675:3 | radii 32:100 sharp 0.2 pill 0.4 (n=10) | spacing 10,8,4,80,24,40 div4 0.46 div8 0.38 | grid 9 flex 17
+shadows  
+motion   durations 400:50 300:25 150:25 | easing ease ; linear ; cubic-bezier(0.4, 0, 0.2, 1) | anim 0 running 35 kf 2 rm 0
+tech     Tailwind  | sheets 1/0 blocked | cmp 0 | iconRuns 0
+
+### https://foundry.basement.studio/  (load 5047ms, extract 49ms, scanned 207)
+roles    {"heading":"Basement Grotesque Black Expanded","body":null,"ui":null,"mono":"JetBrains Mono"}
+fonts    JetBrains Mono 97% [400,700] | Basement Grotesque Black Expanded 2% [400] | Adhesion Regular 1% [400] | Mecha Regular 1% [400] | Bunker Regular 1% [400] | Blob Regular 0% [400]
+truth    {"0":"JetBrains Mono*(9)","1":"Basement Grotesque Black Expanded*(17)","2":"Adhesion*(8)","3":"B-Mecha*(7)","4":"Bunker*(6)","5":"Blob*(4)"}
+sources  self-hosted | files JetBrainsMono-Regular.woff2, Inter-roman.var.woff2  
+type     display 234/1.1 w400 ls0.01 uppercase Blob Regular || h1 - || h2 - || body - || small -
+sizes    14:97 120:2 164:1 185:1 234:0
+bg       #000000:95 media 0.05 canvas 0 dark true theme-color #000000 scheme null/normal
+text     #747474:66 #efefef:31 #ff4d00:3 | accent #ff4d00:100
+vars     27 total, 12 color --color-black=#000000 --color-white=#efefef --color-lighter-gray=#afafaf --color-gray=#747474 --color-dark-gray=#3a3a3a --color-darker-gray=#232323 | font {"--font-system":"-apple-system,blinkmacsystemfont,segoe ui,roboto,oxygen,ubuntu,cantarell,fira sans,droid sans,helvetica neue,sans-serif","--font-body":"\"Inte
+dark     rules 0, probe changed false
+layout   container  | radii  sharp null pill null (n=0) | spacing 20,24 div4 1 div8 0.5 | grid 1 flex 4
+shadows  
+motion   durations  | easing  | anim 2 running 13 kf 43 rm 0
+tech     Next.js, Tailwind, React, Three.js  | sheets 37/0 blocked | cmp 0 | iconRuns 0
+
+### https://emmiwu.com/playground  (load 4187ms, extract 52ms, scanned 428)
+roles    {"heading":"Figtree","body":"Figtree","ui":null,"mono":"IBM Plex Mono"}
+fonts    IBM Plex Mono 97% [400,500] | Figtree 3% [400,700] | Kode Mono 0% [700]
+truth    {"0":"IBM Plex Mono Medium*(7)","1":"Figtree*(99)","2":"Kode Mono*(7)"}
+sources  self-hosted | files -F63fjptAgt5VM-kVkqdyU8n5ig.ttf, _Xmz-HUzqDCFdgfMsYiV_F7wfS-Bs_d_QF5e.ttf, -F6qfjptAgt5VM-kVkqdyU8n3twJ8lc.ttf, A2BLn5pb0QgtVEPFnlYkkaoBgw4qv9odq3619Do.ttf, _Xmz-HUzqDCFdgfMsYiV_F7wfS-Bs_dNQF5e.ttf  
+type     display 32/normal w700 ls0 Figtree || h1 32/normal w700 ls0 Figtree || h2 - || body - || small -
+sizes    12:97 14:2 16:1 8:0 32:0
+bg       #fffdfa:100 media 0 canvas 0 dark false theme-color null scheme null/normal
+text     #969490:72 #666462:25 #333231:2 #1a1918:1 | accent #c8d665:53 #b3bf5a:36 #fd6c95:4 #add6f7:4
+vars     33 total, 23 color --neutral-1000=#000000 --neutral-900=#1a1918 --neutral-800=#333231 --neutral-700=#4d4b49 --neutral-600=#666462 --neutral-500=#969490 | font {}
+dark     rules 0, probe changed false
+layout   container  | radii  sharp 0.67 pill 0.33 (n=3) | spacing 6,12,24,16,17,2 div4 0.14 div8 0.07 | grid 8 flex 59
+shadows  
+motion   durations 160:50 140:39 240:6 180:6 | easing cubic-bezier(0.23, 1, 0.32, 1) ; ease | anim 2 running 2 kf 9 rm 7
+tech     Astro, React  | sheets 9/0 blocked | cmp 0 | iconRuns 0
+
+### https://eastasiangraphicsarchive.com/  (load 7470ms, extract 61ms, scanned 210)
+roles    {"heading":"InstrumentSerif","body":"HelveticaNeue","ui":"HelveticaNeue","mono":null}
+fonts    HelveticaNeue 99% [400,600] | InstrumentSerif 1% [300,400]
+truth    {"0":"Helvetica Neue*(3)","1":"Instrument Serif*(4)"}
+sources  self-hosted | files InstrumentSerif-Regular.ttf, HelveticaNeue-Light.otf  
+type     display 24/normal w400 ls0 InstrumentSerif || h1 - || h2 - || body 16/1.2 w600 ls0 HelveticaNeue || small 14/normal w400 ls0 HelveticaNeue
+sizes    16:96 14:3 20:1 24:0
+bg       #fffefc:60 #111111:0 media 0.39 canvas 0 dark false theme-color null scheme null/normal
+text     #666666:59 #111111:38 #000000:3 #ffffff:0 | accent 
+vars     73 total, 19 color --wp-block-synced-color=#7a00df --wp-bound-block-color=#7a00df --wp-editor-canvas-background=#dddddd --wp-admin-theme-color=#007cba --wp-admin-theme-color-darker-10=#006ba1 --wp-admin-theme-color-darker-20=#005a87 | font {"--wp--preset--font-family--instrument-serif":"\"Instrument Serif\"","--wp--preset--font-family--helvetica-neue":"\"Helvetica Neue\"","--font-heading":"\"Instr
+dark     rules 0, probe changed false
+layout   container 1400:100 | radii  sharp 1 pill 0 (n=37) | spacing 16,6,14,48,12,25 div4 0.67 div8 0.59 | grid 1 flex 3
+shadows  
+motion   durations 150:100 | easing ease | anim 0 running 0 kf 0 rm 0
+tech     WordPress (gen: WordPress 7.1.4) | sheets 7/0 blocked | cmp 0 | iconRuns 0
+
+### https://linear.app/  (load 8835ms, extract 79ms, scanned 364)
+roles    {"heading":"Inter Variable","body":"Inter Variable","ui":"Inter Variable","mono":"Berkeley Mono"}
+fonts    Inter Variable 95% [400,500,510,590] | Berkeley Mono 5% [400]
+truth    {"0":"Inter Variable*(7)","1":"Berkeley Mono Variable*(13)"}
+sources  self-hosted | files InterVariable.woff2, Berkeley-Mono-Variable.woff2  
+type     display 64/1 w510 ls-0.022 Inter Variable || h1 - || h2 48/1 w510 ls-0.022 Inter Variable || body 15/1.6 w400 ls-0.011 Inter Variable || small 14/1.5 w400 ls-0.013 Inter Variable
+sizes    12:28 13:21 15:18 48:8 24:7 14:6 64:5 16:4 10:2 20:1
+bg       #08090a:62 #090a0b:31 #161718:6 #0f1011:2 #e5e5e6:0 media 0 canvas 0 dark true theme-color #08090a scheme null/dark
+text     #8a8f98:40 #d0d6e0:26 #f7f8f8:16 #62666d:15 | accent #27a644:50 #f34e52:50
+vars     467 total, 193 color --header-border=#ffffff/0.08 --header-bg=#0b0b0b/0.8 --mask-ease=#000000/0.2 --scrollbar-color=#ffffff/0.1 --scrollbar-color-hover=#ffffff/0.2 --scrollbar-color-active=#ffffff/0.4 | font {"--font-serif-display":"\"Tiempos Headline\", ui-serif, Georgia, Cambria, \"Times New Roman\", Times, serif","--font-monospace":"\"Berkeley Mono\", ui-monospac
+dark     rules 1, probe changed false
+layout   container 1344:51 1320:35 1318:12 | radii 12:29 8:29 4:14 9:14 2:7 sharp 0.11 pill 0.39 (n=28) | spacing 8,6,4,7,12,2 div4 0.52 div8 0.36 | grid 34 flex 152
+shadows  rgba(255, 255, 255, 0.05) 0px 0px 0px 1px inset || rgba(0, 0, 0, 0.2) 0px 0px 0px 1px || rgba(0, 0, 0, 0.06) 0px 4px 4px -1px, rgba(0, 0, 0, 0.12) 0p
+motion   durations 160:68 100:29 200:4 | easing cubic-bezier(0.25, 0.46, 0.45, 0.94) | anim 0 running 121 kf 231 rm 49
+tech     Next.js, Tailwind, React  | sheets 68/0 blocked | cmp 0 | iconRuns 0
+
+### https://vercel.com/  (load 8700ms, extract 50ms, scanned 388)
+roles    {"heading":"GeistSans","body":"GeistSans","ui":"GeistSans","mono":"Geist Mono"}
+fonts    GeistSans 100% [400,450,500] | Geist Mono 0% [400]
+truth    {"0":"Geist*(8)","1":"Geist Mono*(2)"}
+sources  self-hosted | files 07a39a8a4660cc7c.p.1v5bejj26fx9h.woff2, GeistPixel_Grid.p.2u9udzfirdsy9.woff2, GeistPixel_Circle.p.33ptqjycga8_k.woff2, GeistPixel_Line.p.2mkbez_3692ug.woff2, GeistPixel_Square.p.3i-voztpvqxl2.woff2  
+type     display 64/1 w400 ls-0.06 GeistSans || h1 64/1 w400 ls-0.06 GeistSans || h2 56/1 w450 ls-0.06 GeistSans || body 20/1.6 w400 ls0 GeistSans || small 16/1.5 w400 ls0 GeistSans
+sizes    16:21 14:20 20:20 18:20 24:9 56:7 22:2 64:1
+bg       #fafafa:99 #ffffff:1 #171717:1 media 0 canvas 0 dark false theme-color #FAFAFA scheme dark light/light
+text     #171717:69 #4d4d4d:29 #ffffff:2 #0072f5:1 | accent #0072f5:100
+vars     578 total, 189 color --color-red-50=#fef2f2 --color-yellow-500=#f0b100 --color-indigo-600=#4f39f6 --color-slate-300=#cad5e2 --color-gray-50=#f9fafb --color-gray-200=#ebebeb | font {"--font-sans":"\"GeistSans\", \"GeistSans Fallback\"","--font-mono":"\"Geist Mono\", ui-monospace, SFMono-Regular, Menlo, Monaco, Liberation Mono, DejaVu Sans 
+dark     rules 0, probe changed false
+layout   container 1392:71 1080:24 728:5 | radii 6:100 sharp 0 pill 0.4 (n=5) | spacing 6,12,8,40,24,3 div4 0.68 div8 0.33 | grid 5 flex 41
+shadows  rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0
+motion   durations 300:29 150:29 200:18 500:18 | easing cubic-bezier(0.4, 0, 0.2, 1) ; cubic-bezier(0, 0, 0.2, 1) ; linear | anim 0 running 0 kf 78 rm 30
+tech     Next.js, Tailwind, React  | sheets 5/0 blocked | cmp 0 | iconRuns 0
+
+### https://klim.co.nz/  (load 7409ms, extract 46ms, scanned 43)
+roles    {"heading":null,"body":"SOEHNE","ui":null,"mono":null}
+fonts    SOEHNE 99% [400] | SOEHNE IKON 1% [400]
+truth    {"0":"Söhne*(17)","1":"Söhne Ikon*(1)"}
+sources  self-hosted | files Sohne-Buch-383b619813ba6882f6f9025c0f320367.woff2, SohneIkon-Buch-f93be9e5b3aae7d203552260cbb860b7.woff2, Sohne-Halbfett-f50be91b3697ccf4cb2fc6be828963fe.woff2  
+type     display 16/1.5 w400 ls0 SOEHNE || h1 - || h2 - || body 16/1.5 w400 ls0 SOEHNE || small -
+sizes    16:100
+bg       #d33c03:92 #000000:8 media 0 canvas 0 dark true theme-color #000000 scheme null/normal
+text     #ffffff:47 #e90702:31 #000000:22 | accent #d33c03:90 #ffcc01:8 #e90702:2
+vars     124 total, 37 color --primaryColorRef=#ffffff --mixedColor1Ref=#e2e2e2 --mixedColor1_5Ref=#d4d4d4 --mixedColor2Ref=#c6c6c6 --mixedColor3Ref=#aaaaaa --mixedColor4Ref=#8d8d8d | font {"--fontSizeFluid1":"calc(14 / 1680 * 100vw)","--fontSizeFluid2":"calc(16 / 1680 * 100vw)","--fontSizeFluid3":"calc(18 / 1680 * 100vw)","--fontSizeFluid4":"calc
+dark     rules 0, probe changed false
+layout   container  | radii 2:100 sharp 0 pill 0 (n=6) | spacing 8,5,10,20 div4 0.57 div8 0.43 | grid 0 flex 8
+shadows  
+motion   durations  | easing  | anim 0 running 0 kf 1 rm 0
+tech     Gatsby, React (gen: Gatsby 5.16.1) | sheets 1/0 blocked | cmp 0 | iconRuns 0
+
+### https://www.are.na/  (load 13581ms, extract 48ms, scanned 231)
+roles    {"heading":"areal","body":"areal","ui":"areal","mono":"areal"}
+fonts    areal 100% [400,600,700]
+truth    {"0":"ABC Areal Superfamily Variable*(6)"}
+sources  self-hosted | files cc9a2c167fae16fc-s.p.woff2  
+type     display 19.2/1.45 w400 ls0 areal || h1 19.2/1.45 w400 ls0 areal || h2 19.2/1.45 w700 ls0 areal || body 19.2/1.45 w400 ls0 areal || small 14.4/1.45 w400 ls0 areal
+sizes    19.2:53 12.5:24 14.4:23 16:1 10:0
+bg       #ffffff:88 #f7f7f7:1 #00075f:0 media 0.11 canvas 0 dark false theme-color #FFF scheme null/light
+text     #333333:62 #000000:37 #696969:1 #ffffff:1 | accent #00075f:100
+vars     85 total, 41 color --colors-gray0=#ffffff --colors-gray1=#f7f7f7 --colors-gray2=#ededed --colors-gray3=#dedede --colors-gray4=#999999 --colors-gray5=#696969 | font {"--fonts-serif":"Times New Roman, Times, serif","--fonts-sans":"'areal', 'areal Fallback', Arial, Helvetica, sans-serif, Arial, Helvetica, sans-serif","--fonts
+dark     rules 0, probe changed false
+layout   container 1310:42 1177:39 648:9 | radii 3:75 18:13 14:13 sharp 0.47 pill 0 (n=15) | spacing 15,10,5,35,25,6 div4 0.05 div8 0.02 | grid 10 flex 34
+shadows  color(srgb 0 0 0 / 0.05) 0px 0px 34px 0px
+motion   durations 180:50 150:34 240:12 200:1 | easing ease ; cubic-bezier(0.16, 1, 0.3, 1) ; cubic-bezier(0.22, 1, 0.36, 1) | anim 2 running 68 kf 11 rm 13
+tech     Next.js, React  | sheets 2/0 blocked | cmp 0 | iconRuns 0
+
+### https://www.theguardian.com/international  (load 6295ms, extract 81ms, scanned 595)
+roles    {"heading":"GH Guardian Headline","body":"GuardianTextSans","ui":"GuardianTextSans","mono":null}
+fonts    GuardianTextSans 73% [400,700] | GH Guardian Headline 25% [500,700] | Times(sys) 2% [400]
+truth    {"0":"GuardianTextSans*(46)","1":"GH Guardian Headline Bold*(20)","2":"Times(27)"}
+sources  self-hosted | files GHGuardianHeadline-Bold.woff2, GuardianTextEgyptian-Regular.woff2, GuardianTextSans-Regular.woff2, GuardianTextSans-Bold.woff2, GHGuardianHeadline-Medium.woff2  
+type     display 42/1.15 w500 ls0 GH Guardian Headline || h1 - || h2 24/1.15 w700 ls0 GH Guardian Headline || body 14/1.3 w400 ls0 GuardianTextSans || small 12/1.3 w700 ls0 GuardianTextSans
+sizes    14:41 15:18 17:13 12:9 20:8 24:5 28:3 16:2 42:1
+bg       #f1f8fc:36 #f6f6f6:33 #041f4a:8 #ffffff:8 #fbf6ef:6 media 0 canvas 0 dark false theme-color #052962 scheme null/light
+text     #121212:47 #ffffff:15 #707070:11 #000000:7 | accent #052962:49 #ffe500:31 #041f4a:9 #c70000:8
+vars     573 total, 557 color --expandingWrapper--background=#f6f6f6 --expandingWrapper--border=#121212 --expandingWrapper--collapseBackground=#ffffff --expandingWrapper--collapseBackgroundHover=#e5e5e5 --expandingWrapper--collapseText=#121212 --expandingWrapper--collapseTextHover=#121212 | font {}
+dark     rules 0, probe changed false
+layout   container 1300:100 | radii 10:100 sharp 0.72 pill 0.25 (n=40) | spacing 8,4,12,10,20,24 div4 0.77 div8 0.34 | grid 16 flex 105
+shadows  rgb(255, 229, 0) 2px 0px 0px 0px, rgb(255, 229, 0) -2px 0px  || rgb(18, 18, 18) 0px 0px 0px 2px inset
+motion   durations 300:29 250:29 80:19 200:19 | easing ease-in-out ; ease ; ease-out | anim 1 running 1 kf 2 rm 1
+tech       | sheets 21/1 blocked | cmp 0 | iconRuns 0
+
+### https://developer.mozilla.org/en-US/  (load 5099ms, extract 64ms, scanned 186)
+roles    {"heading":"Inter","body":"Inter","ui":"Inter","mono":null}
+fonts    Inter 100% [400,450,500,650]
+truth    {"0":"Inter Variable*(4)"}
+sources  self-hosted | files jetbrains-mono-latin.119994ed445212c7.woff2, inter-latin.9a3b1bc220d426ef.woff2, inter-italic-latin.fd2627ec16333c05.woff2  
+type     display 40/1.5 w400 ls0 Inter || h1 40/1.5 w400 ls0 Inter || h2 24/1.5 w500 ls0 Inter || body 12.8/1.2 w400 ls0 Inter || small -
+sizes    12.8:65 16:30 24:4 40:1 14:0
+bg       #212426:54 #ffffff:42 #18191b:4 media 0 canvas 0 dark true theme-color null scheme null/light dark
+text     #000000:85 #c3c7cb:8 #ffffff:4 #51565d:3 | accent #a4cefe:100
+vars     130 total, 44 color --color-area-highlight-border=#0a5dbd --color-white=#ffffff --color-white-alpha-25=#ffffff/0.25 --color-white-alpha-75=#ffffff/0.75 --color-black=#000000 --color-black-alpha-25=#000000/0.25 | font {"--font-family-text":"\"Inter\",sans-serif","--font-family-code":"\"JetBrains Mono\",monospace"}
+dark     rules 1, probe changed true
+layout   container 768:100 | radii 8:90 4:10 sharp 0.71 pill 0 (n=34) | spacing 16,8,2,11,20,32 div4 0.75 div8 0.7 | grid 21 flex 31
+shadows  
+motion   durations  | easing  | anim 0 running 0 kf 0 rm 1
+tech       | sheets 20/0 blocked | cmp 0 | iconRuns 0
+
+### https://www.zeit.de/index  (load 11607ms, extract 20ms, scanned 36)
+roles    {"heading":"-apple-system","body":"-apple-system","ui":null,"mono":null}
+fonts    -apple-system(sys) 100% [400,500,600]
+truth    {"0":".SF NS(29)"}
+sources   | files   
+type     display 24/1.6 w500 ls0 -apple-system || h1 24/1.6 w500 ls0 -apple-system || h2 12.8/1.6 w600 ls0.06 uppercase -apple-system || body 15.2/1.6 w400 ls0 -apple-system || small 14.4/1.6 w400 ls0 -apple-system
+sizes    15.2:77 14.4:18 12.8:3 24:2
+bg       #ffffff:100 media 0 canvas 0 dark false theme-color null scheme null/normal
+text     #4a4a4a:96 #0000ee:3 #1a1a1a:2 | accent 
+vars     0 total, 0 color  | font {}
+dark     rules 0, probe changed false
+layout   container 560:100 | radii  sharp null pill null (n=0) | spacing 5,18,32 div4 0.14 div8 0.14 | grid 0 flex 0
+shadows  
+motion   durations  | easing  | anim 0 running 0 kf 0 rm 0
+tech       | sheets 1/0 blocked | cmp 0 | iconRuns 0
+
+### https://www.spiegel.de/  (load 12453ms, extract 23ms, scanned 439)
+roles    {"heading":"SpiegelSlabCdUI","body":"SpiegelSansUI","ui":"SpiegelSansUI","mono":null}
+fonts    SpiegelSansUI 71% [400,700] | SpiegelSerifUI 13% [700] | SpiegelSlabCdUI 12% [700,800] | sans-serif(sys) 4% [400]
+truth    {"0":"SpiegelSans4 UI*(10)","1":"SpiegelSerif Text UI*(83)","2":"SpiegelSlab4UICd*(65)","3":"Helvetica(24)"}
+sources  self-hosted | files SpiegelSlab4UICd-ExtraBold.woff2, SpiegelSerifTextUI-Regular.woff2, SpiegelSerifTextUI-Bold.woff2, SpiegelSerifTextUI-Italic.woff2, SpiegelSans4UI-Regular.woff2  
+type     display 36/1.08 w800 ls0 SpiegelSlabCdUI || h1 - || h2 32/1.26 w700 ls0 SpiegelSerifUI || body 16/1.38 w400 ls0 SpiegelSansUI || small 14/1.26 w400 ls0 SpiegelSansUI
+sizes    16:61 14:21 32:6 20:5 36:5 18:2 28:1
+bg        media 1 canvas 0 dark false theme-color #E64415 scheme null/normal
+text     #000000:87 #5c5a58:8 #e64415:4 #ffffff:1 | accent #e64415:97 #811d00:3
+vars     60 total, 24 color --ml-work-color-dark=#1a3a4a --ml-elf-color-dark=#000000 --ml-money-color-dark=#4f2a5f --ml-loveletter-color-light=#ffe5de --ml-loveletter-color-dark=#811d00 --ml-familie-color-dark=#483948 | font {}
+dark     rules 26, probe changed true
+layout   container 1008:52 1020:45 960:2 | radii 2:100 sharp 0.46 pill 0.04 (n=28) | spacing 8,24,16,12,20,1 div4 0.96 div8 0.86 | grid 0 flex 149
+shadows  rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0
+motion   durations 300:60 200:40 | easing linear ; cubic-bezier(0, 0, 0.2, 1) ; cubic-bezier(0.4, 0, 0.2, 1) | anim 0 running 9 kf 4 rm 0
+tech       | sheets 8/1 blocked | cmp 1 | iconRuns 0

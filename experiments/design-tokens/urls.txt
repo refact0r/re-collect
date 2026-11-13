@@ -1,0 +1,43 @@
+# 33 URL items from the dev deployment (read-only via `convex data items`)
+https://typesafe.ai/
+https://zzz-zuji.zocomputer.io/
+https://www.youtube.com/watch?v=oUaOucZRlmE
+https://www.sophielwang.com/blog/jpeg
+https://www.edoardolunardi.dev/
+https://www.desktopgeneration.com/
+https://www.daytona.io/dotfiles
+https://www.area.tech/
+https://worksinprogress.co/issue/olivine-weathering
+https://tonsky.me/blog/syntax-highlighting/
+https://symposium.socratica.info/
+https://stripe.dev/
+https://space.ong.ac/escaping-flatland
+https://softglossary.space/
+https://randoma11y.com/
+https://procedural.computer/
+https://posthog.com/
+https://pipeline.one/
+https://operate.so/
+https://nostalgebraist.tumblr.com/post/785766737747574784/the-void
+https://nordquantique.ca/en
+https://nlc.obys.agency/
+https://micheledu.com/
+https://meganyap.me/home
+https://jackiezhang.co.za/
+https://interludeapp.net/
+https://integrated-reasoning.com
+https://handmade-web.net/
+https://gt-mechanik.com/
+https://foundry.basement.studio/
+https://emmiwu.com/playground
+https://eastasiangraphicsarchive.com/
+# well-known design sites for variety
+https://linear.app/
+https://vercel.com/
+https://klim.co.nz/
+https://www.are.na/
+https://www.theguardian.com/international
+# dark-mode and cookie-wall probes
+https://developer.mozilla.org/en-US/
+https://www.zeit.de/index
+https://www.spiegel.de/
