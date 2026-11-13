@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import ItemEditor from './ItemEditor.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { getCurrentItemsContext } from '#lib/context.js';
+	import { getCurrentItemsContext, getItemsContext } from '#lib/context.js';
 
 	interface Props {
 		itemId: Id<'items'>;
@@ -18,6 +18,12 @@
 	const currentItemsContext = getCurrentItemsContext();
 
 	const currentItems = $derived(currentItemsContext.items);
+
+	// The signed-in user's own items open editable; anything else on the page (a
+	// shared collection someone else owns) opens read-only
+	const ownItems = getItemsContext();
+	const ownItem = $derived(ownItems.data?.find((i) => i._id === itemId));
+	const item = $derived(ownItem ?? currentItems.find((i) => i._id === itemId));
 
 	function handleClose() {
 		editor?.save();
@@ -74,9 +80,17 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div class="backdrop" onclick={handleBackdropClick} role="dialog" aria-modal="true" tabindex="-1">
 	<div class="modal modal-wide">
-		{#key itemId}
-			<ItemEditor bind:this={editor} {itemId} {onClose} onDelete={onClose} />
-		{/key}
+		{#if ownItems.isLoading}
+			<p class="status-text">loading...</p>
+		{:else if ownItems.error}
+			<p class="status-text">error: {ownItems.error.message}</p>
+		{:else if !item}
+			<p class="status-text">item not found</p>
+		{:else}
+			{#key itemId}
+				<ItemEditor bind:this={editor} {item} readonly={!ownItem} {onClose} onDelete={onClose} />
+			{/key}
+		{/if}
 	</div>
 </div>
 

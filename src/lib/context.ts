@@ -26,5 +26,15 @@ export const setCurrentItemsContext = (value: CurrentItemsContext) =>
 	setContext('currentItems', value);
 export const getCurrentItemsContext = () => getContext<CurrentItemsContext>('currentItems');
 
-export const setWriteTokenContext = (value: () => string) => setContext('writeToken', value);
-export const getWriteTokenContext = () => getContext<() => string>('writeToken');
+// The session token, null for a logged-out visitor
+export const setWriteTokenContext = (value: () => string | null) => setContext('writeToken', value);
+// For code that only runs signed in (private pages, owner controls); logged-out
+// visitors only reach read-only views, which never ask for it
+export const getWriteTokenContext = () => {
+	const get = getContext<() => string | null>('writeToken');
+	return () => {
+		const token = get();
+		if (!token) throw new Error('Not signed in');
+		return token;
+	};
+};

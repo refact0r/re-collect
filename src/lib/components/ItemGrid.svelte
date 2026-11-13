@@ -2,20 +2,12 @@
 	import { generateKeyBetween } from 'fractional-indexing';
 	import { prepare, layout, type PreparedText } from '@chenglou/pretext';
 	import { onDestroy } from 'svelte';
-	import { useConvexClient } from 'convex-svelte';
-	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { mutate } from '#lib/mutationHelper.js';
 	import { pointerDrag } from '#lib/pointerDrag.js';
-	import { getWriteTokenContext } from '#lib/context.js';
 	import { shouldDisplayAsImage, getItemUrl } from '#lib/itemDisplay.js';
 	import type { DisplayItem } from '#lib/types.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
 	import IconError from '~icons/material-symbols-light/error-outline';
-
-	const client = useConvexClient();
-	const getWriteToken = getWriteTokenContext();
-	const writeToken = $derived(getWriteToken());
 
 	interface Props {
 		items: DisplayItem[];
@@ -23,6 +15,7 @@
 		showTitles?: boolean;
 		onReorder?: (itemId: Id<'items'>, newPosition: string) => void;
 		onRetryScreenshot?: (itemId: Id<'items'>) => void;
+		onDelete?: (itemId: Id<'items'>) => void;
 	}
 
 	let {
@@ -30,12 +23,9 @@
 		columnOffset = 0,
 		showTitles = false,
 		onReorder,
-		onRetryScreenshot
+		onRetryScreenshot,
+		onDelete
 	}: Props = $props();
-
-	async function handleDeleteItem(itemId: Id<'items'>) {
-		await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
-	}
 
 	const isDraggable = $derived(!!onReorder);
 
@@ -348,17 +338,19 @@
 							retry
 						</button>
 					{/if}
-					<button
-						class="delete-button"
-						title="Delete item"
-						onclick={(e) => {
-							e.preventDefault();
-							e.stopPropagation();
-							handleDeleteItem(item._id);
-						}}
-					>
-						delete
-					</button>
+					{#if onDelete}
+						<button
+							class="delete-button"
+							title="Delete item"
+							onclick={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								onDelete(item._id);
+							}}
+						>
+							delete
+						</button>
+					{/if}
 				</div>
 			</div>
 		{:else}

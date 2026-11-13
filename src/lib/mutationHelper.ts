@@ -20,6 +20,10 @@ export async function mutate<T>(
 	}
 }
 
+export function deleteItem(client: ConvexClient, token: string, itemId: Id<'items'>) {
+	return mutate(token, (t) => client.mutation(api.items.remove, { id: itemId, token: t }));
+}
+
 // Re-fetch a URL item's image in its current mode (shared by the listing pages)
 export function retryScreenshot(client: ConvexClient, token: string, itemId: Id<'items'>) {
 	return mutate(token, (t) => client.mutation(api.screenshots.reimageItem, { itemId, token: t }));

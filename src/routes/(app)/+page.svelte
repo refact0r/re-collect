@@ -6,7 +6,7 @@
 	import ItemList from '#lib/components/ItemList.svelte';
 	import TopControls from '#lib/components/TopControls.svelte';
 	import { type ViewMode } from '#lib/components/ViewToggle.svelte';
-	import { mutate, retryScreenshot } from '#lib/mutationHelper.js';
+	import { deleteItem, mutate, retryScreenshot } from '#lib/mutationHelper.js';
 	import { SvelteSet } from 'svelte/reactivity';
 	import {
 		getWriteTokenContext,
@@ -126,6 +126,7 @@
 
 	const handleRetryScreenshot = (itemId: Id<'items'>) =>
 		retryScreenshot(client, writeToken, itemId);
+	const handleDelete = (itemId: Id<'items'>) => deleteItem(client, writeToken, itemId);
 </script>
 
 <div class="container">
@@ -150,13 +151,14 @@
 	{:else if items.data?.length === 0}
 		<p class="status-text">no items yet. add your first one above!</p>
 	{:else if viewMode === 'list'}
-		<ItemList items={items.data ?? []} />
+		<ItemList items={items.data ?? []} onDelete={handleDelete} />
 	{:else}
 		<ItemGrid
 			items={items.data ?? []}
 			{columnOffset}
 			{showTitles}
 			onRetryScreenshot={handleRetryScreenshot}
+			onDelete={handleDelete}
 		/>
 	{/if}
 </div>

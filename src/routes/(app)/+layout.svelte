@@ -23,9 +23,14 @@
 	let { children, data } = $props();
 	setupConvex(PUBLIC_CONVEX_URL);
 
-	// Fetch all items and collections on load (with real-time sync)
-	const items = useQuery(api.items.list, () => ({ token: data.writeToken }));
-	const collections = useQuery(api.collections.listWithCounts, () => ({ token: data.writeToken }));
+	// The signed-in user's items and collections (real-time). A logged-out
+	// visitor, who can only be on a shared collection, has none.
+	const items = useQuery(api.items.list, () =>
+		data.writeToken ? { token: data.writeToken } : 'skip'
+	);
+	const collections = useQuery(api.collections.listWithCounts, () =>
+		data.writeToken ? { token: data.writeToken } : 'skip'
+	);
 
 	// State for current items being displayed (set by active page)
 	let currentItems = $state<DisplayItem[]>([]);
@@ -57,7 +62,7 @@
 		goto(url.pathname + url.search);
 	}
 
-	let searchInputRef: HTMLInputElement;
+	let searchInputRef = $state<HTMLInputElement>();
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 	onDestroy(() => {
@@ -106,47 +111,64 @@
 	}
 </script>
 
-<header>
-	<nav>
-		<button class="icon menu-btn" onclick={toggleMobileMenu} aria-label="toggle menu">
-			<IconMenu />
-		</button>
-		<div class="nav-links">
-			<div class="logo"><Logo /></div>
-			<a href="/" class="nav-link" class:active={page.url.pathname === '/'}>re-collect</a>
-			<a href="/collections" class="nav-link" class:active={page.url.pathname === '/collections'}
-				>collections</a
-			>
-			<a href="/atlas" class="nav-link" class:active={page.url.pathname === '/atlas'}>atlas</a>
-		</div>
-		<div class="nav-search">
-			<IconSearch />
-			<input
-				type="text"
-				bind:this={searchInputRef}
-				value={searchQuery}
-				onfocus={handleSearchFocus}
-				oninput={handleSearchInput}
-				placeholder="search..."
-			/>
-		</div>
-		<div class="nav-actions">
-			<a href="/account" class="nav-link" class:active={page.url.pathname === '/account'}>account</a
-			>
-		</div>
-	</nav>
-</header>
+{#if !data.writeToken}
+	<header>
+		<nav>
+			<div class="nav-links guest">
+				<div class="logo"><Logo /></div>
+				<span class="wordmark">re-collect</span>
+			</div>
+			<a href="/login?next={encodeURIComponent(page.url.pathname)}" class="nav-link">log in</a>
+		</nav>
+	</header>
 
-{#if mobileMenuOpen}
-	<button class="mobile-backdrop" onclick={closeMobileMenu} aria-label="close menu"></button>
-{/if}
-
-<div class="layout">
-	<Sidebar bind:mobileOpen={mobileMenuOpen} />
 	<main>
 		{@render children()}
 	</main>
-</div>
+{:else}
+	<header>
+		<nav>
+			<button class="icon menu-btn" onclick={toggleMobileMenu} aria-label="toggle menu">
+				<IconMenu />
+			</button>
+			<div class="nav-links">
+				<div class="logo"><Logo /></div>
+				<a href="/" class="nav-link" class:active={page.url.pathname === '/'}>re-collect</a>
+				<a href="/collections" class="nav-link" class:active={page.url.pathname === '/collections'}
+					>collections</a
+				>
+				<a href="/atlas" class="nav-link" class:active={page.url.pathname === '/atlas'}>atlas</a>
+			</div>
+			<div class="nav-search">
+				<IconSearch />
+				<input
+					type="text"
+					bind:this={searchInputRef}
+					value={searchQuery}
+					onfocus={handleSearchFocus}
+					oninput={handleSearchInput}
+					placeholder="search..."
+				/>
+			</div>
+			<div class="nav-actions">
+				<a href="/account" class="nav-link" class:active={page.url.pathname === '/account'}
+					>account</a
+				>
+			</div>
+		</nav>
+	</header>
+
+	{#if mobileMenuOpen}
+		<button class="mobile-backdrop" onclick={closeMobileMenu} aria-label="close menu"></button>
+	{/if}
+
+	<div class="layout">
+		<Sidebar bind:mobileOpen={mobileMenuOpen} />
+		<main>
+			{@render children()}
+		</main>
+	</div>
+{/if}
 
 {#if editItemId}
 	<ItemModal itemId={editItemId} onClose={closeModal} />
@@ -229,7 +251,16 @@
 		overflow-y: auto;
 	}
 
+	.wordmark {
+		display: flex;
+		align-items: center;
+		padding: 0.5rem;
+	}
+
 	@media (max-width: 768px) {
+		.nav-links.guest {
+			display: flex;
+		}
 		header {
 			padding: 0.5rem var(--spacing) 0.5rem 0.5rem;
 		}

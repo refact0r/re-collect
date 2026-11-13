@@ -8,7 +8,7 @@
 	import ViewToggle, { type ViewMode } from '#lib/components/ViewToggle.svelte';
 	import ColumnControl from '#lib/components/ColumnControl.svelte';
 	import SettingsMenu from '#lib/components/SettingsMenu.svelte';
-	import { mutate, retryScreenshot } from '#lib/mutationHelper.js';
+	import { deleteItem, mutate, retryScreenshot } from '#lib/mutationHelper.js';
 	import { getWriteTokenContext, getCurrentItemsContext } from '#lib/context.js';
 
 	const client = useConvexClient();
@@ -63,6 +63,7 @@
 
 	const handleRetryScreenshot = (itemId: Id<'items'>) =>
 		retryScreenshot(client, writeToken, itemId);
+	const handleDelete = (itemId: Id<'items'>) => deleteItem(client, writeToken, itemId);
 </script>
 
 <div class="container">
@@ -93,13 +94,14 @@
 			</div>
 		</div>
 		{#if viewMode === 'list'}
-			<ItemList items={searchResults.data ?? []} />
+			<ItemList items={searchResults.data ?? []} onDelete={handleDelete} />
 		{:else}
 			<ItemGrid
 				items={searchResults.data ?? []}
 				{columnOffset}
 				{showTitles}
 				onRetryScreenshot={handleRetryScreenshot}
+				onDelete={handleDelete}
 			/>
 		{/if}
 	{/if}

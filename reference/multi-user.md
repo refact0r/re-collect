@@ -37,9 +37,10 @@ the work.
    so injected script could still read it. An invite link (`/login?invite=…`) shows the same form as
    signup instead (`sessions.signup`).
 2. The `(app)` layout reads the cookie and hands the token to the client as
-   `writeToken`. A request without the cookie is redirected to `/login`. The
-   server doesn't re-check the token on each load, so there is no extra round
-   trip.
+   `writeToken` (null without one). Its universal load (`+layout.ts`) sends a
+   visitor without a token to `/login?next=…`, except on a collection page
+   (see [Shared collections](#shared-collections)). The server doesn't re-check
+   the token on each load, so there is no extra round trip.
 3. The client sends the token as the required `token` arg on every Convex
    query and mutation (leaving it out is a type error). `userQuery` / `userMutation` call `requireUser`, which hashes the
    token, looks up the session (one indexed read) and passes `ctx.userId` to
@@ -74,6 +75,45 @@ doesn't have.
 `requireUser` is the one identity seam. Swapping in a real provider later
 (Better Auth, Clerk) means replacing it with `ctx.auth.getUserIdentity()` plus
 a users lookup, and removing the `token` plumbing from the client.
+
+## Shared collections
+
+A collection is private until its owner switches it to "anyone with link" in
+the collection's settings menu ("copy link" does that and copies the URL). The
+link is the collection's own URL, `/collections/<id>`, so the owner and a
+visitor open the same page:
+
+- **Owner**: the normal page.
+- **Signed-in non-owner**: their own sidebar and top bar, with the collection
+  read-only and a "by <owner>" byline.
+- **Logged out**: a bar with just the logo and "log in" (which comes back to
+  the collection), and the collection read-only.
+
+Read-only means a "search this collection" box in place of the add bar, no
+reordering, deleting or retrying, and an item modal without edit controls.
+Visitors start from the owner's sort, view, column and title settings and can
+change them for themselves; their changes are never saved.
+
+On the backend, `viewerQuery` (in `lib/auth.ts`) is a query whose `token` is
+optional; an absent or ended session is a logged-out viewer
+(`ctx.viewerId === null`). `getViewable` returns a collection the caller owns
+or that's shared, else null, so a private collection looks missing. Three
+queries use it: `collections.get` (display fields, owner username, cover image),
+`items.listByCollection` and `items.searchCollection` (the owner's search
+index, narrowed to the collection). For anyone but the owner, items come back
+without `collections` (which would reveal the owner's other collection ids),
+error messages or `searchText`.
+
+A logged-out request for a collection page loads it during SSR (`+page.ts`)
+for link-preview meta tags (`og:title`, `og:image` from the newest image). It
+goes through SvelteKit's `fetch`, so hydration reuses the response; signed-in
+users skip it.
+
+Collection ids aren't designed as secrets, but they're long and can't be
+listed by anyone else, so the link is the access control along with the flag.
+Making a collection private again cuts every visitor off; sharing it again
+revives the same link. A random share key that can be rotated would be the
+next step if that ever matters.
 
 ## Managing users
 
@@ -173,8 +213,9 @@ to Better Auth through the seam above.
   Browser Rendering) are shared and unmetered. Add a per-user quota (e.g.
   `@convex-dev/rate-limiter` keyed by `userId` in `items.add` / `retagItem`)
   before inviting anyone heavy.
-- **Public or shared collections.** Everything is private to its owner; a
-  logged-out visitor sees nothing. Sharing would need a `visibility` field on
-  collections and a query path that doesn't require a user.
+- **Profiles and discovery.** Shared collections are reachable only by link;
+  there's no `/u/<username>` page listing them.
+- **Saving someone else's item.** Deleting an item deletes its R2 object, so a
+  copy into your own collection needs its own copy of the image.
 - **Account settings, renaming or deleting a user and their data** (do it by hand in the dashboard for now).
 - **Pagination.** `items.list` still collects all of a user's items, as before.

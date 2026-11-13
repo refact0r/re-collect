@@ -34,6 +34,7 @@
 			{#if data.invite}
 				<input type="hidden" name="invite" value={data.invite} />
 			{/if}
+			<input type="hidden" name="next" value={data.next} />
 			<input
 				name="username"
 				bind:value={username}

@@ -1,5 +1,8 @@
 <script lang="ts">
+	import { dev } from '$app/env';
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { onDestroy } from 'svelte';
 	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../../../convex/_generated/api.js';
 	import type { Id } from '../../../../convex/_generated/dataModel.js';
@@ -7,7 +10,7 @@
 	import ItemList from '#lib/components/ItemList.svelte';
 	import TopControls from '#lib/components/TopControls.svelte';
 	import { type ViewMode } from '#lib/components/ViewToggle.svelte';
-	import { mutate, retryScreenshot } from '#lib/mutationHelper.js';
+	import { deleteItem, mutate, retryScreenshot } from '#lib/mutationHelper.js';
 	import {
 		getWriteTokenContext,
 		getCollectionsContext,
@@ -15,120 +18,94 @@
 	} from '#lib/context.js';
 	import type { CollectionSortOption } from '#lib/types.js';
 
+	let { data } = $props();
+
 	const client = useConvexClient();
 	const getWriteToken = getWriteTokenContext();
-	const writeToken = $derived(getWriteToken());
+	const token = $derived(data.writeToken ?? undefined);
 	const collectionId = $derived(page.params.id as Id<'collections'>);
-	const allCollections = getCollectionsContext();
+	const ownCollections = getCollectionsContext();
 	const currentItemsContext = getCurrentItemsContext();
 
-	// Derive collection from context
-	const collection = $derived.by(() => {
-		if (allCollections.isLoading || allCollections.error || !allCollections.data) {
-			return { isLoading: allCollections.isLoading, error: allCollections.error, data: null };
-		}
-		return {
-			isLoading: false,
-			error: null,
-			data: allCollections.data.find((c) => c._id === collectionId) ?? null
-		};
-	});
+	// The signed-in user's own collection comes straight from the layout's list.
+	// Anyone else's (and every collection, for a logged-out visitor) is fetched
+	// on its own, read-only.
+	const own = $derived(ownCollections.data?.find((c) => c._id === collectionId));
+	const other = useQuery(
+		api.collections.get,
+		() => (own || ownCollections.isLoading ? 'skip' : { id: collectionId, token }),
+		() => ({ initialData: data.collection ?? undefined })
+	);
+	const collection = $derived(own ?? other.data);
+	const isOwner = $derived(!!own);
+	const isLoading = $derived(ownCollections.isLoading || other.isLoading);
 
-	// Prefs come from the collection doc; a local override (keyed by collection so
-	// navigation drops it) wins until the mutation round-trips
-	let sortOverride = $state<{ id: string; value: CollectionSortOption } | null>(null);
-	let viewOverride = $state<{ id: string; value: ViewMode } | null>(null);
-	let columnOffsetOverride = $state<{ id: string; value: number } | null>(null);
-	let showTitlesOverride = $state<{ id: string; value: boolean } | null>(null);
-	const sortBy = $derived(
-		sortOverride && sortOverride.id === collectionId
-			? sortOverride.value
-			: (collection.data?.sortMode ?? 'manual')
-	);
-	const viewMode = $derived(
-		viewOverride && viewOverride.id === collectionId
-			? viewOverride.value
-			: (collection.data?.viewMode ?? 'grid')
-	);
-	const columnOffset = $derived(
-		columnOffsetOverride && columnOffsetOverride.id === collectionId
-			? columnOffsetOverride.value
-			: (collection.data?.columnOffset ?? 0)
-	);
-	const showTitles = $derived(
-		showTitlesOverride && showTitlesOverride.id === collectionId
-			? showTitlesOverride.value
-			: (collection.data?.showTitles ?? false)
-	);
+	// Everyone starts from the owner's saved view settings. The owner's changes
+	// save to the collection; anyone else's stay on this page. A local value
+	// (keyed by collection, so navigating drops it) wins until the save lands.
+	type Prefs = {
+		sortMode: CollectionSortOption;
+		viewMode: ViewMode;
+		columnOffset: number;
+		showTitles: boolean;
+	};
+	let local = $state<{ id: string; prefs: Partial<Prefs> }>({ id: '', prefs: {} });
+	const localPrefs = $derived(local.id === collectionId ? local.prefs : {});
+	const sortBy = $derived(localPrefs.sortMode ?? collection?.sortMode ?? 'manual');
+	const viewMode = $derived(localPrefs.viewMode ?? collection?.viewMode ?? 'grid');
+	const columnOffset = $derived(localPrefs.columnOffset ?? collection?.columnOffset ?? 0);
+	const showTitles = $derived(localPrefs.showTitles ?? collection?.showTitles ?? false);
 
-	// Use dedicated query for collection items with sort option
-	const items = useQuery(api.items.listByCollection, () => ({
-		collectionId,
-		sortBy,
-		token: writeToken
-	}));
+	async function setPrefs(prefs: Partial<Prefs>) {
+		local = { id: collectionId, prefs: { ...localPrefs, ...prefs } };
+		if (!isOwner) return;
+		await mutate(getWriteToken(), (t) =>
+			client.mutation(api.collections.update, { id: collectionId, ...prefs, token: t })
+		);
+	}
+
+	const items = useQuery(api.items.listByCollection, () => ({ collectionId, sortBy, token }));
+
+	// Visitors search within the collection (?q=); the box writes the URL after a
+	// pause, and follows it when something else changes it (a tag link, back)
+	const query = $derived(page.url.searchParams.get('q')?.trim() ?? '');
+	const results = useQuery(
+		api.items.searchCollection,
+		() => (query ? { collectionId, query, token } : 'skip'),
+		{ keepPreviousData: true }
+	);
+	let searchInput = $derived(query);
+	let searchTimer: ReturnType<typeof setTimeout> | undefined;
+	onDestroy(() => clearTimeout(searchTimer));
+	function handleQueryChange(value: string) {
+		searchInput = value;
+		clearTimeout(searchTimer);
+		searchTimer = setTimeout(() => {
+			const url = new URL(page.url.href);
+			if (value.trim()) url.searchParams.set('q', value.trim());
+			else url.searchParams.delete('q');
+			url.searchParams.delete('item');
+			goto(url, { replace: true, reset: false });
+		}, 300);
+	}
+
+	const shown = $derived(query ? results : items);
 
 	// Update the current items when data changes
 	$effect(() => {
-		if (items.data) {
-			currentItemsContext.setItems(items.data);
+		if (shown.data) {
+			currentItemsContext.setItems(shown.data);
 		}
 	});
-
-	// Save sort preference when changed
-	async function handleSortChange(newSort: CollectionSortOption) {
-		sortOverride = { id: collectionId, value: newSort };
-		await mutate(writeToken, (token) =>
-			client.mutation(api.collections.update, {
-				id: collectionId,
-				sortMode: newSort,
-				token
-			})
-		);
-	}
-
-	// Save view mode preference when changed
-	async function handleViewModeChange(newMode: ViewMode) {
-		viewOverride = { id: collectionId, value: newMode };
-		await mutate(writeToken, (token) =>
-			client.mutation(api.collections.update, {
-				id: collectionId,
-				viewMode: newMode,
-				token
-			})
-		);
-	}
-
-	async function handleColumnOffsetChange(offset: number) {
-		columnOffsetOverride = { id: collectionId, value: offset };
-		await mutate(writeToken, (token) =>
-			client.mutation(api.collections.update, {
-				id: collectionId,
-				columnOffset: offset,
-				token
-			})
-		);
-	}
-
-	async function handleShowTitlesChange(show: boolean) {
-		showTitlesOverride = { id: collectionId, value: show };
-		await mutate(writeToken, (token) =>
-			client.mutation(api.collections.update, {
-				id: collectionId,
-				showTitles: show,
-				token
-			})
-		);
-	}
 
 	// Reorder handler for drag-drop; optimistic so the grid doesn't snap back before the server responds
 	async function handleReorder(itemId: Id<'items'>, newPosition: string) {
 		// Must match the useQuery args exactly, token included, to hit its cache entry
-		const queryArgs = { collectionId, sortBy, token: writeToken };
-		await mutate(writeToken, (token) =>
+		const queryArgs = { collectionId, sortBy, token };
+		await mutate(getWriteToken(), (t) =>
 			client.mutation(
 				api.itemCollectionPositions.reorderItem,
-				{ itemId, collectionId, newPosition, token },
+				{ itemId, collectionId, newPosition, token: t },
 				{
 					optimisticUpdate: (store) => {
 						const current = store.getQuery(api.items.listByCollection, queryArgs);
@@ -148,15 +125,16 @@
 	}
 
 	const handleRetryScreenshot = (itemId: Id<'items'>) =>
-		retryScreenshot(client, writeToken, itemId);
+		retryScreenshot(client, getWriteToken(), itemId);
+	const handleDelete = (itemId: Id<'items'>) => deleteItem(client, getWriteToken(), itemId);
 
 	let isEditing = $state(false);
 	let editName = $state('');
 	let inputElement: HTMLInputElement | undefined = $state();
 
 	function startEditing() {
-		if (collection.data) {
-			editName = collection.data.name;
+		if (collection) {
+			editName = collection.name;
 			isEditing = true;
 			// Focus the input after it's rendered
 			setTimeout(() => inputElement?.select(), 0);
@@ -170,15 +148,15 @@
 
 	async function saveEdits() {
 		const trimmed = editName.trim();
-		if (!trimmed || trimmed === collection.data?.name) {
+		if (!trimmed || trimmed === collection?.name) {
 			cancelEditing();
 			return;
 		}
-		const result = await mutate(writeToken, (token) =>
+		const result = await mutate(getWriteToken(), (t) =>
 			client.mutation(api.collections.update, {
 				id: collectionId,
 				name: trimmed,
-				token
+				token: t
 			})
 		);
 		if (result !== null) {
@@ -197,16 +175,35 @@
 	}
 </script>
 
-{#if collection.isLoading}
+<svelte:head>
+	{#if collection}
+		<title>{dev ? 'DEV ' : ''}{collection.name} · re-collect</title>
+	{/if}
+	<!-- Link previews; only logged-out requests (crawlers included) load these -->
+	{#if data.collection}
+		<meta property="og:title" content={data.collection.name} />
+		<meta property="og:description" content="a collection by {data.collection.owner}" />
+		<meta property="og:site_name" content="re-collect" />
+		{#if data.collection.coverUrl}
+			<meta property="og:image" content={data.collection.coverUrl} />
+			<meta name="twitter:card" content="summary_large_image" />
+		{/if}
+	{/if}
+</svelte:head>
+
+{#if isLoading}
 	<p class="status-text">loading...</p>
-{:else if collection.error}
-	<p class="status-text">error: {collection.error.message}</p>
-{:else if !collection.data}
+{:else if other.error}
+	<p class="status-text">error: {other.error.message}</p>
+{:else if !collection}
 	<p class="status-text">collection not found</p>
 {:else}
 	<div class="container">
 		<h1>
-			{#if isEditing}
+			{#if !isOwner}
+				{collection.name}
+				<span class="byline">by {other.data?.owner}</span>
+			{:else if isEditing}
 				<input
 					bind:this={inputElement}
 					bind:value={editName}
@@ -218,7 +215,7 @@
 				/>
 			{:else}
 				<button class="title-button h1" onclick={startEditing}>
-					{collection.data.name}
+					{collection.name}
 				</button>
 			{/if}
 		</h1>
@@ -230,25 +227,29 @@
 			{columnOffset}
 			{showTitles}
 			showManualSort={true}
-			onSortChange={handleSortChange}
-			onViewModeChange={handleViewModeChange}
-			onColumnOffsetChange={handleColumnOffsetChange}
-			onShowTitlesChange={handleShowTitlesChange}
+			readonly={!isOwner}
+			query={searchInput}
+			onQueryChange={handleQueryChange}
+			onSortChange={(sortMode) => setPrefs({ sortMode })}
+			onViewModeChange={(viewMode) => setPrefs({ viewMode })}
+			onColumnOffsetChange={(columnOffset) => setPrefs({ columnOffset })}
+			onShowTitlesChange={(showTitles) => setPrefs({ showTitles })}
 		/>
 
-		{#if items.isLoading}
+		{#if shown.isLoading}
 			<p class="status-text">loading items...</p>
-		{:else if items.data?.length === 0}
-			<p class="status-text">no items in this collection yet.</p>
+		{:else if shown.data?.length === 0}
+			<p class="status-text">{query ? 'no matches.' : 'no items in this collection yet.'}</p>
 		{:else if viewMode === 'list'}
-			<ItemList items={items.data ?? []} />
+			<ItemList items={shown.data ?? []} onDelete={isOwner ? handleDelete : undefined} />
 		{:else}
 			<ItemGrid
-				items={items.data ?? []}
+				items={shown.data ?? []}
 				{columnOffset}
 				{showTitles}
-				onReorder={sortBy === 'manual' ? handleReorder : undefined}
-				onRetryScreenshot={handleRetryScreenshot}
+				onReorder={isOwner && sortBy === 'manual' && !query ? handleReorder : undefined}
+				onRetryScreenshot={isOwner ? handleRetryScreenshot : undefined}
+				onDelete={isOwner ? handleDelete : undefined}
 			/>
 		{/if}
 	</div>
@@ -260,6 +261,10 @@
 		padding: 0;
 		font-size: inherit;
 		font-weight: inherit;
+	}
+
+	.byline {
+		color: var(--txt-3);
 	}
 
 	.title-button {

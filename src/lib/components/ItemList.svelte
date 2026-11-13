@@ -1,9 +1,5 @@
 <script lang="ts">
-	import { useConvexClient } from 'convex-svelte';
-	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { mutate } from '#lib/mutationHelper.js';
-	import { getWriteTokenContext } from '#lib/context.js';
 	import { shouldDisplayAsImage, getItemUrl } from '#lib/itemDisplay.js';
 	import type { DisplayItem } from '#lib/types.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
@@ -14,21 +10,12 @@
 	import IconImage from '~icons/material-symbols-light/image-outline';
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new';
 
-	const client = useConvexClient();
-	const getWriteToken = getWriteTokenContext();
-	const writeToken = $derived(getWriteToken());
-
 	interface Props {
 		items: DisplayItem[];
+		onDelete?: (itemId: Id<'items'>) => void;
 	}
 
-	let { items }: Props = $props();
-
-	async function handleDeleteItem(itemId: Id<'items'>, e: MouseEvent) {
-		e.preventDefault();
-		e.stopPropagation();
-		await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
-	}
+	let { items, onDelete }: Props = $props();
 
 	function handleOpenLink(url: string, e: MouseEvent) {
 		e.preventDefault();
@@ -90,13 +77,19 @@
 					<IconOpenInNew />
 				</button>
 			{/if}
-			<button
-				class="icon delete"
-				title="Delete item"
-				onclick={(e) => handleDeleteItem(item._id, e)}
-			>
-				<IconDelete />
-			</button>
+			{#if onDelete}
+				<button
+					class="icon delete"
+					title="Delete item"
+					onclick={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						onDelete(item._id);
+					}}
+				>
+					<IconDelete />
+				</button>
+			{/if}
 		</div>
 	{/each}
 </div>
