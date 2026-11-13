@@ -68,8 +68,11 @@ a {
 }
 
 .status {
-	min-height: 1.5em;
 	color: var(--txt-3);
+}
+
+.status:empty {
+	display: none;
 }
 
 .status.error {
