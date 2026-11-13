@@ -55,5 +55,5 @@ Cache invalidation:
 ## Browser extension
 
 - Source: `extension/` (see its README). Loaded unpacked, not published to a store.
-- Configured in its options page with the Convex deployment URL (`.convex.cloud`) and an extension token, stored in `chrome.storage.local`. The token is a per-user session from the app's "extension token" button (see `reference/multi-user.md`). `users:signOut` revokes it along with the user's other sessions.
+- Configured in its options page with the Convex deployment URL (`.convex.cloud`) and an extension token, stored in `chrome.storage.local`. The token is a per-user session from "copy extension token" on the app's account page (see `reference/multi-user.md`). `users:signOut` revokes it along with the user's other sessions.
 - Talks to Convex's HTTP API directly, so the backend needs no extension-specific config. Image saves and extension screenshots need the `imageImport` actions deployed.
