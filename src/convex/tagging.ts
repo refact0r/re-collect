@@ -337,7 +337,8 @@ export const setCompleted = internalMutation({
 				styles: args.styles,
 				aiTags: args.aiTags,
 				subject: args.subject,
-				paletteNames: item.paletteNames
+				paletteNames: item.paletteNames,
+				fonts: item.fonts
 			})
 		});
 	}
@@ -375,7 +376,8 @@ export const setPaletteHex = internalMutation({
 				styles: item.styles,
 				aiTags: item.aiTags,
 				subject: item.subject,
-				paletteNames
+				paletteNames,
+				fonts: item.fonts
 			})
 		});
 	}

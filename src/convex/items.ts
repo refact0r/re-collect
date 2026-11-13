@@ -191,7 +191,8 @@ export const update = userMutation({
 				styles: existing.styles,
 				aiTags: existing.aiTags,
 				subject: existing.subject,
-				paletteNames: existing.paletteNames
+				paletteNames: existing.paletteNames,
+				fonts: existing.fonts
 			}),
 			dateModified: Date.now()
 		});

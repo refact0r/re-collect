@@ -2,7 +2,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from 'convex-test';
 import { expect, test, vi } from 'vitest';
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
 import schema from './schema';
 import { hashToken } from './lib/auth';
 
@@ -42,5 +42,37 @@ test('per-save overrides replace the collection’s ingestion defaults', async (
 	expect(a).toMatchObject({ userId, taggingMode: 'none' });
 	expect(a?.taggingStatus).toBeUndefined();
 	expect(b).toMatchObject({ taggingMode: 'visual', linkImageMode: 'og', taggingStatus: 'pending' });
+	vi.useRealTimers();
+});
+
+test('captured fonts are stored, searchable, and kept when a capture brings none', async () => {
+	vi.useFakeTimers(); // Keep the scheduled palette/tagging actions from running
+	const t = convexTest(schema, modules);
+	const itemId = await t.run(async (ctx) => {
+		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
+		return ctx.db.insert('items', {
+			userId,
+			type: 'url',
+			url: 'https://klim.co.nz',
+			taggingMode: 'none',
+			collections: [],
+			dateAdded: 0,
+			dateModified: 0
+		});
+	});
+	const complete = (fonts?: { family: string; roles: 'body'[]; webfont: boolean }[]) =>
+		t.mutation(internal.screenshots.setCompleted, {
+			itemId,
+			imageKey: 'screenshots/klim.webp',
+			imageWidth: 1440,
+			imageHeight: 900,
+			fonts
+		});
+
+	await complete([{ family: 'SOEHNE', roles: ['body'], webfont: true }]);
+	await complete(); // og fast path: no browser, no fonts
+	const item = await t.run((ctx) => ctx.db.get(itemId));
+	expect(item?.fonts).toEqual([{ family: 'SOEHNE', roles: ['body'], webfont: true }]);
+	expect(item?.searchText?.toLowerCase()).toContain('soehne');
 	vi.useRealTimers();
 });

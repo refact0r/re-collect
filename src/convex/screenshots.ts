@@ -6,7 +6,8 @@ import { Workpool, vOnCompleteArgs } from '@convex-dev/workpool';
 import { getOwned, userMutation } from './lib/auth';
 import { r2 } from './r2';
 import { buildSearchText } from './lib/searchText';
-import { linkImageModeValidator } from './schema';
+import { linkImageModeValidator, siteFontValidator } from './schema';
+import { parseSiteFonts } from './lib/fonts';
 
 // Serializes captures so the Cloudflare free plan's launch limits (1 new
 // browser per 20s, 3 concurrent) don't drop screenshots during burst saves.
@@ -46,7 +47,9 @@ export const setCompleted = internalMutation({
 		imageWidth: v.number(),
 		imageHeight: v.number(),
 		title: v.optional(v.string()),
-		description: v.optional(v.string())
+		description: v.optional(v.string()),
+		// Absent when the worker didn't render the page (og fast path): keep the old ones
+		fonts: v.optional(v.array(siteFontValidator))
 	},
 	handler: async (ctx, args) => {
 		const item = await ctx.db.get(args.itemId);
@@ -61,6 +64,7 @@ export const setCompleted = internalMutation({
 		// description stays purely user notes.
 		const title = item.title || args.title || undefined;
 		const ogDescription = args.description ?? item.ogDescription;
+		const fonts = args.fonts ? (args.fonts.length ? args.fonts : undefined) : item.fonts;
 		// Text-mode items tag off the article (scheduled at add time), so a new
 		// image only triggers palette extraction, not visual tagging
 		const wantsVisualTagging = item.taggingMode !== 'none' && item.taggingMode !== 'text';
@@ -74,6 +78,7 @@ export const setCompleted = internalMutation({
 			...(wantsVisualTagging && { taggingStatus: 'pending' as const, taggingError: undefined }),
 			title,
 			ogDescription,
+			fonts,
 			searchText: buildSearchText({
 				title,
 				description: item.description,
@@ -82,7 +87,8 @@ export const setCompleted = internalMutation({
 				styles: item.styles,
 				aiTags: item.aiTags,
 				subject: item.subject,
-				paletteNames: item.paletteNames
+				paletteNames: item.paletteNames,
+				fonts
 			})
 		});
 
@@ -211,6 +217,7 @@ export const generateScreenshotInternal = internalAction({
 			height: number;
 			title?: string;
 			description?: string;
+			fonts?: unknown;
 		};
 
 		await ctx.runMutation(internal.screenshots.setCompleted, {
@@ -219,7 +226,8 @@ export const generateScreenshotInternal = internalAction({
 			imageWidth: result.width,
 			imageHeight: result.height,
 			title: result.title,
-			description: result.description
+			description: result.description,
+			fonts: parseSiteFonts(result.fonts)
 		});
 	}
 });

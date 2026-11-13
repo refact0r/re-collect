@@ -86,9 +86,15 @@ always captures a viewport screenshot. A stored og:image is returned under an
 	"height": 900,
 	"captureTimeMs": 8000,
 	"title": "Example Domain",
-	"description": "..."
+	"description": "...",
+	"fonts": [{ "family": "SOEHNE", "internalName": "Söhne", "roles": ["body"], "webfont": true }]
 }
 ```
+
+`fonts` is present only on screenshot captures, where the page is rendered in
+the browser. It lists the most prominent font families on the page, read best
+effort (see `reference/design-tokens.md`). `internalName` comes from the font
+file via CDP.
 
 **Response (error):**
 
@@ -100,7 +106,7 @@ always captures a viewport screenshot. A stored og:image is returned under an
 
 ## Limitations
 
-- Screenshots are 1440x900 viewport (not full page)
+- Screenshots are 1440x900 viewport (not full page), rendered in light mode
 - 10 second navigation timeout, then up to 10s waiting for network idle plus a
   forced 5s settle delay before capture
 - og:images narrower than 400px are rejected in favor of a screenshot

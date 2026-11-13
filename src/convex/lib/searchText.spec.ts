@@ -57,3 +57,14 @@ describe('dedupePreserveOrder', () => {
 		expect(dedupePreserveOrder(['b', 'a', 'b', '', 'c', 'a'])).toEqual(['b', 'a', 'c']);
 	});
 });
+
+describe('buildSearchText fonts', () => {
+	it('appends font name variants', () => {
+		expect(
+			buildSearchText({
+				title: 'Klim',
+				fonts: [{ family: 'SOEHNE', internalName: 'Söhne', roles: ['body'], webfont: true }]
+			})
+		).toBe('Klim fontsohne Söhne Sohne soehne');
+	});
+});

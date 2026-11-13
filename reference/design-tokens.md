@@ -1,10 +1,25 @@
-# Design tokens for URL items: research and proposal
+# Design tokens for URL items
 
-Status: Phase 1 (research). Nothing here is implemented yet. Prototype: `experiments/design-tokens/`.
+The idea: the screenshot worker already loads every saved page in headless Chromium, so it can also read the site's design tokens. Research covered fonts, type scale, colors, layout, motion and tech fingerprinting (prototype: `experiments/design-tokens/`). **Only fonts shipped.** Colors stay with the pixel palette, which sees imagery and works on every item type. Sizes, layout and motion weren't useful enough for browsing.
 
-The idea: the screenshot worker already loads every saved page in headless Chromium, so it can also read the site's design tokens (fonts, type scale, colors and so on). That makes queries like "every site I saved that uses GT America" searchable, puts the tokens on the item modal, and lets you copy them out.
+## What shipped (fonts v1)
 
-## TL;DR
+- **Worker** (`workers/screenshot/src/fonts.ts`, `extractFonts.js`): on screenshot captures only, after the screenshot and before the browser closes. Reads the first declared `font-family` of every text-owning element in the first three screens, weighted by characters and size. Keeps up to 5 families with ≥3% share, plus the top heading family. Skips generic families, framework `Fallback`/`Placeholder` faces and icon fonts. Assigns heading/body/mono roles. Then asks Chromium over CDP (`CSS.getPlatformFontsForNode`) for the font file's internal name. Best effort with an 8 s cap: it never fails a capture. The worker also pins `prefers-color-scheme: light`. The response gains `fonts: { family, internalName?, roles, webfont }[]`.
+- **Convex:** `items.fonts` stores those entries raw. `generateScreenshotInternal` narrows them with `parseSiteFonts`, which drops malformed entries and merges weight-split families like `Editor-Regular`/`Editor-Bold`. `setCompleted` replaces them, or keeps the old ones when a capture brings none (og fast path).
+- **Naming** (`src/convex/lib/fonts.ts`): derived on read, so tweaks apply without re-crawling.
+  - The display name prefers the internal name (`fhd` → FH Dfaalt, `areal` → ABC Areal Superfamily, `SOEHNE` → Söhne) and falls back to the cleaned CSS name when the internal one is junk ("Copyright Klim Type Foundry", empty).
+  - Trailing weight and format words are stripped (Light, SemiBold, Variable, VF, …), CamelCase is split, and shouty names are title-cased.
+  - `fontSearchTerms` puts each name in `searchText` spaced, accent-free and as a one-word key (`gtamericamono`, `sohne`, `soehne`).
+- **UI:** a "fonts" chip list in the item modal. A chip links to `/search?q=font<key>` (e.g. `fontgtamericamono`). That extra token is also in `searchText`; it matches only items with that font, because Convex prefix-matches the last query term and a bare `inter` would also hit "interface".
+- **Not covered:**
+  - og-mode items whose og:image comes from the fast path (no browser).
+  - Images supplied by the extension (no worker run).
+  - Existing items, until "refresh image" re-captures them. There's no backfill migration.
+- Changing font naming only needs a `searchText` rebuild for existing items. Re-extraction needs a recapture.
+
+## Research findings (2026-11-12)
+
+### TL;DR
 
 - **Fonts are the clear win.** Family names come out cleanly on 34 of 40 test sites, which render their primary text in a web font; the other 6 use system fonts and report those names. Chromium's internal font name (from the font file, read over CDP) is often the nicer label: `areal` → "ABC Areal Superfamily Variable", `fhd` → "FH Dfaalt", `SOEHNE` → "Söhne", `cinetype` → "GT Cinetype". That gives two search tokens per font.
 - **The type scale is good.** Display, h1, h2, body and small sizes come with weight, line-height and letter-spacing in em. Use "largest text" rather than `h1`: only 20 of 40 sites had an `h1` in the first three screens.
@@ -13,13 +28,13 @@ The idea: the screenshot worker already loads every saved page in headless Chrom
 - **Cost is negligible:** about 70 ms median (p90 about 400 ms) on top of a page load that already takes 4–20 s. The real cost question is pages the worker doesn't open in a browser today (og fast path, extension screenshots) and backfill, since each backfilled item needs a fresh browser visit.
 - Spacing scale, radii, shadows, motion curves, CSS custom-property dumps and dark-mode detection either work only some of the time or need a second page load. They go on the later list.
 
-## Prototype
+### Prototype
 
 `experiments/design-tokens/run.mjs` loads each URL the way `workers/screenshot` does: 1440×900 viewport, the same UA and tracker blocking, domcontentloaded, then network idle (up to 10 s), then a settle delay. It then runs `extract.js` in the page and records Chromium's ground truth via `CSS.getPlatformFontsForNode`. It used local headless Chrome (`puppeteer-core`).
 
 Sites: all 33 URL items in the dev deployment (read with `convex data items`; no external APIs), plus linear.app, vercel.com, klim.co.nz, are.na, theguardian.com, MDN, zeit.de and spiegel.de as dark-mode and cookie-wall probes. That's 40 sites. Raw output is in `out/results.json`, and a readable dump is in `out/summary.txt`.
 
-### Token-by-token findings
+#### Token-by-token findings
 
 | Token                                             | How                                                                                                                                                                                       | Reliability                         | Noise                                                                                                                                                                                                                               | Value to a designer                                                                                                                          | Verdict                                                     |
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
@@ -41,7 +56,7 @@ Sites: all 33 URL items in the dev deployment (read with `convex data items`; no
 | Motion                                            | `transition-duration` / timing functions on elements at rest, keyframe counts, `document.getAnimations()`                                                                                 | Medium                              | Only shows CSS transitions as declared, not JS motion                                                                                                                                                                               | Low; the curves are fun for nerds (`cubic-bezier(0.16,1,0.3,1)`)                                                                             | Later; motion _libraries_ go into tech                      |
 | Tech fingerprint                                  | Globals and markers: `__NEXT_DATA__`, `data-framer-*`, `data-wf-site`, `astro-island`, `wp-content`, generator meta, Tailwind vars, `window.gsap`/`Lenis`/`__THREE__`, …                  | High for builders and frameworks    | Plain React detection is a guess; "Three.js" also fires on sites that just bundle it                                                                                                                                                | Medium-high ("show me Framer sites")                                                                                                         | **v1** (search tokens)                                      |
 
-### Cost
+#### Cost
 
 Measured locally on 40 sites, 5 in parallel:
 
@@ -59,7 +74,7 @@ On the free plan, one capture is about 10–20 s of browser time, so about 30–
 
 `@cloudflare/puppeteer` 1.4.0 exposes `createCDPSession()` in its types. I haven't verified that `CSS.getPlatformFontsForNode` works against Browser Run. If it doesn't, we lose the internal names and keep the CSS names.
 
-### Failure modes seen
+#### Failure modes seen
 
 - **Preloaders and intro screens.** nlc.obys.agency showed only a "05" counter and foundry.basement.studio a splash. Typography mostly survives: the extractor reads computed styles of text that is laid out but hidden (`opacity: 0`), so reveal animations don't hide it. Colors get sampled from the loader. A run after the existing 5 s settle got Basement's six display faces right.
 - **Cookie walls.** Spiegel's Sourcepoint iframe covers the viewport, so background sampling is empty. Typography is unaffected because the DOM underneath is intact. Detect CMP containers (`sp_message`, `onetrust`, `didomi`, …) and full-viewport iframes, then sample with `elementsFromPoint` past them.
@@ -71,7 +86,9 @@ On the free plan, one capture is about 10–20 s of browser time, so about 30–
 - **Cross-origin stylesheets.** Rarely blocked in this sample (4 sheets across 40 sites). This affects only custom properties and `@font-face` scans, never computed styles.
 - **Linux vs Mac system fonts.** On Browser Run, `-apple-system` and `Helvetica` resolve to Linux fallbacks. Since we report the _declared_ family, that's fine.
 
-## Recommendation
+## Original proposal
+
+Kept for the "later" ideas. Where this section differs from what shipped, what shipped wins: the shipped version has no separate table, no type scale and no colors.
 
 ### v1 token set
 

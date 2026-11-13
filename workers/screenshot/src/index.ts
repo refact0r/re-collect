@@ -1,5 +1,6 @@
-import puppeteer, { type Browser, type HTTPRequest } from '@cloudflare/puppeteer';
+import puppeteer, { type Browser, type HTTPRequest, type Page } from '@cloudflare/puppeteer';
 import { imageSize } from 'image-size';
+import { readFonts, type SiteFont } from './fonts.js';
 
 // Minimal DOM globals for code running inside page.evaluate — the worker
 // tsconfig has no DOM lib, and these only exist in the browser context.
@@ -35,6 +36,8 @@ interface ScreenshotResponse {
 	captureTimeMs: number;
 	title?: string;
 	description?: string;
+	// Only present when the page was rendered in the browser (screenshot captures)
+	fonts?: SiteFont[];
 }
 
 interface ErrorResponse {
@@ -134,7 +137,7 @@ function generateImageKey(itemId: string, prefix: string, ext: string): string {
 // it in R2. Returns null whenever the image is unusable (too small, unfetchable,
 // weird content type) so the caller can fall back to a screenshot.
 async function tryOgImage(
-	page: Awaited<ReturnType<Browser['newPage']>>,
+	page: Page,
 	env: Env,
 	pageUrl: string,
 	itemId: string,
@@ -396,6 +399,9 @@ export default {
 			// Set a realistic user agent
 			await page.setUserAgent(USER_AGENT);
 
+			// Pin light mode so captures don't depend on the browser's default appearance
+			await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }]);
+
 			// Enable request interception to block tracking/analytics
 			await page.setRequestInterception(true);
 			page.on('request', (request: HTTPRequest) => {
@@ -523,6 +529,8 @@ export default {
 			// Extract page title
 			const title = await page.title();
 
+			const fonts = await readFonts(page);
+
 			// Browser work is done - close it now so the R2 upload doesn't bill
 			// as browser time
 			await browser.close();
@@ -549,7 +557,8 @@ export default {
 				height: VIEWPORT_HEIGHT,
 				captureTimeMs,
 				title: title.trim() || undefined, // Only include if non-empty
-				description: meta.description ?? undefined
+				description: meta.description ?? undefined,
+				fonts
 			};
 
 			return new Response(JSON.stringify(response), {

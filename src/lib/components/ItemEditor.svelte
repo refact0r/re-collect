@@ -3,6 +3,7 @@
 	import { api } from '../../convex/_generated/api.js';
 	import type { Doc, Id } from '../../convex/_generated/dataModel.js';
 	import { mutate } from '#lib/mutationHelper.js';
+	import { fontDisplayName, fontQuery } from '../../convex/lib/fonts.js';
 	import { getItemsContext, getCollectionsContext, getWriteTokenContext } from '#lib/context.js';
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
 	import IconCheck from '~icons/material-symbols/check';
@@ -216,6 +217,25 @@
 						<div class="palette-strip">
 							{#each item.data.paletteHex as hex (hex)}
 								<span class="palette-swatch" style:background={hex}></span>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				{#if item.data.fonts && item.data.fonts.length > 0}
+					<div class="tag-field">
+						<div class="field-label">fonts</div>
+						<div class="chip-list">
+							{#each item.data.fonts as font (font.family)}
+								<a
+									class="chip"
+									href="/search?q={encodeURIComponent(fontQuery(font))}"
+									title={[...font.roles, font.webfont ? null : 'system font']
+										.filter(Boolean)
+										.join(', ') || undefined}
+								>
+									{fontDisplayName(font)}
+								</a>
 							{/each}
 						</div>
 					</div>
