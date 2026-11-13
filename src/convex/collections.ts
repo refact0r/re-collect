@@ -4,7 +4,14 @@ import type { Id } from './_generated/dataModel';
 import { generateKeyBetween } from 'fractional-indexing';
 import { removeItemFromCollection } from './itemCollectionPositions';
 import { getImageUrl } from './items';
-import { getOwned, userMutation, userQuery, type UserQueryCtx } from './lib/auth';
+import {
+	getOwned,
+	getViewable,
+	userMutation,
+	userQuery,
+	viewerQuery,
+	type UserQueryCtx
+} from './lib/auth';
 import {
 	taggingModeValidator,
 	linkImageModeValidator,
@@ -65,6 +72,7 @@ export const update = userMutation({
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
 		columnOffset: v.optional(v.number()),
 		showTitles: v.optional(v.boolean()),
+		shared: v.optional(v.boolean()),
 		taggingMode: v.optional(taggingModeValidator),
 		linkImageMode: v.optional(linkImageModeValidator)
 	},
@@ -144,5 +152,33 @@ export const listWithCounts = userQuery({
 				previews: await getCollectionPreviews(ctx, collection._id)
 			}))
 		);
+	}
+});
+
+// One collection as anyone allowed to see it does: the owner, or anyone at all
+// once it's shared. Takes the id as a string since it comes straight from a
+// URL. Only the display fields go out, plus the owner's name and a cover image
+// for link previews.
+export const get = viewerQuery({
+	args: { id: v.string() },
+	handler: async (ctx, args) => {
+		const id = ctx.db.normalizeId('collections', args.id);
+		const collection = id && (await getViewable(ctx, id));
+		if (!collection) return null;
+		const owner = await ctx.db.get(collection.userId);
+		const [cover] = await getCollectionPreviews(ctx, collection._id);
+		return {
+			_id: collection._id,
+			name: collection.name,
+			itemCount: collection.itemCount ?? 0,
+			sortMode: collection.sortMode,
+			viewMode: collection.viewMode,
+			columnOffset: collection.columnOffset,
+			showTitles: collection.showTitles,
+			shared: collection.shared ?? false,
+			owner: owner?.username ?? '',
+			isOwner: collection.userId === ctx.viewerId,
+			coverUrl: cover?.imageUrl ?? null
+		};
 	}
 });

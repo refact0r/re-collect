@@ -64,17 +64,24 @@ export async function verifyPassword(password: string, stored: string) {
 // The one identity seam: resolves the caller's session token (the `token` arg,
 // sent by the SvelteKit client and the browser extension) to their user. A
 // real auth provider would replace this with `ctx.auth.getUserIdentity()`.
-export async function requireUser(ctx: QueryCtx, token: string) {
+async function findUser(ctx: QueryCtx, token: string) {
 	const tokenHash = await hashToken(token);
 	const session = await ctx.db
 		.query('sessions')
 		.withIndex('by_tokenHash', (q) => q.eq('tokenHash', tokenHash))
 		.unique();
-	if (!session) throw new ConvexError('Unauthorized');
-	return session.userId;
+	return session?.userId ?? null;
+}
+
+export async function requireUser(ctx: QueryCtx, token: string) {
+	const userId = await findUser(ctx, token);
+	if (!userId) throw new ConvexError('Unauthorized');
+	return userId;
 }
 
 export type UserQueryCtx = QueryCtx & { userId: Id<'users'> };
+// Signed in or not: a missing or ended session is a logged-out visitor
+export type ViewerQueryCtx = QueryCtx & { viewerId: Id<'users'> | null };
 export type UserMutationCtx = MutationCtx & { userId: Id<'users'> };
 
 // Fetch a document only if the current user owns it; anyone else's looks missing
@@ -84,6 +91,16 @@ export async function getOwned<T extends 'items' | 'collections'>(
 ): Promise<Doc<T> | null> {
 	const doc = (await ctx.db.get(id)) as Doc<T> | null;
 	return doc && doc.userId === ctx.userId ? doc : null;
+}
+
+// A collection the caller may look at: their own, or anyone's shared one
+export async function getViewable(
+	ctx: ViewerQueryCtx,
+	id: Id<'collections'>
+): Promise<Doc<'collections'> | null> {
+	const collection = await ctx.db.get(id);
+	if (!collection) return null;
+	return collection.userId === ctx.viewerId || collection.shared ? collection : null;
 }
 
 // Public query/mutation for the signed-in user: adds the required `token` arg,
@@ -112,6 +129,22 @@ export function userMutation<Args extends PropertyValidators, Output>(def: {
 			const { token, ...args } = allArgs as ObjectType<Args> & { token: string };
 			const userId = await requireUser(ctx, token);
 			return def.handler({ ...ctx, userId }, args as unknown as ObjectType<Args>);
+		}
+	});
+}
+
+// Public query open to logged-out visitors: the `token` arg is optional and
+// resolves to `ctx.viewerId`, null without a live session.
+export function viewerQuery<Args extends PropertyValidators, Output>(def: {
+	args: Args;
+	handler: (ctx: ViewerQueryCtx, args: ObjectType<Args>) => Output;
+}) {
+	return query({
+		args: { ...def.args, token: v.optional(v.string()) },
+		handler: async (ctx, allArgs) => {
+			const { token, ...args } = allArgs as ObjectType<Args> & { token?: string };
+			const viewerId = token ? await findUser(ctx, token) : null;
+			return def.handler({ ...ctx, viewerId }, args as unknown as ObjectType<Args>);
 		}
 	});
 }

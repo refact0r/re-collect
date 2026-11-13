@@ -8,7 +8,14 @@ import {
 	deleteAllPositionsForItem,
 	getPositionsByCollection
 } from './itemCollectionPositions';
-import { getOwned, userMutation, userQuery } from './lib/auth';
+import {
+	getOwned,
+	getViewable,
+	userMutation,
+	userQuery,
+	viewerQuery,
+	type ViewerQueryCtx
+} from './lib/auth';
 import { buildSearchText } from './lib/searchText';
 import { enqueueScreenshot } from './screenshots';
 import { getPreferences } from './viewPreferences';
@@ -29,6 +36,22 @@ export function getImageUrl(item: Doc<'items'>): string | null {
 		return `${process.env.R2_PUBLIC_URL}/${item.imageKey}`;
 	}
 	return null;
+}
+
+// An item as the caller gets it. Anyone but the owner (a visitor to a shared
+// collection) doesn't see which of the owner's other collections hold it, or
+// the internal error and search fields.
+function forViewer(ctx: ViewerQueryCtx, item: Doc<'items'>) {
+	const shown = { ...item, imageUrl: getImageUrl(item) };
+	if (item.userId === ctx.viewerId) return shown;
+	return {
+		...shown,
+		collections: [],
+		screenshotError: undefined,
+		taggingError: undefined,
+		taggingModelVersion: undefined,
+		searchText: undefined
+	};
 }
 
 export const add = userMutation({
@@ -296,14 +319,14 @@ export const list = userQuery({
 	}
 });
 
-export const listByCollection = userQuery({
+export const listByCollection = viewerQuery({
 	args: {
 		collectionId: v.id('collections'),
 		sortBy: v.optional(collectionSortModeValidator)
 	},
 	handler: async (ctx, args) => {
 		const sortBy = args.sortBy ?? 'manual';
-		if (!(await getOwned(ctx, args.collectionId))) return [];
+		if (!(await getViewable(ctx, args.collectionId))) return [];
 
 		const positions = await getPositionsByCollection(ctx, args.collectionId);
 		const positionMap = new Map(positions.map((p) => [p.itemId, p.position]));
@@ -354,8 +377,7 @@ export const listByCollection = userQuery({
 		}
 
 		return filtered.map((item) => ({
-			...item,
-			imageUrl: getImageUrl(item),
+			...forViewer(ctx, item),
 			position: positionMap.get(item._id)
 		}));
 	}
@@ -378,5 +400,27 @@ export const search = userQuery({
 			...item,
 			imageUrl: getImageUrl(item)
 		}));
+	}
+});
+
+// Search results the collection filter scans before narrowing to members
+const COLLECTION_SEARCH_SCAN = 256;
+
+// Search one collection, for anyone who can see it: the owner's search index,
+// narrowed to the collection's members
+export const searchCollection = viewerQuery({
+	args: { collectionId: v.id('collections'), query: v.string() },
+	handler: async (ctx, args) => {
+		const collection = await getViewable(ctx, args.collectionId);
+		if (!collection || !args.query.trim()) return [];
+		const results = await ctx.db
+			.query('items')
+			.withSearchIndex('search_items', (q) =>
+				q.search('searchText', args.query).eq('userId', collection.userId)
+			)
+			.take(COLLECTION_SEARCH_SCAN);
+		return results
+			.filter((item) => item.collections.includes(collection._id))
+			.map((item) => forViewer(ctx, item));
 	}
 });
