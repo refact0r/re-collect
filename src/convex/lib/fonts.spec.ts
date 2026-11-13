@@ -8,12 +8,7 @@ import {
 	type SiteFont
 } from './fonts';
 
-const font = (family: string, internalName?: string): SiteFont => ({
-	family,
-	internalName,
-	roles: [],
-	webfont: true
-});
+const font = (family: string, internalName?: string): SiteFont => ({ family, internalName });
 
 describe('fontDisplayName', () => {
 	// Real pairs from the prototype run (experiments/design-tokens)
@@ -94,28 +89,27 @@ describe('parseSiteFonts', () => {
 	it('keeps well-formed entries and drops the rest', () => {
 		expect(
 			parseSiteFonts([
-				{ family: 'Inter', roles: ['body', 'bogus'], webfont: true, internalName: '' },
+				{ family: 'Inter', internalName: '' },
 				{ family: '' },
 				'nope',
-				{ family: 'Helvetica', internalName: 'Helvetica Neue' }
+				{ family: 'Helvetica', internalName: 'Helvetica Neue', roles: ['body'] }
 			])
-		).toEqual([
-			{ family: 'Inter', roles: ['body'], webfont: true },
-			{ family: 'Helvetica', internalName: 'Helvetica Neue', roles: [], webfont: false }
-		]);
+		).toEqual([{ family: 'Inter' }, { family: 'Helvetica', internalName: 'Helvetica Neue' }]);
 	});
 
-	it('merges families that differ only by weight', () => {
+	it('collapses families that differ only by weight', () => {
 		expect(
 			parseSiteFonts([
-				{ family: 'Editor-Regular', roles: ['body'], webfont: true },
-				{ family: 'GT America Mono Light', roles: ['mono'], webfont: true },
-				{ family: 'Editor-Bold', roles: ['heading'], webfont: true }
+				{ family: 'Editor-Regular' },
+				{ family: 'GT America Mono Light' },
+				{ family: 'Editor-Bold' }
 			])
-		).toEqual([
-			{ family: 'Editor-Regular', roles: ['heading', 'body'], webfont: true },
-			{ family: 'GT America Mono Light', roles: ['mono'], webfont: true }
-		]);
+		).toEqual([{ family: 'Editor-Regular' }, { family: 'GT America Mono Light' }]);
+	});
+
+	it('keeps at most 5 fonts', () => {
+		const raw = ['A1', 'B2', 'C3', 'D4', 'E5', 'F6'].map((family) => ({ family }));
+		expect(parseSiteFonts(raw)).toHaveLength(5);
 	});
 
 	it('returns undefined when the worker sent no fonts', () => {

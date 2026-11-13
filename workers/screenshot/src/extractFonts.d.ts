@@ -1,7 +1,2 @@
-export interface PageFont {
-	family: string;
-	roles: ('heading' | 'body' | 'mono')[];
-	webfont: boolean;
-}
-
-export function extractFonts(): Promise<PageFont[]>;
+// CSS font families, most prominent first
+export function extractFonts(): Promise<string[]>;

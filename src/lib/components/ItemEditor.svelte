@@ -227,13 +227,7 @@
 						<div class="field-label">fonts</div>
 						<div class="chip-list">
 							{#each item.data.fonts as font (font.family)}
-								<a
-									class="chip"
-									href="/search?q={encodeURIComponent(fontQuery(font))}"
-									title={[...font.roles, font.webfont ? null : 'system font']
-										.filter(Boolean)
-										.join(', ') || undefined}
-								>
+								<a class="chip" href="/search?q={encodeURIComponent(fontQuery(font))}">
 									{fontDisplayName(font)}
 								</a>
 							{/each}

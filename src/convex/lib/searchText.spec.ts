@@ -63,7 +63,7 @@ describe('buildSearchText fonts', () => {
 		expect(
 			buildSearchText({
 				title: 'Klim',
-				fonts: [{ family: 'SOEHNE', internalName: 'Söhne', roles: ['body'], webfont: true }]
+				fonts: [{ family: 'SOEHNE', internalName: 'Söhne' }]
 			})
 		).toBe('Klim fontsohne Söhne Sohne soehne');
 	});

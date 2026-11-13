@@ -4,8 +4,15 @@ The idea: the screenshot worker already loads every saved page in headless Chrom
 
 ## What shipped (fonts v1)
 
-- **Worker** (`workers/screenshot/src/fonts.ts`, `extractFonts.js`): on screenshot captures only, after the screenshot and before the browser closes. Reads the first declared `font-family` of every text-owning element in the first three screens, weighted by characters and size. Keeps up to 5 families with ≥3% share, plus the top heading family. Skips generic families, framework `Fallback`/`Placeholder` faces and icon fonts. Assigns heading/body/mono roles. Then asks Chromium over CDP (`CSS.getPlatformFontsForNode`) for the font file's internal name. Best effort with an 8 s cap: it never fails a capture. The worker also pins `prefers-color-scheme: light`. The response gains `fonts: { family, internalName?, roles, webfont }[]`.
-- **Convex:** `items.fonts` stores those entries raw. `generateScreenshotInternal` narrows them with `parseSiteFonts`, which drops malformed entries and merges weight-split families like `Editor-Regular`/`Editor-Bold`. `setCompleted` replaces them, or keeps the old ones when a capture brings none (og fast path).
+- **Worker** (`workers/screenshot/src/fonts.ts`, `extractFonts.js`): on screenshot captures only, after the screenshot and before the browser closes.
+  - Reads the first declared `font-family` of every text-owning element in the first three screens, weighted by characters × font size.
+  - Keeps up to 5 families with ≥3% share, plus the family of the largest text (usually the display face, even when it's a short headline).
+  - Skips generic families, framework `Fallback`/`Placeholder` faces and icon fonts.
+  - Then asks Chromium over CDP (`CSS.getPlatformFontsForNode`) for the font file's internal name. System fonts have none, and some font-shop kits report an empty one.
+  - Best effort with an 8 s cap: it never fails a capture. The worker also pins `prefers-color-scheme: light`.
+  - The response gains `fonts: { family, internalName? }[]`.
+  - Only names are stored. Heading/body/mono roles and a loaded-vs-declared flag were dropped: nothing searched or browsed by them.
+- **Convex:** `items.fonts` stores those entries raw. `generateScreenshotInternal` narrows them with `parseSiteFonts`, which drops malformed entries and collapses weight-split families like `Editor-Regular`/`Editor-Bold`. `setCompleted` replaces them, or keeps the old ones when a capture brings none (og fast path).
 - **Naming** (`src/convex/lib/fonts.ts`): derived on read, so tweaks apply without re-crawling.
   - The display name prefers the internal name (`fhd` → FH Dfaalt, `areal` → ABC Areal Superfamily, `SOEHNE` → Söhne) and falls back to the cleaned CSS name when the internal one is junk ("Copyright Klim Type Foundry", empty).
   - Trailing weight and format words are stripped (Light, SemiBold, Variable, VF, …), CamelCase is split, and shouty names are title-cased.
@@ -88,7 +95,7 @@ On the free plan, one capture is about 10–20 s of browser time, so about 30–
 
 ## Original proposal
 
-Kept for the "later" ideas. Where this section differs from what shipped, what shipped wins: the shipped version has no separate table, no type scale and no colors.
+Kept for the "later" ideas. Where this section differs from what shipped, what shipped wins: the shipped version stores only font names (no roles, weights, provider or webfont flag), with no separate table, no type scale and no colors.
 
 ### v1 token set
 

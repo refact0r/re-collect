@@ -60,7 +60,7 @@ test('captured fonts are stored, searchable, and kept when a capture brings none
 			dateModified: 0
 		});
 	});
-	const complete = (fonts?: { family: string; roles: 'body'[]; webfont: boolean }[]) =>
+	const complete = (fonts?: { family: string; internalName?: string }[]) =>
 		t.mutation(internal.screenshots.setCompleted, {
 			itemId,
 			imageKey: 'screenshots/klim.webp',
@@ -69,10 +69,10 @@ test('captured fonts are stored, searchable, and kept when a capture brings none
 			fonts
 		});
 
-	await complete([{ family: 'SOEHNE', roles: ['body'], webfont: true }]);
+	await complete([{ family: 'SOEHNE', internalName: 'Söhne' }]);
 	await complete(); // og fast path: no browser, no fonts
 	const item = await t.run((ctx) => ctx.db.get(itemId));
-	expect(item?.fonts).toEqual([{ family: 'SOEHNE', roles: ['body'], webfont: true }]);
+	expect(item?.fonts).toEqual([{ family: 'SOEHNE', internalName: 'Söhne' }]);
 	expect(item?.searchText?.toLowerCase()).toContain('soehne');
 	vi.useRealTimers();
 });

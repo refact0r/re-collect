@@ -32,7 +32,7 @@ await Promise.all(
 				console.log(
 					`${host.padEnd(30)} ${String(Date.now() - t0).padStart(4)}ms  ` +
 						fonts
-							.map((f) => `${fontDisplayName(f)}${f.webfont ? '' : '°'}${f.roles.length ? ` (${f.roles})` : ''}`)
+							.map((f) => `${fontDisplayName(f)}${f.internalName ? '' : '°'}`)
 							.join(' | ')
 				);
 			} catch (e) {

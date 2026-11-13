@@ -87,7 +87,7 @@ always captures a viewport screenshot. A stored og:image is returned under an
 	"captureTimeMs": 8000,
 	"title": "Example Domain",
 	"description": "...",
-	"fonts": [{ "family": "SOEHNE", "internalName": "Söhne", "roles": ["body"], "webfont": true }]
+	"fonts": [{ "family": "SOEHNE", "internalName": "Söhne" }]
 }
 ```
 

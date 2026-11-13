@@ -13,9 +13,7 @@ export const linkImageModeValidator = v.union(v.literal('screenshot'), v.literal
 // A font read off a URL item's page by the screenshot worker (see lib/fonts.ts)
 export const siteFontValidator = v.object({
 	family: v.string(), // First declared CSS font-family
-	internalName: v.optional(v.string()), // Family name from the font file itself
-	roles: v.array(v.union(v.literal('heading'), v.literal('body'), v.literal('mono'))),
-	webfont: v.boolean() // false: a system font the page names but doesn't load
+	internalName: v.optional(v.string()) // Family name from the font file itself (webfonts only)
 });
 
 // Sort mode validators, shared by every table/mutation that stores them.

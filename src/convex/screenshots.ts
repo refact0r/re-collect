@@ -64,7 +64,7 @@ export const setCompleted = internalMutation({
 		// description stays purely user notes.
 		const title = item.title || args.title || undefined;
 		const ogDescription = args.description ?? item.ogDescription;
-		const fonts = args.fonts ? (args.fonts.length ? args.fonts : undefined) : item.fonts;
+		const fonts = args.fonts ?? item.fonts;
 		// Text-mode items tag off the article (scheduled at add time), so a new
 		// image only triggers palette extraction, not visual tagging
 		const wantsVisualTagging = item.taggingMode !== 'none' && item.taggingMode !== 'text';

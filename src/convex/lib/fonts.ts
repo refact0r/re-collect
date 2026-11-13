@@ -6,34 +6,26 @@ import type { Doc } from '../_generated/dataModel';
 
 export type SiteFont = NonNullable<Doc<'items'>['fonts']>[number];
 
-const ROLES = ['heading', 'body', 'mono'] as const;
 const MAX_FONTS = 5;
 const MAX_NAME_LENGTH = 100;
 
 // Narrow the worker's JSON, dropping malformed entries instead of failing the
 // capture. Families that differ only by weight ("Editor-Regular" and
-// "Editor-Bold" declared separately) merge into the first one.
+// "Editor-Bold" declared separately) collapse into the first one.
 export function parseSiteFonts(raw: unknown): SiteFont[] | undefined {
 	if (!Array.isArray(raw)) return undefined;
 	const fonts = new Map<string, SiteFont>();
 	for (const entry of raw) {
 		if (typeof entry !== 'object' || entry === null) continue;
-		const { family, internalName, roles, webfont } = entry as Record<string, unknown>;
+		const { family, internalName } = entry as Record<string, unknown>;
 		if (typeof family !== 'string' || !family.trim()) continue;
 		const font: SiteFont = {
 			family: family.trim().slice(0, MAX_NAME_LENGTH),
 			...(typeof internalName === 'string' &&
-				internalName.trim() && { internalName: internalName.trim().slice(0, MAX_NAME_LENGTH) }),
-			roles: Array.isArray(roles) ? ROLES.filter((role) => roles.includes(role)) : [],
-			webfont: webfont === true
+				internalName.trim() && { internalName: internalName.trim().slice(0, MAX_NAME_LENGTH) })
 		};
 		const key = fontSearchKey(fontDisplayName(font));
-		const existing = fonts.get(key);
-		if (existing) {
-			existing.roles = ROLES.filter((r) => existing.roles.includes(r) || font.roles.includes(r));
-		} else if (fonts.size < MAX_FONTS) {
-			fonts.set(key, font);
-		}
+		if (!fonts.has(key) && fonts.size < MAX_FONTS) fonts.set(key, font);
 	}
 	return [...fonts.values()];
 }
@@ -102,21 +94,19 @@ export function fontQuery(font: SiteFont): string {
 }
 
 export function fontSearchTerms(fonts: SiteFont[] | undefined): string[] {
-	const terms = new Set<string>();
+	// Keyed lowercased: search is case-insensitive, so "Inter" and "inter" are one term
+	const terms = new Map<string, string>();
+	const add = (term: string) => {
+		if (term && !terms.has(term.toLowerCase())) terms.set(term.toLowerCase(), term);
+	};
 	for (const font of fonts ?? []) {
-		terms.add(fontQuery(font));
+		add(fontQuery(font));
 		for (const name of fontNames(font)) {
-			terms.add(name);
-			terms.add(stripAccents(name));
-			terms.add(fontSearchKey(name));
-			terms.add(fontSearchKey(name.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')));
+			add(name);
+			add(stripAccents(name));
+			add(fontSearchKey(name));
+			add(fontSearchKey(name.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')));
 		}
 	}
-	const seen = new Set<string>();
-	return [...terms].filter((term) => {
-		const key = term.toLowerCase();
-		if (!term || seen.has(key)) return false;
-		seen.add(key);
-		return true;
-	});
+	return [...terms.values()];
 }
