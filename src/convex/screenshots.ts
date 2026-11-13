@@ -103,6 +103,34 @@ export const setCompleted = internalMutation({
 	}
 });
 
+// Fonts read outside a capture: experiments/design-tokens/backfill.mjs loads
+// pages in local Chrome (sparing the worker's browser quota) and writes here
+export const setFonts = internalMutation({
+	args: {
+		items: v.array(v.object({ itemId: v.id('items'), fonts: v.array(siteFontValidator) }))
+	},
+	handler: async (ctx, args) => {
+		for (const { itemId, fonts } of args.items) {
+			const item = await ctx.db.get(itemId);
+			if (!item) continue;
+			await ctx.db.patch(itemId, {
+				fonts,
+				searchText: buildSearchText({
+					title: item.title,
+					description: item.description,
+					ogDescription: item.ogDescription,
+					url: item.url,
+					styles: item.styles,
+					aiTags: item.aiTags,
+					subject: item.subject,
+					paletteNames: item.paletteNames,
+					fonts
+				})
+			});
+		}
+	}
+});
+
 export const setFailed = internalMutation({
 	args: {
 		itemId: v.id('items'),

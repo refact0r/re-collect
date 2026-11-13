@@ -18,11 +18,11 @@ The idea: the screenshot worker already loads every saved page in headless Chrom
   - Trailing weight and format words are stripped (Light, SemiBold, Variable, VF, …), CamelCase is split, and shouty names are title-cased.
   - `fontSearchTerms` puts each name in `searchText` spaced, accent-free and as a one-word key (`gtamericamono`, `sohne`, `soehne`).
 - **UI:** a "fonts" chip list in the item modal. A chip links to `/search?q=font<key>` (e.g. `fontgtamericamono`). That extra token is also in `searchText`; it matches only items with that font, because Convex prefix-matches the last query term and a bare `inter` would also hit "interface". Prefix matching still applies to the font token itself, so a chip also finds its sub-families: `fontsohne` matches Söhne Mono, and `fontinter` matches Inter Tight.
-- **Not covered:**
+- **Not covered at capture time** (the backfill below fills these in):
   - og-mode items whose og:image comes from the fast path (no browser).
   - Images supplied by the extension (no worker run).
-  - Existing items, until "refresh image" re-captures them. There's no backfill migration.
-- Changing font naming only needs a `searchText` rebuild for existing items. Re-extraction needs a recapture.
+- **Backfill:** `experiments/design-tokens/backfill.mjs [--prod] [--all]` loads every URL item without fonts in local Chrome, runs the worker's own `readFonts`, and writes through the `screenshots:setFonts` internal mutation. It spends no Browser Run quota and leaves images alone, and it covers og and extension items too. Ran on dev and prod on 2026-11-13.
+- Changing font naming only needs a `searchText` rebuild for existing items. Re-extraction needs a recapture or `backfill.mjs --all`.
 
 ## Research findings (2026-11-12)
 
