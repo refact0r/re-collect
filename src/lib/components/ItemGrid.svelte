@@ -162,40 +162,47 @@
 
 	// ============ DRAG STATE ============
 	let draggedItem: DisplayItem | null = $state(null);
-	let draggedItemHeight = $state(0);
 	let dragPosition = $state({ x: 0, y: 0 });
 	let dragOffset = $state({ x: 0, y: 0 });
 
-	// Original flat item order (excluding dragged item) for simulation
-	let itemsForSimulation: DisplayItem[] = $state([]);
+	// Snapshot taken at drag start: the layout doesn't change mid-drag, so item
+	// heights and slot boundaries are measured once instead of on every move
+	let dragSnapshot: {
+		items: DisplayItem[]; // flat order, excluding the dragged item
+		heights: number[]; // parallel to items
+		draggedHeight: number;
+		slotMidpoints: number[][]; // per column of the original layout
+		target: { col: number; slot: number };
+	} | null = null;
 
 	// The simulated layout during drag (null if current position is invalid)
 	type GridCell = DisplayItem | { _id: 'placeholder'; height: number };
-	let simulationResult: {
+	type Simulation = {
 		columns: GridCell[][];
 		beforeItem: DisplayItem | null;
 		afterItem: DisplayItem | null;
-	} | null = $state(null);
+	};
+	let simulationResult: Simulation | null = $state.raw(null);
 
 	// ============ MASONRY SIMULATION WITH PLACEHOLDER ============
 
 	/**
-	 * Given items and a target position (column + slot), simulate the masonry fill
-	 * and try to insert a placeholder at that position.
+	 * Simulate the masonry fill of the snapshot items and try to insert a
+	 * placeholder at the target column + slot.
 	 * Returns the resulting columns and flat-list neighbors if valid, or null if unreachable.
 	 */
 	function distributeMasonryWithPlaceholder(
-		itemsToPlace: DisplayItem[],
+		snapshot: NonNullable<typeof dragSnapshot>,
 		targetCol: number,
-		targetSlot: number,
-		placeholderHeight: number
-	): {
-		columns: GridCell[][];
-		beforeItem: DisplayItem | null;
-		afterItem: DisplayItem | null;
-	} | null {
+		targetSlot: number
+	): Simulation | null {
 		if (columnCount === 0 || columnWidth === 0) return null;
 
+		const {
+			items: itemsToPlace,
+			heights: itemHeights,
+			draggedHeight: placeholderHeight
+		} = snapshot;
 		const cols: GridCell[][] = Array.from({ length: columnCount }, () => []);
 		const heights = Array(columnCount).fill(0);
 		let placeholderPlaced = false;
@@ -226,7 +233,7 @@
 
 			// Place the item
 			cols[shortest].push(item);
-			heights[shortest] += estimateHeight(item) + GAP;
+			heights[shortest] += itemHeights[i] + GAP;
 			lastPlacedItem = item;
 		}
 
@@ -255,25 +262,27 @@
 	}
 
 	/**
-	 * Determine which slot in a column the cursor wants based on Y position.
-	 * Uses the original column layout (without placeholder) to calculate slot boundaries.
+	 * Vertical midpoints of each card in a column of the original layout; the cursor
+	 * targets the slot of the first card whose midpoint is below it.
 	 */
+	function getSlotMidpoints(column: DisplayItem[]): number[] {
+		let y = 0;
+		return column.map((item) => {
+			const height = estimateHeight(item);
+			const midpoint = y + height / 2;
+			y += height + GAP;
+			return midpoint;
+		});
+	}
+
 	function getSlotFromCursorY(
 		cursorY: number,
 		containerRect: DOMRect,
-		column: DisplayItem[]
+		midpoints: number[]
 	): number {
 		const relativeY = cursorY - containerRect.top;
-		let y = 0;
-		for (let i = 0; i < column.length; i++) {
-			const itemHeight = estimateHeight(column[i]);
-			const slotMidpoint = y + itemHeight / 2;
-			if (relativeY < slotMidpoint) {
-				return i;
-			}
-			y += itemHeight + GAP;
-		}
-		return column.length;
+		const slot = midpoints.findIndex((midpoint) => relativeY < midpoint);
+		return slot === -1 ? midpoints.length : slot;
 	}
 
 	/**
@@ -303,28 +312,28 @@
 		e.preventDefault();
 
 		draggedItem = item;
-		draggedItemHeight = estimateHeight(item);
 
 		const cardWrapper = (e.currentTarget as HTMLElement).closest('.card-wrapper') as HTMLElement;
 		const rect = cardWrapper.getBoundingClientRect();
 		dragOffset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
 		dragPosition = { x: e.clientX, y: e.clientY };
 
-		// Store items excluding the dragged one for simulation
-		itemsForSimulation = items.filter((i) => i._id !== item._id);
-
-		// Find original position and create initial simulation
 		const position = findItemInColumns(normalColumns, item._id);
+		const others = items.filter((i) => i._id !== item._id);
+		dragSnapshot = {
+			items: others,
+			heights: others.map(estimateHeight),
+			draggedHeight: estimateHeight(item),
+			slotMidpoints: normalColumns.map(getSlotMidpoints),
+			target: { col: position?.colIndex ?? -1, slot: position?.slotIndex ?? -1 }
+		};
+
 		if (position) {
-			const initialSim = distributeMasonryWithPlaceholder(
-				itemsForSimulation,
+			simulationResult = distributeMasonryWithPlaceholder(
+				dragSnapshot,
 				position.colIndex,
-				position.slotIndex,
-				draggedItemHeight
+				position.slotIndex
 			);
-			if (initialSim) {
-				simulationResult = initialSim;
-			}
 		}
 
 		document.addEventListener('pointermove', handleDragMove);
@@ -334,30 +343,25 @@
 	}
 
 	function handleDragMove(e: PointerEvent) {
-		if (!draggedItem || !containerElement) return;
+		if (!draggedItem || !dragSnapshot || !containerElement) return;
 
 		dragPosition = { x: e.clientX, y: e.clientY };
 
+		// Slots come from the ORIGINAL layout (with the dragged item), which is what the user sees
 		const containerRect = containerElement.getBoundingClientRect();
-
-		// Determine target column from cursor X
-		const targetCol = getColumnFromCursorX(e.clientX, containerRect);
-
-		// Use the ORIGINAL layout (normalColumns with dragged item) to determine slot
-		// This gives us stable slot positions that match what the user sees
-		const originalColumn = normalColumns[targetCol] || [];
-
-		// Determine target slot from cursor Y based on original column layout
-		const targetSlot = getSlotFromCursorY(e.clientY, containerRect, originalColumn);
-
-		const newSimulation = distributeMasonryWithPlaceholder(
-			itemsForSimulation,
-			targetCol,
-			targetSlot,
-			draggedItemHeight
+		const col = getColumnFromCursorX(e.clientX, containerRect);
+		const slot = getSlotFromCursorY(
+			e.clientY,
+			containerRect,
+			dragSnapshot.slotMidpoints[col] ?? []
 		);
 
-		simulationResult = newSimulation;
+		// Most moves stay over the same slot; only re-run the layout when the target changes
+		const { target } = dragSnapshot;
+		if (col === target.col && slot === target.slot) return;
+		dragSnapshot.target = { col, slot };
+
+		simulationResult = distributeMasonryWithPlaceholder(dragSnapshot, col, slot);
 	}
 
 	function handleDragEnd() {
@@ -409,8 +413,7 @@
 	function cleanup() {
 		draggedItem = null;
 		simulationResult = null;
-		itemsForSimulation = [];
-		draggedItemHeight = 0;
+		dragSnapshot = null;
 		document.removeEventListener('pointermove', handleDragMove);
 		document.removeEventListener('pointerup', handleDragEnd);
 		document.body.style.cursor = '';

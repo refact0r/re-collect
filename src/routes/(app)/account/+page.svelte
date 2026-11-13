@@ -72,10 +72,10 @@
 	<section>
 		<h2>browser extension</h2>
 		<p class="meta">
-			copy a token and paste it into the extension's settings. it's its own session, so it keeps
-			working when you change your password; copying a new one ends the old one.
+			paste this token into the extension's settings. it survives password changes, and copying a
+			new one revokes the old one.
 		</p>
-		<button onclick={copyExtensionToken}>{tokenCopied ? 'copied' : 'copy extension token'}</button>
+		<button onclick={copyExtensionToken}>{tokenCopied ? 'copied' : 'copy token'}</button>
 	</section>
 
 	<section>
@@ -107,10 +107,10 @@
 	<section>
 		<h2>sessions</h2>
 		<p class="meta">
-			end every other session: other browsers and the extension, which then needs a new token.
+			signs out every other browser and the extension, which will need a new token.
 		</p>
 		<button onclick={signOutOthers} disabled={signedOutOthers}>
-			{signedOutOthers ? 'signed out other devices' : 'sign out other devices'}
+			{signedOutOthers ? 'signed out' : 'sign out everywhere else'}
 		</button>
 		<form method="POST" action="/logout">
 			<button>log out</button>
