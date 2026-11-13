@@ -14,6 +14,7 @@ import type * as itemCollectionPositions from "../itemCollectionPositions.js";
 import type * as items from "../items.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_colorNames from "../lib/colorNames.js";
+import type * as lib_fonts from "../lib/fonts.js";
 import type * as lib_searchText from "../lib/searchText.js";
 import type * as migrations_001_add_positions from "../migrations/001_add_positions.js";
 import type * as migrations_002_remove_collection_descriptions from "../migrations/002_remove_collection_descriptions.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   items: typeof items;
   "lib/auth": typeof lib_auth;
   "lib/colorNames": typeof lib_colorNames;
+  "lib/fonts": typeof lib_fonts;
   "lib/searchText": typeof lib_searchText;
   "migrations/001_add_positions": typeof migrations_001_add_positions;
   "migrations/002_remove_collection_descriptions": typeof migrations_002_remove_collection_descriptions;

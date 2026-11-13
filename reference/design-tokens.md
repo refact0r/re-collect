@@ -10,7 +10,7 @@ The idea: the screenshot worker already loads every saved page in headless Chrom
   - The display name prefers the internal name (`fhd` → FH Dfaalt, `areal` → ABC Areal Superfamily, `SOEHNE` → Söhne) and falls back to the cleaned CSS name when the internal one is junk ("Copyright Klim Type Foundry", empty).
   - Trailing weight and format words are stripped (Light, SemiBold, Variable, VF, …), CamelCase is split, and shouty names are title-cased.
   - `fontSearchTerms` puts each name in `searchText` spaced, accent-free and as a one-word key (`gtamericamono`, `sohne`, `soehne`).
-- **UI:** a "fonts" chip list in the item modal. A chip links to `/search?q=font<key>` (e.g. `fontgtamericamono`). That extra token is also in `searchText`; it matches only items with that font, because Convex prefix-matches the last query term and a bare `inter` would also hit "interface".
+- **UI:** a "fonts" chip list in the item modal. A chip links to `/search?q=font<key>` (e.g. `fontgtamericamono`). That extra token is also in `searchText`; it matches only items with that font, because Convex prefix-matches the last query term and a bare `inter` would also hit "interface". Prefix matching still applies to the font token itself, so a chip also finds its sub-families: `fontsohne` matches Söhne Mono, and `fontinter` matches Inter Tight.
 - **Not covered:**
   - og-mode items whose og:image comes from the fast path (no browser).
   - Images supplied by the extension (no worker run).
@@ -72,7 +72,7 @@ So extraction adds under 1 s to each screenshot capture (well under 10% of its b
 
 On the free plan, one capture is about 10–20 s of browser time, so about 30–60 captures a day _in total_. Extraction barely changes that. Backfill and any "open a browser only for tokens" path do.
 
-`@cloudflare/puppeteer` 1.4.0 exposes `createCDPSession()` in its types. I haven't verified that `CSS.getPlatformFontsForNode` works against Browser Run. If it doesn't, we lose the internal names and keep the CSS names.
+`CSS.getPlatformFontsForNode` over `page.createCDPSession()` works on Browser Run. This was verified end to end on 2026-11-13: klim.co.nz came back as `SOEHNE` / "Söhne".
 
 #### Failure modes seen
 
