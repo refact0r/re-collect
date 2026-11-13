@@ -6,6 +6,7 @@
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import CollectionCreateModal from '#lib/components/CollectionCreateModal.svelte';
 	import { mutate } from '#lib/mutationHelper.js';
+	import { pointerDrag } from '#lib/pointerDrag.js';
 	import {
 		getWriteTokenContext,
 		getCollectionsContext,
@@ -34,84 +35,86 @@
 	let listElement: HTMLElement | undefined = $state();
 	let draggedCollection: CollectionCard | null = $state(null);
 	let targetIndex = $state(-1);
-	let dragPosition = $state({ x: 0, y: 0 });
-	let dragOffset = $state({ x: 0, y: 0 });
-	let dragWidth = $state(0);
+	let previewPosition = $state({ x: 0, y: 0 });
+	let previewWidth = $state(0);
+	let cancelDrag: (() => void) | null = null;
 
-	// Grid slot rects and collection order captured at drag start (slots stay
-	// fixed while cards swap between them, so these remain valid during the drag)
-	let slotRects: DOMRect[] = [];
-	let dragSnapshot: CollectionCard[] = [];
+	// Taken at drag start. Slot centers are relative to the list, so they survive
+	// scrolling, and stay fixed while cards swap between them.
+	let drag: {
+		offset: { x: number; y: number }; // pointer position within the card
+		order: CollectionCard[];
+		slotCenters: { x: number; y: number }[];
+	} | null = null;
 
 	const displayCollections = $derived.by(() => {
-		if (!draggedCollection || targetIndex < 0) return serverCollections;
-		const rest = dragSnapshot.filter((c) => c._id !== draggedCollection!._id);
-		rest.splice(Math.min(targetIndex, rest.length), 0, draggedCollection);
+		if (!draggedCollection || !drag) return serverCollections;
+		const rest = drag.order.filter((c) => c._id !== draggedCollection!._id);
+		rest.splice(targetIndex, 0, draggedCollection);
 		return rest;
 	});
 
-	function handleDragStart(collection: CollectionCard, e: PointerEvent) {
-		if (!listElement) return;
-		e.preventDefault();
-
-		dragSnapshot = [...serverCollections];
-		const index = dragSnapshot.findIndex((c) => c._id === collection._id);
-		if (index === -1) return;
-
-		slotRects = [...listElement.querySelectorAll('.card-wrapper')].map((el) =>
-			el.getBoundingClientRect()
-		);
-		const rect = slotRects[index];
-
-		draggedCollection = collection;
-		targetIndex = index;
-		dragOffset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-		dragPosition = { x: e.clientX, y: e.clientY };
-		dragWidth = rect.width;
-
-		document.addEventListener('pointermove', handleDragMove);
-		document.addEventListener('pointerup', handleDragEnd);
-		document.body.style.cursor = 'grabbing';
-		document.body.style.userSelect = 'none';
+	function handlePointerDown(collection: CollectionCard, e: PointerEvent) {
+		const card = e.currentTarget as HTMLElement;
+		cancelDrag = pointerDrag(e, {
+			start: (x, y) => handleDragStart(collection, card, x, y),
+			move: handleDragMove,
+			end: handleDragEnd
+		});
 	}
 
-	function handleDragMove(e: PointerEvent) {
-		if (!draggedCollection) return;
-		dragPosition = { x: e.clientX, y: e.clientY };
+	function handleDragStart(collection: CollectionCard, card: HTMLElement, x: number, y: number) {
+		if (!listElement) return;
+		const listRect = listElement.getBoundingClientRect();
+		const rect = card.getBoundingClientRect();
+		drag = {
+			offset: { x: x - rect.left, y: y - rect.top },
+			order: [...serverCollections],
+			slotCenters: [...listElement.querySelectorAll('.collection-card')].map((el) => {
+				const slot = el.getBoundingClientRect();
+				return {
+					x: slot.left - listRect.left + slot.width / 2,
+					y: slot.top - listRect.top + slot.height / 2
+				};
+			})
+		};
+		draggedCollection = collection;
+		targetIndex = drag.order.findIndex((c) => c._id === collection._id);
+		previewPosition = { x: rect.left, y: rect.top };
+		previewWidth = rect.width;
+	}
+
+	// Also runs when the page scrolls under a still pointer, so the target follows the content
+	function handleDragMove(x: number, y: number) {
+		if (!drag || !listElement) return;
+		previewPosition = { x: x - drag.offset.x, y: y - drag.offset.y };
 
 		// Target the slot whose center is nearest the cursor
-		let nearest = targetIndex;
-		let best = Infinity;
-		for (let i = 0; i < slotRects.length; i++) {
-			const rect = slotRects[i];
-			const dx = e.clientX - (rect.left + rect.width / 2);
-			const dy = e.clientY - (rect.top + rect.height / 2);
-			const distance = dx * dx + dy * dy;
-			if (distance < best) {
-				best = distance;
-				nearest = i;
-			}
-		}
-		targetIndex = nearest;
+		const listRect = listElement.getBoundingClientRect();
+		const distance = ({ x: sx, y: sy }: { x: number; y: number }) =>
+			(x - listRect.left - sx) ** 2 + (y - listRect.top - sy) ** 2;
+		const { slotCenters } = drag;
+		targetIndex = slotCenters.reduce(
+			(best, slot, i) => (distance(slot) < distance(slotCenters[best]) ? i : best),
+			0
+		);
 	}
 
-	function handleDragEnd() {
+	function handleDragEnd(commit: boolean) {
 		const dragged = draggedCollection;
+		const original = drag?.order ?? [];
 		const display = displayCollections;
-		cleanup();
-		if (!dragged) return;
+		draggedCollection = null;
+		drag = null;
+		cancelDrag = null;
+		if (!commit || !dragged) return;
 
 		const index = display.findIndex((c) => c._id === dragged._id);
-		const originalIndex = dragSnapshot.length
-			? dragSnapshot.findIndex((c) => c._id === dragged._id)
-			: serverCollections.findIndex((c) => c._id === dragged._id);
-		if (index === -1 || index === originalIndex) return;
+		if (index === original.findIndex((c) => c._id === dragged._id)) return;
 
-		const before = index > 0 ? display[index - 1] : null;
-		const after = index < display.length - 1 ? display[index + 1] : null;
-
-		const beforePos = before?.position ?? null;
-		const afterPos = after?.position ?? null;
+		const beforePos = display[index - 1]?.position ?? null;
+		const afterPos = display[index + 1]?.position ?? null;
+		// fractional-indexing needs before < after
 		if (beforePos !== null && afterPos !== null && beforePos >= afterPos) return;
 
 		const newPosition = generateKeyBetween(beforePos, afterPos);
@@ -120,22 +123,8 @@
 		);
 	}
 
-	function cleanup() {
-		draggedCollection = null;
-		targetIndex = -1;
-		slotRects = [];
-		document.removeEventListener('pointermove', handleDragMove);
-		document.removeEventListener('pointerup', handleDragEnd);
-		document.body.style.cursor = '';
-		document.body.style.userSelect = '';
-	}
-
-	// Cleanup drag listeners if component unmounts mid-drag
-	onDestroy(() => {
-		if (draggedCollection) {
-			cleanup();
-		}
-	});
+	// Drop the drag's document listeners if the page unmounts mid-drag
+	onDestroy(() => cancelDrag?.());
 </script>
 
 <div class="container">
@@ -153,86 +142,66 @@
 	{:else}
 		<div class="list" bind:this={listElement}>
 			{#each displayCollections as collection (collection._id)}
-				<div class="card-wrapper" class:dragging={draggedCollection?._id === collection._id}>
-					<a href="/collections/{collection._id}" class="clickable collection-card">
-						<div class="info-row">
-							<div class="collection-info">
-								<h3>{collection.name}</h3>
-								<p class="count">
-									{collection.itemCount}
-									{collection.itemCount === 1 ? 'item' : 'items'}
-								</p>
-							</div>
-							<div class="actions">
-								<button
-									class="icon drag-handle"
-									title="drag to reorder"
-									onpointerdown={(e) => handleDragStart(collection, e)}
-									onclick={(e) => {
-										e.preventDefault();
-										e.stopPropagation();
-									}}>⠿</button
-								>
-								<button
-									class="icon danger"
-									onclick={(e) => {
-										e.preventDefault();
-										e.stopPropagation();
-										handleDelete(collection._id);
-									}}
-								>
-									<IconDelete />
-								</button>
-							</div>
-						</div>
-						{#if collection.previews?.length > 0}
-							<div class="preview-row">
-								{#each collection.previews as preview (preview._id)}
-									<div class="thumb-wrapper">
-										<img src={preview.imageUrl} alt="" class="preview-thumb" loading="lazy" />
-									</div>
-								{/each}
-								{#each Array(Math.max(0, 4 - (collection.previews?.length || 0))) as _, i (i)}
-									<div class="thumb-wrapper placeholder"></div>
-								{/each}
-							</div>
-						{/if}
-					</a>
-				</div>
+				<a
+					href="/collections/{collection._id}"
+					class="clickable collection-card"
+					class:dragging={draggedCollection?._id === collection._id}
+					onpointerdown={(e) => handlePointerDown(collection, e)}
+				>
+					{@render cardBody(collection, true)}
+				</a>
 			{/each}
 		</div>
 	{/if}
 </div>
 
+{#snippet cardBody(collection: CollectionCard, withActions: boolean)}
+	<div class="info-row">
+		<div class="collection-info">
+			<h3>{collection.name}</h3>
+			<p class="count">
+				{collection.itemCount}
+				{collection.itemCount === 1 ? 'item' : 'items'}
+			</p>
+		</div>
+		{#if withActions}
+			<div class="actions">
+				<span class="icon drag-handle" data-drag-handle aria-hidden="true">⠿</span>
+				<button
+					class="icon danger"
+					onclick={(e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						handleDelete(collection._id);
+					}}
+				>
+					<IconDelete />
+				</button>
+			</div>
+		{/if}
+	</div>
+	{#if collection.previews?.length > 0}
+		<div class="preview-row">
+			{#each collection.previews as preview (preview._id)}
+				<div class="thumb-wrapper">
+					<img src={preview.imageUrl} alt="" class="preview-thumb" loading="lazy" />
+				</div>
+			{/each}
+			{#each Array(Math.max(0, 4 - collection.previews.length)) as _, i (i)}
+				<div class="thumb-wrapper placeholder"></div>
+			{/each}
+		</div>
+	{/if}
+{/snippet}
+
 {#if draggedCollection}
 	<div
 		class="drag-preview"
-		style:left="{dragPosition.x - dragOffset.x}px"
-		style:top="{dragPosition.y - dragOffset.y}px"
-		style:width="{dragWidth}px"
+		style:transform="translate3d({previewPosition.x}px, {previewPosition.y}px, 0) rotate(2deg)"
+		style:width="{previewWidth}px"
 	>
 		<div class="clickable collection-card">
-			<div class="info-row">
-				<div class="collection-info">
-					<h3>{draggedCollection.name}</h3>
-					<p class="count">
-						{draggedCollection.itemCount}
-						{draggedCollection.itemCount === 1 ? 'item' : 'items'}
-					</p>
-				</div>
-			</div>
-			{#if draggedCollection.previews?.length > 0}
-				<div class="preview-row">
-					{#each draggedCollection.previews as preview (preview._id)}
-						<div class="thumb-wrapper">
-							<img src={preview.imageUrl} alt="" class="preview-thumb" />
-						</div>
-					{/each}
-					{#each Array(Math.max(0, 4 - (draggedCollection.previews?.length || 0))) as _, i (i)}
-						<div class="thumb-wrapper placeholder"></div>
-					{/each}
-				</div>
-			{/if}
+			{@render cardBody(draggedCollection, false)}
 		</div>
 	</div>
 {/if}
@@ -247,15 +216,9 @@
 		grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
 		gap: var(--spacing);
 	}
-	.card-wrapper {
-		display: flex;
-	}
-	.card-wrapper.dragging {
+	.collection-card.dragging {
 		opacity: 0.35;
 		pointer-events: none;
-	}
-	.card-wrapper > a {
-		width: 100%;
 	}
 	.collection-card {
 		padding: var(--spacing);
@@ -285,26 +248,29 @@
 		gap: 0.25rem;
 		flex-shrink: 0;
 	}
+	/* A mouse drags the whole card; touch screens get a handle so swipes still scroll */
 	.drag-handle {
-		cursor: grab;
-		opacity: 0;
+		display: none;
 		font-size: 1rem;
 		line-height: 1;
 		color: var(--txt-3);
 		touch-action: none;
+		-webkit-touch-callout: none;
+		user-select: none;
 	}
-	.collection-card:hover .drag-handle {
-		opacity: 1;
-	}
-	.drag-handle:active {
-		cursor: grabbing;
+	@media (hover: none) {
+		.drag-handle {
+			display: flex;
+		}
 	}
 	.drag-preview {
 		position: fixed;
+		top: 0;
+		left: 0;
 		pointer-events: none;
 		z-index: 1000;
 		opacity: 0.9;
-		transform: rotate(2deg);
+		will-change: transform;
 		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 	}
 	.drag-preview .collection-card {

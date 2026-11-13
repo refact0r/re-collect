@@ -6,6 +6,7 @@
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { mutate } from '#lib/mutationHelper.js';
+	import { pointerDrag } from '#lib/pointerDrag.js';
 	import { getWriteTokenContext } from '#lib/context.js';
 	import { shouldDisplayAsImage, getItemUrl } from '#lib/itemDisplay.js';
 	import type { DisplayItem } from '#lib/types.js';
@@ -18,7 +19,6 @@
 
 	interface Props {
 		items: DisplayItem[];
-		collectionId?: Id<'collections'>;
 		columnOffset?: number;
 		showTitles?: boolean;
 		onReorder?: (itemId: Id<'items'>, newPosition: string) => void;
@@ -27,7 +27,6 @@
 
 	let {
 		items,
-		collectionId,
 		columnOffset = 0,
 		showTitles = false,
 		onReorder,
@@ -38,7 +37,7 @@
 		await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
 	}
 
-	const isDraggable = $derived(!!collectionId && !!onReorder);
+	const isDraggable = $derived(!!onReorder);
 
 	let containerElement: HTMLDivElement | undefined = $state();
 	let containerWidth = $state(0);
@@ -103,11 +102,7 @@
 		Math.min(MAX_OFFSET_COLS, Math.max(MIN_COLS, autoColumnCount + columnOffset))
 	);
 
-	let columnWidth = $derived(
-		columnCount <= MIN_COLS
-			? containerWidth
-			: (containerWidth - (columnCount - MIN_COLS) * GAP) / columnCount
-	);
+	let columnWidth = $derived((containerWidth - (columnCount - 1) * GAP) / columnCount);
 
 	const chromeY = $derived(showTitles ? CARD_CHROME_Y_TITLED : CARD_CHROME_Y);
 
@@ -144,127 +139,80 @@
 		return DEFAULT_HEIGHT + chromeY + titleHeight;
 	}
 
-	// ============ MASONRY DISTRIBUTION ============
-	function distributeMasonry(itemsToDistribute: DisplayItem[]): DisplayItem[][] {
-		if (columnCount === 0 || itemsToDistribute.length === 0 || columnWidth === 0) return [];
-		const cols: DisplayItem[][] = Array.from({ length: columnCount }, () => []);
-		const heights = Array(columnCount).fill(0);
-		for (const item of itemsToDistribute) {
-			const shortest = heights.indexOf(Math.min(...heights));
-			cols[shortest].push(item);
-			heights[shortest] += estimateHeight(item) + GAP;
+	// ============ MASONRY LAYOUT ============
+	type GridCell = DisplayItem | { _id: 'placeholder'; height: number };
+	type Placeholder = { col: number; slot: number; height: number };
+	type Layout = { columns: GridCell[][]; before: DisplayItem | null; after: DisplayItem | null };
+
+	/**
+	 * Greedy masonry: each item goes into the currently shortest column. A placeholder
+	 * is inserted where the fill reaches its column + slot (before/after are its flat-order
+	 * neighbors); returns null if the fill never reaches that spot.
+	 */
+	function fillColumns(
+		list: DisplayItem[],
+		heights: number[],
+		placeholder?: Placeholder
+	): Layout | null {
+		if (columnWidth === 0) return null;
+
+		const columns: GridCell[][] = Array.from({ length: columnCount }, () => []);
+		const columnHeights = Array(columnCount).fill(0);
+		const shortest = () => columnHeights.indexOf(Math.min(...columnHeights));
+		let neighbors: Pick<Layout, 'before' | 'after'> | null = null;
+
+		for (let i = 0; i <= list.length; i++) {
+			if (
+				placeholder &&
+				!neighbors &&
+				shortest() === placeholder.col &&
+				columns[placeholder.col].length === placeholder.slot
+			) {
+				columns[placeholder.col].push({ _id: 'placeholder', height: placeholder.height });
+				columnHeights[placeholder.col] += placeholder.height + GAP;
+				neighbors = { before: list[i - 1] ?? null, after: list[i] ?? null };
+			}
+			if (i === list.length) break;
+			const col = shortest();
+			columns[col].push(list[i]);
+			columnHeights[col] += heights[i] + GAP;
 		}
-		return cols;
+
+		if (placeholder && !neighbors) return null;
+		return { columns, before: null, after: null, ...neighbors };
 	}
 
-	// Normal layout when not dragging
-	let normalColumns = $derived(distributeMasonry(items));
+	const normalColumns = $derived(
+		(fillColumns(items, items.map(estimateHeight))?.columns ?? []) as DisplayItem[][]
+	);
 
-	// ============ DRAG STATE ============
+	// ============ DRAG ============
 	let draggedItem: DisplayItem | null = $state(null);
-	let dragPosition = $state({ x: 0, y: 0 });
-	let dragOffset = $state({ x: 0, y: 0 });
+	let previewPosition = $state({ x: 0, y: 0 });
+	// The layout with a placeholder at the drop target (null when the target is unreachable)
+	let simulation = $state.raw<Layout | null>(null);
+	let cancelDrag: (() => void) | null = null;
 
-	// Snapshot taken at drag start: the layout doesn't change mid-drag, so item
-	// heights and slot boundaries are measured once instead of on every move
-	let dragSnapshot: {
-		items: DisplayItem[]; // flat order, excluding the dragged item
-		heights: number[]; // parallel to items
-		draggedHeight: number;
+	// Taken at drag start: the layout doesn't change mid-drag, so heights and slot
+	// boundaries are computed once instead of on every move
+	let drag: {
+		offset: { x: number; y: number }; // pointer position within the card
+		others: DisplayItem[]; // flat order without the dragged item
+		heights: number[]; // parallel to others
+		height: number; // the dragged item's, for the placeholder
 		slotMidpoints: number[][]; // per column of the original layout
 		target: { col: number; slot: number };
 	} | null = null;
 
-	// The simulated layout during drag (null if current position is invalid)
-	type GridCell = DisplayItem | { _id: 'placeholder'; height: number };
-	type Simulation = {
-		columns: GridCell[][];
-		beforeItem: DisplayItem | null;
-		afterItem: DisplayItem | null;
-	};
-	let simulationResult: Simulation | null = $state.raw(null);
+	const displayColumns: GridCell[][] = $derived(simulation?.columns ?? normalColumns);
 
-	// ============ MASONRY SIMULATION WITH PLACEHOLDER ============
-
-	/**
-	 * Simulate the masonry fill of the snapshot items and try to insert a
-	 * placeholder at the target column + slot.
-	 * Returns the resulting columns and flat-list neighbors if valid, or null if unreachable.
-	 */
-	function distributeMasonryWithPlaceholder(
-		snapshot: NonNullable<typeof dragSnapshot>,
-		targetCol: number,
-		targetSlot: number
-	): Simulation | null {
-		if (columnCount === 0 || columnWidth === 0) return null;
-
-		const {
-			items: itemsToPlace,
-			heights: itemHeights,
-			draggedHeight: placeholderHeight
-		} = snapshot;
-		const cols: GridCell[][] = Array.from({ length: columnCount }, () => []);
-		const heights = Array(columnCount).fill(0);
-		let placeholderPlaced = false;
-		let beforeItem: DisplayItem | null = null;
-		let afterItem: DisplayItem | null = null;
-		let lastPlacedItem: DisplayItem | null = null;
-
-		for (let i = 0; i < itemsToPlace.length; i++) {
-			const item = itemsToPlace[i];
-
-			// Find the shortest column
-			let shortest = heights.indexOf(Math.min(...heights));
-
-			// Before placing this item, check if we should place placeholder
-			if (!placeholderPlaced && shortest === targetCol && cols[targetCol].length === targetSlot) {
-				// Place placeholder here
-				cols[targetCol].push({ _id: 'placeholder', height: placeholderHeight });
-				heights[targetCol] += placeholderHeight + GAP;
-				placeholderPlaced = true;
-
-				// Record the flat-order neighbors
-				beforeItem = lastPlacedItem;
-				afterItem = item; // This item comes after the placeholder
-
-				// Recalculate shortest since we just added placeholder
-				shortest = heights.indexOf(Math.min(...heights));
-			}
-
-			// Place the item
-			cols[shortest].push(item);
-			heights[shortest] += itemHeights[i] + GAP;
-			lastPlacedItem = item;
-		}
-
-		// After all items, try to place placeholder if not yet placed
-		if (!placeholderPlaced) {
-			const shortest = heights.indexOf(Math.min(...heights));
-			if (shortest === targetCol && cols[targetCol].length === targetSlot) {
-				cols[targetCol].push({ _id: 'placeholder', height: placeholderHeight });
-				placeholderPlaced = true;
-				beforeItem = lastPlacedItem;
-				afterItem = null; // Placeholder is at the end
-			}
-		}
-
-		return placeholderPlaced ? { columns: cols, beforeItem, afterItem } : null;
-	}
-
-	/**
-	 * Determine which column the cursor is over based on X position
-	 */
 	function getColumnFromCursorX(cursorX: number, containerRect: DOMRect): number {
-		const relativeX = cursorX - containerRect.left;
-		const colWidth = columnWidth + GAP;
-		const col = Math.floor(relativeX / colWidth);
+		const col = Math.floor((cursorX - containerRect.left) / (columnWidth + GAP));
 		return Math.max(0, Math.min(columnCount - 1, col));
 	}
 
-	/**
-	 * Vertical midpoints of each card in a column of the original layout; the cursor
-	 * targets the slot of the first card whose midpoint is below it.
-	 */
+	// Vertical midpoints of each card in a column of the original layout; the cursor
+	// targets the slot of the first card whose midpoint is below it
 	function getSlotMidpoints(column: DisplayItem[]): number[] {
 		let y = 0;
 		return column.map((item) => {
@@ -280,161 +228,81 @@
 		containerRect: DOMRect,
 		midpoints: number[]
 	): number {
-		const relativeY = cursorY - containerRect.top;
-		const slot = midpoints.findIndex((midpoint) => relativeY < midpoint);
+		const slot = midpoints.findIndex((midpoint) => cursorY - containerRect.top < midpoint);
 		return slot === -1 ? midpoints.length : slot;
 	}
 
-	/**
-	 * Find an item's column and slot in the column layout.
-	 */
-	function findItemInColumns(
-		columns: DisplayItem[][],
-		itemId: Id<'items'>
-	): { colIndex: number; slotIndex: number } | null {
-		for (let colIndex = 0; colIndex < columns.length; colIndex++) {
-			const slotIndex = columns[colIndex].findIndex((i) => i._id === itemId);
-			if (slotIndex !== -1) {
-				return { colIndex, slotIndex };
-			}
-		}
-		return null;
+	function simulate(col: number, slot: number) {
+		return drag && fillColumns(drag.others, drag.heights, { col, slot, height: drag.height });
 	}
 
-	// ============ DISPLAY LAYOUT ============
-	let displayColumns: GridCell[][] = $derived.by(() =>
-		draggedItem && simulationResult ? simulationResult.columns : normalColumns
-	);
+	function handlePointerDown(item: DisplayItem, e: PointerEvent) {
+		const card = e.currentTarget as HTMLElement;
+		cancelDrag = pointerDrag(e, {
+			start: (x, y) => handleDragStart(item, card, x, y),
+			move: handleDragMove,
+			end: handleDragEnd
+		});
+	}
 
-	// ============ DRAG HANDLERS ============
-	function handleDragStart(item: DisplayItem, e: PointerEvent) {
-		if (!isDraggable) return;
-		e.preventDefault();
-
-		draggedItem = item;
-
-		const cardWrapper = (e.currentTarget as HTMLElement).closest('.card-wrapper') as HTMLElement;
-		const rect = cardWrapper.getBoundingClientRect();
-		dragOffset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-		dragPosition = { x: e.clientX, y: e.clientY };
-
-		const position = findItemInColumns(normalColumns, item._id);
+	function handleDragStart(item: DisplayItem, card: HTMLElement, x: number, y: number) {
+		const rect = card.getBoundingClientRect();
+		const col = normalColumns.findIndex((column) => column.some((i) => i._id === item._id));
+		const slot = normalColumns[col]?.findIndex((i) => i._id === item._id) ?? -1;
 		const others = items.filter((i) => i._id !== item._id);
-		dragSnapshot = {
-			items: others,
+		drag = {
+			offset: { x: x - rect.left, y: y - rect.top },
+			others,
 			heights: others.map(estimateHeight),
-			draggedHeight: estimateHeight(item),
+			height: estimateHeight(item),
 			slotMidpoints: normalColumns.map(getSlotMidpoints),
-			target: { col: position?.colIndex ?? -1, slot: position?.slotIndex ?? -1 }
+			target: { col, slot }
 		};
-
-		if (position) {
-			simulationResult = distributeMasonryWithPlaceholder(
-				dragSnapshot,
-				position.colIndex,
-				position.slotIndex
-			);
-		}
-
-		document.addEventListener('pointermove', handleDragMove);
-		document.addEventListener('pointerup', handleDragEnd);
-		document.body.style.cursor = 'grabbing';
-		document.body.style.userSelect = 'none';
+		draggedItem = item;
+		previewPosition = { x: rect.left, y: rect.top };
+		simulation = simulate(col, slot);
 	}
 
-	function handleDragMove(e: PointerEvent) {
-		if (!draggedItem || !dragSnapshot || !containerElement) return;
-
-		dragPosition = { x: e.clientX, y: e.clientY };
+	// Also runs when the page scrolls under a still pointer, so the target follows the content
+	function handleDragMove(x: number, y: number) {
+		if (!drag || !containerElement) return;
+		previewPosition = { x: x - drag.offset.x, y: y - drag.offset.y };
 
 		// Slots come from the ORIGINAL layout (with the dragged item), which is what the user sees
 		const containerRect = containerElement.getBoundingClientRect();
-		const col = getColumnFromCursorX(e.clientX, containerRect);
-		const slot = getSlotFromCursorY(
-			e.clientY,
-			containerRect,
-			dragSnapshot.slotMidpoints[col] ?? []
-		);
+		const col = getColumnFromCursorX(x, containerRect);
+		const slot = getSlotFromCursorY(y, containerRect, drag.slotMidpoints[col] ?? []);
 
 		// Most moves stay over the same slot; only re-run the layout when the target changes
-		const { target } = dragSnapshot;
-		if (col === target.col && slot === target.slot) return;
-		dragSnapshot.target = { col, slot };
-
-		simulationResult = distributeMasonryWithPlaceholder(dragSnapshot, col, slot);
+		if (col === drag.target.col && slot === drag.target.slot) return;
+		drag.target = { col, slot };
+		simulation = simulate(col, slot);
 	}
 
-	function handleDragEnd() {
-		if (!draggedItem || !onReorder) {
-			cleanup();
-			return;
-		}
-
-		// If no valid drop position, just revert
-		if (!simulationResult) {
-			cleanup();
-			return;
-		}
-
-		// Use the flat-list neighbors from the simulation result
-		const { beforeItem, afterItem } = simulationResult;
-
-		const beforePos = beforeItem?.position ?? null;
-		const afterPos = afterItem?.position ?? null;
-
-		// Check if the item's current neighbors are the same as the target neighbors
-		// If so, no reorder is needed
-		const currentIndex = items.findIndex((i) => i._id === draggedItem!._id);
-		const currentBefore = currentIndex > 0 ? items[currentIndex - 1] : null;
-		const currentAfter = currentIndex < items.length - 1 ? items[currentIndex + 1] : null;
-
-		const samePosition =
-			beforeItem?._id === currentBefore?._id && afterItem?._id === currentAfter?._id;
-
-		if (samePosition) {
-			cleanup();
-			return;
-		}
-
-		// Validate that beforePos < afterPos (required by fractional-indexing)
-		if (beforePos !== null && afterPos !== null && beforePos >= afterPos) {
-			cleanup();
-			return;
-		}
-
-		const newPosition = generateKeyBetween(beforePos, afterPos);
-
-		const itemId = draggedItem._id;
-		cleanup();
-
-		onReorder(itemId, newPosition);
-	}
-
-	function cleanup() {
+	function handleDragEnd(commit: boolean) {
+		const dragged = draggedItem;
+		const drop = simulation;
 		draggedItem = null;
-		simulationResult = null;
-		dragSnapshot = null;
-		document.removeEventListener('pointermove', handleDragMove);
-		document.removeEventListener('pointerup', handleDragEnd);
-		document.body.style.cursor = '';
-		document.body.style.userSelect = '';
+		simulation = null;
+		drag = null;
+		cancelDrag = null;
+		if (!commit || !dragged || !drop || !onReorder) return;
+
+		// Dropped back between its current neighbors: nothing to save
+		const index = items.findIndex((i) => i._id === dragged._id);
+		if (drop.before?._id === items[index - 1]?._id && drop.after?._id === items[index + 1]?._id) {
+			return;
+		}
+
+		const beforePos = drop.before?.position ?? null;
+		const afterPos = drop.after?.position ?? null;
+		// fractional-indexing needs before < after
+		if (beforePos !== null && afterPos !== null && beforePos >= afterPos) return;
+		onReorder(dragged._id, generateKeyBetween(beforePos, afterPos));
 	}
 
-	$effect(() => {
-		if (!containerElement) return;
-		const observer = new ResizeObserver((entries) => {
-			containerWidth = entries[0].contentRect.width;
-		});
-		observer.observe(containerElement);
-		return () => observer.disconnect();
-	});
-
-	// Cleanup drag listeners if component unmounts mid-drag
-	onDestroy(() => {
-		if (draggedItem) {
-			cleanup();
-		}
-	});
+	// Drop the drag's document listeners if the grid unmounts mid-drag
+	onDestroy(() => cancelDrag?.());
 </script>
 
 {#snippet cardContent(item: DisplayItem)}
@@ -508,7 +376,7 @@
 	{/if}
 {/snippet}
 
-<div class="masonry" bind:this={containerElement}>
+<div class="masonry" bind:this={containerElement} bind:clientWidth={containerWidth}>
 	{#each displayColumns as column, colIndex (colIndex)}
 		<div class="column">
 			{#each column as item (item._id)}
@@ -516,19 +384,18 @@
 					<div class="placeholder" style:height="{(item as { height: number }).height}px"></div>
 				{:else}
 					{@const realItem = item as DisplayItem}
-					{@const isDragging = draggedItem?._id === realItem._id}
-					<div class="card-wrapper" class:dragging={isDragging}>
-						<a href={getItemUrl(realItem._id)} class="clickable card" class:titled={showTitles}>
-							{@render cardContent(realItem)}
-						</a>
+					<a
+						href={getItemUrl(realItem._id)}
+						class="clickable card"
+						class:titled={showTitles}
+						class:dragging={draggedItem?._id === realItem._id}
+						onpointerdown={isDraggable ? (e) => handlePointerDown(realItem, e) : undefined}
+					>
+						{@render cardContent(realItem)}
 						{#if isDraggable}
-							<button
-								class="drag-handle"
-								title="drag to reorder"
-								onpointerdown={(e) => handleDragStart(realItem, e)}>⠿</button
-							>
+							<span class="drag-handle" data-drag-handle aria-hidden="true">⠿</span>
 						{/if}
-					</div>
+					</a>
 				{/if}
 			{/each}
 		</div>
@@ -538,8 +405,7 @@
 {#if draggedItem}
 	<div
 		class="drag-preview"
-		style:left="{dragPosition.x - dragOffset.x}px"
-		style:top="{dragPosition.y - dragOffset.y}px"
+		style:transform="translate3d({previewPosition.x}px, {previewPosition.y}px, 0) rotate(2deg)"
 		style:width="{columnWidth}px"
 	>
 		<div class="clickable card" class:titled={showTitles}>
@@ -564,17 +430,14 @@
 		min-width: 0;
 	}
 
-	.card-wrapper {
+	.card {
 		position: relative;
+		padding: 0.5rem;
 	}
 
-	.card-wrapper.dragging {
+	.card.dragging {
 		opacity: 0;
 		pointer-events: none;
-	}
-
-	.card {
-		padding: 0.5rem;
 	}
 
 	.card.titled {
@@ -672,26 +535,27 @@
 		white-space: nowrap;
 	}
 
+	/* A mouse drags the whole card; touch screens get a handle so swipes still scroll */
 	.drag-handle {
+		display: none;
 		position: absolute;
 		top: 0.25rem;
 		left: 0.25rem;
 		padding: 0.25rem;
-		cursor: grab;
-		opacity: 0;
 		background: var(--bg-1);
 		border: 1px solid var(--border);
 		font-size: 1rem;
 		line-height: 1;
 		color: var(--txt-3);
+		touch-action: none;
+		-webkit-touch-callout: none;
+		user-select: none;
 	}
 
-	.card-wrapper:hover .drag-handle {
-		opacity: 1;
-	}
-
-	.drag-handle:active {
-		cursor: grabbing;
+	@media (hover: none) {
+		.drag-handle {
+			display: block;
+		}
 	}
 
 	.placeholder {
@@ -702,10 +566,12 @@
 
 	.drag-preview {
 		position: fixed;
+		top: 0;
+		left: 0;
 		pointer-events: none;
 		z-index: 1000;
 		opacity: 0.9;
-		transform: rotate(2deg);
+		will-change: transform;
 		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 	}
 

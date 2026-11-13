@@ -245,7 +245,6 @@
 		{:else}
 			<ItemGrid
 				items={items.data ?? []}
-				{collectionId}
 				{columnOffset}
 				{showTitles}
 				onReorder={sortBy === 'manual' ? handleReorder : undefined}
