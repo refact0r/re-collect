@@ -14,8 +14,10 @@ export async function extractFonts() {
 	const MIN_SHARE = 0.03;
 	const GENERIC =
 		/^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-sans-serif|ui-serif|ui-monospace|ui-rounded|-apple-system|blinkmacsystemfont|emoji|math|fangsong|inherit|initial)$/i;
+	// Whole-word "icon(s)" and known icon-font names, so text faces like
+	// "Faculty Glyphic" or "Silicon" stay
 	const ICON_FONT =
-		/icon|awesome|material symbols|glyph|feather|ionicons|remixicon|phosphor|fontello|icomoon|dashicons|swiper|slick|eicons|lucide/i;
+		/(^|[^a-z])icons?([^a-z]|$)|awesome|material symbols|glyphicons|feather|ionicons|remixicon|phosphor|fontello|icomoon|dashicons|swiper|slick|eicons|lucide/i;
 
 	// Until webfonts load, Chromium reports the fallback it rendered instead
 	await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1000))]);
