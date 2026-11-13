@@ -1,10 +1,31 @@
 import { fail, redirect, type Cookies } from '@sveltejs/kit';
+import { ConvexError } from 'convex/values';
 import { api } from '../../convex/_generated/api.js';
-import { convex, errorMessage, setSession } from '#lib/server/auth.js';
+import { COOKIE_NAME, convex, errorMessage, setSession } from '#lib/server/auth.js';
 import type { Actions, PageServerLoad } from './$types';
 
-// Invite links (/login?invite=...) show the signup form instead
-export const load: PageServerLoad = ({ url }) => ({ invite: url.searchParams.get('invite') });
+// Invite links (/login?invite=...) show the signup form instead. A live session
+// goes straight to the app; a dead one (signed out elsewhere, which is how the
+// app sends people here) has its cookie cleared.
+export const load: PageServerLoad = async ({ url, cookies }) => {
+	const invite = url.searchParams.get('invite');
+	const token = cookies.get(COOKIE_NAME);
+	if (token) {
+		const live = await convex()
+			.query(api.users.me, { token })
+			.then(
+				() => true,
+				(error) => {
+					if (error instanceof ConvexError && error.data === 'Unauthorized') {
+						cookies.delete(COOKIE_NAME, { path: '/' });
+					}
+					return false;
+				}
+			);
+		if (live && !invite) redirect(303, '/');
+	}
+	return { invite };
+};
 
 async function signIn(cookies: Cookies, session: Promise<string>) {
 	try {

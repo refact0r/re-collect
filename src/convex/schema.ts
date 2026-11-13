@@ -28,7 +28,7 @@ export default defineSchema({
 	users: defineTable({
 		username: v.string(), // Lowercase, unique
 		passwordHash: v.string(), // PBKDF2, format in lib/auth.ts
-		// Consecutive failed logins, for the lockout in sessions.login
+		// Password attempts since the last success, for the lockout in sessions.ts
 		failedLogins: v.optional(v.number()),
 		lastFailedLogin: v.optional(v.number())
 	}).index('by_username', ['username']),
@@ -36,7 +36,8 @@ export default defineSchema({
 	// One per signed-in browser or extension; only the token's hash is stored
 	sessions: defineTable({
 		userId: v.id('users'),
-		tokenHash: v.string()
+		tokenHash: v.string(),
+		extension: v.optional(v.boolean()) // Minted on /account; a new one replaces it
 	})
 		.index('by_tokenHash', ['tokenHash'])
 		.index('by_user', ['userId']),
@@ -45,6 +46,13 @@ export default defineSchema({
 	invites: defineTable({
 		codeHash: v.string()
 	}).index('by_codeHash', ['codeHash']),
+
+	// R2 keys minted by r2.generateUploadUrl and not yet attached to an item, so
+	// items.add only accepts a key its caller uploaded (and only once)
+	uploads: defineTable({
+		userId: v.id('users'),
+		key: v.string()
+	}).index('by_key', ['key']),
 
 	items: defineTable({
 		userId: v.id('users'),

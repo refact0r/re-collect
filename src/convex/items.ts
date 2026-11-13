@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import type { Doc } from './_generated/dataModel';
 import { internal } from './_generated/api';
-import { r2 } from './r2';
+import { getOwnUpload, r2 } from './r2';
 import {
 	addItemToCollection,
 	removeItemFromCollection,
@@ -43,6 +43,14 @@ export const add = userMutation({
 		const collections = args.collections ?? [];
 		const ownedCollections = await Promise.all(collections.map((id) => getOwned(ctx, id)));
 		if (ownedCollections.includes(null)) throw new Error('Collection not found');
+
+		// Deleting an item deletes its R2 object, so a key must be the caller's own
+		// fresh upload; consuming it ties the object to exactly this item
+		if (args.imageKey) {
+			const upload = args.type === 'image' ? await getOwnUpload(ctx, args.imageKey) : null;
+			if (!upload) throw new Error('Upload not found');
+			await ctx.db.delete(upload._id);
+		}
 
 		// Ingestion prefs come from the first collection at add time (or the home
 		// defaults for collection-less adds) and are snapshotted onto the item;

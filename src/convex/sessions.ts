@@ -9,39 +9,37 @@ import {
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import {
+	DUMMY_PASSWORD_HASH,
 	hashPassword,
 	hashToken,
 	normalizeUsername,
 	randomToken,
+	requireUser,
 	verifyPassword
 } from './lib/auth';
 
-// After this many wrong passwords in a row, each further attempt waits out the lockout
+// After this many attempts without a success, each further one waits out the lockout
 const MAX_FAILED_LOGINS = 10;
 const LOCKOUT_MS = 15 * 60 * 1000;
 
 const WRONG_LOGIN = 'wrong username or password';
+const INVALID_INVITE = 'this invite link is invalid or already used';
 
 function checkNewPassword(password: string) {
 	if (password.length < 8) throw new ConvexError('passwords need 8+ characters');
 }
 
-// Throws unless `password` is the user's, counting failures toward the lockout
+// Throws unless `password` is the user's. The attempt is counted toward the
+// lockout before the slow hash runs, so parallel guesses can't all slip in
+// under the limit; a successful login or password change clears the count.
 async function checkPassword(
 	ctx: ActionCtx,
 	user: Doc<'users'>,
 	password: string,
 	wrongMessage: string
 ) {
-	const now = Date.now();
-	if (
-		(user.failedLogins ?? 0) >= MAX_FAILED_LOGINS &&
-		now - (user.lastFailedLogin ?? 0) < LOCKOUT_MS
-	) {
-		throw new ConvexError('too many attempts, try again later');
-	}
+	await ctx.runMutation(internal.sessions.countAttempt, { userId: user._id });
 	if (!(await verifyPassword(password, user.passwordHash))) {
-		await ctx.runMutation(internal.sessions.recordFailedLogin, { userId: user._id, now });
 		throw new ConvexError(wrongMessage);
 	}
 }
@@ -53,7 +51,10 @@ export const login = action({
 		const user = await ctx.runQuery(internal.sessions.getUserByUsername, {
 			username: normalizeUsername(args.username)
 		});
-		if (!user) throw new ConvexError(WRONG_LOGIN);
+		if (!user) {
+			await verifyPassword(args.password, DUMMY_PASSWORD_HASH);
+			throw new ConvexError(WRONG_LOGIN);
+		}
 		await checkPassword(ctx, user, args.password, WRONG_LOGIN);
 
 		const token = randomToken();
@@ -73,10 +74,15 @@ export const signup = action({
 			throw new ConvexError('usernames are 2–32 letters, numbers, - or _');
 		}
 		checkNewPassword(args.password);
+		// Cheap check before the slow hash; createAccount re-checks atomically
+		const inviteHash = await hashToken(args.invite);
+		if (!(await ctx.runQuery(internal.sessions.inviteExists, { inviteHash }))) {
+			throw new ConvexError(INVALID_INVITE);
+		}
 
 		const token = randomToken();
 		await ctx.runMutation(internal.sessions.createAccount, {
-			inviteHash: await hashToken(args.invite),
+			inviteHash,
 			username,
 			passwordHash: await hashPassword(args.password),
 			tokenHash: await hashToken(token)
@@ -85,12 +91,13 @@ export const signup = action({
 	}
 });
 
-// A separate session for the browser extension, so it never needs the password
+// A separate session for the browser extension, so it never needs the password.
+// Replaces the previous extension session, so old tokens stop working.
 export const createExtensionToken = action({
 	args: { token: v.string() },
 	handler: async (ctx, args): Promise<string> => {
 		const token = randomToken();
-		await ctx.runMutation(internal.sessions.startSessionFrom, {
+		await ctx.runMutation(internal.sessions.startExtensionSession, {
 			callerTokenHash: await hashToken(args.token),
 			tokenHash: await hashToken(token)
 		});
@@ -98,7 +105,7 @@ export const createExtensionToken = action({
 	}
 });
 
-// Other sessions (other browsers, the extension) stay signed in
+// Other sessions (other browsers, the extension) stay signed in; signOutOthers ends them
 export const changePassword = action({
 	args: { token: v.string(), currentPassword: v.string(), newPassword: v.string() },
 	handler: async (ctx, args) => {
@@ -128,6 +135,22 @@ export const logout = mutation({
 	}
 });
 
+// Ends every session but the caller's, extension included
+export const signOutOthers = mutation({
+	args: { token: v.string() },
+	handler: async (ctx, args) => {
+		const userId = await requireUser(ctx, args.token);
+		const tokenHash = await hashToken(args.token);
+		const sessions = await ctx.db
+			.query('sessions')
+			.withIndex('by_user', (q) => q.eq('userId', userId))
+			.collect();
+		for (const session of sessions) {
+			if (session.tokenHash !== tokenHash) await ctx.db.delete(session._id);
+		}
+	}
+});
+
 export const getUserBySession = internalQuery({
 	args: { tokenHash: v.string() },
 	handler: async (ctx, args) => {
@@ -149,15 +172,29 @@ export const getUserByUsername = internalQuery({
 	}
 });
 
-export const recordFailedLogin = internalMutation({
-	args: { userId: v.id('users'), now: v.number() },
+export const inviteExists = internalQuery({
+	args: { inviteHash: v.string() },
+	handler: async (ctx, args) => {
+		const invite = await ctx.db
+			.query('invites')
+			.withIndex('by_codeHash', (q) => q.eq('codeHash', args.inviteHash))
+			.unique();
+		return invite !== null;
+	}
+});
+
+// After MAX_FAILED_LOGINS uncleared attempts, allows one per LOCKOUT_MS
+export const countAttempt = internalMutation({
+	args: { userId: v.id('users') },
 	handler: async (ctx, args) => {
 		const user = await ctx.db.get(args.userId);
-		if (!user) return;
-		await ctx.db.patch(args.userId, {
-			failedLogins: (user.failedLogins ?? 0) + 1,
-			lastFailedLogin: args.now
-		});
+		if (!user) throw new ConvexError(WRONG_LOGIN);
+		const now = Date.now();
+		const attempts = user.failedLogins ?? 0;
+		if (attempts >= MAX_FAILED_LOGINS && now - (user.lastFailedLogin ?? 0) < LOCKOUT_MS) {
+			throw new ConvexError('too many attempts, try again later');
+		}
+		await ctx.db.patch(args.userId, { failedLogins: attempts + 1, lastFailedLogin: now });
 	}
 });
 
@@ -169,7 +206,7 @@ export const startSession = internalMutation({
 	}
 });
 
-export const startSessionFrom = internalMutation({
+export const startExtensionSession = internalMutation({
 	args: { callerTokenHash: v.string(), tokenHash: v.string() },
 	handler: async (ctx, args) => {
 		const caller = await ctx.db
@@ -177,7 +214,18 @@ export const startSessionFrom = internalMutation({
 			.withIndex('by_tokenHash', (q) => q.eq('tokenHash', args.callerTokenHash))
 			.unique();
 		if (!caller) throw new ConvexError('Unauthorized');
-		await ctx.db.insert('sessions', { userId: caller.userId, tokenHash: args.tokenHash });
+		const sessions = await ctx.db
+			.query('sessions')
+			.withIndex('by_user', (q) => q.eq('userId', caller.userId))
+			.collect();
+		for (const session of sessions) {
+			if (session.extension) await ctx.db.delete(session._id);
+		}
+		await ctx.db.insert('sessions', {
+			userId: caller.userId,
+			tokenHash: args.tokenHash,
+			extension: true
+		});
 	}
 });
 
@@ -193,7 +241,7 @@ export const createAccount = internalMutation({
 			.query('invites')
 			.withIndex('by_codeHash', (q) => q.eq('codeHash', args.inviteHash))
 			.unique();
-		if (!invite) throw new ConvexError('this invite link is invalid or already used');
+		if (!invite) throw new ConvexError(INVALID_INVITE);
 		const taken = await ctx.db
 			.query('users')
 			.withIndex('by_username', (q) => q.eq('username', args.username))

@@ -47,6 +47,14 @@ export async function hashPassword(password: string) {
 	return ['pbkdf2', PBKDF2_ITERATIONS, toHex(salt), hash].join('$');
 }
 
+// Verified against for unknown usernames, so they take as long as real ones
+export const DUMMY_PASSWORD_HASH = [
+	'pbkdf2',
+	PBKDF2_ITERATIONS,
+	'0'.repeat(32),
+	'0'.repeat(64)
+].join('$');
+
 export async function verifyPassword(password: string, stored: string) {
 	const [scheme, iterations, salt, hash] = stored.split('$');
 	if (scheme !== 'pbkdf2' || !salt || !hash) return false;
@@ -56,8 +64,7 @@ export async function verifyPassword(password: string, stored: string) {
 // The one identity seam: resolves the caller's session token (the `token` arg,
 // sent by the SvelteKit client and the browser extension) to their user. A
 // real auth provider would replace this with `ctx.auth.getUserIdentity()`.
-export async function requireUser(ctx: QueryCtx, token: string | undefined) {
-	if (!token) throw new ConvexError('Unauthorized');
+export async function requireUser(ctx: QueryCtx, token: string) {
 	const tokenHash = await hashToken(token);
 	const session = await ctx.db
 		.query('sessions')
@@ -79,18 +86,18 @@ export async function getOwned<T extends 'items' | 'collections'>(
 	return doc && doc.userId === ctx.userId ? doc : null;
 }
 
-// Public query/mutation for the signed-in user: adds the optional `token` arg,
+// Public query/mutation for the signed-in user: adds the required `token` arg,
 // resolves it to `ctx.userId`, and strips it before the handler runs.
 export function userQuery<Args extends PropertyValidators, Output>(def: {
 	args: Args;
 	handler: (ctx: UserQueryCtx, args: ObjectType<Args>) => Output;
 }) {
 	return query({
-		args: { ...def.args, token: v.optional(v.string()) },
+		args: { ...def.args, token: v.string() },
 		handler: async (ctx, allArgs) => {
-			const { token, ...args } = allArgs as ObjectType<Args> & { token?: string };
+			const { token, ...args } = allArgs as ObjectType<Args> & { token: string };
 			const userId = await requireUser(ctx, token);
-			return def.handler({ ...ctx, userId }, args as ObjectType<Args>);
+			return def.handler({ ...ctx, userId }, args as unknown as ObjectType<Args>);
 		}
 	});
 }
@@ -100,11 +107,11 @@ export function userMutation<Args extends PropertyValidators, Output>(def: {
 	handler: (ctx: UserMutationCtx, args: ObjectType<Args>) => Output;
 }) {
 	return mutation({
-		args: { ...def.args, token: v.optional(v.string()) },
+		args: { ...def.args, token: v.string() },
 		handler: async (ctx, allArgs) => {
-			const { token, ...args } = allArgs as ObjectType<Args> & { token?: string };
+			const { token, ...args } = allArgs as ObjectType<Args> & { token: string };
 			const userId = await requireUser(ctx, token);
-			return def.handler({ ...ctx, userId }, args as ObjectType<Args>);
+			return def.handler({ ...ctx, userId }, args as unknown as ObjectType<Args>);
 		}
 	});
 }

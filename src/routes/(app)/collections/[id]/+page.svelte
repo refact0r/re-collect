@@ -123,7 +123,8 @@
 
 	// Reorder handler for drag-drop; optimistic so the grid doesn't snap back before the server responds
 	async function handleReorder(itemId: Id<'items'>, newPosition: string) {
-		const queryArgs = { collectionId, sortBy };
+		// Must match the useQuery args exactly, token included, to hit its cache entry
+		const queryArgs = { collectionId, sortBy, token: writeToken };
 		await mutate(writeToken, (token) =>
 			client.mutation(
 				api.itemCollectionPositions.reorderItem,

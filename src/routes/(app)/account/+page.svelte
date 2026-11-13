@@ -12,7 +12,8 @@
 
 	let tokenCopied = $state(false);
 
-	// The browser extension gets its own session, so it never needs the password
+	// The browser extension gets its own session, so it never needs the password;
+	// a new token replaces the previous one
 	async function copyExtensionToken() {
 		const token = await client.action(api.sessions.createExtensionToken, { token: writeToken });
 		try {
@@ -23,6 +24,13 @@
 			// Clipboard blocked: show it for manual copying instead
 			prompt('Copy your extension token:', token);
 		}
+	}
+
+	let signedOutOthers = $state(false);
+
+	async function signOutOthers() {
+		await client.mutation(api.sessions.signOutOthers, { token: writeToken });
+		signedOutOthers = true;
 	}
 
 	let currentPassword = $state('');
@@ -64,8 +72,8 @@
 	<section>
 		<h2>browser extension</h2>
 		<p class="meta">
-			copy a token and paste it into the extension's settings. each token is its own session, so it
-			keeps working when you change your password.
+			copy a token and paste it into the extension's settings. it's its own session, so it keeps
+			working when you change your password; copying a new one ends the old one.
 		</p>
 		<button onclick={copyExtensionToken}>{tokenCopied ? 'copied' : 'copy extension token'}</button>
 	</section>
@@ -97,6 +105,13 @@
 	</section>
 
 	<section>
+		<h2>sessions</h2>
+		<p class="meta">
+			end every other session: other browsers and the extension, which then needs a new token.
+		</p>
+		<button onclick={signOutOthers} disabled={signedOutOthers}>
+			{signedOutOthers ? 'signed out other devices' : 'sign out other devices'}
+		</button>
 		<form method="POST" action="/logout">
 			<button>log out</button>
 		</form>

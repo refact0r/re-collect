@@ -21,6 +21,7 @@
 		"test": "pnpm run test:unit --run"
 	},
 	"devDependencies": {
+		"@edge-runtime/vm": "^5.0.0",
 		"@eslint/compat": "^2.1.1",
 		"@eslint/js": "^10.0.1",
 		"@iconify/json": "^2.2.550",
@@ -30,6 +31,7 @@
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@types/node": "^26.6.6",
 		"concurrently": "^10.0.6",
+		"convex-test": "^0.0.69",
 		"eslint": "^10.13.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.23.1",

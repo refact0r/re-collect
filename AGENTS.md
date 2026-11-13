@@ -36,7 +36,7 @@ Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads
 - **Collection membership**: `item.collections` (denormalized array), `itemCollectionPositions` (junction table) and `collections.itemCount` must stay in sync — always go through `addItemToCollection` / `removeItemFromCollection` in `itemCollectionPositions.ts`
 - **`searchText` is derived**: combined from title + description (user notes) + ogDescription + url + AI-tagging output (subject, styles, aiTags) + paletteNames; rebuild via `buildSearchText()` in `src/convex/lib/searchText.ts` on any write that changes those fields
 - **Prose field ownership**: `description` is user notes (never machine-written), `ogDescription` is worker-captured, `subject` is AI-generated; display shows `subject ?? ogDescription`
-- **R2 images served via public custom domain** (`R2_PUBLIC_URL` env var): URLs are stable `${R2_PUBLIC_URL}/${imageKey}`, no presigning; R2 keys are immutable, never overwrite one
+- **R2 images served via public custom domain** (`R2_PUBLIC_URL` env var): URLs are stable `${R2_PUBLIC_URL}/${imageKey}`, no presigning; R2 keys are immutable, never overwrite one. Image keys reach `items.add` only via the caller's own `uploads` row (minted by `r2.generateUploadUrl`), since deleting an item deletes its object
 - Svelte 5 only - do not use deprecated Svelte features
 - Use global styles/colors from `app.css` (`--bg-*`, `--txt-*`); prefer scoped styles over inline
 

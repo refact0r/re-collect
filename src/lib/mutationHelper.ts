@@ -1,11 +1,10 @@
 import type { ConvexClient } from 'convex/browser';
+import { goto } from '$app/navigation';
 import { api } from '../convex/_generated/api.js';
 import type { Id } from '../convex/_generated/dataModel.js';
 
-/**
- * Helper to execute mutations with token and handle auth errors.
- * Shows an alert if the user is not authenticated.
- */
+// Runs a mutation with the session token. An ended session sends the user to
+// /login (which clears the dead cookie) and resolves to null.
 export async function mutate<T>(
 	token: string,
 	fn: (token: string) => Promise<T>
@@ -14,7 +13,7 @@ export async function mutate<T>(
 		return await fn(token);
 	} catch (e) {
 		if (e instanceof Error && e.message.includes('Unauthorized')) {
-			// alert('Please log in to make changes');
+			await goto('/login');
 			return null;
 		}
 		throw e;
