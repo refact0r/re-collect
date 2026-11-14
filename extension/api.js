@@ -53,6 +53,15 @@ export function getHomePreferences() {
 	return call('query', 'viewPreferences:get', { key: 'home' });
 }
 
+// "Already saved Nov 3, 2026" for the newest saved copy of this page, or null.
+// A failed check counts as not saved: it only ever warns, never blocks a save.
+export async function savedNote(url) {
+	const [latest] = await call('query', 'items:findByUrl', { url }).catch(() => []);
+	if (!latest) return null;
+	const date = new Date(latest.dateAdded).toLocaleDateString(undefined, { dateStyle: 'medium' });
+	return `Already saved ${date}`;
+}
+
 function collectionsArg(collectionId) {
 	return collectionId ? [collectionId] : undefined;
 }

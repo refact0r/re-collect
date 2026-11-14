@@ -8,6 +8,7 @@ import { api, internal } from './_generated/api';
 import schema from './schema';
 import type { Id } from './_generated/dataModel';
 import { hashToken } from './lib/auth';
+import { normalizeUrl } from './lib/urls';
 
 const modules = import.meta.glob('./**/*.ts');
 
@@ -280,4 +281,35 @@ test('backfilled fonts are stored and searchable without touching the image', as
 	expect(item?.fonts).toEqual([{ family: 'SOEHNE', internalName: 'Söhne' }]);
 	expect(item?.imageKey).toBe('screenshots/klim.webp');
 	expect(item?.searchText).toBe('Klim https://klim.co.nz fontsohne Söhne Sohne soehne');
+});
+
+test('findByUrl finds the caller’s saved copies of a page, newest first', async () => {
+	const t = convexTest(schema, modules);
+	const { userId, token } = await makeUser(t);
+	const other = await t.run((ctx) =>
+		ctx.db.insert('users', { username: 'b', passwordHash: 'unused' })
+	);
+	const insert = (owner: Id<'users'>, type: 'url' | 'image', url: string, dateAdded: number) =>
+		t.run((ctx) =>
+			ctx.db.insert('items', {
+				userId: owner,
+				type,
+				url,
+				normUrl: normalizeUrl(url),
+				collections: [],
+				dateAdded,
+				dateModified: dateAdded
+			})
+		);
+	const older = await insert(userId, 'url', 'https://www.example.com/work/', 1);
+	const newer = await insert(userId, 'url', 'https://example.com/work?utm_source=x', 2);
+	await insert(userId, 'image', 'https://example.com/work', 3); // Saved from the page
+	await insert(other, 'url', 'https://example.com/work', 4);
+
+	const found = await t.query(api.items.findByUrl, { url: 'http://example.com/work#top', token });
+	expect(found.map((item) => item._id)).toEqual([newer, older]);
+	expect(await t.query(api.items.findByUrl, { url: 'https://example.com/other', token })).toEqual(
+		[]
+	);
+	expect(await t.query(api.items.findByUrl, { url: 'example.com/work', token })).toEqual([]);
 });

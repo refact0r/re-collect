@@ -1,4 +1,4 @@
-import { getLastCollection, saveImage, savePageWithImage, saveUrl } from './api.js';
+import { getLastCollection, saveImage, savePageWithImage, savedNote, saveUrl } from './api.js';
 
 // Page saves take their image from the worker by default ('auto'), or from a
 // screenshot taken here of the visible area or a dragged-out region
@@ -45,6 +45,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 			});
 			return type === 'image' ? 'Image saved' : 'Image blocked — saved page instead';
 		}
+		if (!(await confirmIfSaved(tab, kind === 'link' ? info.linkUrl : tab.url))) return null;
 		if (kind === 'link') {
 			// linkText is Firefox-only; the screenshot worker fills in titles otherwise
 			await saveUrl({ url: info.linkUrl, title: info.linkText, collectionId });
@@ -53,6 +54,17 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 		return savePage(tab, collectionId, capture);
 	});
 });
+
+// A page or link already in the library is saved again only once the user OKs
+// it in the page. Where scripting isn't allowed it just saves. (The popup shows
+// its own warning before you click save.)
+async function confirmIfSaved(tab, url) {
+	const note = await savedNote(url);
+	if (!note) return true;
+	return inject(tab, (message) => confirm(message), [
+		`${note} in re-collect. Save it again?`
+	]).catch(() => true);
+}
 
 // The popup hands saves off here so area selection can happen after it closes
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

@@ -352,6 +352,32 @@ export const search = userQuery({
 	}
 });
 
+// The caller's saved links to this page (same normalizeUrl), newest first, for
+// warning before an add saves it again. Image items saved from a page carry its
+// URL too, but they aren't the page.
+export const findByUrl = userQuery({
+	args: { url: v.string() },
+	handler: async (ctx, args) => {
+		if (!isWebUrl(args.url)) return [];
+		const matches = await ctx.db
+			.query('items')
+			.withIndex('by_user_normUrl', (q) =>
+				q.eq('userId', ctx.userId).eq('normUrl', normalizeUrl(args.url))
+			)
+			.order('desc')
+			.take(20);
+		return matches
+			.filter((item) => item.type === 'url')
+			.map(({ _id, title, url, collections, dateAdded }) => ({
+				_id,
+				title,
+				url,
+				collections,
+				dateAdded
+			}));
+	}
+});
+
 // Search results the collection filter scans before narrowing to members
 const COLLECTION_SEARCH_SCAN = 256;
 

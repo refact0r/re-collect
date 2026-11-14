@@ -86,6 +86,18 @@ export function useQuery<Q extends PublicFunction<'query'>>(
 	);
 }
 
+// A one-time read of the owner's data, e.g. a check before a write
+export function useQueryOnce() {
+	const client = useConvexClient();
+	const getToken = getWriteTokenContext();
+	return <Q extends UserFunction<'query'>>(
+		query: Q,
+		args: UserArgs<Q>,
+		options?: CallOptions
+	): Promise<FunctionReturnType<Q> | undefined> =>
+		run(() => client.query(query, withToken<Q>(args, requireToken(getToken))), options);
+}
+
 export function useMutation() {
 	const client = useConvexClient();
 	const getToken = getWriteTokenContext();

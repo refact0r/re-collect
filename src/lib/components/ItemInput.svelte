@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { reportError, useMutation } from '#lib/convex.js';
+	import type { FunctionReturnType } from 'convex/server';
+	import { tick } from 'svelte';
+	import { reportError, useMutation, useQueryOnce } from '#lib/convex.js';
 	import { isWebUrl } from '../../convex/lib/urls.js';
+	import DuplicateConfirm from './DuplicateConfirm.svelte';
 	import IconUpload from '~icons/material-symbols-light/upload-sharp';
 
 	interface Props {
@@ -12,6 +15,7 @@
 	let { collectionId }: Props = $props();
 
 	const mutate = useMutation();
+	const queryOnce = useQueryOnce();
 	const collections = $derived(collectionId ? [collectionId] : undefined);
 
 	// Resolves to the uploaded object's key, or undefined once a failure is reported
@@ -68,10 +72,30 @@
 		});
 	}
 
+	// A link already in the library waits here for the user to add it anyway or cancel
+	let duplicate = $state<{
+		value: string;
+		matches: FunctionReturnType<typeof api.items.findByUrl>;
+	} | null>(null);
+
 	async function handleSubmit() {
 		const value = inputValue.trim();
 		if (!value) return;
 
+		isAdding = true;
+		if (isWebUrl(value)) {
+			// A failed check just skips the warning
+			const matches = await queryOnce(api.items.findByUrl, { url: value }, { onError: () => {} });
+			if (matches?.length) {
+				duplicate = { value, matches };
+				isAdding = false;
+				return;
+			}
+		}
+		await add(value);
+	}
+
+	async function add(value: string) {
 		isAdding = true;
 		const added = await mutate(
 			api.items.add,
@@ -84,6 +108,19 @@
 			inputValue = '';
 			if (textareaEl) textareaEl.style.height = 'auto';
 		}
+	}
+
+	function addDuplicate() {
+		if (!duplicate) return;
+		const { value } = duplicate;
+		duplicate = null;
+		add(value);
+	}
+
+	async function cancelDuplicate() {
+		duplicate = null;
+		await tick();
+		textareaEl?.focus();
 	}
 
 	async function handleFileUpload(event: Event) {
@@ -154,6 +191,16 @@
 		}
 	}
 </script>
+
+{#if duplicate}
+	<DuplicateConfirm
+		matches={duplicate.matches}
+		{collectionId}
+		onAdd={addDuplicate}
+		onCancel={cancelDuplicate}
+		onView={() => (duplicate = null)}
+	/>
+{/if}
 
 <div class="input-wrapper">
 	<label class="icon-filled upload-btn">

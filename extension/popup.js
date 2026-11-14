@@ -3,6 +3,7 @@ import {
 	getLastCollection,
 	getSettings,
 	listCollections,
+	savedNote,
 	setLastCollection
 } from './api.js';
 
@@ -25,6 +26,7 @@ if (!(await getSettings()).convexUrl) {
 	saveButton.disabled = false;
 	saveButton.focus();
 	loadCollections();
+	warnIfSaved();
 }
 
 let collections = [];
@@ -41,6 +43,14 @@ async function loadCollections() {
 		status.textContent = `Couldn't load collections: ${error.message}`;
 		status.classList.add('error');
 	}
+}
+
+// Saving again is allowed; the button says so
+async function warnIfSaved() {
+	const note = await savedNote(tab.url);
+	if (!note || status.classList.contains('error')) return;
+	status.textContent = note;
+	saveButton.textContent = 'Save again';
 }
 
 // The "Default" options name what the selected collection (or home) would use

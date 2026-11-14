@@ -5,6 +5,7 @@ Save pages, links and images to re-collect from the browser. Plain JS Manifest V
 - **Toolbar popup**: saves the current tab. You can pick a collection, the image source and the tagging mode for that save.
 - **Context menu**: a "Save to …" submenu with Page (in each screenshot mode), Link and Image. It saves to the collection last picked in the popup (or uncollected), and its title shows the target.
 - A badge on the toolbar icon and a toast in the page confirm success or failure.
+- Pages and links already in your library aren't blocked: the popup says "Already saved" and its button becomes "Save again", and a context-menu save asks in the page first (`items.findByUrl`). Image saves aren't checked, since many images can come from one page.
 
 Page saves can take their image from:
 
