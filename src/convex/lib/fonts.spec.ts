@@ -31,6 +31,37 @@ describe('fontDisplayName', () => {
 		);
 	});
 
+	it('strips trial, version, optical-size and patch suffixes (seen in a real library)', () => {
+		expect(fontDisplayName(font('Shinka Mono', 'Shinka Mono Unlicensed Trial Medium'))).toBe(
+			'Shinka Mono'
+		);
+		expect(fontDisplayName(font('Season Mix Trial', 'Season Mix-TRIAL'))).toBe('Season Mix');
+		expect(fontDisplayName(font('Shopify Inter', 'Shopify Inter Beta 0.29'))).toBe('Shopify Inter');
+		expect(fontDisplayName(font('Newsreader', 'Newsreader 16pt 16pt'))).toBe('Newsreader');
+		expect(fontDisplayName(font('KarlsbaderWeb', 'Karlsbader Grotesk 600'))).toBe(
+			'Karlsbader Grotesk'
+		);
+		expect(fontDisplayName(font('Sohne Mono', 'Söhne Mono Leicht'))).toBe('Söhne Mono');
+		expect(fontDisplayName(font('Departure', 'DepartureMono Nerd Font Mono'))).toBe(
+			'DepartureMono'
+		);
+		expect(fontDisplayName(font('Inter Display', 'Inter Variable Display'))).toBe('Inter Display');
+	});
+
+	it('labels CSS system-font keywords readably', () => {
+		expect(fontDisplayName(font('ui-monospace'))).toBe('UI Monospace');
+		expect(fontDisplayName(font('-apple-system'))).toBe('System UI');
+		expect(fontQuery(font('system-ui'))).toBe('fontsystemui');
+	});
+
+	it('keeps numbers that are part of the family name', () => {
+		expect(fontDisplayName(font('Source Sans 3', 'Source Sans 3 ExtraLight'))).toBe(
+			'Source Sans 3'
+		);
+		expect(fontDisplayName(font('Baloo 2', 'Baloo 2'))).toBe('Baloo 2');
+		expect(fontDisplayName(font('RoundHog', 'RoundHog Medium'))).toBe('RoundHog');
+	});
+
 	it('keeps style words that start a family name', () => {
 		expect(fontDisplayName(font('Black Han Sans'))).toBe('Black Han Sans');
 	});

@@ -31,6 +31,7 @@ import type * as migrations_011_backfill_item_counts from "../migrations/011_bac
 import type * as migrations_012_og_description from "../migrations/012_og_description.js";
 import type * as migrations_013_retag_by_collection_default from "../migrations/013_retag_by_collection_default.js";
 import type * as migrations_014_multi_user from "../migrations/014_multi_user.js";
+import type * as migrations_015_rebuild_search_text from "../migrations/015_rebuild_search_text.js";
 import type * as r2 from "../r2.js";
 import type * as screenshots from "../screenshots.js";
 import type * as sessions from "../sessions.js";
@@ -69,6 +70,7 @@ declare const fullApi: ApiFromModules<{
   "migrations/012_og_description": typeof migrations_012_og_description;
   "migrations/013_retag_by_collection_default": typeof migrations_013_retag_by_collection_default;
   "migrations/014_multi_user": typeof migrations_014_multi_user;
+  "migrations/015_rebuild_search_text": typeof migrations_015_rebuild_search_text;
   r2: typeof r2;
   screenshots: typeof screenshots;
   sessions: typeof sessions;

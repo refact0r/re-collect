@@ -76,3 +76,27 @@ test('captured fonts are stored, searchable, and kept when a capture brings none
 	expect(item?.searchText?.toLowerCase()).toContain('soehne');
 	vi.useRealTimers();
 });
+
+test('backfilled fonts are stored and searchable without touching the image', async () => {
+	const t = convexTest(schema, modules);
+	const itemId = await t.run(async (ctx) => {
+		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
+		return ctx.db.insert('items', {
+			userId,
+			type: 'url',
+			url: 'https://klim.co.nz',
+			title: 'Klim',
+			imageKey: 'screenshots/klim.webp',
+			collections: [],
+			dateAdded: 0,
+			dateModified: 0
+		});
+	});
+	await t.mutation(internal.screenshots.setFonts, {
+		items: [{ itemId, fonts: [{ family: 'SOEHNE', internalName: 'Söhne' }] }]
+	});
+	const item = await t.run((ctx) => ctx.db.get(itemId));
+	expect(item?.fonts).toEqual([{ family: 'SOEHNE', internalName: 'Söhne' }]);
+	expect(item?.imageKey).toBe('screenshots/klim.webp');
+	expect(item?.searchText).toBe('Klim https://klim.co.nz fontsohne Söhne Sohne soehne');
+});
