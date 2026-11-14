@@ -16,6 +16,9 @@
 	const MIN_ZOOM = 0.5;
 	const MAX_ZOOM = 40;
 	const DRAG_THRESHOLD = 4;
+	// Past this many points on screen, images give way to palette swatches, so the
+	// fitted view of a big library doesn't fetch every full-size image
+	const MAX_IMAGES = 400;
 
 	interface Placed {
 		item: DisplayItem;
@@ -85,6 +88,16 @@
 	});
 	let moved = $state<View | null>(null);
 	const view = $derived(moved ?? fitted);
+
+	// Only points on screen are drawn
+	const visible = $derived(
+		placed.filter((p) => {
+			const x = view.x + p.x * view.k;
+			const y = view.y + p.y * view.k;
+			return x > -THUMB && x < width + THUMB && y > -THUMB && y < height + THUMB;
+		})
+	);
+	const showImages = $derived(visible.length <= MAX_IMAGES);
 
 	let dragging = $state(false);
 	let hoveredId = $state<string | null>(null);
@@ -165,8 +178,10 @@
 		if (pointers.size === 0) dragging = false;
 	}
 
+	// Swallows the one click a drag ends with; a later keyboard click goes through
 	function onclickcapture(e: MouseEvent) {
 		if (!dragged) return;
+		dragged = false;
 		e.preventDefault();
 		e.stopPropagation();
 	}
@@ -187,7 +202,7 @@
 		aria-label="map of the library, similar items placed together"
 	>
 		<div class="layer" style:transform="translate({view.x}px, {view.y}px)">
-			{#each placed as p (p.item._id)}
+			{#each visible as p (p.item._id)}
 				<a
 					href={getItemUrl(p.item._id)}
 					class={['point', { chip: !p.image, hovered: hoveredId === p.item._id }]}
@@ -201,8 +216,10 @@
 					onfocus={() => (hoveredId = p.item._id)}
 					onblur={() => (hoveredId = null)}
 				>
-					{#if p.image}
+					{#if p.image && showImages}
 						<img src={p.item.imageUrl} alt="" loading="lazy" decoding="async" draggable="false" />
+					{:else if p.image}
+						<span class="swatch" style:background={p.item.paletteHex?.[0]}></span>
 					{:else}
 						<span>{label(p.item)}</span>
 					{/if}
@@ -308,6 +325,12 @@
 		height: 100%;
 		object-fit: cover;
 		pointer-events: none;
+	}
+
+	.swatch {
+		display: block;
+		width: 100%;
+		height: 100%;
 	}
 
 	.point.chip {
