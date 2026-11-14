@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { FeedCandidate } from '../../convex/discovery';
-	import IconOpen from '~icons/material-symbols-light/open-in-new';
+	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
 	import DiscoverMedia from './DiscoverMedia.svelte';
 	import Modal from './Modal.svelte';
 
@@ -35,7 +35,7 @@
 					{candidate.sourceName} ·
 					<a href={candidate.url} target="_blank" rel="noopener noreferrer">
 						{domain}
-						<IconOpen />
+						<IconOpenInNew />
 					</a>
 				</p>
 			</div>

@@ -5,7 +5,7 @@
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { useDeleteItem, useMutation } from '#lib/convex.js';
-	import { pointerDrag } from '#lib/pointerDrag.js';
+	import { pointerDrag, blockTouchScroll } from '#lib/pointerDrag.js';
 	import { shouldDisplayAsImage, getItemUrl, isBusy } from '#lib/itemDisplay.js';
 	import { GAP, columnCountFor, columnWidthFor } from '#lib/masonry.js';
 	import type { DisplayItem } from '#lib/types.js';
@@ -369,6 +369,7 @@
 						class:dragging={draggedItem?._id === realItem._id}
 						class:draggable={isDraggable}
 						onpointerdown={isDraggable ? (e) => handlePointerDown(realItem, e) : undefined}
+						{@attach isDraggable && blockTouchScroll}
 					>
 						{@render cardContent(realItem)}
 					</a>
@@ -511,11 +512,15 @@
 		white-space: nowrap;
 	}
 
-	/* A long press on touch starts a drag, not a link preview or text selection */
+	/* A long press on touch starts our drag, not a link preview, text selection or the system's drag and drop */
 	.card.draggable {
 		-webkit-touch-callout: none;
 		-webkit-user-select: none;
 		user-select: none;
+	}
+	.card.draggable,
+	.card.draggable :global(*) {
+		-webkit-user-drag: none;
 	}
 
 	.placeholder {

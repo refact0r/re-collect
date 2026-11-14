@@ -9,6 +9,18 @@ const LONG_PRESS_MS = 400;
 const EDGE = 64;
 const MAX_SCROLL_SPEED = 20;
 
+// A browser only lets a touchmove listener stop the page scrolling if a blocking one
+// was already on the element when the touch began, so the cards carry one from the
+// start (blockTouchScroll) and this flag tells it when a touch drag is underway
+let touchDragging = false;
+
+/** Attachment for draggable cards: keeps a touch drag from also scrolling the page */
+export function blockTouchScroll(el: Element) {
+	const block = (ev: Event) => touchDragging && ev.preventDefault();
+	el.addEventListener('touchmove', block, { passive: false });
+	return () => el.removeEventListener('touchmove', block);
+}
+
 interface DragCallbacks {
 	/** The drag begins; (x, y) is where the pointer went down */
 	start: (x: number, y: number) => void;
@@ -48,6 +60,7 @@ export function pointerDrag(e: PointerEvent, { start, move, end }: DragCallbacks
 
 	function begin() {
 		dragging = true;
+		touchDragging = touch;
 		document.body.style.cursor = 'grabbing';
 		document.body.style.userSelect = 'none';
 		// Scroll events don't bubble; capturing on document sees the scroller's
@@ -82,6 +95,7 @@ export function pointerDrag(e: PointerEvent, { start, move, end }: DragCallbacks
 		clearTimeout(pressTimer);
 		if (!dragging) return;
 		dragging = false;
+		touchDragging = false;
 		cancelAnimationFrame(frame);
 		document.body.style.cursor = '';
 		document.body.style.userSelect = '';
@@ -109,11 +123,6 @@ export function pointerDrag(e: PointerEvent, { start, move, end }: DragCallbacks
 	window.addEventListener('keydown', (ev) => ev.key === 'Escape' && finish(false), { signal });
 	if (touch) {
 		pressTimer = window.setTimeout(begin, LONG_PRESS_MS);
-		// Once dragging, a finger's moves drag the card instead of scrolling the page
-		document.addEventListener('touchmove', (ev) => dragging && ev.preventDefault(), {
-			passive: false,
-			signal
-		});
 		// Android opens a context menu on a long press
 		window.addEventListener('contextmenu', (ev) => ev.preventDefault(), { signal });
 	}
