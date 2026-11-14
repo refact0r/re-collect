@@ -1,10 +1,7 @@
 <script lang="ts">
-	import { useConvexClient } from 'convex-svelte';
-	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { mutate } from '#lib/mutationHelper.js';
-	import { getWriteTokenContext } from '#lib/context.js';
-	import { shouldDisplayAsImage, getItemUrl } from '#lib/itemDisplay.js';
+	import { useDeleteItem } from '#lib/convex.js';
+	import { shouldDisplayAsImage, getItemUrl, isBusy } from '#lib/itemDisplay.js';
 	import type { DisplayItem } from '#lib/types.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
 	import IconError from '~icons/material-symbols-light/error-outline';
@@ -14,9 +11,7 @@
 	import IconImage from '~icons/material-symbols-light/image-outline';
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new';
 
-	const client = useConvexClient();
-	const getWriteToken = getWriteTokenContext();
-	const writeToken = $derived(getWriteToken());
+	const deleteItem = useDeleteItem();
 
 	interface Props {
 		items: DisplayItem[];
@@ -24,10 +19,10 @@
 
 	let { items }: Props = $props();
 
-	async function handleDeleteItem(itemId: Id<'items'>, e: MouseEvent) {
+	function handleDeleteItem(itemId: Id<'items'>, e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
-		await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
+		deleteItem(itemId);
 	}
 
 	function handleOpenLink(url: string, e: MouseEvent) {
@@ -57,7 +52,7 @@
 					{#if shouldDisplayAsImage(item)}
 						<img src={item.imageUrl} alt="" decoding="async" loading="lazy" />
 					{:else if item.type === 'url'}
-						{#if item.screenshotStatus === 'pending' || item.screenshotStatus === 'processing'}
+						{#if isBusy(item.screenshotStatus)}
 							<div class="icon-placeholder loading">
 								<IconSchedule />
 							</div>

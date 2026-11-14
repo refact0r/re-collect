@@ -89,8 +89,4 @@
 		font-size: 1.5rem;
 		margin-bottom: 0.5rem;
 	}
-
-	button.error {
-		color: var(--danger-border);
-	}
 </style>

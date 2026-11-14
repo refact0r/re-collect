@@ -77,6 +77,7 @@ export default defineSchema({
 		screenshotStatus: v.optional(
 			v.union(
 				v.literal('pending'),
+				// No longer written; remove once tagging:failStuckItems has run on each deployment
 				v.literal('processing'),
 				v.literal('completed'),
 				v.literal('failed')
@@ -89,7 +90,7 @@ export default defineSchema({
 		aiTags: v.optional(v.array(v.string())),
 		// Deterministic palette extracted from pixels (not LLM)
 		paletteHex: v.optional(v.array(v.string())),
-		// Named-color tokens derived from paletteHex via Lab nearest-neighbor;
+		// Named-color tokens derived from paletteHex via OKLCh nearest-anchor matching;
 		// included in searchText so queries like "blue poster" hit color matches.
 		paletteNames: v.optional(v.array(v.string())),
 		// Fonts the page uses, most prominent first (URL items, screenshot captures
@@ -99,6 +100,7 @@ export default defineSchema({
 		taggingStatus: v.optional(
 			v.union(
 				v.literal('pending'),
+				// No longer written; remove once tagging:failStuckItems has run on each deployment
 				v.literal('processing'),
 				v.literal('completed'),
 				v.literal('failed')
@@ -126,7 +128,7 @@ export default defineSchema({
 		name: v.string(),
 		dateCreated: v.number(),
 		position: v.optional(v.string()), // Lexicographical fractional index for manual ordering
-		itemCount: v.optional(v.number()), // Denormalized count of itemCollectionPositions rows (backfilled by migration 011)
+		itemCount: v.optional(v.number()), // Denormalized count of itemCollectionPositions rows
 		sortMode: v.optional(collectionSortModeValidator), // Defaults to 'manual'
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))), // Defaults to 'grid'
 		columnOffset: v.optional(v.number()), // Added to the width-derived grid column count
@@ -161,6 +163,5 @@ export default defineSchema({
 	})
 		.index('by_collection', ['collectionId', 'position'])
 		.index('by_collection_dateAdded', ['collectionId', 'dateAdded'])
-		.index('by_item', ['itemId'])
 		.index('by_item_and_collection', ['itemId', 'collectionId'])
 });

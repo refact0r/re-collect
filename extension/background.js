@@ -6,7 +6,13 @@ const MENUS = [
 	{ id: 'page:auto', contexts: ['all'], title: 'Page' },
 	{ id: 'page:visible', contexts: ['all'], title: 'Page (screenshot visible area)' },
 	{ id: 'page:area', contexts: ['all'], title: 'Page (screenshot selected area…)' },
-	{ id: 'link', contexts: ['link'], title: 'Link' },
+	// Only http(s) links can be saved (mailto:, javascript: … would be rejected)
+	{
+		id: 'link',
+		contexts: ['link'],
+		targetUrlPatterns: ['http://*/*', 'https://*/*'],
+		title: 'Link'
+	},
 	{ id: 'image', contexts: ['image'], title: 'Image' }
 ];
 

@@ -1,21 +1,19 @@
 <script lang="ts">
-	import { useConvexClient, useQuery } from 'convex-svelte';
-	import { ConvexError } from 'convex/values';
 	import { api } from '../../../convex/_generated/api.js';
-	import { getWriteTokenContext } from '#lib/context.js';
+	import { useAction, useMutation, useQuery } from '#lib/convex.js';
 
-	const client = useConvexClient();
-	const getWriteToken = getWriteTokenContext();
-	const writeToken = $derived(getWriteToken());
+	const mutate = useMutation();
+	const act = useAction();
 
-	const me = useQuery(api.users.me, () => ({ token: writeToken }));
+	const me = useQuery(api.users.me, () => ({}));
 
 	let tokenCopied = $state(false);
 
 	// The browser extension gets its own session, so it never needs the password;
 	// a new token replaces the previous one
 	async function copyExtensionToken() {
-		const token = await client.action(api.sessions.createExtensionToken, { token: writeToken });
+		const token = await act(api.sessions.createExtensionToken, {});
+		if (token === undefined) return;
 		try {
 			await navigator.clipboard.writeText(token);
 			tokenCopied = true;
@@ -29,8 +27,7 @@
 	let signedOutOthers = $state(false);
 
 	async function signOutOthers() {
-		await client.mutation(api.sessions.signOutOthers, { token: writeToken });
-		signedOutOthers = true;
+		if ((await mutate(api.sessions.signOutOthers, {})) !== undefined) signedOutOthers = true;
 	}
 
 	let currentPassword = $state('');
@@ -42,26 +39,23 @@
 	async function changePassword(event: SubmitEvent) {
 		event.preventDefault();
 		changingPassword = true;
-		try {
-			await client.action(api.sessions.changePassword, {
-				token: writeToken,
-				currentPassword,
-				newPassword
-			});
+		// The form shows its own errors
+		const changed = await act(
+			api.sessions.changePassword,
+			{ currentPassword, newPassword },
+			{ onError: (message) => (passwordStatus = message) }
+		);
+		changingPassword = false;
+		passwordError = changed === undefined;
+		if (!passwordError) {
 			passwordStatus = 'password changed';
-			passwordError = false;
 			currentPassword = '';
 			newPassword = '';
-		} catch (error) {
-			passwordStatus = error instanceof ConvexError ? String(error.data) : 'something went wrong';
-			passwordError = true;
-		} finally {
-			changingPassword = false;
 		}
 	}
 </script>
 
-<div class="container">
+<div class="page-column">
 	<div class="page-header">
 		<h1>account</h1>
 		{#if me.data}
@@ -119,19 +113,6 @@
 </div>
 
 <style>
-	.container {
-		display: flex;
-		flex-direction: column;
-		gap: 2rem;
-		max-width: 64rem;
-		margin: 0 auto;
-		padding-bottom: 2rem;
-	}
-
-	.page-header {
-		margin-bottom: 0;
-	}
-
 	section {
 		display: flex;
 		flex-direction: column;
@@ -142,9 +123,5 @@
 	section .form {
 		width: 100%;
 		max-width: 24rem;
-	}
-
-	button.error {
-		color: var(--danger-border);
 	}
 </style>

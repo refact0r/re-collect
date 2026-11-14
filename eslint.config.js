@@ -14,7 +14,7 @@ const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
 
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
-	{ ignores: ['src/convex/_generated/'] },
+	{ ignores: ['src/convex/_generated/', '.claude/worktrees/'] },
 	js.configs.recommended,
 	...ts.configs.recommended,
 	...svelte.configs.recommended,

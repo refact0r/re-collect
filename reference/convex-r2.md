@@ -13,16 +13,13 @@ upstream examples lean on presigned GET URLs, which this app deliberately does
 
 ## Uploads
 
-Client-side flow in `ItemInput.svelte`, backed by two auth-gated mutations in
-`src/convex/r2.ts`:
+Client-side flow in `ItemInput.svelte`:
 
-1. `api.r2.generateUploadUrl` → returns `{ key, url }` (a presigned PUT URL —
-   the one place presigning IS used) and records the key in `uploads` against
-   the caller.
+1. `api.r2.generateUploadUrl` (`src/convex/r2.ts`) → returns `{ key, url }` (a
+   presigned PUT URL — the one place presigning IS used) and records the key in
+   `uploads` against the caller.
 2. Client `fetch(url, { method: 'PUT', body: file })`.
-3. `api.r2.syncMetadata` → schedules the component's metadata sync for the key
-   (caller's own uploads only).
-4. The item is created with `imageKey` set to the returned key. `items.add`
+3. The item is created with `imageKey` set to the returned key. `items.add`
    only accepts a key from the caller's own `uploads` row and deletes that row,
    so each object belongs to exactly one item (deleting the item deletes the
    object, which must never reach another user's image).
@@ -30,8 +27,11 @@ Client-side flow in `ItemInput.svelte`, backed by two auth-gated mutations in
 Images from the browser extension take the same path, server-side:
 `api.imageImport.addFromUrl` (a Node action) fetches a remote image and
 `api.imageImport.addPageWithImage` decodes the extension's own screenshot (a
-`data:` URL). Each then runs steps 1–3 from the action and creates the item, an
+`data:` URL). Each then runs steps 1–2 from the action and creates the item, an
 image item or a URL item with that screenshot in place of the worker's.
+
+The component's `metadata` table isn't used (nothing syncs or reads it);
+`r2.deleteObject` deletes the object either way.
 
 The screenshot worker (`workers/screenshot`) writes to the same bucket
 directly via its R2 binding (keys under `screenshots/` and `og/`), bypassing

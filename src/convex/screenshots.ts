@@ -1,13 +1,23 @@
-import { v, type Infer } from 'convex/values';
-import { internalAction, internalMutation, type MutationCtx } from './_generated/server';
+import { ConvexError, v, type Infer } from 'convex/values';
+import {
+	internalAction,
+	internalMutation,
+	internalQuery,
+	type MutationCtx
+} from './_generated/server';
 import { internal, components } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { Workpool, vOnCompleteArgs } from '@convex-dev/workpool';
+import { NonRetryableError, Workpool, vOnCompleteArgs } from '@convex-dev/workpool';
 import { getOwned, userMutation } from './lib/auth';
 import { r2 } from './r2';
-import { buildSearchText } from './lib/searchText';
+import { patchItem } from './lib/searchText';
 import { linkImageModeValidator, siteFontValidator } from './schema';
 import { parseSiteFonts } from './lib/fonts';
+import { enqueueTagging } from './tagging';
+
+// Well above the worker's worst case (~2 min: og fast path, browser launch,
+// navigation, network idle, settle delay, og image fetch, R2 put)
+const WORKER_TIMEOUT_MS = 180_000;
 
 // Serializes captures so the Cloudflare free plan's launch limits (1 new
 // browser per 20s, 3 concurrent) don't drop screenshots during burst saves.
@@ -24,20 +34,15 @@ export async function enqueueScreenshot(
 ): Promise<void> {
 	await screenshotPool.enqueueAction(ctx, internal.screenshots.generateScreenshotInternal, args, {
 		onComplete: internal.screenshots.onScreenshotComplete,
+		onCompleteExcludeKinds: ['success'],
 		context: { itemId: args.itemId }
 	});
 }
 
-export const setProcessing = internalMutation({
+// Lets a queued capture for a since-deleted item skip the worker call
+export const itemExists = internalQuery({
 	args: { itemId: v.id('items') },
-	handler: async (ctx, args) => {
-		const item = await ctx.db.get(args.itemId);
-		if (!item) return;
-
-		await ctx.db.patch(args.itemId, {
-			screenshotStatus: 'processing'
-		});
-	}
+	handler: async (ctx, args): Promise<boolean> => (await ctx.db.get(args.itemId)) !== null
 });
 
 export const setCompleted = internalMutation({
@@ -53,7 +58,11 @@ export const setCompleted = internalMutation({
 	},
 	handler: async (ctx, args) => {
 		const item = await ctx.db.get(args.itemId);
-		if (!item) return;
+		// Deleted while its capture ran: the worker's new object belongs to no one
+		if (!item) {
+			await r2.deleteObject(ctx, args.imageKey);
+			return;
+		}
 
 		if (item.imageKey && item.imageKey !== args.imageKey) {
 			await r2.deleteObject(ctx, item.imageKey);
@@ -69,7 +78,7 @@ export const setCompleted = internalMutation({
 		// image only triggers palette extraction, not visual tagging
 		const wantsVisualTagging = item.taggingMode !== 'none' && item.taggingMode !== 'text';
 
-		await ctx.db.patch(args.itemId, {
+		await patchItem(ctx, item, {
 			screenshotStatus: 'completed',
 			imageKey: args.imageKey,
 			imageWidth: args.imageWidth,
@@ -78,28 +87,17 @@ export const setCompleted = internalMutation({
 			...(wantsVisualTagging && { taggingStatus: 'pending' as const, taggingError: undefined }),
 			title,
 			ogDescription,
-			fonts,
-			searchText: buildSearchText({
-				title,
-				description: item.description,
-				ogDescription,
-				url: item.url,
-				styles: item.styles,
-				aiTags: item.aiTags,
-				subject: item.subject,
-				paletteNames: item.paletteNames,
-				fonts
-			})
+			fonts
 		});
 
 		// Palette runs on every new image; the LLM tagger only when visual tagging is on
-		await ctx.scheduler.runAfter(
-			0,
-			wantsVisualTagging
-				? internal.taggingActions.preprocessItem
-				: internal.taggingActions.repaletteItem,
-			{ itemId: args.itemId }
-		);
+		if (wantsVisualTagging) {
+			await enqueueTagging(ctx, internal.taggingActions.tagImageItem, args.itemId);
+		} else {
+			await ctx.scheduler.runAfter(0, internal.taggingActions.repaletteItem, {
+				itemId: args.itemId
+			});
+		}
 	}
 });
 
@@ -128,17 +126,16 @@ export const reimageItem = userMutation({
 	},
 	handler: async (ctx, args) => {
 		const item = await getOwned(ctx, args.itemId);
-		if (!item) throw new Error('Item not found');
-		if (item.type !== 'url' || !item.url) {
-			throw new Error('Item is not a URL item');
-		}
-		if (item.screenshotStatus === 'pending' || item.screenshotStatus === 'processing') {
-			throw new Error('Image fetch already in progress');
+		if (!item) throw new ConvexError('Item not found');
+		if (item.type !== 'url' || !item.url) throw new ConvexError('Item is not a URL item');
+		// Set in the same transaction as the enqueue, so captures never overlap
+		if (item.screenshotStatus === 'pending') {
+			throw new ConvexError('Image fetch already in progress');
 		}
 		// A tagging job holds a reference to the current image; replacing the
 		// image underneath it would let its stale results land afterwards
-		if (item.taggingStatus === 'pending' || item.taggingStatus === 'processing') {
-			throw new Error('Tagging in progress; wait for it to finish');
+		if (item.taggingStatus === 'pending') {
+			throw new ConvexError('Tagging in progress; wait for it to finish');
 		}
 
 		const mode = args.mode ?? item.linkImageMode;
@@ -170,9 +167,10 @@ export const generateScreenshotInternal = internalAction({
 			return;
 		}
 
-		await ctx.runMutation(internal.screenshots.setProcessing, {
+		const exists: boolean = await ctx.runQuery(internal.screenshots.itemExists, {
 			itemId: args.itemId
 		});
+		if (!exists) return;
 
 		let response: Response;
 		try {
@@ -186,9 +184,14 @@ export const generateScreenshotInternal = internalAction({
 					url: args.url,
 					itemId: args.itemId,
 					mode: args.mode ?? 'screenshot'
-				})
+				}),
+				signal: AbortSignal.timeout(WORKER_TIMEOUT_MS)
 			});
 		} catch (error) {
+			// A hung worker would hang again; don't hold the single-slot pool for retries
+			if ((error as Error | undefined)?.name === 'TimeoutError') {
+				throw new NonRetryableError('Screenshot service timed out');
+			}
 			// Worker unreachable - throw so the workpool retries; onScreenshotComplete
 			// records the failure if retries run out
 			throw new Error(
@@ -232,15 +235,13 @@ export const generateScreenshotInternal = internalAction({
 	}
 });
 
-// Runs after each pool job settles; success is already recorded by the action,
-// so this only marks items whose retries were exhausted (or job canceled)
+// Runs after a pool job fails or is canceled (success is recorded by the
+// action itself), so an item whose retries ran out never stays pending
 export const onScreenshotComplete = internalMutation({
 	args: vOnCompleteArgs(v.object({ itemId: v.id('items') })),
 	handler: async (ctx, args) => {
-		if (args.result.kind === 'success') return;
-
 		const item = await ctx.db.get(args.context.itemId);
-		if (!item || item.screenshotStatus !== 'processing') return;
+		if (item?.screenshotStatus !== 'pending') return;
 
 		await ctx.db.patch(args.context.itemId, {
 			screenshotStatus: 'failed',

@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { mutate } from '#lib/mutationHelper.js';
-	import { getWriteTokenContext } from '#lib/context.js';
+	import { reportError, useMutation } from '#lib/convex.js';
 	import IconUpload from '~icons/material-symbols-light/upload-sharp';
 
 	interface Props {
@@ -12,22 +10,24 @@
 
 	let { collectionId }: Props = $props();
 
-	const client = useConvexClient();
-	const getWriteToken = getWriteTokenContext();
-	const writeToken = $derived(getWriteToken());
+	const mutate = useMutation();
+	const collections = $derived(collectionId ? [collectionId] : undefined);
 
-	async function uploadFile(file: File): Promise<string | null> {
-		return await mutate(writeToken, async (token) => {
-			const { url, key } = await client.mutation(api.r2.generateUploadUrl, { token });
-			const res = await fetch(url, {
+	// Resolves to the uploaded object's key, or undefined once a failure is reported
+	async function uploadFile(file: File): Promise<string | undefined> {
+		const upload = await mutate(api.r2.generateUploadUrl, {});
+		if (!upload) return;
+		try {
+			const res = await fetch(upload.url, {
 				method: 'PUT',
 				headers: { 'Content-Type': file.type },
 				body: file
 			});
 			if (!res.ok) throw new Error(`Failed to upload file: ${res.status}`);
-			await client.mutation(api.r2.syncMetadata, { key, token });
-			return key;
-		});
+			return upload.key;
+		} catch (error) {
+			reportError(error);
+		}
 	}
 
 	let inputValue = $state('');
@@ -52,13 +52,10 @@
 		});
 	}
 
+	// Only http(s) links become URL items (the server rejects anything else);
+	// `new URL` would also accept "note: buy milk"
 	function isUrl(str: string): boolean {
-		try {
-			new URL(str);
-			return true;
-		} catch {
-			return false;
-		}
+		return /^https?:\/\/\S+$/i.test(str);
 	}
 
 	function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
@@ -81,30 +78,16 @@
 		if (!value) return;
 
 		isAdding = true;
-		try {
-			const result = await mutate(writeToken, (token) => {
-				if (isUrl(value)) {
-					return client.mutation(api.items.add, {
-						type: 'url',
-						url: value,
-						collections: collectionId ? [collectionId] : undefined,
-						token
-					});
-				} else {
-					return client.mutation(api.items.add, {
-						type: 'text',
-						content: value,
-						collections: collectionId ? [collectionId] : undefined,
-						token
-					});
-				}
-			});
-			if (result !== null) {
-				inputValue = '';
-				if (textareaEl) textareaEl.style.height = 'auto';
-			}
-		} finally {
-			isAdding = false;
+		const added = await mutate(
+			api.items.add,
+			isUrl(value)
+				? { type: 'url', url: value, collections }
+				: { type: 'text', content: value, collections }
+		);
+		isAdding = false;
+		if (added !== undefined) {
+			inputValue = '';
+			if (textareaEl) textareaEl.style.height = 'auto';
 		}
 	}
 
@@ -134,24 +117,19 @@
 
 	async function uploadImage(file: File) {
 		isAdding = true;
-		try {
-			const dimensions = await getImageDimensions(file);
-			const key = await uploadFile(file);
-			if (!key) return;
-			await mutate(writeToken, (token) =>
-				client.mutation(api.items.add, {
-					type: 'image',
-					imageKey: key,
-					imageWidth: dimensions.width || undefined,
-					imageHeight: dimensions.height || undefined,
-					title: file.name || 'Pasted image',
-					collections: collectionId ? [collectionId] : undefined,
-					token
-				})
-			);
-		} finally {
-			isAdding = false;
+		const dimensions = await getImageDimensions(file);
+		const key = await uploadFile(file);
+		if (key) {
+			await mutate(api.items.add, {
+				type: 'image',
+				imageKey: key,
+				imageWidth: dimensions.width || undefined,
+				imageHeight: dimensions.height || undefined,
+				title: file.name || 'Pasted image',
+				collections
+			});
 		}
+		isAdding = false;
 	}
 
 	function handleKeydown(event: KeyboardEvent) {

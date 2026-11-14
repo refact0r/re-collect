@@ -22,7 +22,7 @@ The idea: the screenshot worker already loads every saved page in headless Chrom
   - og-mode items whose og:image comes from the fast path (no browser).
   - Images supplied by the extension (no worker run).
   - Existing items, until "refresh image" re-captures them. There's no backfill migration.
-- Changing font naming only needs a `searchText` rebuild for existing items. Re-extraction needs a recapture.
+- Changing font naming only needs a `searchText` rebuild for existing items (`npx convex run items:rebuildSearchText`, `--prod` for production). Re-extraction needs a recapture.
 
 ## Research findings (2026-11-12)
 

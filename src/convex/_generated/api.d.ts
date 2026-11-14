@@ -9,6 +9,7 @@
  */
 
 import type * as collections from "../collections.js";
+import type * as crons from "../crons.js";
 import type * as imageImport from "../imageImport.js";
 import type * as itemCollectionPositions from "../itemCollectionPositions.js";
 import type * as items from "../items.js";
@@ -16,20 +17,7 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_colorNames from "../lib/colorNames.js";
 import type * as lib_fonts from "../lib/fonts.js";
 import type * as lib_searchText from "../lib/searchText.js";
-import type * as migrations_001_add_positions from "../migrations/001_add_positions.js";
-import type * as migrations_002_remove_collection_descriptions from "../migrations/002_remove_collection_descriptions.js";
-import type * as migrations_003_add_search_text from "../migrations/003_add_search_text.js";
-import type * as migrations_004_bulk_retag from "../migrations/004_bulk_retag.js";
-import type * as migrations_005_remove_kind from "../migrations/005_remove_kind.js";
-import type * as migrations_006_repalette from "../migrations/006_repalette.js";
-import type * as migrations_007_drop_palette_description from "../migrations/007_drop_palette_description.js";
-import type * as migrations_008_palette_names from "../migrations/008_palette_names.js";
-import type * as migrations_009_normalize_tags from "../migrations/009_normalize_tags.js";
-import type * as migrations_010_add_collection_positions from "../migrations/010_add_collection_positions.js";
-import type * as migrations_011_backfill_item_counts from "../migrations/011_backfill_item_counts.js";
-import type * as migrations_012_og_description from "../migrations/012_og_description.js";
-import type * as migrations_013_retag_by_collection_default from "../migrations/013_retag_by_collection_default.js";
-import type * as migrations_014_multi_user from "../migrations/014_multi_user.js";
+import type * as lib_tagger from "../lib/tagger.js";
 import type * as r2 from "../r2.js";
 import type * as screenshots from "../screenshots.js";
 import type * as sessions from "../sessions.js";
@@ -46,6 +34,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   collections: typeof collections;
+  crons: typeof crons;
   imageImport: typeof imageImport;
   itemCollectionPositions: typeof itemCollectionPositions;
   items: typeof items;
@@ -53,20 +42,7 @@ declare const fullApi: ApiFromModules<{
   "lib/colorNames": typeof lib_colorNames;
   "lib/fonts": typeof lib_fonts;
   "lib/searchText": typeof lib_searchText;
-  "migrations/001_add_positions": typeof migrations_001_add_positions;
-  "migrations/002_remove_collection_descriptions": typeof migrations_002_remove_collection_descriptions;
-  "migrations/003_add_search_text": typeof migrations_003_add_search_text;
-  "migrations/004_bulk_retag": typeof migrations_004_bulk_retag;
-  "migrations/005_remove_kind": typeof migrations_005_remove_kind;
-  "migrations/006_repalette": typeof migrations_006_repalette;
-  "migrations/007_drop_palette_description": typeof migrations_007_drop_palette_description;
-  "migrations/008_palette_names": typeof migrations_008_palette_names;
-  "migrations/009_normalize_tags": typeof migrations_009_normalize_tags;
-  "migrations/010_add_collection_positions": typeof migrations_010_add_collection_positions;
-  "migrations/011_backfill_item_counts": typeof migrations_011_backfill_item_counts;
-  "migrations/012_og_description": typeof migrations_012_og_description;
-  "migrations/013_retag_by_collection_default": typeof migrations_013_retag_by_collection_default;
-  "migrations/014_multi_user": typeof migrations_014_multi_user;
+  "lib/tagger": typeof lib_tagger;
   r2: typeof r2;
   screenshots: typeof screenshots;
   sessions: typeof sessions;
@@ -105,4 +81,5 @@ export declare const internal: FilterApi<
 export declare const components: {
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
   screenshotPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"screenshotPool">;
+  taggingPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"taggingPool">;
 };

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '@fontsource/dm-sans';
+	import '@fontsource/dm-sans/500.css';
 	import '../app.css';
 	import { dev } from '$app/env';
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildSearchText } from './searchText';
-import { normalizeTag, dedupePreserveOrder } from '../tagging';
+import { normalizeTag, dedupePreserveOrder } from './tagger';
 
 describe('buildSearchText', () => {
 	it('joins all populated fields with spaces', () => {
@@ -21,7 +21,20 @@ describe('buildSearchText', () => {
 
 	it('skips missing and empty fields', () => {
 		expect(buildSearchText({ title: 'Only title' })).toBe('Only title');
+		expect(buildSearchText({ title: '', content: '' })).toBe('');
 		expect(buildSearchText({})).toBe('');
+	});
+
+	it('includes a text note’s content', () => {
+		expect(buildSearchText({ title: 'Note', content: 'risograph paper supplier' })).toBe(
+			'Note risograph paper supplier'
+		);
+	});
+
+	it('caps long content', () => {
+		const searchText = buildSearchText({ content: 'a'.repeat(50_000) + ' tail' });
+		expect(searchText).toHaveLength(10_000);
+		expect(searchText).not.toContain('tail');
 	});
 });
 

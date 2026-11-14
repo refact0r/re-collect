@@ -1,8 +1,8 @@
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import type { QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { generateKeyBetween } from 'fractional-indexing';
-import { removeItemFromCollection } from './itemCollectionPositions';
+import { getPositionsByCollection } from './itemCollectionPositions';
 import { getImageUrl } from './items';
 import { getOwned, userMutation, userQuery, type UserQueryCtx } from './lib/auth';
 import {
@@ -11,12 +11,11 @@ import {
 	collectionSortModeValidator
 } from './schema';
 
-// Manual order by fractional-index position (backfilled by migration 010)
-async function listSorted(ctx: UserQueryCtx) {
-	return await ctx.db
+// The caller's collections in manual (fractional-index position) order
+function byPosition(ctx: UserQueryCtx) {
+	return ctx.db
 		.query('collections')
-		.withIndex('by_user_position', (q) => q.eq('userId', ctx.userId))
-		.collect();
+		.withIndex('by_user_position', (q) => q.eq('userId', ctx.userId));
 }
 
 export const create = userMutation({
@@ -29,17 +28,12 @@ export const create = userMutation({
 	},
 	handler: async (ctx, args) => {
 		// New collections go to the bottom of the manual order
-		const sorted = await listSorted(ctx);
-		const lastPos = sorted[sorted.length - 1]?.position ?? null;
+		const last = await byPosition(ctx).order('desc').first();
 		return await ctx.db.insert('collections', {
+			...args,
 			userId: ctx.userId,
-			name: args.name,
 			dateCreated: Date.now(),
-			position: generateKeyBetween(lastPos, null),
-			sortMode: args.sortMode,
-			viewMode: args.viewMode,
-			taggingMode: args.taggingMode,
-			linkImageMode: args.linkImageMode
+			position: generateKeyBetween(last?.position ?? null, null)
 		});
 	}
 });
@@ -50,9 +44,7 @@ export const reorder = userMutation({
 		newPosition: v.string()
 	},
 	handler: async (ctx, args) => {
-		const existing = await getOwned(ctx, args.id);
-		if (!existing) throw new Error('Collection not found');
-
+		if (!(await getOwned(ctx, args.id))) throw new ConvexError('collection not found');
 		await ctx.db.patch(args.id, { position: args.newPosition });
 	}
 });
@@ -70,9 +62,7 @@ export const update = userMutation({
 	},
 	handler: async (ctx, args) => {
 		const { id, ...updates } = args;
-		const existing = await getOwned(ctx, id);
-		if (!existing) throw new Error('Collection not found');
-
+		if (!(await getOwned(ctx, id))) throw new ConvexError('collection not found');
 		await ctx.db.patch(id, updates);
 	}
 });
@@ -81,16 +71,19 @@ export const update = userMutation({
 export const remove = userMutation({
 	args: { id: v.id('collections') },
 	handler: async (ctx, args) => {
-		const collection = await getOwned(ctx, args.id);
-		if (!collection) throw new Error('Collection not found');
+		if (!(await getOwned(ctx, args.id))) throw new ConvexError('collection not found');
 
-		// Remove every item's membership (positions, collections array, count)
-		const positions = await ctx.db
-			.query('itemCollectionPositions')
-			.withIndex('by_collection', (q) => q.eq('collectionId', args.id))
-			.collect();
+		// Drop every membership (position row, item's collections array). The count
+		// goes with the collection, and members aren't "modified" by its deletion.
+		const positions = await getPositionsByCollection(ctx, args.id);
 		for (const position of positions) {
-			await removeItemFromCollection(ctx, position.itemId, args.id);
+			await ctx.db.delete(position._id);
+			const item = await ctx.db.get(position.itemId);
+			if (item) {
+				await ctx.db.patch(item._id, {
+					collections: item.collections.filter((c) => c !== args.id)
+				});
+			}
 		}
 
 		await ctx.db.delete(args.id);
@@ -135,7 +128,7 @@ async function getCollectionPreviews(
 export const listWithCounts = userQuery({
 	args: {},
 	handler: async (ctx) => {
-		const collections = await listSorted(ctx);
+		const collections = await byPosition(ctx).collect();
 
 		return Promise.all(
 			collections.map(async (collection) => ({

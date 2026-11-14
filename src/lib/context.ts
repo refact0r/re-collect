@@ -1,7 +1,7 @@
 import { getContext, setContext } from 'svelte';
 import type { FunctionReturnType } from 'convex/server';
 import type { api } from '../convex/_generated/api';
-import type { CurrentItemsContext } from './types';
+import type { DisplayItem } from './types';
 
 // Shape of a convex-svelte useQuery result as consumers see it
 export interface QueryState<T> {
@@ -22,9 +22,11 @@ export const setCollectionsContext = (value: QueryState<CollectionsData>) =>
 	setContext('collections', value);
 export const getCollectionsContext = () => getContext<QueryState<CollectionsData>>('collections');
 
-export const setCurrentItemsContext = (value: CurrentItemsContext) =>
-	setContext('currentItems', value);
-export const getCurrentItemsContext = () => getContext<CurrentItemsContext>('currentItems');
+// The list the item modal steps through with prev/next: the active page points
+// `list` at what it shows
+export type CurrentItems = { list: () => DisplayItem[] };
+export const setCurrentItemsContext = (value: CurrentItems) => setContext('currentItems', value);
+export const getCurrentItemsContext = () => getContext<CurrentItems>('currentItems');
 
 export const setWriteTokenContext = (value: () => string) => setContext('writeToken', value);
 export const getWriteTokenContext = () => getContext<() => string>('writeToken');

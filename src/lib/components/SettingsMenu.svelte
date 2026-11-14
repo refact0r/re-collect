@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Doc, Id } from '../../convex/_generated/dataModel.js';
-	import { mutate } from '#lib/mutationHelper.js';
-	import { getCollectionsContext, getWriteTokenContext } from '#lib/context.js';
+	import { useMutation, useQuery } from '#lib/convex.js';
+	import { getCollectionsContext } from '#lib/context.js';
 	import Dropdown from './Dropdown.svelte';
 	import IconSettings from '~icons/material-symbols-light/settings-outline';
 
@@ -17,12 +16,10 @@
 
 	let { collectionId, showIngestion = true, showTitles, onShowTitlesChange }: Props = $props();
 
-	const client = useConvexClient();
+	const mutate = useMutation();
 	const collections = getCollectionsContext();
-	const getWriteToken = getWriteTokenContext();
-	const writeToken = $derived(getWriteToken());
 
-	const homePrefs = useQuery(api.viewPreferences.get, () => ({ key: 'home', token: writeToken }));
+	const homePrefs = useQuery(api.viewPreferences.get, () => ({ key: 'home' }));
 
 	const source = $derived(
 		collectionId
@@ -46,15 +43,12 @@
 		{ value: 'og', label: 'og image' }
 	] as const;
 
-	async function setDefaults(fields: {
+	function setDefaults(fields: {
 		taggingMode?: 'visual' | 'text' | 'none';
 		linkImageMode?: 'screenshot' | 'og';
 	}) {
-		await mutate(writeToken, (token) =>
-			collectionId
-				? client.mutation(api.collections.update, { id: collectionId, ...fields, token })
-				: client.mutation(api.viewPreferences.set, { key: 'home', ...fields, token })
-		);
+		if (collectionId) mutate(api.collections.update, { id: collectionId, ...fields });
+		else mutate(api.viewPreferences.set, { key: 'home', ...fields });
 	}
 </script>
 

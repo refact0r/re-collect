@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import ItemEditor from './ItemEditor.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { getCurrentItemsContext } from '#lib/context.js';
+	import { getCurrentItemsContext, getItemsContext } from '#lib/context.js';
 
 	interface Props {
 		itemId: Id<'items'>;
@@ -12,35 +12,28 @@
 
 	let { itemId, onClose }: Props = $props();
 
-	let editor = $state<ItemEditor>();
+	const allItems = getItemsContext();
+	const item = $derived(allItems.data?.find((i) => i._id === itemId));
 
-	// Get current items from context (set by the active page)
 	const currentItemsContext = getCurrentItemsContext();
+	const currentItems = $derived(currentItemsContext.list());
 
-	const currentItems = $derived(currentItemsContext.items);
-
-	function handleClose() {
-		editor?.save();
-		onClose();
-	}
-
+	// The editor saves its own edits when it unmounts, so navigating only swaps the URL
 	async function navigateToItem(newItemId: Id<'items'>) {
-		editor?.save();
-
 		const params = new URLSearchParams(page.url.search);
 		params.set('item', newItemId);
-		await goto(`${page.url.pathname}?${params}`, { reset: false });
+		await goto(`${page.url.pathname}?${params}`, { replace: true, reset: false });
 	}
 
 	function handleBackdropClick(event: MouseEvent) {
 		if (event.target === event.currentTarget) {
-			handleClose();
+			onClose();
 		}
 	}
 
 	async function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
-			handleClose();
+			onClose();
 			return;
 		}
 
@@ -74,9 +67,17 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div class="backdrop" onclick={handleBackdropClick} role="dialog" aria-modal="true" tabindex="-1">
 	<div class="modal modal-wide">
-		{#key itemId}
-			<ItemEditor bind:this={editor} {itemId} {onClose} onDelete={onClose} />
-		{/key}
+		{#if allItems.isLoading}
+			<p class="status-text">loading...</p>
+		{:else if allItems.error}
+			<p class="status-text">error: {allItems.error.message}</p>
+		{:else if !item}
+			<p class="status-text">item not found</p>
+		{:else}
+			{#key itemId}
+				<ItemEditor {item} {onClose} />
+			{/key}
+		{/if}
 	</div>
 </div>
 

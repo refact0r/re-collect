@@ -9,9 +9,10 @@ export type SiteFont = NonNullable<Doc<'items'>['fonts']>[number];
 const MAX_FONTS = 5;
 const MAX_NAME_LENGTH = 100;
 
-// Narrow the worker's JSON, dropping malformed entries instead of failing the
-// capture. Families that differ only by weight ("Editor-Regular" and
-// "Editor-Bold" declared separately) collapse into the first one.
+// Narrow the worker's JSON, dropping malformed entries and fonts with no usable
+// name (hashed families) instead of failing the capture. Families that differ
+// only by weight ("Editor-Regular" and "Editor-Bold" declared separately)
+// collapse into the first one.
 export function parseSiteFonts(raw: unknown): SiteFont[] | undefined {
 	if (!Array.isArray(raw)) return undefined;
 	const fonts = new Map<string, SiteFont>();
@@ -24,16 +25,18 @@ export function parseSiteFonts(raw: unknown): SiteFont[] | undefined {
 			...(typeof internalName === 'string' &&
 				internalName.trim() && { internalName: internalName.trim().slice(0, MAX_NAME_LENGTH) })
 		};
-		const key = fontSearchKey(fontDisplayName(font));
+		const [name] = fontNames(font);
+		if (!name) continue;
+		const key = fontSearchKey(name);
 		if (!fonts.has(key) && fonts.size < MAX_FONTS) fonts.set(key, font);
 	}
 	return [...fonts.values()];
 }
 
 // Weight/style/format words that name a cut rather than the family, stripped
-// from the end only ("Black Han Sans" keeps its "Black")
+// from the end only ("Black Han Sans" keeps its "Black"; "Times New Roman" its "Roman")
 const STYLE_SUFFIX =
-	/\s+(thin|hairline|extra ?light|ultra ?light|light|book|buch|regular|normal|roman|medium|semi ?bold|smbld|demi ?bold|bold|halbfett|extra ?bold|ultra ?bold|heavy|black|italic|oblique|variable|var|vf|web|webfont)$/i;
+	/\s+(thin|hairline|extra ?light|ultra ?light|light|book|buch|regular|normal|(?<!new )roman|medium|semi ?bold|smbld|demi ?bold|bold|halbfett|extra ?bold|ultra ?bold|heavy|black|italic|oblique|variable|var|vf|web|webfont)$/i;
 
 // Internal names that aren't names: Klim's fonts report their copyright line,
 // and font-shop kits often report nothing usable
@@ -47,7 +50,11 @@ function cleanName(raw: string): string | undefined {
 	let stripped = name;
 	while (STYLE_SUFFIX.test(stripped)) stripped = stripped.replace(STYLE_SUFFIX, '');
 	name = stripped || name;
-	if (name.length < 2 || JUNK.test(name) || /^[0-9a-f]{6,}$/i.test(name.replace(/ /g, ''))) {
+	if (
+		name.length < 2 ||
+		JUNK.test(name) ||
+		/^(?=.*\d)[0-9a-f]{6,}$/i.test(name.replace(/ /g, ''))
+	) {
 		return undefined;
 	}
 	// Title-case all-lowercase words ("denim") and shouty names ("SOEHNE IKON"),
@@ -65,17 +72,16 @@ function cleanName(raw: string): string | undefined {
 
 // Candidate names, best first: the font file's own name, then the CSS family
 function fontNames(font: SiteFont): string[] {
-	const names = [font.internalName, font.family]
+	return [font.internalName, font.family]
 		.map((n) => (n ? cleanName(n) : undefined))
 		.filter((n): n is string => !!n);
-	return names.length ? names : [font.family];
 }
 
 export function fontDisplayName(font: SiteFont): string {
-	return fontNames(font)[0];
+	return fontNames(font)[0] ?? font.family;
 }
 
-const stripAccents = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+const stripAccents = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 // One-word key that matches however the name was spaced or cased: "GT America
 // Mono" -> "gtamericamono". German umlauts also get their "oe" spelling, so
@@ -100,12 +106,21 @@ export function fontSearchTerms(fonts: SiteFont[] | undefined): string[] {
 		if (term && !terms.has(term.toLowerCase())) terms.set(term.toLowerCase(), term);
 	};
 	for (const font of fonts ?? []) {
+		const names = fontNames(font);
+		if (!names.length) continue;
 		add(fontQuery(font));
-		for (const name of fontNames(font)) {
+		for (const name of names) {
 			add(name);
 			add(stripAccents(name));
 			add(fontSearchKey(name));
-			add(fontSearchKey(name.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')));
+			add(
+				fontSearchKey(
+					name
+						.replace(/\u00e4/g, 'ae')
+						.replace(/\u00f6/g, 'oe')
+						.replace(/\u00fc/g, 'ue')
+				)
+			);
 		}
 	}
 	return [...terms.values()];

@@ -75,7 +75,7 @@ export async function requireUser(ctx: QueryCtx, token: string) {
 }
 
 export type UserQueryCtx = QueryCtx & { userId: Id<'users'> };
-export type UserMutationCtx = MutationCtx & { userId: Id<'users'> };
+type UserMutationCtx = MutationCtx & { userId: Id<'users'> };
 
 // Fetch a document only if the current user owns it; anyone else's looks missing
 export async function getOwned<T extends 'items' | 'collections'>(

@@ -1,6 +1,6 @@
 'use node';
 
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import sharp from 'sharp';
 import { action, type ActionCtx } from './_generated/server';
 import { api } from './_generated/api';
@@ -9,15 +9,25 @@ import { taggingModeValidator } from './schema';
 
 type Image = Awaited<ReturnType<typeof fetchImage>>;
 
+const FETCH_TIMEOUT_MS = 30_000;
+const MAX_IMAGE_BYTES = 30 * 1024 * 1024;
+
 // Accepts http(s) and data: URLs
 async function fetchImage(imageUrl: string, pageUrl?: string) {
-	// Referer gets past basic hotlink protection on most CDNs
-	const response = await fetch(imageUrl, { headers: pageUrl ? { Referer: pageUrl } : {} });
-	if (!response.ok) throw new Error(`Image fetch failed: ${response.status}`);
+	const response = await fetch(imageUrl, {
+		// Referer gets past basic hotlink protection on most CDNs
+		headers: pageUrl ? { Referer: pageUrl } : {},
+		signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
+	});
+	if (!response.ok) throw new ConvexError(`image fetch failed (${response.status})`);
 	const contentType = response.headers.get('content-type') ?? '';
-	if (!contentType.startsWith('image/')) throw new Error(`Not an image: ${contentType}`);
+	if (!contentType.startsWith('image/')) throw new ConvexError('that link is not an image');
+	// Checked again after the download, since content-length may be absent
+	const tooLarge = new ConvexError('the image is over 30 MB');
+	if (Number(response.headers.get('content-length')) > MAX_IMAGE_BYTES) throw tooLarge;
 
 	const data = Buffer.from(await response.arrayBuffer());
+	if (data.length > MAX_IMAGE_BYTES) throw tooLarge;
 	const { autoOrient } = await sharp(data).metadata();
 	return { data, contentType, width: autoOrient.width, height: autoOrient.height };
 }
@@ -32,7 +42,6 @@ async function upload(ctx: ActionCtx, image: Image, token: string) {
 		body: new Uint8Array(image.data)
 	});
 	if (!response.ok) throw new Error(`Image upload failed: ${response.status}`);
-	await ctx.runMutation(api.r2.syncMetadata, { key, token });
 	return key;
 }
 

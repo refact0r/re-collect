@@ -1,31 +1,24 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { useConvexClient } from 'convex-svelte';
 	import { generateKeyBetween } from 'fractional-indexing';
 	import { api } from '../../../convex/_generated/api.js';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import CollectionCreateModal from '#lib/components/CollectionCreateModal.svelte';
-	import { mutate } from '#lib/mutationHelper.js';
+	import { useMutation } from '#lib/convex.js';
 	import { pointerDrag } from '#lib/pointerDrag.js';
-	import {
-		getWriteTokenContext,
-		getCollectionsContext,
-		type CollectionsData
-	} from '#lib/context.js';
+	import { getCollectionsContext, type CollectionsData } from '#lib/context.js';
 	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
 
 	type CollectionCard = CollectionsData[number];
 
-	const client = useConvexClient();
-	const getWriteToken = getWriteTokenContext();
-	const writeToken = $derived(getWriteToken());
+	const mutate = useMutation();
 	const collections = getCollectionsContext();
 
 	let showCreateModal = $state(false);
 
-	async function handleDelete(id: Id<'collections'>) {
+	function handleDelete(id: Id<'collections'>) {
 		if (confirm('Delete this collection? Items will not be deleted.')) {
-			await mutate(writeToken, (token) => client.mutation(api.collections.remove, { id, token }));
+			mutate(api.collections.remove, { id });
 		}
 	}
 
@@ -118,42 +111,38 @@
 		if (beforePos !== null && afterPos !== null && beforePos >= afterPos) return;
 
 		const newPosition = generateKeyBetween(beforePos, afterPos);
-		mutate(writeToken, (token) =>
-			client.mutation(api.collections.reorder, { id: dragged._id, newPosition, token })
-		);
+		mutate(api.collections.reorder, { id: dragged._id, newPosition });
 	}
 
 	// Drop the drag's document listeners if the page unmounts mid-drag
 	onDestroy(() => cancelDrag?.());
 </script>
 
-<div class="container">
-	<div class="page-header">
-		<h1>collections</h1>
-		<button onclick={() => (showCreateModal = true)}>new collection</button>
-	</div>
-
-	{#if collections.isLoading}
-		<p class="status-text">loading...</p>
-	{:else if collections.error}
-		<p class="status-text">error: {collections.error.message}</p>
-	{:else if collections.data?.length === 0}
-		<p class="status-text">no collections yet. click "new collection" to create your first one!</p>
-	{:else}
-		<div class="list" bind:this={listElement}>
-			{#each displayCollections as collection (collection._id)}
-				<a
-					href="/collections/{collection._id}"
-					class="clickable collection-card"
-					class:dragging={draggedCollection?._id === collection._id}
-					onpointerdown={(e) => handlePointerDown(collection, e)}
-				>
-					{@render cardBody(collection, true)}
-				</a>
-			{/each}
-		</div>
-	{/if}
+<div class="page-header">
+	<h1>collections</h1>
+	<button onclick={() => (showCreateModal = true)}>new collection</button>
 </div>
+
+{#if collections.isLoading}
+	<p class="status-text">loading...</p>
+{:else if collections.error}
+	<p class="status-text">error: {collections.error.message}</p>
+{:else if collections.data?.length === 0}
+	<p class="status-text">no collections yet. click "new collection" to create your first one!</p>
+{:else}
+	<div class="list" bind:this={listElement}>
+		{#each displayCollections as collection (collection._id)}
+			<a
+				href="/collections/{collection._id}"
+				class="clickable collection-card"
+				class:dragging={draggedCollection?._id === collection._id}
+				onpointerdown={(e) => handlePointerDown(collection, e)}
+			>
+				{@render cardBody(collection, true)}
+			</a>
+		{/each}
+	</div>
+{/if}
 
 {#snippet cardBody(collection: CollectionCard, withActions: boolean)}
 	<div class="info-row">

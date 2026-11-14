@@ -5,16 +5,10 @@
 	import StyleConstellation from '#lib/components/atlas/StyleConstellation.svelte';
 
 	const itemsQuery = getItemsContext();
-	const currentItemsContext = getCurrentItemsContext();
+	// so the item modal opened from a swatch/column has the full list for context
+	getCurrentItemsContext().list = () => itemsQuery.data ?? [];
 
 	const atlas = $derived(itemsQuery.data ? buildAtlas(itemsQuery.data) : null);
-
-	// so the item modal opened from a swatch/column has the full list for context
-	$effect(() => {
-		if (itemsQuery.data) {
-			currentItemsContext.setItems(itemsQuery.data);
-		}
-	});
 
 	const since = $derived(
 		atlas?.firstDate
@@ -25,7 +19,7 @@
 	);
 </script>
 
-<div class="container">
+<div class="page-column">
 	{#if itemsQuery.isLoading}
 		<p class="status-text">loading...</p>
 	{:else if itemsQuery.error}
@@ -84,19 +78,6 @@
 </div>
 
 <style>
-	.container {
-		display: flex;
-		flex-direction: column;
-		gap: 2rem;
-		max-width: 64rem;
-		margin: 0 auto;
-		padding-bottom: 2rem;
-	}
-
-	.page-header {
-		margin-bottom: 0;
-	}
-
 	.stats {
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);

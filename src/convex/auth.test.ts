@@ -1,6 +1,7 @@
 // @vitest-environment edge-runtime
 /// <reference types="vite/client" />
 import { convexTest } from 'convex-test';
+import workpool from '@convex-dev/workpool/test';
 import { describe, expect, test, vi } from 'vitest';
 import { api, internal } from './_generated/api';
 import schema from './schema';
@@ -52,13 +53,13 @@ describe('per-user isolation', () => {
 
 		await expect(
 			t.mutation(api.items.update, { id: itemId, title: 'x', token: b.token })
-		).rejects.toThrow('Item not found');
+		).rejects.toThrow('item not found');
 		await expect(t.mutation(api.items.remove, { id: itemId, token: b.token })).rejects.toThrow(
-			'Item not found'
+			'item not found'
 		);
 		await expect(
 			t.mutation(api.collections.remove, { id: collectionId, token: b.token })
-		).rejects.toThrow('Collection not found');
+		).rejects.toThrow('collection not found');
 	});
 
 	test("items can't join another user's collection", async () => {
@@ -77,15 +78,12 @@ describe('per-user isolation', () => {
 				collections: [collectionId],
 				token: b.token
 			})
-		).rejects.toThrow('Collection not found');
+		).rejects.toThrow('collection not found');
 
 		const itemId = await t.mutation(api.items.add, { type: 'text', content: 'x', token: b.token });
 		await expect(
 			t.mutation(api.items.addToCollection, { itemId, collectionId, token: b.token })
-		).rejects.toThrow('Collection not found');
-		await expect(
-			t.mutation(api.items.update, { id: itemId, collections: [collectionId], token: b.token })
-		).rejects.toThrow('Collection not found');
+		).rejects.toThrow('collection not found');
 	});
 
 	test('an unknown token is rejected', async () => {
@@ -98,16 +96,17 @@ describe('uploads', () => {
 	test('an image key must be the caller’s own unused upload', async () => {
 		vi.useFakeTimers(); // Keep the scheduled tagging action from running
 		const t = convexTest(schema, modules);
+		workpool.register(t, 'taggingPool');
 		const a = await makeUser(t, 'a');
 		const b = await makeUser(t, 'b');
 		await t.run((ctx) => ctx.db.insert('uploads', { userId: a.userId, key: 'a-key' }));
 
 		await expect(
 			t.mutation(api.items.add, { type: 'image', imageKey: 'a-key', token: b.token })
-		).rejects.toThrow('Upload not found');
+		).rejects.toThrow('upload not found');
 		await expect(
 			t.mutation(api.items.add, { type: 'text', content: 'hi', imageKey: 'a-key', token: a.token })
-		).rejects.toThrow('Upload not found');
+		).rejects.toThrow('upload not found');
 
 		// URL items may carry their own screenshot (the browser extension's)
 		await t.mutation(api.items.add, {
@@ -118,7 +117,7 @@ describe('uploads', () => {
 		});
 		await expect(
 			t.mutation(api.items.add, { type: 'image', imageKey: 'a-key', token: a.token })
-		).rejects.toThrow('Upload not found');
+		).rejects.toThrow('upload not found');
 		vi.useRealTimers();
 	});
 });

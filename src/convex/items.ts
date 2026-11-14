@@ -1,6 +1,7 @@
-import { v } from 'convex/values';
+import { ConvexError, v, type Infer } from 'convex/values';
 import type { Doc } from './_generated/dataModel';
 import { internal } from './_generated/api';
+import { internalMutation } from './_generated/server';
 import { getOwnUpload, r2 } from './r2';
 import {
 	addItemToCollection,
@@ -9,8 +10,9 @@ import {
 	getPositionsByCollection
 } from './itemCollectionPositions';
 import { getOwned, userMutation, userQuery } from './lib/auth';
-import { buildSearchText } from './lib/searchText';
+import { buildSearchText, patchItem } from './lib/searchText';
 import { enqueueScreenshot } from './screenshots';
+import { enqueueTagging } from './tagging';
 import { getPreferences } from './viewPreferences';
 import {
 	sortModeValidator,
@@ -19,9 +21,27 @@ import {
 	linkImageModeValidator
 } from './schema';
 
-// Get a sortable title string from an item
-function getSortTitle(item: { title?: string; url?: string }): string {
-	return (item.title ?? item.url ?? '').toLowerCase();
+// `||`: older rows may hold title: ''
+const sortTitle = (item: Doc<'items'>) => (item.title || item.url || '').toLowerCase();
+
+const compareItems: Record<
+	Infer<typeof sortModeValidator>,
+	(a: Doc<'items'>, b: Doc<'items'>) => number
+> = {
+	dateAddedNewest: (a, b) => b.dateAdded - a.dateAdded,
+	dateAddedOldest: (a, b) => a.dateAdded - b.dateAdded,
+	dateModifiedNewest: (a, b) => b.dateModified - a.dateModified,
+	dateModifiedOldest: (a, b) => a.dateModified - b.dateModified,
+	titleAsc: (a, b) => sortTitle(a).localeCompare(sortTitle(b)),
+	titleDesc: (a, b) => sortTitle(b).localeCompare(sortTitle(a))
+};
+
+// Only http(s) links can be screenshotted or opened; anything else (mailto:,
+// javascript:, file://, "note: …") would become a permanently failed item
+function assertHttpUrl(url: string | undefined) {
+	if (!url || !/^https?:\/\/\S+$/i.test(url)) {
+		throw new ConvexError('only http(s) links can be saved');
+	}
 }
 
 export function getImageUrl(item: Doc<'items'>): string | null {
@@ -51,13 +71,14 @@ export const add = userMutation({
 		const now = Date.now();
 		const collections = args.collections ?? [];
 		const ownedCollections = await Promise.all(collections.map((id) => getOwned(ctx, id)));
-		if (ownedCollections.includes(null)) throw new Error('Collection not found');
+		if (ownedCollections.includes(null)) throw new ConvexError('collection not found');
+		if (args.type === 'url') assertHttpUrl(args.url);
 
 		// Deleting an item deletes its R2 object, so a key must be the caller's own
 		// fresh upload; consuming it ties the object to exactly this item
 		if (args.imageKey) {
 			const upload = args.type !== 'text' ? await getOwnUpload(ctx, args.imageKey) : null;
-			if (!upload) throw new Error('Upload not found');
+			if (!upload) throw new ConvexError('upload not found');
 			await ctx.db.delete(upload._id);
 		}
 
@@ -103,12 +124,7 @@ export const add = userMutation({
 			...taggingFields,
 			taggingMode: args.type !== 'text' ? taggingMode : undefined,
 			linkImageMode: args.type === 'url' ? linkImageMode : undefined,
-			searchText: buildSearchText({
-				title: args.title,
-				description: args.description,
-				ogDescription: args.ogDescription,
-				url: args.url
-			}),
+			searchText: buildSearchText(args),
 			collections: [],
 			dateAdded: now,
 			dateModified: now
@@ -126,19 +142,15 @@ export const add = userMutation({
 
 		// Trigger tagging off the item's image (palette always runs, even untagged).
 		// URL items still waiting on the worker are tagged once their image lands.
-		if (hasImage) {
-			await ctx.scheduler.runAfter(
-				0,
-				wantsVisualTagging
-					? internal.taggingActions.preprocessItem
-					: internal.taggingActions.repaletteItem,
-				{ itemId }
-			);
+		if (wantsVisualTagging) {
+			await enqueueTagging(ctx, internal.taggingActions.tagImageItem, itemId);
+		} else if (hasImage) {
+			await ctx.scheduler.runAfter(0, internal.taggingActions.repaletteItem, { itemId });
 		}
 
 		// Text-mode tagging runs off the article content, independent of the image
 		if (wantsTextTagging) {
-			await ctx.scheduler.runAfter(0, internal.tagging.tagTextItem, { itemId });
+			await enqueueTagging(ctx, internal.taggingActions.tagTextItem, itemId);
 		}
 
 		return itemId;
@@ -151,51 +163,23 @@ export const update = userMutation({
 		title: v.optional(v.string()),
 		description: v.optional(v.string()),
 		url: v.optional(v.string()),
-		content: v.optional(v.string()),
-		collections: v.optional(v.array(v.id('collections')))
+		content: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
-		const { id, collections, ...updates } = args;
+		const { id, ...fields } = args;
 		const existing = await getOwned(ctx, id);
-		if (!existing) throw new Error('Item not found');
+		if (!existing) throw new ConvexError('item not found');
 
-		// Handle collection changes if collections array is provided
-		if (collections !== undefined) {
-			const oldCollections = new Set(existing.collections);
-			const newCollections = new Set(collections);
-
-			for (const collectionId of newCollections) {
-				if (!oldCollections.has(collectionId)) {
-					await addItemToCollection(ctx, id, collectionId);
-				}
-			}
-
-			for (const collectionId of oldCollections) {
-				if (!newCollections.has(collectionId)) {
-					await removeItemFromCollection(ctx, id, collectionId);
-				}
-			}
+		// Omitted fields stay as they are; values are trimmed and a blank one
+		// clears the field (patching a field to undefined removes it)
+		const updates: Partial<Pick<Doc<'items'>, keyof typeof fields>> = {};
+		for (const key of ['title', 'description', 'url', 'content'] as const) {
+			const value = fields[key];
+			if (value !== undefined) updates[key] = value.trim() || undefined;
 		}
+		if (updates.url !== undefined) assertHttpUrl(updates.url);
 
-		const newTitle = args.title ?? existing.title;
-		const newDescription = args.description ?? existing.description;
-		const newUrl = args.url ?? existing.url;
-
-		await ctx.db.patch(id, {
-			...updates,
-			searchText: buildSearchText({
-				title: newTitle,
-				description: newDescription,
-				ogDescription: existing.ogDescription,
-				url: newUrl,
-				styles: existing.styles,
-				aiTags: existing.aiTags,
-				subject: existing.subject,
-				paletteNames: existing.paletteNames,
-				fonts: existing.fonts
-			}),
-			dateModified: Date.now()
-		});
+		await patchItem(ctx, existing, { ...updates, dateModified: Date.now() });
 	}
 });
 
@@ -203,7 +187,7 @@ export const remove = userMutation({
 	args: { id: v.id('items') },
 	handler: async (ctx, args) => {
 		const item = await getOwned(ctx, args.id);
-		if (!item) throw new Error('Item not found');
+		if (!item) throw new ConvexError('item not found');
 
 		// Delete all position records for this item
 		await deleteAllPositionsForItem(ctx, args.id);
@@ -223,7 +207,7 @@ export const addToCollection = userMutation({
 		collectionId: v.id('collections')
 	},
 	handler: async (ctx, args) => {
-		if (!(await getOwned(ctx, args.itemId))) throw new Error('Item not found');
+		if (!(await getOwned(ctx, args.itemId))) throw new ConvexError('item not found');
 		await addItemToCollection(ctx, args.itemId, args.collectionId);
 	}
 });
@@ -234,7 +218,7 @@ export const removeFromCollection = userMutation({
 		collectionId: v.id('collections')
 	},
 	handler: async (ctx, args) => {
-		if (!(await getOwned(ctx, args.itemId))) throw new Error('Item not found');
+		if (!(await getOwned(ctx, args.itemId))) throw new ConvexError('item not found');
 		await removeItemFromCollection(ctx, args.itemId, args.collectionId);
 	}
 });
@@ -247,36 +231,13 @@ export const list = userQuery({
 	},
 	handler: async (ctx, args) => {
 		const sortBy = args.sortBy ?? 'dateAddedNewest';
-		const byDateAdded = ctx.db
-			.query('items')
-			.withIndex('by_user_dateAdded', (q) => q.eq('userId', ctx.userId));
-		const byDateModified = ctx.db
-			.query('items')
-			.withIndex('by_user_dateModified', (q) => q.eq('userId', ctx.userId));
-
-		let items: Doc<'items'>[];
-		switch (sortBy) {
-			case 'dateAddedNewest':
-				items = await byDateAdded.order('desc').collect();
-				break;
-			case 'dateAddedOldest':
-				items = await byDateAdded.order('asc').collect();
-				break;
-			case 'dateModifiedNewest':
-				items = await byDateModified.order('desc').collect();
-				break;
-			case 'dateModifiedOldest':
-				items = await byDateModified.order('asc').collect();
-				break;
-			case 'titleAsc':
-				items = await byDateAdded.collect();
-				items.sort((a, b) => getSortTitle(a).localeCompare(getSortTitle(b)));
-				break;
-			case 'titleDesc':
-				items = await byDateAdded.collect();
-				items.sort((a, b) => getSortTitle(b).localeCompare(getSortTitle(a)));
-				break;
-		}
+		// Date sorts come straight off an index; title sorts re-sort oldest-first
+		const byUser = ctx.db.query('items');
+		const query = sortBy.startsWith('dateModified')
+			? byUser.withIndex('by_user_dateModified', (q) => q.eq('userId', ctx.userId))
+			: byUser.withIndex('by_user_dateAdded', (q) => q.eq('userId', ctx.userId));
+		let items = await query.order(sortBy.endsWith('Newest') ? 'desc' : 'asc').collect();
+		if (sortBy.startsWith('title')) items.sort(compareItems[sortBy]);
 
 		if (args.collectionIds && args.collectionIds.length > 0) {
 			const filterSet = new Set(args.collectionIds);
@@ -305,59 +266,17 @@ export const listByCollection = userQuery({
 		const sortBy = args.sortBy ?? 'manual';
 		if (!(await getOwned(ctx, args.collectionId))) return [];
 
+		// Position rows come in manual order, which the stable sort keeps for ties
 		const positions = await getPositionsByCollection(ctx, args.collectionId);
-		const positionMap = new Map(positions.map((p) => [p.itemId, p.position]));
-
-		const items = await Promise.all(positions.map((p) => ctx.db.get(p.itemId)));
-		const filtered = items.filter((item): item is NonNullable<typeof item> => item !== null);
-
-		switch (sortBy) {
-			case 'manual':
-				filtered.sort((a, b) => {
-					const posA = positionMap.get(a._id) ?? '\uffff'; // Use high Unicode char for items without position
-					const posB = positionMap.get(b._id) ?? '\uffff';
-					if (posA < posB) return -1;
-					if (posA > posB) return 1;
-					return 0;
-				});
-				break;
-			case 'dateAddedNewest':
-				filtered.sort((a, b) => b.dateAdded - a.dateAdded);
-				break;
-			case 'dateAddedOldest':
-				filtered.sort((a, b) => a.dateAdded - b.dateAdded);
-				break;
-			case 'dateModifiedNewest':
-				filtered.sort((a, b) => b.dateModified - a.dateModified);
-				break;
-			case 'dateModifiedOldest':
-				filtered.sort((a, b) => a.dateModified - b.dateModified);
-				break;
-			case 'titleAsc':
-				filtered.sort((a, b) => {
-					const cmp = getSortTitle(a).localeCompare(getSortTitle(b));
-					if (cmp !== 0) return cmp;
-					const posA = positionMap.get(a._id) ?? '\uffff';
-					const posB = positionMap.get(b._id) ?? '\uffff';
-					return posA < posB ? -1 : posA > posB ? 1 : 0;
-				});
-				break;
-			case 'titleDesc':
-				filtered.sort((a, b) => {
-					const cmp = getSortTitle(b).localeCompare(getSortTitle(a));
-					if (cmp !== 0) return cmp;
-					const posA = positionMap.get(a._id) ?? '\uffff';
-					const posB = positionMap.get(b._id) ?? '\uffff';
-					return posA < posB ? -1 : posA > posB ? 1 : 0;
-				});
-				break;
-		}
-
-		return filtered.map((item) => ({
-			...item,
-			imageUrl: getImageUrl(item),
-			position: positionMap.get(item._id)
-		}));
+		const items = await Promise.all(
+			positions.map(async ({ itemId, position }) => {
+				const item = await ctx.db.get(itemId);
+				return item && { ...item, imageUrl: getImageUrl(item), position };
+			})
+		);
+		const members = items.filter((item) => item !== null);
+		if (sortBy !== 'manual') members.sort(compareItems[sortBy]);
+		return members;
 	}
 });
 
@@ -378,5 +297,25 @@ export const search = userQuery({
 			...item,
 			imageUrl: getImageUrl(item)
 		}));
+	}
+});
+
+// One-shot backfill after buildSearchText's inputs change: recomputes every
+// item's searchText from its current fields, a page per transaction.
+// Run with `npx convex run items:rebuildSearchText` (add --prod for production)
+export const rebuildSearchText = internalMutation({
+	args: { cursor: v.optional(v.string()) },
+	handler: async (ctx, args) => {
+		const { page, isDone, continueCursor } = await ctx.db
+			.query('items')
+			.paginate({ numItems: 100, cursor: args.cursor ?? null });
+		for (const item of page) {
+			await ctx.db.patch(item._id, { searchText: buildSearchText(item) });
+		}
+		if (!isDone) {
+			await ctx.scheduler.runAfter(0, internal.items.rebuildSearchText, {
+				cursor: continueCursor
+			});
+		}
 	}
 });

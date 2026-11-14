@@ -195,6 +195,28 @@ async function tryOgImage(
 	}
 }
 
+const NAMED_ENTITIES: Record<string, string> = {
+	amp: '&',
+	lt: '<',
+	gt: '>',
+	quot: '"',
+	apos: "'",
+	nbsp: '\u00a0'
+};
+
+// HTMLRewriter hands over attribute values and text exactly as written in the
+// source, entities included. One pass, so "&amp;lt;" stays "&lt;".
+function decodeEntities(s: string): string {
+	return s.replace(
+		/&(?:#(\d+)|#x([0-9a-f]+)|(amp|lt|gt|quot|apos|nbsp));/gi,
+		(match, dec, hex, name) => {
+			if (name) return NAMED_ENTITIES[name.toLowerCase()];
+			const code = dec ? parseInt(dec, 10) : parseInt(hex, 16);
+			return code <= 0x10ffff ? String.fromCodePoint(code) : match;
+		}
+	);
+}
+
 // Fast og path: fetch the page HTML directly and extract the og:image without
 // launching a browser (Browser Rendering free plan allows only ~10 min/day and
 // 1 launch per 20s). Returns null on any failure so the caller can fall back
@@ -228,10 +250,11 @@ async function tryOgFast(
 			pageTitle: '',
 			baseHref: null as string | null
 		};
+		let titles = 0;
 		const rewriter = new HTMLRewriter()
 			.on('meta', {
 				element(el) {
-					const content = el.getAttribute('content')?.trim();
+					const content = decodeEntities(el.getAttribute('content') ?? '').trim();
 					if (!content) return;
 					const key = (el.getAttribute('property') ?? el.getAttribute('name'))?.toLowerCase();
 					if (key === 'og:image') meta.ogImage ??= content;
@@ -244,12 +267,18 @@ async function tryOgFast(
 			})
 			.on('base', {
 				element(el) {
-					meta.baseHref ??= el.getAttribute('href');
+					const href = el.getAttribute('href');
+					if (href) meta.baseHref ??= decodeEntities(href);
 				}
 			})
-			.on('head > title', {
+			// Not "head > title": <head> is optional. Only the first <title> is the
+			// document's; later ones belong to inline SVGs.
+			.on('title', {
+				element() {
+					titles++;
+				},
 				text(t) {
-					meta.pageTitle += t.text;
+					if (titles === 1) meta.pageTitle += t.text;
 				}
 			});
 		// Handlers only run as the transformed body is consumed
@@ -292,7 +321,8 @@ async function tryOgFast(
 			}
 		});
 
-		const title = meta.pageTitle.trim() || meta.ogTitle || meta.twitterTitle;
+		// Decoded once the chunks are joined, since an entity can span two chunks
+		const title = decodeEntities(meta.pageTitle).trim() || meta.ogTitle || meta.twitterTitle;
 		return {
 			imageKey,
 			width: dims.width,

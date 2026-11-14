@@ -2,10 +2,16 @@
 
 import { v } from 'convex/values';
 import sharp from 'sharp';
+import { parseHTML } from 'linkedom';
+import Defuddle from 'defuddle';
 import { extractPalette, validateOptions, MmcqQuantizer } from 'colorthief/internals';
-import { internalAction } from './_generated/server';
+import { internalAction, type ActionCtx } from './_generated/server';
 import { internal } from './_generated/api';
-import type { Doc } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
+import { requestArticleTags, requestImageTags, type TagResult } from './lib/tagger';
+
+// Every tagging and palette job runs here, in the Node runtime: sharp needs it,
+// and its 512MB comfortably fits a decoded image or a parsed 4MB page
 
 const MAX_EDGE_PX = 1024;
 const PALETTE_COLORS = 5;
@@ -56,13 +62,92 @@ async function fetchAndDecode(imageKey: string): Promise<{
 	return { data, width: info.width, height: info.height };
 }
 
+// Article extraction limits
+const FETCH_TIMEOUT_MS = 15_000;
+const MAX_HTML_CHARS = 4_000_000; // parser input cap for pathological pages
+const MAX_ARTICLE_CHARS = 8_000; // ~2k tokens sent to the LLM
+const MIN_ARTICLE_CHARS = 200; // below this, extraction is considered failed
+
+// Same browser-like headers the screenshot worker uses for its no-browser path
+const FETCH_HEADERS = {
+	'User-Agent':
+		'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+	'Accept-Language': 'en-US,en;q=0.9',
+	Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+};
+
+// Reads the body only up to maxChars, so a huge page is never buffered whole
+async function readTextCapped(response: Response, maxChars: number): Promise<string> {
+	const reader = response.body?.getReader();
+	if (!reader) return '';
+	const decoder = new TextDecoder();
+	let text = '';
+	while (text.length < maxChars) {
+		const { done, value } = await reader.read();
+		if (done) return text + decoder.decode();
+		text += decoder.decode(value, { stream: true });
+	}
+	await reader.cancel();
+	return text.slice(0, maxChars);
+}
+
+// Fetch a page and extract its readable article text. Plain fetch + Defuddle —
+// no browser involved, so this never touches the Browser Rendering quota.
+async function extractArticleText(url: string): Promise<{ title?: string; text: string }> {
+	const response = await fetch(url, {
+		headers: FETCH_HEADERS,
+		signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
+	});
+	if (!response.ok) {
+		throw new Error(`Page fetch failed: ${response.status}`);
+	}
+	const contentType = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+	if (contentType !== 'text/html' && contentType !== 'application/xhtml+xml') {
+		throw new Error(`Not an HTML page (${contentType ?? 'unknown content type'})`);
+	}
+
+	const html = await readTextCapped(response, MAX_HTML_CHARS);
+	const { document } = parseHTML(html);
+	const result = new Defuddle(document, { url: response.url || url }).parse();
+
+	// Defuddle returns cleaned content HTML; strip to plain text via a reparse
+	const { document: contentDoc } = parseHTML(`<html><body>${result.content}</body></html>`);
+	const text = (contentDoc.body?.textContent ?? '').replace(/\s+/g, ' ').trim();
+	if (text.length < MIN_ARTICLE_CHARS) {
+		throw new Error('Could not extract article text from page');
+	}
+
+	return { title: result.title || undefined, text: text.slice(0, MAX_ARTICLE_CHARS) };
+}
+
+function getItem(ctx: ActionCtx, itemId: Id<'items'>): Promise<Doc<'items'> | null> {
+	return ctx.runQuery(internal.tagging.getItemForTagging, { itemId });
+}
+
+// Runs one tagging job to its outcome: whatever `tag` throws (missing input or
+// config, a fetch, the LLM) marks the item failed
+async function runTagging(
+	ctx: ActionCtx,
+	itemId: Id<'items'>,
+	tag: (item: Doc<'items'>) => Promise<TagResult>
+): Promise<void> {
+	const item = await getItem(ctx, itemId);
+	if (!item) return;
+	try {
+		await ctx.runMutation(internal.tagging.setCompleted, { itemId, ...(await tag(item)) });
+	} catch (error) {
+		await ctx.runMutation(internal.tagging.setFailed, {
+			itemId,
+			error: error instanceof Error ? error.message : 'Unknown error'
+		});
+	}
+}
+
 export const repaletteItem = internalAction({
 	args: { itemId: v.id('items') },
 	handler: async (ctx, args): Promise<void> => {
-		const item: Doc<'items'> | null = await ctx.runQuery(internal.tagging.getItemForTagging, {
-			itemId: args.itemId
-		});
-		if (!item || !item.imageKey) return;
+		const item = await getItem(ctx, args.itemId);
+		if (!item?.imageKey) return;
 
 		try {
 			const { data, width, height } = await fetchAndDecode(item.imageKey);
@@ -77,44 +162,39 @@ export const repaletteItem = internalAction({
 	}
 });
 
-export const preprocessItem = internalAction({
+// Visual mode: palette + LLM tags from the item's image, decoded once
+export const tagImageItem = internalAction({
 	args: { itemId: v.id('items') },
-	handler: async (ctx, args): Promise<void> => {
-		const item: Doc<'items'> | null = await ctx.runQuery(internal.tagging.getItemForTagging, {
-			itemId: args.itemId
-		});
-		if (!item) return;
-		if (item.type === 'text' || !item.imageKey) return;
-
-		await ctx.runMutation(internal.tagging.setProcessing, { itemId: args.itemId });
-
-		try {
+	handler: async (ctx, { itemId }): Promise<void> => {
+		await runTagging(ctx, itemId, async (item) => {
+			if (item.type === 'text' || !item.imageKey) throw new Error('Item has no image to tag');
 			const { data, width, height } = await fetchAndDecode(item.imageKey);
 
-			const downscaled = await sharp(data, {
-				raw: { width, height, channels: 4 }
-			})
+			// Written before the LLM call, so swatches land even if tagging fails
+			await ctx.runMutation(internal.tagging.setPaletteHex, {
+				itemId,
+				paletteHex: extractPalettePeaks(data, width, height, PALETTE_COLORS)
+			});
+
+			// JPEG has no alpha: without flattening, transparent pixels turn black
+			const jpeg = await sharp(data, { raw: { width, height, channels: 4 } })
+				.flatten({ background: '#ffffff' })
 				.jpeg({ quality: 85 })
 				.toBuffer();
+			return requestImageTags(jpeg.toString('base64'), itemId);
+		});
+	}
+});
 
-			const paletteHex = extractPalettePeaks(data, width, height, PALETTE_COLORS);
-
-			await ctx.runMutation(internal.tagging.setPaletteHex, {
-				itemId: args.itemId,
-				paletteHex
-			});
-
-			await ctx.scheduler.runAfter(0, internal.tagging.callOpenRouter, {
-				itemId: args.itemId,
-				downscaledBase64: downscaled.toString('base64'),
-				mime: 'image/jpeg'
-			});
-		} catch (error) {
-			const message = error instanceof Error ? error.message : 'Unknown error';
-			await ctx.runMutation(internal.tagging.setFailed, {
-				itemId: args.itemId,
-				error: message
-			});
-		}
+// Text mode: summary + topic tags from the page's article text
+export const tagTextItem = internalAction({
+	args: { itemId: v.id('items') },
+	handler: async (ctx, { itemId }): Promise<void> => {
+		await runTagging(ctx, itemId, async (item) => {
+			// The URL was cleared after this run was queued
+			if (item.type !== 'url' || !item.url) throw new Error('Item has no URL to tag');
+			const article = await extractArticleText(item.url);
+			return requestArticleTags({ ...article, url: item.url }, itemId);
+		});
 	}
 });

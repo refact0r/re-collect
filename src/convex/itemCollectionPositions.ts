@@ -1,11 +1,16 @@
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { generateKeyBetween } from 'fractional-indexing';
 import { getOwned, userMutation } from './lib/auth';
 
-// Get position record for an item in a collection
-export async function getPositionRecord(
+function positionsOf(ctx: QueryCtx, collectionId: Id<'collections'>) {
+	return ctx.db
+		.query('itemCollectionPositions')
+		.withIndex('by_collection', (q) => q.eq('collectionId', collectionId));
+}
+
+async function getPositionRecord(
 	ctx: QueryCtx,
 	itemId: Id<'items'>,
 	collectionId: Id<'collections'>
@@ -18,49 +23,34 @@ export async function getPositionRecord(
 		.unique();
 }
 
-// Get the first (topmost) position in a collection
-export async function getFirstPosition(ctx: QueryCtx, collectionId: Id<'collections'>) {
-	const first = await ctx.db
-		.query('itemCollectionPositions')
-		.withIndex('by_collection', (q) => q.eq('collectionId', collectionId))
-		.first();
-	return first?.position ?? null;
-}
-
-// Get all position records for a collection, ordered by position
+// All position records for a collection, in position order
 export async function getPositionsByCollection(ctx: QueryCtx, collectionId: Id<'collections'>) {
-	return await ctx.db
-		.query('itemCollectionPositions')
-		.withIndex('by_collection', (q) => q.eq('collectionId', collectionId))
-		.collect();
+	return await positionsOf(ctx, collectionId).collect();
 }
 
-// Add item to collection: creates the position record (at the top by default),
-// updates the item's denormalized collections array, and bumps the collection's
-// itemCount. All membership changes must go through this or removeItemFromCollection.
+// Add item to collection: creates the position record at the top, updates the
+// item's denormalized collections array, and bumps the collection's itemCount.
+// All membership changes must go through this or removeItemFromCollection
+// (except collections.remove, which drops a whole collection's memberships at once).
 // Item and collection must share an owner, so membership never crosses users.
 export async function addItemToCollection(
 	ctx: MutationCtx,
 	itemId: Id<'items'>,
-	collectionId: Id<'collections'>,
-	position?: string
+	collectionId: Id<'collections'>
 ) {
 	const item = await ctx.db.get(itemId);
 	if (!item) throw new Error('Item not found');
 	const collection = await ctx.db.get(collectionId);
-	if (!collection || collection.userId !== item.userId) throw new Error('Collection not found');
+	if (!collection || collection.userId !== item.userId) {
+		throw new ConvexError('collection not found');
+	}
 
-	const existing = await getPositionRecord(ctx, itemId, collectionId);
-	if (!existing) {
-		let newPosition = position;
-		if (!newPosition) {
-			const firstPos = await getFirstPosition(ctx, collectionId);
-			newPosition = generateKeyBetween(null, firstPos);
-		}
+	if (!(await getPositionRecord(ctx, itemId, collectionId))) {
+		const first = await positionsOf(ctx, collectionId).first();
 		await ctx.db.insert('itemCollectionPositions', {
 			itemId,
 			collectionId,
-			position: newPosition,
+			position: generateKeyBetween(null, first?.position ?? null),
 			dateAdded: Date.now()
 		});
 		await ctx.db.patch(collectionId, { itemCount: (collection.itemCount ?? 0) + 1 });
@@ -105,7 +95,7 @@ export async function removeItemFromCollection(
 export async function deleteAllPositionsForItem(ctx: MutationCtx, itemId: Id<'items'>) {
 	const records = await ctx.db
 		.query('itemCollectionPositions')
-		.withIndex('by_item', (q) => q.eq('itemId', itemId))
+		.withIndex('by_item_and_collection', (q) => q.eq('itemId', itemId))
 		.collect();
 
 	for (const record of records) {
@@ -119,7 +109,8 @@ export async function deleteAllPositionsForItem(ctx: MutationCtx, itemId: Id<'it
 	}
 }
 
-// Reorder an item within a collection
+// Reorder an item within a collection. Owning the collection is enough: a
+// membership row only links an item and collection with the same owner.
 export const reorderItem = userMutation({
 	args: {
 		itemId: v.id('items'),
@@ -127,22 +118,9 @@ export const reorderItem = userMutation({
 		newPosition: v.string()
 	},
 	handler: async (ctx, args) => {
-		const item = await getOwned(ctx, args.itemId);
-		if (!item) throw new Error('Item not found');
-
-		const collection = await getOwned(ctx, args.collectionId);
-		if (!collection) throw new Error('Collection not found');
-
-		// Check if item is actually in this collection
-		if (!item.collections.includes(args.collectionId)) {
-			throw new Error('Item is not in this collection');
-		}
-
+		if (!(await getOwned(ctx, args.collectionId))) throw new ConvexError('collection not found');
 		const record = await getPositionRecord(ctx, args.itemId, args.collectionId);
-		if (!record) throw new Error('Position record not found');
-
-		await ctx.db.patch(record._id, {
-			position: args.newPosition
-		});
+		if (!record) throw new ConvexError('item is not in this collection');
+		await ctx.db.patch(record._id, { position: args.newPosition });
 	}
 });

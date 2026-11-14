@@ -1,8 +1,6 @@
 <script lang="ts">
-	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
-	import { mutate } from '#lib/mutationHelper.js';
-	import { getWriteTokenContext } from '#lib/context.js';
+	import { useMutation } from '#lib/convex.js';
 	import type { CollectionSortOption } from '#lib/types.js';
 
 	interface Props {
@@ -11,9 +9,7 @@
 
 	let { onClose }: Props = $props();
 
-	const client = useConvexClient();
-	const getWriteToken = getWriteTokenContext();
-	const writeToken = $derived(getWriteToken());
+	const mutate = useMutation();
 
 	let name = $state('');
 	let isCreating = $state(false);
@@ -51,23 +47,15 @@
 		if (!name.trim()) return;
 
 		isCreating = true;
-		try {
-			const result = await mutate(writeToken, (token) =>
-				client.mutation(api.collections.create, {
-					name: name.trim(),
-					sortMode: sortMode === 'manual' ? undefined : sortMode,
-					viewMode: viewMode === 'grid' ? undefined : viewMode,
-					taggingMode: taggingMode === 'visual' ? undefined : taggingMode,
-					linkImageMode: linkImageMode === 'screenshot' ? undefined : linkImageMode,
-					token
-				})
-			);
-			if (result !== null) {
-				onClose();
-			}
-		} finally {
-			isCreating = false;
-		}
+		const created = await mutate(api.collections.create, {
+			name: name.trim(),
+			sortMode: sortMode === 'manual' ? undefined : sortMode,
+			viewMode: viewMode === 'grid' ? undefined : viewMode,
+			taggingMode: taggingMode === 'visual' ? undefined : taggingMode,
+			linkImageMode: linkImageMode === 'screenshot' ? undefined : linkImageMode
+		});
+		isCreating = false;
+		if (created !== undefined) onClose();
 	}
 
 	function handleBackdropClick(event: MouseEvent) {

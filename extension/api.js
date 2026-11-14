@@ -33,14 +33,11 @@ async function call(kind, path, args = {}) {
 	});
 	const body = await response.json().catch(() => null);
 	if (body?.status === 'success') return body.value;
-	// ConvexError payloads (e.g. 'Unauthorized') arrive as errorData
+	// User-facing failures are ConvexErrors, whose message arrives as errorData
 	if (body?.errorData === 'Unauthorized') {
 		throw new Error('Token not recognized — create a new extension token in re-collect');
 	}
-	if (typeof body?.errorData === 'string') throw new Error(body.errorData);
-	// Plain server errors arrive as "[Request ID: …] Server Error\nUncaught Error: <message>"
-	const message = body?.errorMessage?.match(/Uncaught \w*Error: (.*)/)?.[1] ?? body?.errorMessage;
-	throw new Error(message ?? `Request failed (${response.status})`);
+	throw new Error(body?.errorData ?? body?.errorMessage ?? `Request failed (${response.status})`);
 }
 
 export function getMe() {

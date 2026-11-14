@@ -35,7 +35,7 @@ body {
 	color: var(--txt-2);
 	display: flex;
 	flex-direction: column;
-	height: 100vh;
+	height: 100dvh;
 	overflow: hidden;
 }
 
@@ -58,13 +58,6 @@ h2 {
 }
 h3 {
 	font-size: 1.125rem;
-}
-
-.h1 {
-	font-family: 'DM Sans' !important;
-	font-weight: 500 !important;
-	letter-spacing: -0.02ch !important;
-	font-size: 1.75rem !important;
 }
 
 /* Form Elements */
@@ -160,9 +153,7 @@ button:disabled:hover {
 
 /* Icon Buttons (ghost style) */
 
-button.icon,
-a.icon,
-label.icon {
+button.icon {
 	background: transparent;
 	border: 1px solid transparent;
 	padding: 0.5rem;
@@ -172,23 +163,17 @@ label.icon {
 	aspect-ratio: 1;
 }
 
-button.icon svg,
-a.icon svg,
-label.icon svg {
+button.icon svg {
 	width: 1.5rem;
 	height: 1.5rem;
 }
 
-button.icon:hover,
-a.icon:hover,
-label.icon:hover {
+button.icon:hover {
 	background: var(--bg-2);
 	color: var(--txt-1);
 }
 
-button.icon:focus-visible,
-a.icon:focus-visible,
-label.icon:focus-visible {
+button.icon:focus-visible {
 	outline: 1px solid var(--txt-3);
 	outline-offset: 1px;
 }
@@ -201,12 +186,6 @@ button.icon:disabled {
 button.icon:disabled:hover {
 	background: transparent;
 	color: var(--txt-3);
-}
-
-a.icon,
-label.icon {
-	text-decoration: none;
-	cursor: pointer;
 }
 
 /* Icon Buttons (filled, for use next to standard buttons) */
@@ -282,6 +261,11 @@ button.danger:disabled {
 	color: var(--txt-3);
 }
 
+/* A submit button showing its form's error in place of its label */
+button.error {
+	color: var(--danger-border);
+}
+
 /* Nav Links */
 
 .nav-link {
@@ -345,12 +329,6 @@ button.danger:disabled {
 	gap: 0.25rem;
 }
 
-.form label.horizontal {
-	flex-direction: row;
-	align-items: center;
-	gap: 0.5rem;
-}
-
 .form .actions {
 	display: flex;
 	gap: 0.5rem;
@@ -389,17 +367,13 @@ button.danger:disabled {
 
 /* Status Messages */
 
-.status-text {
-	font-size: 0.875rem;
-	color: var(--txt-3);
-}
-
+.status-text,
 .meta {
 	font-size: 0.875rem;
 	color: var(--txt-3);
 }
 
-/* Page Headers */
+/* Page Layout */
 
 .page-header {
 	display: flex;
@@ -410,6 +384,20 @@ button.danger:disabled {
 
 .page-header h1 {
 	margin: 0;
+}
+
+/* A centered column of spaced sections (atlas, account) */
+.page-column {
+	display: flex;
+	flex-direction: column;
+	gap: 2rem;
+	max-width: 64rem;
+	margin: 0 auto;
+	padding-bottom: 2rem;
+
+	& > .page-header {
+		margin-bottom: 0;
+	}
 }
 
 /* Loading pulse shared by item cards/thumbnails */

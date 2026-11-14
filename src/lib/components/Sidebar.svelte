@@ -20,30 +20,12 @@
 		</button>
 	</div>
 	<nav class="main-nav">
-		<a
-			href="/"
-			class="nav-link"
-			class:active={page.url.pathname === '/'}
-			onclick={() => (mobileOpen = false)}>re-collect</a
+		<a href="/" class="nav-link" class:active={page.url.pathname === '/'}>re-collect</a>
+		<a href="/collections" class="nav-link" class:active={page.url.pathname === '/collections'}
+			>collections</a
 		>
-		<a
-			href="/collections"
-			class="nav-link"
-			class:active={page.url.pathname === '/collections'}
-			onclick={() => (mobileOpen = false)}>collections</a
-		>
-		<a
-			href="/atlas"
-			class="nav-link"
-			class:active={page.url.pathname === '/atlas'}
-			onclick={() => (mobileOpen = false)}>atlas</a
-		>
-		<a
-			href="/account"
-			class="nav-link"
-			class:active={page.url.pathname === '/account'}
-			onclick={() => (mobileOpen = false)}>account</a
-		>
+		<a href="/atlas" class="nav-link" class:active={page.url.pathname === '/atlas'}>atlas</a>
+		<a href="/account" class="nav-link" class:active={page.url.pathname === '/account'}>account</a>
 	</nav>
 	<nav class="collections">
 		{#if collapsed}

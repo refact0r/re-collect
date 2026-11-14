@@ -35,6 +35,14 @@ describe('fontDisplayName', () => {
 		expect(fontDisplayName(font('Black Han Sans'))).toBe('Black Han Sans');
 	});
 
+	it('keeps the Roman in Times New Roman but strips a Roman cut', () => {
+		expect(fontDisplayName(font('Times New Roman'))).toBe('Times New Roman');
+		expect(fontDisplayName(font('TimesNewRoman'))).toBe('Times New Roman');
+		expect(fontDisplayName(font('Times New Roman Bold'))).toBe('Times New Roman');
+		expect(fontDisplayName(font('Tiempos Text Roman'))).toBe('Tiempos Text');
+		expect(fontSearchTerms([font('TimesNewRoman')])).toContain('timesnewroman');
+	});
+
 	it('falls back to the CSS name when the internal name is junk', () => {
 		expect(fontDisplayName(font('sohne-var', 'Copyright Klim Type Foundry'))).toBe('Sohne');
 	});
@@ -63,6 +71,10 @@ describe('fontSearchTerms', () => {
 			'abcarealsuperfamily',
 			'areal'
 		]);
+	});
+
+	it('never indexes a hashed family', () => {
+		expect(fontSearchTerms([font('3b2802a0'), font('a1b2c3', 'Copyright Klim')])).toEqual([]);
 	});
 
 	it('dedupes case-insensitively and handles no fonts', () => {
@@ -105,6 +117,16 @@ describe('parseSiteFonts', () => {
 				{ family: 'Editor-Bold' }
 			])
 		).toEqual([{ family: 'Editor-Regular' }, { family: 'GT America Mono Light' }]);
+	});
+
+	it('drops fonts with no usable name, but not hex-looking words', () => {
+		expect(
+			parseSiteFonts([
+				{ family: '3b2802a0' },
+				{ family: 'f00ba4', internalName: '' },
+				{ family: 'Facade' }
+			])
+		).toEqual([{ family: 'Facade' }]);
 	});
 
 	it('keeps at most 5 fonts', () => {

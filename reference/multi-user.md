@@ -103,46 +103,6 @@ token on every call, like the app does. The `imageImport` actions have no
 `ctx.db`, so they check the caller with `ctx.runQuery(api.users.me, { token })`
 before fetching anything.
 
-## Rolling out to prod
-
-The migration (`migrations/014_multi_user.ts`) creates your owner account with
-the username and password you pass, and backfills `userId` on every existing
-row. **The current `CONVEX_WRITE_TOKEN` becomes one of your sessions**, so an
-extension already set up with it keeps working.
-
-`userId` is required in the schema, and Convex rejects a push while existing
-documents don't match, so go widen → backfill → narrow. The deployed app breaks
-between steps 1 and 4: do it in one sitting. It takes a minute or two.
-
-1. **Widen**: in `src/convex/schema.ts`, temporarily wrap `userId` on `items`,
-   `collections` and `viewPreferences` in `v.optional(...)`, then deploy the
-   backend:
-   ```bash
-   npx convex deploy
-   ```
-2. **Backfill and create your account**:
-   ```bash
-   npx convex run --prod migrations/014_multi_user:migrateToMultiUser '{"username": "yifan", "password": "..."}'
-   ```
-3. **Check** that every count is 0 (the backfill is scheduled, so give it a few
-   seconds):
-   ```bash
-   npx convex run --prod migrations/014_multi_user:countUnowned
-   ```
-4. **Narrow**: revert the schema change and deploy the backend and the app:
-   ```bash
-   pnpm run deploy
-   ```
-5. **Sign in** with your username and password. Old password-gate cookies stop
-   working, so this is needed once per browser.
-6. **Clean up** secrets nothing reads any more: the worker's `AUTH_PASSWORD`
-   and `CONVEX_WRITE_TOKEN` (Cloudflare dashboard or `wrangler secret delete`).
-   Convex's `CONVEX_WRITE_TOKEN` is only read by the migration, so remove it
-   afterwards with `npx convex env remove --prod CONVEX_WRITE_TOKEN`.
-7. **Retire the old token**: it's still a session (with no expiry). On
-   `/account`, "sign out other devices", then copy a fresh extension token
-   into the extension.
-
 ## Why this design
 
 The goals were a login that feels normal to non-technical friends, no added

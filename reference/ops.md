@@ -5,7 +5,7 @@ Notes on external configuration that isn't visible from the codebase.
 ## App worker (Cloudflare)
 
 - Deploy: `pnpm run deploy:app` (builds then `wrangler deploy`). `pnpm run deploy` deploys the Convex backend first, then the app (`pnpm deploy` without `run` is a pnpm built-in — use `run`).
-- `PUBLIC_CONVEX_URL` / `PUBLIC_CONVEX_SITE_URL` are baked into the bundle at build time. Production values come from the checked-in `.env.production`, which overrides `.env.local` during `vite build` — local dev values can't leak into a deploy.
+- `PUBLIC_CONVEX_URL` is baked into the bundle at build time. The production value comes from the checked-in `.env.production`, which overrides `.env.local` during `vite build` — local dev values can't leak into a deploy.
 - The worker has no secrets: accounts, passwords and sessions live in Convex (see `reference/multi-user.md`).
 
 ## Convex env vars
@@ -16,7 +16,7 @@ Set with `npx convex env set <name> <value>`, list with `npx convex env list`.
 - `R2_TOKEN`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT`, `R2_BUCKET` — required by `@convex-dev/r2`. See `reference/convex-r2.md`.
 - `CLOUDFLARE_SCREENSHOT_URL` — public URL of the screenshot worker.
 - `CLOUDFLARE_SCREENSHOT_KEY` — bearer token the screenshot worker checks. Must match the worker's `API_KEY` secret.
-- `OPENROUTER_API_KEY` — required for AI image tagging. Used by `tagging.callOpenRouter` against `https://openrouter.ai/api/v1/chat/completions`.
+- `OPENROUTER_API_KEY` — required for AI image tagging. Used by `lib/tagger.ts` (the `taggingActions` runs) against `https://openrouter.ai/api/v1/chat/completions`.
 - `TAGGING_MODEL` — optional. Defaults to `openai/gpt-6-luna`. Override to swap models without a code change.
 
 ## Cloudflare R2

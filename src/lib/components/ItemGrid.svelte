@@ -2,40 +2,26 @@
 	import { generateKeyBetween } from 'fractional-indexing';
 	import { prepare, layout, type PreparedText } from '@chenglou/pretext';
 	import { onDestroy } from 'svelte';
-	import { useConvexClient } from 'convex-svelte';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { mutate } from '#lib/mutationHelper.js';
+	import { useDeleteItem, useMutation } from '#lib/convex.js';
 	import { pointerDrag } from '#lib/pointerDrag.js';
-	import { getWriteTokenContext } from '#lib/context.js';
-	import { shouldDisplayAsImage, getItemUrl } from '#lib/itemDisplay.js';
+	import { shouldDisplayAsImage, getItemUrl, isBusy } from '#lib/itemDisplay.js';
 	import type { DisplayItem } from '#lib/types.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
 	import IconError from '~icons/material-symbols-light/error-outline';
 
-	const client = useConvexClient();
-	const getWriteToken = getWriteTokenContext();
-	const writeToken = $derived(getWriteToken());
+	const mutate = useMutation();
+	const deleteItem = useDeleteItem();
 
 	interface Props {
 		items: DisplayItem[];
 		columnOffset?: number;
 		showTitles?: boolean;
 		onReorder?: (itemId: Id<'items'>, newPosition: string) => void;
-		onRetryScreenshot?: (itemId: Id<'items'>) => void;
 	}
 
-	let {
-		items,
-		columnOffset = 0,
-		showTitles = false,
-		onReorder,
-		onRetryScreenshot
-	}: Props = $props();
-
-	async function handleDeleteItem(itemId: Id<'items'>) {
-		await mutate(writeToken, (token) => client.mutation(api.items.remove, { id: itemId, token }));
-	}
+	let { items, columnOffset = 0, showTitles = false, onReorder }: Props = $props();
 
 	const isDraggable = $derived(!!onReorder);
 
@@ -316,7 +302,7 @@
 			loading="lazy"
 		/>
 	{:else if item.type === 'url'}
-		{#if item.screenshotStatus === 'pending' || item.screenshotStatus === 'processing'}
+		{#if isBusy(item.screenshotStatus)}
 			<div class="url-card url-loading">
 				<div class="loading-icon">
 					<IconSchedule />
@@ -335,26 +321,24 @@
 					{/if}
 				</div>
 				<div class="failed-actions">
-					{#if onRetryScreenshot}
-						<button
-							class="retry-button"
-							title="Retry screenshot"
-							onclick={(e) => {
-								e.preventDefault();
-								e.stopPropagation();
-								onRetryScreenshot(item._id);
-							}}
-						>
-							retry
-						</button>
-					{/if}
+					<button
+						class="retry-button"
+						title="Retry screenshot"
+						onclick={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							mutate(api.screenshots.reimageItem, { itemId: item._id });
+						}}
+					>
+						retry
+					</button>
 					<button
 						class="delete-button"
 						title="Delete item"
 						onclick={(e) => {
 							e.preventDefault();
 							e.stopPropagation();
-							handleDeleteItem(item._id);
+							deleteItem(item._id);
 						}}
 					>
 						delete

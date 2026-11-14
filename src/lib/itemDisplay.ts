@@ -10,6 +10,10 @@ export function shouldDisplayAsImage(item: DisplayItem): boolean {
 	);
 }
 
+// A screenshot or tagging run is under way
+export const isBusy = (status: DisplayItem['screenshotStatus' | 'taggingStatus']) =>
+	status === 'pending';
+
 // Link that opens the item modal while preserving the current page context
 export function getItemUrl(itemId: Id<'items'>): string {
 	const params = new URLSearchParams(page.url.search);

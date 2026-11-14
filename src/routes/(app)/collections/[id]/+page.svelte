@@ -1,162 +1,62 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { useConvexClient, useQuery } from 'convex-svelte';
 	import { api } from '../../../../convex/_generated/api.js';
 	import type { Id } from '../../../../convex/_generated/dataModel.js';
-	import ItemGrid from '#lib/components/ItemGrid.svelte';
-	import ItemList from '#lib/components/ItemList.svelte';
+	import ItemsView from '#lib/components/ItemsView.svelte';
 	import TopControls from '#lib/components/TopControls.svelte';
-	import { type ViewMode } from '#lib/components/ViewToggle.svelte';
-	import { mutate, retryScreenshot } from '#lib/mutationHelper.js';
-	import {
-		getWriteTokenContext,
-		getCollectionsContext,
-		getCurrentItemsContext
-	} from '#lib/context.js';
-	import type { CollectionSortOption } from '#lib/types.js';
+	import { useMutation, useQuery } from '#lib/convex.js';
+	import { getCollectionsContext } from '#lib/context.js';
+	import { useCollectionPrefs } from '#lib/prefs.svelte.js';
 
-	const client = useConvexClient();
-	const getWriteToken = getWriteTokenContext();
-	const writeToken = $derived(getWriteToken());
+	const mutate = useMutation();
+	const collections = getCollectionsContext();
 	const collectionId = $derived(page.params.id as Id<'collections'>);
-	const allCollections = getCollectionsContext();
-	const currentItemsContext = getCurrentItemsContext();
+	const collection = $derived(collections.data?.find((c) => c._id === collectionId));
+	const prefs = useCollectionPrefs(() => collectionId);
 
-	// Derive collection from context
-	const collection = $derived.by(() => {
-		if (allCollections.isLoading || allCollections.error || !allCollections.data) {
-			return { isLoading: allCollections.isLoading, error: allCollections.error, data: null };
-		}
-		return {
-			isLoading: false,
-			error: null,
-			data: allCollections.data.find((c) => c._id === collectionId) ?? null
-		};
-	});
-
-	// Prefs come from the collection doc; a local override (keyed by collection so
-	// navigation drops it) wins until the mutation round-trips
-	let sortOverride = $state<{ id: string; value: CollectionSortOption } | null>(null);
-	let viewOverride = $state<{ id: string; value: ViewMode } | null>(null);
-	let columnOffsetOverride = $state<{ id: string; value: number } | null>(null);
-	let showTitlesOverride = $state<{ id: string; value: boolean } | null>(null);
-	const sortBy = $derived(
-		sortOverride && sortOverride.id === collectionId
-			? sortOverride.value
-			: (collection.data?.sortMode ?? 'manual')
+	// Waits for the collection's saved sort. The previous list stays up while a new
+	// sort loads, but never under another collection's header.
+	let shownId = $state<Id<'collections'>>();
+	const items = useQuery(
+		api.items.listByCollection,
+		() => (prefs.loaded ? { collectionId, sortBy: prefs.sortBy } : 'skip'),
+		() => ({ keepPreviousData: shownId === collectionId })
 	);
-	const viewMode = $derived(
-		viewOverride && viewOverride.id === collectionId
-			? viewOverride.value
-			: (collection.data?.viewMode ?? 'grid')
-	);
-	const columnOffset = $derived(
-		columnOffsetOverride && columnOffsetOverride.id === collectionId
-			? columnOffsetOverride.value
-			: (collection.data?.columnOffset ?? 0)
-	);
-	const showTitles = $derived(
-		showTitlesOverride && showTitlesOverride.id === collectionId
-			? showTitlesOverride.value
-			: (collection.data?.showTitles ?? false)
-	);
-
-	// Use dedicated query for collection items with sort option
-	const items = useQuery(api.items.listByCollection, () => ({
-		collectionId,
-		sortBy,
-		token: writeToken
-	}));
-
-	// Update the current items when data changes
 	$effect(() => {
-		if (items.data) {
-			currentItemsContext.setItems(items.data);
-		}
+		if (items.data && !items.isStale) shownId = collectionId;
 	});
-
-	// Save sort preference when changed
-	async function handleSortChange(newSort: CollectionSortOption) {
-		sortOverride = { id: collectionId, value: newSort };
-		await mutate(writeToken, (token) =>
-			client.mutation(api.collections.update, {
-				id: collectionId,
-				sortMode: newSort,
-				token
-			})
-		);
-	}
-
-	// Save view mode preference when changed
-	async function handleViewModeChange(newMode: ViewMode) {
-		viewOverride = { id: collectionId, value: newMode };
-		await mutate(writeToken, (token) =>
-			client.mutation(api.collections.update, {
-				id: collectionId,
-				viewMode: newMode,
-				token
-			})
-		);
-	}
-
-	async function handleColumnOffsetChange(offset: number) {
-		columnOffsetOverride = { id: collectionId, value: offset };
-		await mutate(writeToken, (token) =>
-			client.mutation(api.collections.update, {
-				id: collectionId,
-				columnOffset: offset,
-				token
-			})
-		);
-	}
-
-	async function handleShowTitlesChange(show: boolean) {
-		showTitlesOverride = { id: collectionId, value: show };
-		await mutate(writeToken, (token) =>
-			client.mutation(api.collections.update, {
-				id: collectionId,
-				showTitles: show,
-				token
-			})
-		);
-	}
 
 	// Reorder handler for drag-drop; optimistic so the grid doesn't snap back before the server responds
-	async function handleReorder(itemId: Id<'items'>, newPosition: string) {
-		// Must match the useQuery args exactly, token included, to hit its cache entry
-		const queryArgs = { collectionId, sortBy, token: writeToken };
-		await mutate(writeToken, (token) =>
-			client.mutation(
-				api.itemCollectionPositions.reorderItem,
-				{ itemId, collectionId, newPosition, token },
-				{
-					optimisticUpdate: (store) => {
-						const current = store.getQuery(api.items.listByCollection, queryArgs);
-						if (!current) return;
-						const updated = current
-							.map((i) => (i._id === itemId ? { ...i, position: newPosition } : i))
-							.sort((a, b) => {
-								const posA = a.position ?? '￿';
-								const posB = b.position ?? '￿';
-								return posA < posB ? -1 : posA > posB ? 1 : 0;
-							});
-						store.setQuery(api.items.listByCollection, queryArgs, updated);
-					}
+	function handleReorder(itemId: Id<'items'>, newPosition: string) {
+		mutate(
+			api.itemCollectionPositions.reorderItem,
+			{ itemId, collectionId, newPosition },
+			{
+				optimisticUpdate: (store, { token }) => {
+					// Must match the useQuery args exactly, token included, to hit its cache entry
+					const queryArgs = { collectionId, sortBy: prefs.sortBy, token };
+					const current = store.getQuery(api.items.listByCollection, queryArgs);
+					if (!current) return;
+					const updated = current
+						.map((i) => (i._id === itemId ? { ...i, position: newPosition } : i))
+						.sort((a, b) => {
+							const posA = a.position ?? '￿';
+							const posB = b.position ?? '￿';
+							return posA < posB ? -1 : posA > posB ? 1 : 0;
+						});
+					store.setQuery(api.items.listByCollection, queryArgs, updated);
 				}
-			)
+			}
 		);
 	}
-
-	const handleRetryScreenshot = (itemId: Id<'items'>) =>
-		retryScreenshot(client, writeToken, itemId);
 
 	let isEditing = $state(false);
 	let editName = $state('');
 	let inputElement: HTMLInputElement | undefined = $state();
 
 	function startEditing() {
-		if (collection.data) {
-			editName = collection.data.name;
+		if (collection) {
+			editName = collection.name;
 			isEditing = true;
 			// Focus the input after it's rendered
 			setTimeout(() => inputElement?.select(), 0);
@@ -170,20 +70,12 @@
 
 	async function saveEdits() {
 		const trimmed = editName.trim();
-		if (!trimmed || trimmed === collection.data?.name) {
+		if (!trimmed || trimmed === collection?.name) {
 			cancelEditing();
 			return;
 		}
-		const result = await mutate(writeToken, (token) =>
-			client.mutation(api.collections.update, {
-				id: collectionId,
-				name: trimmed,
-				token
-			})
-		);
-		if (result !== null) {
-			isEditing = false;
-		}
+		const saved = await mutate(api.collections.update, { id: collectionId, name: trimmed });
+		if (saved !== undefined) isEditing = false;
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -197,69 +89,45 @@
 	}
 </script>
 
-{#if collection.isLoading}
+{#if collections.isLoading}
 	<p class="status-text">loading...</p>
-{:else if collection.error}
-	<p class="status-text">error: {collection.error.message}</p>
-{:else if !collection.data}
+{:else if collections.error}
+	<p class="status-text">error: {collections.error.message}</p>
+{:else if !collection}
 	<p class="status-text">collection not found</p>
 {:else}
-	<div class="container">
-		<h1>
-			{#if isEditing}
-				<input
-					bind:this={inputElement}
-					bind:value={editName}
-					onblur={saveEdits}
-					onkeydown={handleKeydown}
-					class="title-input h1"
-					type="text"
-					placeholder="collection name"
-				/>
-			{:else}
-				<button class="title-button h1" onclick={startEditing}>
-					{collection.data.name}
-				</button>
-			{/if}
-		</h1>
-
-		<TopControls
-			{collectionId}
-			{sortBy}
-			{viewMode}
-			{columnOffset}
-			{showTitles}
-			showManualSort={true}
-			onSortChange={handleSortChange}
-			onViewModeChange={handleViewModeChange}
-			onColumnOffsetChange={handleColumnOffsetChange}
-			onShowTitlesChange={handleShowTitlesChange}
-		/>
-
-		{#if items.isLoading}
-			<p class="status-text">loading items...</p>
-		{:else if items.data?.length === 0}
-			<p class="status-text">no items in this collection yet.</p>
-		{:else if viewMode === 'list'}
-			<ItemList items={items.data ?? []} />
-		{:else}
-			<ItemGrid
-				items={items.data ?? []}
-				{columnOffset}
-				{showTitles}
-				onReorder={sortBy === 'manual' ? handleReorder : undefined}
-				onRetryScreenshot={handleRetryScreenshot}
+	<h1>
+		{#if isEditing}
+			<input
+				bind:this={inputElement}
+				bind:value={editName}
+				onblur={saveEdits}
+				onkeydown={handleKeydown}
+				class="title-input"
+				type="text"
+				placeholder="collection name"
 			/>
+		{:else}
+			<button class="title-button" onclick={startEditing}>
+				{collection.name}
+			</button>
 		{/if}
-	</div>
+	</h1>
+
+	<TopControls {collectionId} {prefs} />
+	<ItemsView
+		{items}
+		{prefs}
+		loading="loading items..."
+		empty="no items in this collection yet."
+		onReorder={prefs.sortBy === 'manual' ? handleReorder : undefined}
+	/>
 {/if}
 
 <style>
 	h1 {
 		margin: 0 0 var(--spacing) 0;
 		padding: 0;
-		font-size: inherit;
-		font-weight: inherit;
 	}
 
 	.title-button {

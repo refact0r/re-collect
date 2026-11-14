@@ -1,21 +1,21 @@
 <script lang="ts">
 	import { PUBLIC_CONVEX_URL } from '$app/env/public';
 	import { setupConvex, useQuery } from 'convex-svelte';
-	import { onDestroy } from 'svelte';
 	import {
 		setItemsContext,
 		setCollectionsContext,
 		setCurrentItemsContext,
-		setWriteTokenContext
+		setWriteTokenContext,
+		type CurrentItems
 	} from '#lib/context.js';
+	import { isUnauthorized } from '#lib/convex.js';
 	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
+	import { afterNavigate, beforeNavigate, goto, snapshot } from '$app/navigation';
 
 	import Logo from '#lib/assets/logo.svelte';
 	import ItemModal from '#lib/components/ItemModal.svelte';
 	import Sidebar from '#lib/components/Sidebar.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import type { DisplayItem } from '#lib/types.js';
 	import { api } from '../../convex/_generated/api.js';
 	import IconMenu from '~icons/material-symbols-light/menu';
 	import IconSearch from '~icons/material-symbols-light/search';
@@ -27,42 +27,89 @@
 	const items = useQuery(api.items.list, () => ({ token: data.writeToken }));
 	const collections = useQuery(api.collections.listWithCounts, () => ({ token: data.writeToken }));
 
-	// State for current items being displayed (set by active page)
-	let currentItems = $state<DisplayItem[]>([]);
+	const currentItems = $state<CurrentItems>({ list: () => [] });
 
 	// Make available to all child routes via context
 	setItemsContext(items);
 	setCollectionsContext(collections);
-	setCurrentItemsContext({
-		get items() {
-			return currentItems;
-		},
-		setItems(newItems: DisplayItem[]) {
-			currentItems = newItems;
-		}
-	});
+	setCurrentItemsContext(currentItems);
 	// Pass the token as a reactive getter so consumers always get the current value
 	setWriteTokenContext(() => data.writeToken);
 
 	// An ended session (signed out elsewhere, users:signOut) fails every query
 	$effect(() => {
-		if (collections.error?.message.includes('Unauthorized')) goto('/login');
+		if (isUnauthorized(collections.error)) goto('/login');
 	});
 
 	const editItemId = $derived(page.url.searchParams.get('item') as Id<'items'> | null);
 
+	// Whether the history entry before this one is the same page without the modal,
+	// so closing can step back to it instead of pushing a duplicate
+	let modalHasBackEntry = false;
+	let closing = false;
+
 	function closeModal() {
-		const url = new URL(page.url.href);
-		url.searchParams.delete('item');
-		goto(url.pathname + url.search);
+		if (closing) return;
+		closing = true;
+		if (modalHasBackEntry) {
+			history.back();
+		} else {
+			const url = new URL(page.url.href);
+			url.searchParams.delete('item');
+			goto(url, { replace: true, reset: false });
+		}
 	}
 
-	let searchInputRef: HTMLInputElement;
-	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+	// <main> is the scroll container, which SvelteKit's scroll handling (window only)
+	// doesn't see. A Back/Forward restores the entry's position, applied as the content
+	// grows because the page's queries may still be loading.
+	let main: HTMLElement;
+	let pendingScroll: number | null = null;
 
-	onDestroy(() => {
-		if (debounceTimer) clearTimeout(debounceTimer);
+	function applyPendingScroll() {
+		if (pendingScroll === null) return;
+		main.scrollTop = pendingScroll;
+		if (main.scrollHeight - main.clientHeight >= pendingScroll) pendingScroll = null;
+	}
+
+	function observeContent(node: HTMLElement) {
+		const observer = new ResizeObserver(applyPendingScroll);
+		observer.observe(node);
+		return () => observer.disconnect();
+	}
+
+	snapshot({
+		capture: () => ({ scroll: main.scrollTop, modalHasBackEntry }),
+		restore: (value) => {
+			modalHasBackEntry = value.modalHasBackEntry;
+			pendingScroll = value.scroll;
+			applyPendingScroll();
+		}
 	});
+
+	// Runs before a Back/Forward's snapshot restore, which overrides it
+	afterNavigate(({ from, to }) => {
+		if (!to) return;
+		closing = false;
+		mobileMenuOpen = false;
+		pendingScroll = null;
+
+		const samePage = from?.url.pathname === to.url.pathname;
+		if (!samePage) main.scrollTop = 0;
+
+		const hasItem = to.url.searchParams.has('item');
+		if (!hasItem) modalHasBackEntry = false;
+		// Item to item (prev/next replaces the entry) keeps it
+		else if (!from?.url.searchParams.has('item')) modalHasBackEntry = samePage;
+
+		if (to.url.pathname === '/search' && !samePage && !hasItem) searchInputRef.focus();
+	});
+
+	let searchInputRef: HTMLInputElement;
+	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+	// A pending search update would drag the user back to /search or close a just-opened item
+	beforeNavigate(() => clearTimeout(debounceTimer));
 
 	const searchQuery = $derived(page.url.searchParams.get('q') ?? '');
 
@@ -75,7 +122,7 @@
 	function handleSearchInput(e: Event) {
 		const value = (e.target as HTMLInputElement).value;
 		if (page.url.pathname === '/search') {
-			if (debounceTimer) clearTimeout(debounceTimer);
+			clearTimeout(debounceTimer);
 			debounceTimer = setTimeout(() => {
 				const params = new URLSearchParams(page.url.search);
 				if (value.trim()) {
@@ -88,12 +135,6 @@
 			}, 300);
 		}
 	}
-
-	$effect(() => {
-		if (page.url.pathname === '/search' && searchInputRef) {
-			searchInputRef.focus();
-		}
-	});
 
 	let mobileMenuOpen = $state(false);
 
@@ -143,8 +184,14 @@
 
 <div class="layout">
 	<Sidebar bind:mobileOpen={mobileMenuOpen} />
-	<main>
-		{@render children()}
+	<main
+		bind:this={main}
+		onwheel={() => (pendingScroll = null)}
+		ontouchstart={() => (pendingScroll = null)}
+	>
+		<div {@attach observeContent}>
+			{@render children()}
+		</div>
 	</main>
 </div>
 
@@ -275,10 +322,6 @@
 		}
 		.layout :global(aside) {
 			position: fixed;
-		}
-		main {
-			padding: var(--spacing);
-			padding-bottom: calc(var(--spacing) + 4rem);
 		}
 	}
 </style>

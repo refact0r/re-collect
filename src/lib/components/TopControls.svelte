@@ -1,44 +1,23 @@
 <script lang="ts">
 	import ItemInput from './ItemInput.svelte';
 	import SettingsMenu from './SettingsMenu.svelte';
-	import ViewToggle, { type ViewMode } from './ViewToggle.svelte';
+	import ViewToggle from './ViewToggle.svelte';
 	import ColumnControl from './ColumnControl.svelte';
 	import CollectionFilter from './CollectionFilter.svelte';
 	import SortDropdown from './SortDropdown.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import type { CollectionSortOption } from '#lib/types.js';
+	import type { ViewPrefs } from '#lib/prefs.svelte.js';
 
 	interface Props {
+		// A collection page: adds go into it and manual sort is offered
 		collectionId?: Id<'collections'>;
-		sortBy: CollectionSortOption;
-		viewMode: ViewMode;
-		columnOffset: number;
-		showTitles: boolean;
-		showManualSort?: boolean;
-		onSortChange: (sort: CollectionSortOption) => void;
-		onViewModeChange: (mode: ViewMode) => void;
-		onColumnOffsetChange: (offset: number) => void;
-		onShowTitlesChange: (show: boolean) => void;
+		prefs: ViewPrefs;
 		collections?: { _id: Id<'collections'>; name: string }[];
 		filterCollectionIds?: Set<string>;
 		onFilterChange?: (selected: Set<string>) => void;
 	}
 
-	let {
-		collectionId,
-		sortBy,
-		viewMode,
-		columnOffset,
-		showTitles,
-		showManualSort = false,
-		onSortChange,
-		onViewModeChange,
-		onColumnOffsetChange,
-		onShowTitlesChange,
-		collections,
-		filterCollectionIds,
-		onFilterChange
-	}: Props = $props();
+	let { collectionId, prefs, collections, filterCollectionIds, onFilterChange }: Props = $props();
 </script>
 
 <div class="top-row">
@@ -49,14 +28,25 @@
 		{#if collections && filterCollectionIds && onFilterChange}
 			<CollectionFilter {collections} selected={filterCollectionIds} onchange={onFilterChange} />
 		{/if}
-		<SortDropdown value={sortBy} {showManualSort} onchange={onSortChange} />
-		{#if viewMode === 'grid'}
-			<ColumnControl value={columnOffset} onchange={onColumnOffsetChange} />
+		<SortDropdown
+			value={prefs.sortBy}
+			showManualSort={!!collectionId}
+			onchange={(sortMode) => prefs.set({ sortMode })}
+		/>
+		{#if prefs.viewMode === 'grid'}
+			<ColumnControl
+				value={prefs.columnOffset}
+				onchange={(columnOffset) => prefs.set({ columnOffset })}
+			/>
 		{/if}
-		<ViewToggle value={viewMode} onchange={onViewModeChange} />
+		<ViewToggle value={prefs.viewMode} onchange={(viewMode) => prefs.set({ viewMode })} />
 	</div>
 	<div class="settings-slot">
-		<SettingsMenu {collectionId} {showTitles} {onShowTitlesChange} />
+		<SettingsMenu
+			{collectionId}
+			showTitles={prefs.showTitles}
+			onShowTitlesChange={(showTitles) => prefs.set({ showTitles })}
+		/>
 	</div>
 </div>
 
