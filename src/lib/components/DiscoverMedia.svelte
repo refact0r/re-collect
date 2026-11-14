@@ -64,10 +64,10 @@
 		display: block;
 		width: 100%;
 		height: auto;
-		background: var(--bg-2);
 	}
 
 	.cropped {
+		background: var(--bg-2);
 		object-fit: cover;
 		object-position: top;
 	}
