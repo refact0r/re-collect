@@ -1,30 +1,86 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { beforeNavigate, goto } from '$app/navigation';
 	import { api } from '../../../../convex/_generated/api.js';
 	import type { Id } from '../../../../convex/_generated/dataModel.js';
 	import ItemsView from '#lib/components/ItemsView.svelte';
 	import TopControls from '#lib/components/TopControls.svelte';
 	import { useMutation, useQuery } from '#lib/convex.js';
 	import { getCollectionsContext } from '#lib/context.js';
-	import { useCollectionPrefs } from '#lib/prefs.svelte.js';
+	import { pageTitle } from '#lib/pageTitle.svelte.js';
+	import { useCollectionPrefs, useLocalPrefs } from '#lib/prefs.svelte.js';
+
+	let { data } = $props();
 
 	const mutate = useMutation();
-	const collections = getCollectionsContext();
+	const ownCollections = getCollectionsContext();
 	const collectionId = $derived(page.params.id as Id<'collections'>);
-	const collection = $derived(collections.data?.find((c) => c._id === collectionId));
-	const prefs = useCollectionPrefs(() => collectionId);
 
-	// Waits for the collection's saved sort. The previous list stays up while a new
-	// sort loads, but never under another collection's header.
+	// The signed-in user's own collection comes straight from the layout's list.
+	// Anyone else's (and every collection, for a logged-out visitor) is fetched
+	// on its own, read-only.
+	const own = $derived(ownCollections.data?.find((c) => c._id === collectionId));
+	const other = useQuery(
+		api.collections.get,
+		() => (own || ownCollections.isLoading ? 'skip' : { id: collectionId }),
+		() => ({ initialData: data.collection ?? undefined })
+	);
+	const collection = $derived(own ?? other.data);
+	const isOwner = $derived(!!own);
+	const isLoading = $derived(ownCollections.isLoading || other.isLoading);
+	const error = $derived(ownCollections.error ?? other.error);
+
+	$effect(() => {
+		pageTitle.value = collection?.name ?? null;
+		return () => (pageTitle.value = null);
+	});
+
+	// Everyone starts from the owner's saved view settings; the owner's changes
+	// save to the collection, anyone else's stay on this page
+	const ownerPrefs = useCollectionPrefs(() => collectionId);
+	const visitorPrefs = useLocalPrefs(
+		() => collectionId,
+		() => other.data
+	);
+	const prefs = $derived(isOwner ? ownerPrefs : visitorPrefs);
+
+	// Waits for the collection (and so its saved sort), so a malformed or private
+	// id never reaches the id-validated item queries. The previous list stays up
+	// while a new sort loads, but never under another collection's header.
 	let shownId = $state<Id<'collections'>>();
 	const items = useQuery(
 		api.items.listByCollection,
-		() => (prefs.loaded ? { collectionId, sortBy: prefs.sortBy } : 'skip'),
+		() => (collection ? { collectionId, sortBy: prefs.sortBy } : 'skip'),
 		() => ({ keepPreviousData: shownId === collectionId })
 	);
 	$effect(() => {
 		if (items.data && !items.isStale) shownId = collectionId;
 	});
+
+	// Visitors search within the collection (?q=); the box writes the URL after a
+	// pause, and follows it when something else changes it (a tag link, back).
+	// The owner has no box (their tag links go to /search), so ignores it.
+	const query = $derived(isOwner ? '' : (page.url.searchParams.get('q')?.trim() ?? ''));
+	const results = useQuery(
+		api.items.searchCollection,
+		() => (collection && query ? { collectionId, query } : 'skip'),
+		{ keepPreviousData: true }
+	);
+	let searchInput = $derived(query);
+	let searchTimer: ReturnType<typeof setTimeout> | undefined;
+	// A pending search update would close a just-opened item
+	beforeNavigate(() => clearTimeout(searchTimer));
+	function handleQueryChange(value: string) {
+		searchInput = value;
+		clearTimeout(searchTimer);
+		searchTimer = setTimeout(() => {
+			const url = new URL(page.url.href);
+			if (value.trim()) url.searchParams.set('q', value.trim());
+			else url.searchParams.delete('q');
+			url.searchParams.delete('item');
+			goto(url, { replace: true, reset: false });
+		}, 300);
+	}
 
 	// Reorder handler for drag-drop; optimistic so the grid doesn't snap back before the server responds
 	function handleReorder(itemId: Id<'items'>, newPosition: string) {
@@ -89,15 +145,31 @@
 	}
 </script>
 
-{#if collections.isLoading}
+<svelte:head>
+	<!-- Link previews; only logged-out requests (crawlers included) load these -->
+	{#if data.collection}
+		<meta property="og:title" content={data.collection.name} />
+		<meta property="og:description" content="a collection by {data.collection.owner}" />
+		<meta property="og:site_name" content="re-collect" />
+		{#if data.collection.coverUrl}
+			<meta property="og:image" content={data.collection.coverUrl} />
+			<meta name="twitter:card" content="summary_large_image" />
+		{/if}
+	{/if}
+</svelte:head>
+
+{#if isLoading}
 	<p class="status-text">loading...</p>
-{:else if collections.error}
-	<p class="status-text">error: {collections.error.message}</p>
+{:else if error}
+	<p class="status-text">error: {error.message}</p>
 {:else if !collection}
 	<p class="status-text">collection not found</p>
 {:else}
 	<h1>
-		{#if isEditing}
+		{#if !isOwner}
+			{collection.name}
+			<span class="byline">by {other.data?.owner}</span>
+		{:else if isEditing}
 			<input
 				bind:this={inputElement}
 				bind:value={editName}
@@ -114,13 +186,20 @@
 		{/if}
 	</h1>
 
-	<TopControls {collectionId} {prefs} />
+	<TopControls
+		{collectionId}
+		{prefs}
+		readonly={!isOwner}
+		query={searchInput}
+		onQueryChange={handleQueryChange}
+	/>
 	<ItemsView
-		{items}
+		items={query ? results : items}
 		{prefs}
 		loading="loading items..."
-		empty="no items in this collection yet."
-		onReorder={prefs.sortBy === 'manual' ? handleReorder : undefined}
+		empty={query ? 'no matches.' : 'no items in this collection yet.'}
+		onReorder={isOwner && prefs.sortBy === 'manual' ? handleReorder : undefined}
+		readonly={!isOwner}
 	/>
 {/if}
 
@@ -128,6 +207,10 @@
 	h1 {
 		margin: 0 0 var(--spacing) 0;
 		padding: 0;
+	}
+
+	.byline {
+		color: var(--txt-3);
 	}
 
 	.title-button {

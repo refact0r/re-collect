@@ -9,8 +9,16 @@ import {
 	deleteAllPositionsForItem,
 	getPositionsByCollection
 } from './itemCollectionPositions';
-import { getOwned, userMutation, userQuery } from './lib/auth';
+import {
+	getOwned,
+	getViewable,
+	userMutation,
+	userQuery,
+	viewerQuery,
+	type ViewerQueryCtx
+} from './lib/auth';
 import { buildSearchText, patchItem } from './lib/searchText';
+import { isWebUrl } from './lib/urls';
 import { enqueueScreenshot } from './screenshots';
 import { enqueueTagging } from './tagging';
 import { getPreferences } from './viewPreferences';
@@ -21,12 +29,14 @@ import {
 	linkImageModeValidator
 } from './schema';
 
+type Sortable = Pick<Doc<'items'>, 'title' | 'url' | 'dateAdded' | 'dateModified'>;
+
 // `||`: older rows may hold title: ''
-const sortTitle = (item: Doc<'items'>) => (item.title || item.url || '').toLowerCase();
+const sortTitle = (item: Sortable) => (item.title || item.url || '').toLowerCase();
 
 const compareItems: Record<
 	Infer<typeof sortModeValidator>,
-	(a: Doc<'items'>, b: Doc<'items'>) => number
+	(a: Sortable, b: Sortable) => number
 > = {
 	dateAddedNewest: (a, b) => b.dateAdded - a.dateAdded,
 	dateAddedOldest: (a, b) => a.dateAdded - b.dateAdded,
@@ -36,20 +46,57 @@ const compareItems: Record<
 	titleDesc: (a, b) => sortTitle(b).localeCompare(sortTitle(a))
 };
 
-// Only http(s) links can be screenshotted or opened; anything else (mailto:,
-// javascript:, file://, "note: …") would become a permanently failed item
-function assertHttpUrl(url: string | undefined) {
-	if (!url || !/^https?:\/\/\S+$/i.test(url)) {
-		throw new ConvexError('only http(s) links can be saved');
-	}
-}
-
 export function getImageUrl(item: Doc<'items'>): string | null {
 	if (item.imageKey) {
 		return `${process.env.R2_PUBLIC_URL}/${item.imageKey}`;
 	}
 	return null;
 }
+
+// The item fields a visitor to someone else's shared collection gets: what the
+// page shows. Anything else (the owner's other collections, user id, errors,
+// search fields, fields added later) stays with the owner.
+const VISITOR_FIELDS = [
+	'_id',
+	'_creationTime',
+	'type',
+	'title',
+	'description',
+	'ogDescription',
+	'url',
+	'content',
+	'imageWidth',
+	'imageHeight',
+	'screenshotStatus',
+	'styles',
+	'subject',
+	'aiTags',
+	'paletteHex',
+	'fonts',
+	'taggingStatus',
+	'dateAdded',
+	'dateModified'
+] as const satisfies readonly (keyof Doc<'items'>)[];
+
+// An item as a listing returns it: the whole doc for its owner, the visitor
+// fields (and an empty `collections`) for anyone else
+export type ShownItem = Partial<Doc<'items'>> &
+	Pick<Doc<'items'>, (typeof VISITOR_FIELDS)[number] | 'collections'> & {
+		imageUrl: string | null;
+	};
+
+function forViewer(ctx: ViewerQueryCtx, item: Doc<'items'>): ShownItem {
+	const imageUrl = getImageUrl(item);
+	if (item.userId === ctx.viewerId) return { ...item, imageUrl };
+	const shown = Object.fromEntries(VISITOR_FIELDS.map((field) => [field, item[field]]));
+	return {
+		...(shown as Pick<Doc<'items'>, (typeof VISITOR_FIELDS)[number]>),
+		collections: [],
+		imageUrl
+	};
+}
+
+const LINK_ERROR = 'links must start with http:// or https://';
 
 export const add = userMutation({
 	args: {
@@ -68,11 +115,14 @@ export const add = userMutation({
 		linkImageMode: v.optional(linkImageModeValidator)
 	},
 	handler: async (ctx, args) => {
+		// A URL item needs a link, and any link must be http(s)
+		if ((args.type === 'url' || args.url) && !isWebUrl(args.url ?? '')) {
+			throw new ConvexError(LINK_ERROR);
+		}
 		const now = Date.now();
 		const collections = args.collections ?? [];
 		const ownedCollections = await Promise.all(collections.map((id) => getOwned(ctx, id)));
 		if (ownedCollections.includes(null)) throw new ConvexError('collection not found');
-		if (args.type === 'url') assertHttpUrl(args.url);
 
 		// Deleting an item deletes its R2 object, so a key must be the caller's own
 		// fresh upload; consuming it ties the object to exactly this item
@@ -177,7 +227,7 @@ export const update = userMutation({
 			const value = fields[key];
 			if (value !== undefined) updates[key] = value.trim() || undefined;
 		}
-		if (updates.url !== undefined) assertHttpUrl(updates.url);
+		if (updates.url && !isWebUrl(updates.url)) throw new ConvexError(LINK_ERROR);
 
 		await patchItem(ctx, existing, { ...updates, dateModified: Date.now() });
 	}
@@ -257,21 +307,21 @@ export const list = userQuery({
 	}
 });
 
-export const listByCollection = userQuery({
+export const listByCollection = viewerQuery({
 	args: {
 		collectionId: v.id('collections'),
 		sortBy: v.optional(collectionSortModeValidator)
 	},
 	handler: async (ctx, args) => {
 		const sortBy = args.sortBy ?? 'manual';
-		if (!(await getOwned(ctx, args.collectionId))) return [];
+		if (!(await getViewable(ctx, args.collectionId))) return [];
 
 		// Position rows come in manual order, which the stable sort keeps for ties
 		const positions = await getPositionsByCollection(ctx, args.collectionId);
 		const items = await Promise.all(
 			positions.map(async ({ itemId, position }) => {
 				const item = await ctx.db.get(itemId);
-				return item && { ...item, imageUrl: getImageUrl(item), position };
+				return item && { ...forViewer(ctx, item), position };
 			})
 		);
 		const members = items.filter((item) => item !== null);
@@ -300,6 +350,28 @@ export const search = userQuery({
 	}
 });
 
+// Search results the collection filter scans before narrowing to members
+const COLLECTION_SEARCH_SCAN = 256;
+
+// Search one collection, for anyone who can see it: the owner's search index,
+// narrowed to the collection's members
+export const searchCollection = viewerQuery({
+	args: { collectionId: v.id('collections'), query: v.string() },
+	handler: async (ctx, args) => {
+		const collection = await getViewable(ctx, args.collectionId);
+		if (!collection || !args.query.trim()) return [];
+		const results = await ctx.db
+			.query('items')
+			.withSearchIndex('search_items', (q) =>
+				q.search('searchText', args.query).eq('userId', collection.userId)
+			)
+			.take(COLLECTION_SEARCH_SCAN);
+		return results
+			.filter((item) => item.collections.includes(collection._id))
+			.map((item) => forViewer(ctx, item));
+	}
+});
+
 // One-shot backfill after buildSearchText's inputs change: recomputes every
 // item's searchText from its current fields, a page per transaction.
 // Run with `npx convex run items:rebuildSearchText` (add --prod for production)
@@ -310,7 +382,8 @@ export const rebuildSearchText = internalMutation({
 			.query('items')
 			.paginate({ numItems: 100, cursor: args.cursor ?? null });
 		for (const item of page) {
-			await ctx.db.patch(item._id, { searchText: buildSearchText(item) });
+			const searchText = buildSearchText(item);
+			if (searchText !== item.searchText) await ctx.db.patch(item._id, { searchText });
 		}
 		if (!isDone) {
 			await ctx.scheduler.runAfter(0, internal.items.rebuildSearchText, {

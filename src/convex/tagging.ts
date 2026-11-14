@@ -135,23 +135,23 @@ export const retagItem = userMutation({
 	},
 	handler: async (ctx, args) => {
 		const item = await getOwned(ctx, args.itemId);
-		if (!item) throw new ConvexError('Item not found');
-		if (item.type === 'text') throw new ConvexError('Text items cannot be tagged');
+		if (!item) throw new ConvexError('item not found');
+		if (item.type === 'text') throw new ConvexError('text items cannot be tagged');
 		// `pending` is set in the same transaction as the enqueue and cleared only
 		// when the run settles, so this is what keeps runs from overlapping
-		if (item.taggingStatus === 'pending') throw new ConvexError('Tagging already in progress');
+		if (item.taggingStatus === 'pending') throw new ConvexError('tagging already in progress');
 
 		const mode = args.mode ?? (item.taggingMode === 'text' ? 'text' : 'visual');
 		if (mode === 'text') {
 			if (item.type !== 'url' || !item.url) {
-				throw new ConvexError('Only URL items can be text-tagged');
+				throw new ConvexError('only URL items can be text-tagged');
 			}
 		} else {
-			if (!item.imageKey) throw new ConvexError('Item has no image to tag');
+			if (!item.imageKey) throw new ConvexError('item has no image to tag');
 			// Don't tag an image that's about to be replaced; the new image
 			// schedules its own tagging (or palette) when it lands
 			if (item.screenshotStatus === 'pending') {
-				throw new ConvexError('Image fetch in progress; wait for it to finish');
+				throw new ConvexError('image fetch in progress; wait for it to finish');
 			}
 		}
 

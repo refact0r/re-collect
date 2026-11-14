@@ -121,13 +121,13 @@ test('only http(s) links become URL items', async () => {
 		undefined
 	]) {
 		await expect(t.mutation(api.items.add, { type: 'url', url, token })).rejects.toThrow(
-			'only http(s) links can be saved'
+			'links must start with http:// or https://'
 		);
 	}
 	const itemId = await insertUrlItem(t, userId, { url: 'https://a.co' });
 	await expect(
 		t.mutation(api.items.update, { id: itemId, url: 'file:///etc/hosts', token })
-	).rejects.toThrow('only http(s) links can be saved');
+	).rejects.toThrow('links must start with http:// or https://');
 	await t.mutation(api.items.update, { id: itemId, url: ' http://b.co ', token });
 	expect((await t.run((ctx) => ctx.db.get(itemId)))?.url).toBe('http://b.co');
 });
@@ -256,4 +256,28 @@ test('collection items keep manual order, which also breaks sort ties', async ()
 			token
 		})
 	).rejects.toThrow('item is not in this collection');
+});
+
+test('backfilled fonts are stored and searchable without touching the image', async () => {
+	const t = convexTest(schema, modules);
+	const itemId = await t.run(async (ctx) => {
+		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
+		return ctx.db.insert('items', {
+			userId,
+			type: 'url',
+			url: 'https://klim.co.nz',
+			title: 'Klim',
+			imageKey: 'screenshots/klim.webp',
+			collections: [],
+			dateAdded: 0,
+			dateModified: 0
+		});
+	});
+	await t.mutation(internal.screenshots.setFonts, {
+		items: [{ itemId, fonts: [{ family: 'SOEHNE', internalName: 'Söhne' }] }]
+	});
+	const item = await t.run((ctx) => ctx.db.get(itemId));
+	expect(item?.fonts).toEqual([{ family: 'SOEHNE', internalName: 'Söhne' }]);
+	expect(item?.imageKey).toBe('screenshots/klim.webp');
+	expect(item?.searchText).toBe('Klim https://klim.co.nz fontsohne Söhne Sohne soehne');
 });

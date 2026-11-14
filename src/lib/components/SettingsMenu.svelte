@@ -7,7 +7,8 @@
 	import IconSettings from '~icons/material-symbols-light/settings-outline';
 
 	interface Props {
-		// Without a collection, ingestion settings apply to collection-less adds (home defaults)
+		// Without a collection, ingestion settings apply to collection-less adds (home
+		// defaults). With one, the owner also gets its sharing setting.
 		collectionId?: Id<'collections'>;
 		showIngestion?: boolean;
 		showTitles: boolean;
@@ -19,15 +20,19 @@
 	const mutate = useMutation();
 	const collections = getCollectionsContext();
 
-	const homePrefs = useQuery(api.viewPreferences.get, () => ({ key: 'home' }));
-
-	const source = $derived(
-		collectionId
-			? ((collections.data ?? []).find((c: Doc<'collections'>) => c._id === collectionId) ?? null)
-			: homePrefs.data
+	const homePrefs = useQuery(api.viewPreferences.get, () =>
+		showIngestion && !collectionId ? { key: 'home' } : 'skip'
 	);
+
+	const collection = $derived(
+		collectionId
+			? (collections.data?.find((c: Doc<'collections'>) => c._id === collectionId) ?? null)
+			: null
+	);
+	const source = $derived(collectionId ? collection : homePrefs.data);
 	const taggingMode = $derived(source?.taggingMode ?? 'visual');
 	const linkImageMode = $derived(source?.linkImageMode ?? 'screenshot');
+	const shared = $derived(!!collection?.shared);
 
 	const taggingOptions = [
 		{ value: 'visual', label: 'visual' },
@@ -42,6 +47,30 @@
 		{ value: 'screenshot', label: 'screenshot' },
 		{ value: 'og', label: 'og image' }
 	] as const;
+
+	function setShared(value: boolean) {
+		if (!collectionId) return;
+		return mutate(api.collections.update, { id: collectionId, shared: value });
+	}
+
+	// The link is the collection's own URL; copying it from a private collection
+	// shares it first, so it never hands out a link that 404s. A blocked
+	// clipboard shows the link to copy by hand instead.
+	let copied = $state(false);
+	let shownLink = $state('');
+	async function copyLink() {
+		const link = `${location.origin}/collections/${collectionId}`;
+		// Copy before awaiting anything, while the click still counts as a user gesture
+		const sharing = shared ? undefined : setShared(true);
+		try {
+			await navigator.clipboard.writeText(link);
+			copied = true;
+			setTimeout(() => (copied = false), 2000);
+		} catch {
+			shownLink = link;
+		}
+		await sharing;
+	}
 
 	function setDefaults(fields: {
 		taggingMode?: 'visual' | 'text' | 'none';
@@ -72,6 +101,23 @@
 						{/each}
 					</div>
 				</div>
+				{#if collectionId}
+					<div class="group">
+						<span class="group-label">sharing</span>
+						<div class="mode-options">
+							<button class:active={!shared} onclick={() => setShared(false)}>private</button>
+							<button class:active={shared} onclick={() => setShared(true)}>
+								anyone with link
+							</button>
+						</div>
+						<button onclick={copyLink}>
+							{copied ? 'link copied' : shared ? 'copy link' : 'share and copy link'}
+						</button>
+						{#if shownLink}
+							<input readonly value={shownLink} onfocus={(e) => e.currentTarget.select()} />
+						{/if}
+					</div>
+				{/if}
 				{#if showIngestion}
 					<div class="group">
 						<span class="group-label">ai tagging default</span>

@@ -12,9 +12,11 @@
 		empty: string;
 		loading?: string;
 		onReorder?: (itemId: Id<'items'>, newPosition: string) => void;
+		// Someone else's items (a shared collection): shown without owner controls
+		readonly?: boolean;
 	}
 
-	let { items, prefs, empty, loading = 'loading...', onReorder }: Props = $props();
+	let { items, prefs, empty, loading = 'loading...', onReorder, readonly }: Props = $props();
 
 	// The item modal steps through the list shown here
 	getCurrentItemsContext().list = () => items.data ?? [];
@@ -28,12 +30,13 @@
 {:else if items.data.length === 0}
 	<p class="status-text">{empty}</p>
 {:else if prefs.viewMode === 'list'}
-	<ItemList items={items.data} />
+	<ItemList items={items.data} {readonly} />
 {:else}
 	<ItemGrid
 		items={items.data}
 		columnOffset={prefs.columnOffset}
 		showTitles={prefs.showTitles}
 		{onReorder}
+		{readonly}
 	/>
 {/if}

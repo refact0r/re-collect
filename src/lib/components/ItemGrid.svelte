@@ -19,9 +19,17 @@
 		columnOffset?: number;
 		showTitles?: boolean;
 		onReorder?: (itemId: Id<'items'>, newPosition: string) => void;
+		// Someone else's items (a shared collection): no retry or delete
+		readonly?: boolean;
 	}
 
-	let { items, columnOffset = 0, showTitles = false, onReorder }: Props = $props();
+	let {
+		items,
+		columnOffset = 0,
+		showTitles = false,
+		onReorder,
+		readonly = false
+	}: Props = $props();
 
 	const isDraggable = $derived(!!onReorder);
 
@@ -320,30 +328,32 @@
 						<span class="error-text" title={item.screenshotError}>Screenshot failed</span>
 					{/if}
 				</div>
-				<div class="failed-actions">
-					<button
-						class="retry-button"
-						title="Retry screenshot"
-						onclick={(e) => {
-							e.preventDefault();
-							e.stopPropagation();
-							mutate(api.screenshots.reimageItem, { itemId: item._id });
-						}}
-					>
-						retry
-					</button>
-					<button
-						class="delete-button"
-						title="Delete item"
-						onclick={(e) => {
-							e.preventDefault();
-							e.stopPropagation();
-							deleteItem(item._id);
-						}}
-					>
-						delete
-					</button>
-				</div>
+				{#if !readonly}
+					<div class="failed-actions">
+						<button
+							class="retry-button"
+							title="Retry screenshot"
+							onclick={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								mutate(api.screenshots.reimageItem, { itemId: item._id });
+							}}
+						>
+							retry
+						</button>
+						<button
+							class="delete-button"
+							title="Delete item"
+							onclick={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								deleteItem(item._id);
+							}}
+						>
+							delete
+						</button>
+					</div>
+				{/if}
 			</div>
 		{:else}
 			<div class="url-card">

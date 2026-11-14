@@ -28,5 +28,6 @@ export type CurrentItems = { list: () => DisplayItem[] };
 export const setCurrentItemsContext = (value: CurrentItems) => setContext('currentItems', value);
 export const getCurrentItemsContext = () => getContext<CurrentItems>('currentItems');
 
-export const setWriteTokenContext = (value: () => string) => setContext('writeToken', value);
-export const getWriteTokenContext = () => getContext<() => string>('writeToken');
+// The session token, null for a logged-out visitor (read through lib/convex.ts)
+export const setWriteTokenContext = (value: () => string | null) => setContext('writeToken', value);
+export const getWriteTokenContext = () => getContext<() => string | null>('writeToken');

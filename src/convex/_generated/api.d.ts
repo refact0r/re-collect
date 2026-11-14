@@ -18,6 +18,7 @@ import type * as lib_colorNames from "../lib/colorNames.js";
 import type * as lib_fonts from "../lib/fonts.js";
 import type * as lib_searchText from "../lib/searchText.js";
 import type * as lib_tagger from "../lib/tagger.js";
+import type * as lib_urls from "../lib/urls.js";
 import type * as r2 from "../r2.js";
 import type * as screenshots from "../screenshots.js";
 import type * as sessions from "../sessions.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   "lib/fonts": typeof lib_fonts;
   "lib/searchText": typeof lib_searchText;
   "lib/tagger": typeof lib_tagger;
+  "lib/urls": typeof lib_urls;
   r2: typeof r2;
   screenshots: typeof screenshots;
   sessions: typeof sessions;

@@ -2,6 +2,7 @@
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { reportError, useMutation } from '#lib/convex.js';
+	import { isWebUrl } from '../../convex/lib/urls.js';
 	import IconUpload from '~icons/material-symbols-light/upload-sharp';
 
 	interface Props {
@@ -52,12 +53,6 @@
 		});
 	}
 
-	// Only http(s) links become URL items (the server rejects anything else);
-	// `new URL` would also accept "note: buy milk"
-	function isUrl(str: string): boolean {
-		return /^https?:\/\/\S+$/i.test(str);
-	}
-
 	function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
 		return new Promise((resolve) => {
 			const img = new Image();
@@ -80,7 +75,7 @@
 		isAdding = true;
 		const added = await mutate(
 			api.items.add,
-			isUrl(value)
+			isWebUrl(value)
 				? { type: 'url', url: value, collections }
 				: { type: 'text', content: value, collections }
 		);

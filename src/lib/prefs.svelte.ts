@@ -87,6 +87,23 @@ export function useViewPrefs(key: 'home' | 'search') {
 	);
 }
 
+// Someone else's shared collection: starts from the owner's saved settings, and
+// changes stay on this page (kept per collection, so the next one starts afresh)
+export function useLocalPrefs(id: () => string, saved: () => ViewFields | null | undefined) {
+	let local = $state<{ id: string; fields: ViewFields }>({ id: '', fields: {} });
+	const fields = $derived(local.id === id() ? local.fields : {});
+	return viewPrefs(
+		() => {
+			const doc = saved();
+			return doc && { ...doc, ...fields };
+		},
+		'manual',
+		(update: ViewFields) => {
+			local = { id: id(), fields: { ...fields, ...update } };
+		}
+	);
+}
+
 // A collection keeps its own on the collection doc, read from the layout's collections query
 export function useCollectionPrefs(id: () => Id<'collections'>) {
 	const mutate = useMutation();

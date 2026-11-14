@@ -2,6 +2,7 @@
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { useDeleteItem } from '#lib/convex.js';
 	import { shouldDisplayAsImage, getItemUrl, isBusy } from '#lib/itemDisplay.js';
+	import { isWebUrl } from '../../convex/lib/urls.js';
 	import type { DisplayItem } from '#lib/types.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
 	import IconError from '~icons/material-symbols-light/error-outline';
@@ -15,9 +16,11 @@
 
 	interface Props {
 		items: DisplayItem[];
+		// Someone else's items (a shared collection): no delete
+		readonly?: boolean;
 	}
 
-	let { items }: Props = $props();
+	let { items, readonly = false }: Props = $props();
 
 	function handleDeleteItem(itemId: Id<'items'>, e: MouseEvent) {
 		e.preventDefault();
@@ -80,18 +83,20 @@
 					<span class="item-description">{getSecondaryText(item)}</span>
 				{/if}
 			</a>
-			{#if item.url}
+			{#if item.url && isWebUrl(item.url)}
 				<button class="icon link" title="Open link" onclick={(e) => handleOpenLink(item.url!, e)}>
 					<IconOpenInNew />
 				</button>
 			{/if}
-			<button
-				class="icon delete"
-				title="Delete item"
-				onclick={(e) => handleDeleteItem(item._id, e)}
-			>
-				<IconDelete />
-			</button>
+			{#if !readonly}
+				<button
+					class="icon delete"
+					title="Delete item"
+					onclick={(e) => handleDeleteItem(item._id, e)}
+				>
+					<IconDelete />
+				</button>
+			{/if}
 		</div>
 	{/each}
 </div>

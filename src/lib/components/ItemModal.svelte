@@ -12,11 +12,14 @@
 
 	let { itemId, onClose }: Props = $props();
 
-	const allItems = getItemsContext();
-	const item = $derived(allItems.data?.find((i) => i._id === itemId));
-
 	const currentItemsContext = getCurrentItemsContext();
 	const currentItems = $derived(currentItemsContext.list());
+
+	// The signed-in user's own items open editable; anything else on the page (a
+	// shared collection someone else owns) opens read-only
+	const ownItems = getItemsContext();
+	const ownItem = $derived(ownItems.data?.find((i) => i._id === itemId));
+	const item = $derived(ownItem ?? currentItems.find((i) => i._id === itemId));
 
 	// The editor saves its own edits when it unmounts, so navigating only swaps the URL
 	async function navigateToItem(newItemId: Id<'items'>) {
@@ -67,15 +70,15 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div class="backdrop" onclick={handleBackdropClick} role="dialog" aria-modal="true" tabindex="-1">
 	<div class="modal modal-wide">
-		{#if allItems.isLoading}
+		{#if ownItems.isLoading}
 			<p class="status-text">loading...</p>
-		{:else if allItems.error}
-			<p class="status-text">error: {allItems.error.message}</p>
+		{:else if ownItems.error}
+			<p class="status-text">error: {ownItems.error.message}</p>
 		{:else if !item}
 			<p class="status-text">item not found</p>
 		{:else}
 			{#key itemId}
-				<ItemEditor {item} {onClose} />
+				<ItemEditor {item} readonly={!ownItem} {onClose} />
 			{/key}
 		{/if}
 	</div>

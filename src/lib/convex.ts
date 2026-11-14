@@ -8,17 +8,31 @@ import type {
 } from 'convex/server';
 import { ConvexError } from 'convex/values';
 import { goto } from '$app/navigation';
+import { page } from '$app/state';
 import { api } from '../convex/_generated/api.js';
 import type { Id } from '../convex/_generated/dataModel.js';
 import { getWriteTokenContext } from './context';
+import { loginHref } from './login.js';
 
 // Every public function takes the caller's session token; these wrappers add it,
 // so callers pass only the function's own args. Call them during component init.
+// Queries open to logged-out visitors (viewerQuery) take it optionally.
+type PublicFunction<T extends FunctionType> = FunctionReference<T, 'public', { token?: string }>;
 type UserFunction<T extends FunctionType> = FunctionReference<T, 'public', { token: string }>;
-type UserArgs<F extends UserFunction<FunctionType>> = Omit<FunctionArgs<F>, 'token'>;
+type UserArgs<F extends PublicFunction<FunctionType>> = Omit<FunctionArgs<F>, 'token'>;
 
-const withToken = <F extends UserFunction<FunctionType>>(args: UserArgs<F>, token: string) =>
-	({ ...args, token }) as FunctionArgs<F>;
+const withToken = <F extends PublicFunction<FunctionType>>(
+	args: UserArgs<F>,
+	token: string | null
+) => (token ? { ...args, token } : args) as FunctionArgs<F>;
+
+// Mutations and actions are the owner's: logged-out visitors only reach read-only
+// views, which never call them
+function requireToken(getToken: () => string | null) {
+	const token = getToken();
+	if (!token) throw new Error('Not signed in');
+	return token;
+}
 
 export const isUnauthorized = (error: unknown) =>
 	error instanceof ConvexError && error.data === 'Unauthorized';
@@ -28,11 +42,12 @@ interface CallOptions {
 	onError?: (message: string) => void;
 }
 
-// An ended session goes to /login (which clears the dead cookie). Anything else
-// is logged and reported: a ConvexError's string data is written for the user.
+// An ended session goes to /login (which clears the dead cookie), set to come
+// back here. Anything else is logged and reported: a ConvexError's string data
+// is written for the user.
 export function reportError(error: unknown, { onError = (m) => alert(m) }: CallOptions = {}) {
 	if (isUnauthorized(error)) {
-		goto('/login');
+		goto(loginHref(page.url));
 		return;
 	}
 	console.error(error);
@@ -54,7 +69,8 @@ async function run<T>(call: () => Promise<T>, options?: CallOptions): Promise<T 
 	}
 }
 
-export function useQuery<Q extends UserFunction<'query'>>(
+// A logged-out visitor's queries go without a token
+export function useQuery<Q extends PublicFunction<'query'>>(
 	query: Q,
 	args: () => UserArgs<Q> | 'skip',
 	options?: UseQueryOptions<Q> | (() => UseQueryOptions<Q>)
@@ -82,7 +98,7 @@ export function useMutation() {
 	): Promise<FunctionReturnType<M> | undefined> =>
 		run(
 			() =>
-				client.mutation(mutation, withToken<M>(args, getToken()), {
+				client.mutation(mutation, withToken<M>(args, requireToken(getToken)), {
 					optimisticUpdate: options?.optimisticUpdate
 				}),
 			options
@@ -97,7 +113,7 @@ export function useAction() {
 		args: UserArgs<A>,
 		options?: CallOptions
 	): Promise<FunctionReturnType<A> | undefined> =>
-		run(() => client.action(action, withToken<A>(args, getToken())), options);
+		run(() => client.action(action, withToken<A>(args, requireToken(getToken))), options);
 }
 
 // Permanently deletes an item (and its stored image) once the user confirms.

@@ -101,6 +101,20 @@ export const setCompleted = internalMutation({
 	}
 });
 
+// Fonts read outside a capture: experiments/design-tokens/backfill.mjs loads
+// pages in local Chrome (sparing the worker's browser quota) and writes here
+export const setFonts = internalMutation({
+	args: {
+		items: v.array(v.object({ itemId: v.id('items'), fonts: v.array(siteFontValidator) }))
+	},
+	handler: async (ctx, args) => {
+		for (const { itemId, fonts } of args.items) {
+			const item = await ctx.db.get(itemId);
+			if (item) await patchItem(ctx, item, { fonts });
+		}
+	}
+});
+
 export const setFailed = internalMutation({
 	args: {
 		itemId: v.id('items'),
@@ -126,16 +140,16 @@ export const reimageItem = userMutation({
 	},
 	handler: async (ctx, args) => {
 		const item = await getOwned(ctx, args.itemId);
-		if (!item) throw new ConvexError('Item not found');
-		if (item.type !== 'url' || !item.url) throw new ConvexError('Item is not a URL item');
+		if (!item) throw new ConvexError('item not found');
+		if (item.type !== 'url' || !item.url) throw new ConvexError('item is not a URL item');
 		// Set in the same transaction as the enqueue, so captures never overlap
 		if (item.screenshotStatus === 'pending') {
-			throw new ConvexError('Image fetch already in progress');
+			throw new ConvexError('image fetch already in progress');
 		}
 		// A tagging job holds a reference to the current image; replacing the
 		// image underneath it would let its stale results land afterwards
 		if (item.taggingStatus === 'pending') {
-			throw new ConvexError('Tagging in progress; wait for it to finish');
+			throw new ConvexError('tagging in progress; wait for it to finish');
 		}
 
 		const mode = args.mode ?? item.linkImageMode;

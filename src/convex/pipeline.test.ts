@@ -70,7 +70,7 @@ describe('tagging always settles', () => {
 		expect((await getItem(t, itemId))?.taggingStatus).toBe('pending');
 		// A second retag can't start a run that overlaps the queued one
 		await expect(t.mutation(api.tagging.retagItem, { itemId, token })).rejects.toThrow(
-			'Tagging already in progress'
+			'tagging already in progress'
 		);
 	});
 

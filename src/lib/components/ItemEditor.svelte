@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { onDestroy, untrack } from 'svelte';
+	import { page } from '$app/state';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import type { DisplayItem } from '#lib/types.js';
 	import { useDeleteItem, useMutation } from '#lib/convex.js';
 	import { isBusy } from '#lib/itemDisplay.js';
 	import { fontDisplayName, fontQuery } from '../../convex/lib/fonts.js';
+	import { isWebUrl } from '../../convex/lib/urls.js';
 	import { getCollectionsContext } from '#lib/context.js';
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
 	import IconCheck from '~icons/material-symbols/check';
@@ -13,10 +15,12 @@
 
 	interface Props {
 		item: DisplayItem;
+		// Someone else's item (a shared collection): shown, not edited
+		readonly?: boolean;
 		onClose: () => void;
 	}
 
-	let { item, onClose }: Props = $props();
+	let { item, readonly = false, onClose }: Props = $props();
 
 	const mutate = useMutation();
 	const deleteItem = useDeleteItem();
@@ -33,14 +37,21 @@
 	// (e.g. the title the screenshot pipeline captures after the editor opened)
 	const draft = $state<Partial<Record<Field, string>>>({});
 	const value = (field: Field) => draft[field] ?? item[field] ?? '';
+	const url = $derived(value('url'));
+	const urlValid = $derived(!url || isWebUrl(url));
 	let deleted = false;
 
-	// Sends only the edited fields ('' clears one); returns whether the edits are
-	// persisted (true when there was nothing to save)
+	// Tag links search the user's own items, or for a visitor, this collection
+	const searchHref = (q: string) =>
+		`${readonly ? page.url.pathname : '/search'}?q=${encodeURIComponent(q)}`;
+
+	// Sends only the edited fields ('' clears one; an invalid link keeps the saved
+	// one); returns whether the edits are persisted (true when there was nothing to save)
 	async function save(options?: { onError?: () => void }): Promise<boolean> {
 		const changes: Partial<Record<Field, string>> = {};
 		for (const field of fields) {
 			const edited = draft[field];
+			if (field === 'url' && !urlValid) continue;
 			if (edited !== undefined && edited !== (item[field] ?? '')) changes[field] = edited;
 		}
 		if (Object.keys(changes).length === 0) return true;
@@ -57,7 +68,7 @@
 	// Every way out (done, escape, arrows, links, browser back) unmounts the editor;
 	// a failed save there is logged, not alerted while the user moves on
 	onDestroy(() => {
-		if (!deleted) save({ onError: () => {} });
+		if (!deleted && !readonly) save({ onError: () => {} });
 	});
 
 	function handleDelete() {
@@ -101,12 +112,14 @@
 				<img src={item.imageUrl} alt={item.title ?? item.url ?? 'screenshot'} />
 			{:else}
 				<div class="url-preview">
-					<p class="url-text">{value('url')}</p>
+					<p class="url-text">{url}</p>
 				</div>
 			{/if}
 		{:else if item.type === 'text'}
-			<textarea class="text-content" bind:value={() => value('content'), (v) => (draft.content = v)}
-			></textarea>
+			<textarea
+				class="text-content"
+				bind:value={() => value('content'), (v) => (draft.content = v)}
+				{readonly}></textarea>
 		{/if}
 	</div>
 	<!-- Properties & Controls -->
@@ -114,59 +127,72 @@
 		<div class="fields">
 			<label>
 				title
-				<input type="text" bind:value={() => value('title'), (v) => (draft.title = v)} />
+				<input type="text" bind:value={() => value('title'), (v) => (draft.title = v)} {readonly} />
 			</label>
 
-			<label>
-				notes
-				<textarea bind:value={() => value('description'), (v) => (draft.description = v)} rows="3"
-				></textarea>
-			</label>
+			{#if !readonly || item.description}
+				<label>
+					notes
+					<textarea
+						bind:value={() => value('description'), (v) => (draft.description = v)}
+						rows="3"
+						{readonly}></textarea>
+				</label>
+			{/if}
 
-			<label>
-				{item.type === 'url' ? 'url' : 'source url'}
-				<div class="url-input-row">
-					<input type="url" bind:value={() => value('url'), (v) => (draft.url = v)} />
-					<a
-						href={value('url')}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="icon-filled"
-						aria-label="open url"
-					>
-						<IconOpenInNew />
-					</a>
-				</div>
-			</label>
-
-			<div class="collections-field">
-				<div class="field-label">collections</div>
-				<div class="collections-container">
-					{#if collections.isLoading}
-						<p class="status-text">loading collections...</p>
-					{:else if collections.data?.length === 0}
-						<p class="status-text">no collections yet. <a href="/collections">create one</a></p>
-					{:else}
-						<div class="collection-list">
-							{#each collections.data ?? [] as collection (collection._id)}
-								<label class="checkbox-label">
-									<input
-										type="checkbox"
-										checked={item.collections.includes(collection._id)}
-										onchange={() => toggleCollection(collection._id)}
-									/>
-									<span class="checkbox">
-										{#if item.collections.includes(collection._id)}
-											<IconCheck />
-										{/if}
-									</span>
-									{collection.name}
-								</label>
-							{/each}
-						</div>
+			{#if !readonly || url}
+				<label>
+					{item.type === 'url' ? 'url' : 'source url'}
+					<div class="url-input-row">
+						<input type="url" bind:value={() => url, (v) => (draft.url = v)} {readonly} />
+						{#if urlValid && url}
+							<a
+								href={url}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="icon-filled"
+								aria-label="open url"
+							>
+								<IconOpenInNew />
+							</a>
+						{/if}
+					</div>
+					{#if !urlValid && !readonly}
+						<span class="status-text">links must start with http:// or https://</span>
 					{/if}
+				</label>
+			{/if}
+
+			{#if !readonly}
+				<div class="collections-field">
+					<div class="field-label">collections</div>
+					<div class="collections-container">
+						{#if collections.isLoading}
+							<p class="status-text">loading collections...</p>
+						{:else if collections.data?.length === 0}
+							<p class="status-text">no collections yet. <a href="/collections">create one</a></p>
+						{:else}
+							<div class="collection-list">
+								{#each collections.data ?? [] as collection (collection._id)}
+									<label class="checkbox-label">
+										<input
+											type="checkbox"
+											checked={item.collections.includes(collection._id)}
+											onchange={() => toggleCollection(collection._id)}
+										/>
+										<span class="checkbox">
+											{#if item.collections.includes(collection._id)}
+												<IconCheck />
+											{/if}
+										</span>
+										{collection.name}
+									</label>
+								{/each}
+							</div>
+						{/if}
+					</div>
 				</div>
-			</div>
+			{/if}
 
 			{#if item.paletteHex && item.paletteHex.length > 0}
 				<div class="tag-field">
@@ -184,7 +210,7 @@
 					<div class="field-label">fonts</div>
 					<div class="chip-list">
 						{#each item.fonts as font (font.family)}
-							<a class="chip" href="/search?q={encodeURIComponent(fontQuery(font))}">
+							<a class="chip" href={searchHref(fontQuery(font))}>
 								{fontDisplayName(font)}
 							</a>
 						{/each}
@@ -197,7 +223,7 @@
 					<div class="field-label">styles</div>
 					<div class="chip-list">
 						{#each item.styles as style (style)}
-							<a class="chip" href="/search?q={encodeURIComponent(style)}">{style}</a>
+							<a class="chip" href={searchHref(style)}>{style}</a>
 						{/each}
 					</div>
 				</div>
@@ -215,13 +241,13 @@
 					<div class="field-label">search tags</div>
 					<div class="chip-list">
 						{#each item.aiTags as tag (tag)}
-							<a class="chip" href="/search?q={encodeURIComponent(tag)}">{tag}</a>
+							<a class="chip" href={searchHref(tag)}>{tag}</a>
 						{/each}
 					</div>
 				</div>
 			{/if}
 
-			{#if item.type === 'url'}
+			{#if item.type === 'url' && !readonly}
 				<div class="tag-field">
 					<div class="field-label">link image</div>
 					<div class="mode-options">
@@ -248,7 +274,7 @@
 				</div>
 			{/if}
 
-			{#if item.type !== 'text'}
+			{#if item.type !== 'text' && !readonly}
 				<div class="tag-field">
 					<div class="field-label">ai tagging</div>
 					{#if item.type === 'url'}
@@ -291,9 +317,11 @@
 
 		<div class="actions">
 			<button onclick={onClose}>done</button>
-			<button onclick={handleDelete} class="icon-filled danger" aria-label="delete item">
-				<IconDelete />
-			</button>
+			{#if !readonly}
+				<button onclick={handleDelete} class="icon-filled danger" aria-label="delete item">
+					<IconDelete />
+				</button>
+			{/if}
 		</div>
 	</div>
 </div>
@@ -352,6 +380,15 @@
 		color: var(--txt-3);
 		word-break: break-all;
 		text-align: center;
+	}
+
+	/* Someone else's item: fields read as plain text */
+	.fields [readonly],
+	.text-content[readonly] {
+		border-color: transparent;
+		background: transparent;
+		padding-inline: 0;
+		resize: none;
 	}
 
 	.text-content {

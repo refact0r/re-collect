@@ -33,21 +33,40 @@ export function parseSiteFonts(raw: unknown): SiteFont[] | undefined {
 	return [...fonts.values()];
 }
 
-// Weight/style/format words that name a cut rather than the family, stripped
-// from the end only ("Black Han Sans" keeps its "Black"; "Times New Roman" its "Roman")
+// Words that name a cut, a format or a license rather than the family,
+// stripped from the end only ("Black Han Sans" keeps its "Black"; "Times New
+// Roman" its "Roman"). Includes Klim's German weights (Söhne Leicht, Kräftig,
+// Halbfett), optical sizes ("16pt"), numeric weights ("600") and versions
+// ("Beta 0.29").
 const STYLE_SUFFIX =
-	/\s+(thin|hairline|extra ?light|ultra ?light|light|book|buch|regular|normal|(?<!new )roman|medium|semi ?bold|smbld|demi ?bold|bold|halbfett|extra ?bold|ultra ?bold|heavy|black|italic|oblique|variable|var|vf|web|webfont)$/i;
+	/\s+(thin|hairline|extra ?light|ultra ?light|light|book|regular|normal|(?<!new )roman|medium|semi ?bold|smbld|demi ?bold|bold|extra ?bold|ultra ?bold|heavy|black|italic|oblique|var|web|webfont|extraleicht|leicht|buch|kr[a\u00e4]ftig|halbfett|dreiviertelfett|fett|extrafett|trial|unlicensed|demo|beta|nerd font( mono| propo)?|[1-9]00|\d+pt|v?\d+(\.\d+)+)$/i;
+
+// Format words dropped wherever they appear ("Inter Variable Display")
+const FORMAT_WORD = /\s+(variable|vf)\b/gi;
 
 // Internal names that aren't names: Klim's fonts report their copyright line,
 // and font-shop kits often report nothing usable
 const JUNK = /copyright|trademark|all rights|reserved|\.(com|net|org)\b/i;
 
+// CSS keywords for the visitor's system font, which has no name of its own
+const KEYWORD_NAMES: Record<string, string> = {
+	'system-ui': 'System UI',
+	'-apple-system': 'System UI',
+	blinkmacsystemfont: 'System UI',
+	'ui-sans-serif': 'UI Sans-serif',
+	'ui-serif': 'UI Serif',
+	'ui-monospace': 'UI Monospace',
+	'ui-rounded': 'UI Rounded'
+};
+
 function cleanName(raw: string): string | undefined {
+	const keyword = KEYWORD_NAMES[raw.trim().toLowerCase()];
+	if (keyword) return keyword;
 	let name = raw.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
 	// Split run-together CamelCase ("HelveticaNeue"), but only when the name has
-	// no spaces at all, so "JetBrains Mono" stays intact
+	// no spaces at all, so "JetBrains Mono" and "RoundHog Medium" stay intact
 	if (!name.includes(' ')) name = name.replace(/([a-z])([A-Z])/g, '$1 $2');
-	let stripped = name;
+	let stripped = name.replace(FORMAT_WORD, '');
 	while (STYLE_SUFFIX.test(stripped)) stripped = stripped.replace(STYLE_SUFFIX, '');
 	name = stripped || name;
 	if (

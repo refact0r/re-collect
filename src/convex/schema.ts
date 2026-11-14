@@ -133,6 +133,8 @@ export default defineSchema({
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))), // Defaults to 'grid'
 		columnOffset: v.optional(v.number()), // Added to the width-derived grid column count
 		showTitles: v.optional(v.boolean()), // Defaults to false
+		// Anyone with the link can view it (read-only); defaults to private
+		shared: v.optional(v.boolean()),
 		// Ingestion defaults applied to items added into this collection
 		taggingMode: v.optional(taggingModeValidator),
 		linkImageMode: v.optional(linkImageModeValidator)

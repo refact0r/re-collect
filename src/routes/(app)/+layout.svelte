@@ -11,6 +11,7 @@
 	import { isUnauthorized } from '#lib/convex.js';
 	import { page } from '$app/state';
 	import { afterNavigate, beforeNavigate, goto, snapshot } from '$app/navigation';
+	import { loginHref } from '#lib/login.js';
 
 	import Logo from '#lib/assets/logo.svelte';
 	import ItemModal from '#lib/components/ItemModal.svelte';
@@ -23,9 +24,14 @@
 	let { children, data } = $props();
 	setupConvex(PUBLIC_CONVEX_URL);
 
-	// Fetch all items and collections on load (with real-time sync)
-	const items = useQuery(api.items.list, () => ({ token: data.writeToken }));
-	const collections = useQuery(api.collections.listWithCounts, () => ({ token: data.writeToken }));
+	// The signed-in user's items and collections (real-time). A logged-out
+	// visitor, who can only be on a shared collection, has none.
+	const items = useQuery(api.items.list, () =>
+		data.writeToken ? { token: data.writeToken } : 'skip'
+	);
+	const collections = useQuery(api.collections.listWithCounts, () =>
+		data.writeToken ? { token: data.writeToken } : 'skip'
+	);
 
 	const currentItems = $state<CurrentItems>({ list: () => [] });
 
@@ -38,7 +44,7 @@
 
 	// An ended session (signed out elsewhere, users:signOut) fails every query
 	$effect(() => {
-		if (isUnauthorized(collections.error)) goto('/login');
+		if (isUnauthorized(collections.error)) goto(loginHref(page.url));
 	});
 
 	const editItemId = $derived(page.url.searchParams.get('item') as Id<'items'> | null);
@@ -102,16 +108,19 @@
 		// Item to item (prev/next replaces the entry) keeps it
 		else if (!from?.url.searchParams.has('item')) modalHasBackEntry = samePage;
 
-		if (to.url.pathname === '/search' && !samePage && !hasItem) searchInputRef.focus();
+		if (to.url.pathname === '/search' && !samePage && !hasItem) searchInputRef?.focus();
 	});
 
-	let searchInputRef: HTMLInputElement;
+	let searchInputRef = $state<HTMLInputElement>();
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
 	// A pending search update would drag the user back to /search or close a just-opened item
 	beforeNavigate(() => clearTimeout(debounceTimer));
 
-	const searchQuery = $derived(page.url.searchParams.get('q') ?? '');
+	// Only the search page's query; a shared collection's ?q= is its own search
+	const searchQuery = $derived(
+		page.url.pathname === '/search' ? (page.url.searchParams.get('q') ?? '') : ''
+	);
 
 	function handleSearchFocus() {
 		if (page.url.pathname !== '/search') {
@@ -147,43 +156,7 @@
 	}
 </script>
 
-<header>
-	<nav>
-		<button class="icon menu-btn" onclick={toggleMobileMenu} aria-label="toggle menu">
-			<IconMenu />
-		</button>
-		<div class="nav-links">
-			<div class="logo"><Logo /></div>
-			<a href="/" class="nav-link" class:active={page.url.pathname === '/'}>re-collect</a>
-			<a href="/collections" class="nav-link" class:active={page.url.pathname === '/collections'}
-				>collections</a
-			>
-			<a href="/atlas" class="nav-link" class:active={page.url.pathname === '/atlas'}>atlas</a>
-		</div>
-		<div class="nav-search">
-			<IconSearch />
-			<input
-				type="text"
-				bind:this={searchInputRef}
-				value={searchQuery}
-				onfocus={handleSearchFocus}
-				oninput={handleSearchInput}
-				placeholder="search..."
-			/>
-		</div>
-		<div class="nav-actions">
-			<a href="/account" class="nav-link" class:active={page.url.pathname === '/account'}>account</a
-			>
-		</div>
-	</nav>
-</header>
-
-{#if mobileMenuOpen}
-	<button class="mobile-backdrop" onclick={closeMobileMenu} aria-label="close menu"></button>
-{/if}
-
-<div class="layout">
-	<Sidebar bind:mobileOpen={mobileMenuOpen} />
+{#snippet content()}
 	<main
 		bind:this={main}
 		onwheel={() => (pendingScroll = null)}
@@ -193,7 +166,62 @@
 			{@render children()}
 		</div>
 	</main>
-</div>
+{/snippet}
+
+{#if !data.writeToken}
+	<header>
+		<nav>
+			<div class="nav-links guest">
+				<div class="logo"><Logo /></div>
+				<span class="wordmark">re-collect</span>
+			</div>
+			<a href={loginHref(page.url)} class="nav-link">log in</a>
+		</nav>
+	</header>
+
+	{@render content()}
+{:else}
+	<header>
+		<nav>
+			<button class="icon menu-btn" onclick={toggleMobileMenu} aria-label="toggle menu">
+				<IconMenu />
+			</button>
+			<div class="nav-links">
+				<div class="logo"><Logo /></div>
+				<a href="/" class="nav-link" class:active={page.url.pathname === '/'}>re-collect</a>
+				<a href="/collections" class="nav-link" class:active={page.url.pathname === '/collections'}
+					>collections</a
+				>
+				<a href="/atlas" class="nav-link" class:active={page.url.pathname === '/atlas'}>atlas</a>
+			</div>
+			<div class="nav-search">
+				<IconSearch />
+				<input
+					type="text"
+					bind:this={searchInputRef}
+					value={searchQuery}
+					onfocus={handleSearchFocus}
+					oninput={handleSearchInput}
+					placeholder="search..."
+				/>
+			</div>
+			<div class="nav-actions">
+				<a href="/account" class="nav-link" class:active={page.url.pathname === '/account'}
+					>account</a
+				>
+			</div>
+		</nav>
+	</header>
+
+	{#if mobileMenuOpen}
+		<button class="mobile-backdrop" onclick={closeMobileMenu} aria-label="close menu"></button>
+	{/if}
+
+	<div class="layout">
+		<Sidebar bind:mobileOpen={mobileMenuOpen} />
+		{@render content()}
+	</div>
+{/if}
 
 {#if editItemId}
 	<ItemModal itemId={editItemId} onClose={closeModal} />
@@ -275,8 +303,16 @@
 		padding: var(--spacing);
 		overflow-y: auto;
 	}
+	.wordmark {
+		display: flex;
+		align-items: center;
+		padding: 0.5rem;
+	}
 
 	@media (max-width: 768px) {
+		.nav-links.guest {
+			display: flex;
+		}
 		header {
 			padding: 0.5rem var(--spacing) 0.5rem 0.5rem;
 		}
