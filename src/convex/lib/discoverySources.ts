@@ -44,11 +44,10 @@ const ARENA_MOTION = 'Are.na · motion & code';
 const ARENA_GRAPHIC = 'Are.na · graphic & type';
 
 // The curated source list: every user's feed draws from these (each user can
-// turn some off). Edit here and deploy. Are.na channels were scouted on
-// 2026-11-14 (reference/discovery-research.md, "Are.na channels").
+// turn some off). Edit here and deploy. Are.na channels were scouted and then
+// pruned by eye on 2026-11-14 (reference/discovery-notes/arena-channels.md).
 export const SOURCES: SourceConfig[] = [
 	{ key: 'recent-x', name: 'Recent', kind: 'recent', feed: 'x' },
-	{ key: 'recent-launch', name: 'Recent · launches', kind: 'recent', feed: 'launch-videos' },
 	{ key: 'seesaw', name: 'Seesaw', kind: 'seesaw' },
 	{ key: 'awwwards', name: 'Awwwards', kind: 'rss', url: 'https://www.awwwards.com/feed/' },
 	{ key: 'onepagelove', name: 'One Page Love', kind: 'rss', url: 'https://onepagelove.com/feed' },
@@ -63,11 +62,7 @@ export const SOURCES: SourceConfig[] = [
 	arena('websites-skgmukjoccg', 'Websites (ryan-foo)', ARENA_WEB),
 	arena('interesting-web-design-and-ux', 'Interesting Web Design and UX', ARENA_WEB),
 	arena('web-inspiration-yg1uretked0', 'Web-Inspiration', ARENA_WEB),
-	arena('www-1m0ansswqwu', 'WWW (alex-rainer)', ARENA_WEB),
-	arena('web-design-moodboard-ic-sehavbuy', 'Web Design Moodboard', ARENA_WEB),
 	arena('websites-and-work', 'Websites and Work', ARENA_WEB),
-	arena('graphical-user-interface-10gcq4luncg', 'graphical user interface', ARENA_WEB),
-	arena('digital-product-design-s-ljfc89s8g', 'Digital Product Design', ARENA_WEB),
 
 	arena('motion-_zversmdrws', 'Motion (breanna-lorraine-nazaire)', ARENA_MOTION),
 	arena('simply-motion', 'Simply motion', ARENA_MOTION),
@@ -76,12 +71,7 @@ export const SOURCES: SourceConfig[] = [
 
 	arena('gr-26-graphics-thisisgrey-likes', 'GR 26 — Graphics ThisisGrey likes', ARENA_GRAPHIC),
 	arena('graphic-sammal', 'Graphic – Sammal', ARENA_GRAPHIC),
-	arena('design-production-visuals', 'Design / Production / Visuals', ARENA_GRAPHIC),
-	arena('fonts-fonts-for-sale', 'FONTS, FONTS FOR SALE', ARENA_GRAPHIC),
-	arena('type-beat-b8bjxhbujmm', 'Type-Beat', ARENA_GRAPHIC),
-	arena('tttype-oiqeojm-edq', 'tttype', ARENA_GRAPHIC),
-	arena('vs-editorial-spread', '[VS] Editorial / Spread', ARENA_GRAPHIC),
-	arena('packed-ecgwk16hxhc', 'PACKED!', ARENA_GRAPHIC)
+	arena('design-production-visuals', 'Design / Production / Visuals', ARENA_GRAPHIC)
 ];
 
 const BROWSER_UA =
@@ -161,14 +151,12 @@ interface RecentItem {
 }
 
 async function fetchRecent(source: SourceConfig): Promise<FetchedCandidate[]> {
-	const body =
-		source.feed === 'launch-videos'
-			? { feed: 'launch-videos', format: 'tweet', category: 'launch-videos' }
-			: { feed: source.feed, format: 'tweet' };
 	const response = await get('https://api.recent.design/rpc/items/list', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ json: { ...body, sort: 'recent', limit: 40 } })
+		body: JSON.stringify({
+			json: { feed: source.feed, format: 'tweet', sort: 'recent', limit: 40 }
+		})
 	});
 	const { json } = (await response.json()) as { json: { items: RecentItem[] } };
 

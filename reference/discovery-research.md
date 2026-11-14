@@ -1,8 +1,8 @@
-# Discovery feed — research (2026-11-04 → 2026-11-13)
+# Discovery feed — research and prototype (2026-11-04 → 2026-11-14)
 
 Research for the re-collect 2.0 "discovery" pillar: a feed of outside content
-tuned to the user's taste, where kept candidates become library items. Nothing
-here is built.
+tuned to the user's taste, where kept candidates become library items. A
+first prototype is built (`aff840c`, at `/discover`); see "Prototype" below.
 
 **How this was gathered:**
 
@@ -18,6 +18,10 @@ here is built.
   - `extra-sources-embeddings.md`: extra sources, embedding APIs, Convex
     vector limits and Browser Rendering pricing.
   - `embedded-A/B.md`: about 80 galleries with data in the page.
+  - `arena-channels.md`: the Are.na channels scouted for the feed, with
+    runners-up and rejects.
+  - `user-sources-cost.md`: what it would cost to let users add their own
+    sources.
 - Those notes mention extraction scripts in a session scratchpad. The
   scratchpad is gone; the recipes that matter are in §1b.
 
@@ -69,16 +73,22 @@ note, this file wins.
 
 ## Decisions and status (from the discussion)
 
-| Topic                                    | Where it stands                                                                                                                                                                     |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Screenshots or re-hosting for feed items | **No.** Use each source's own media; copy to R2 only on keep                                                                                                                        |
-| "No embedding"                           | Asked whether this also rules out taste-ranking vectors; **unanswered**. If it does, rank by tag overlap (source tags + our AI tags)                                                |
-| MaxiBestOf                               | The user likes it. Options: Pro MCP ($9/mo, $72/yr, $179 lifetime), or email the owner (Bertrand Bruandet) because their documented public API is Cloudflare-blocked. **Undecided** |
-| Dribbble / Behance bypass                | Not doing it: bot walls plus terms. Behance featured RSS is fine; Dribbble and Behance profile pages load but are against their terms                                               |
-| Bulk Are.na (River-style)                | **Out for now.** The sanctioned route is emailing help@are.na                                                                                                                       |
-| Specific Are.na channels                 | **Yes.** Tested; recipe in §1. Open: a channel list in re-collect, or the user's Are.na follow feed (`/v3/me/feed`, needs a token)                                                  |
-| Multi-user                               | Already merged (see `AGENTS.md`, `reference/multi-user.md`). Design the candidate pool as global, with per-user state; Are.na via per-user OAuth                                    |
-| Scope (websites only vs broader visual)  | **Open**; see §6                                                                                                                                                                    |
+| Topic                                    | Where it stands                                                                                                                                                                        |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Screenshots or re-hosting for feed items | **No.** Use each source's own media; copy to R2 only on keep                                                                                                                           |
+| "No embedding"                           | Asked whether this also rules out taste-ranking vectors; **unanswered**. If it does, rank by tag overlap (source tags + our AI tags)                                                   |
+| MaxiBestOf                               | The user likes it. Options: Pro MCP ($9/mo, $72/yr, $179 lifetime), or email the owner (Bertrand Bruandet) because their documented public API is Cloudflare-blocked. **Undecided**    |
+| Dribbble / Behance bypass                | Not doing it: bot walls plus terms. Behance featured RSS is fine; Dribbble and Behance profile pages load but are against their terms                                                  |
+| Bulk Are.na (River-style)                | **Out for now.** The sanctioned route is emailing help@are.na                                                                                                                          |
+| Specific Are.na channels                 | **Yes.** 11 channels in `SOURCES` (20 scouted, 9 cut by eye), in three groups (`discovery-notes/arena-channels.md`). A follow feed (`/v3/me/feed`) would need per-user tokens; not now |
+| Pool model                               | **Curated pool (2026-11-14).** Sources live in code; everyone reads one shared pool; users only toggle sources. User-added sources later, if wanted (`user-sources-cost.md`)           |
+| Feed order                               | **Plain round-robin for now,** no taste ranking: too little volume for River-style embedding. Each source (or Are.na group) gets one slot per round                                    |
+| Keeping                                  | **A per-card picker** (library or a collection, last used first), not one "keep to" setting, because a mixed feed's keeps go to different places                                       |
+| X posts (via Recent)                     | **Keep as image items** linking back to the post, not link items                                                                                                                       |
+| Video                                    | **No video item type yet.** The feed plays the source's MP4. Keeping saves the poster frame as an image, and tagging runs on that frame. A video type would be its own feature         |
+| Already-saved links                      | **Hidden from the feed** via `items.normUrl` (`by_user_normUrl` index)                                                                                                                 |
+| Multi-user                               | Shipped. The candidate pool is global, with per-user keep/skip and source toggles                                                                                                      |
+| Scope (websites only vs broader visual)  | **Open**; see §6                                                                                                                                                                       |
 
 ## Prototype (2026-11-13, curated pool since 2026-11-14)
 
@@ -90,16 +100,18 @@ the same shared pool and can turn sources off for their own feed. Users can't
 add sources or trigger polls, so polling cost doesn't grow with users. We
 chose this over per-user sources for now; the cost estimate for letting each
 user add 3–5 sources (cheap once polling is staggered and bounded, but the
-current code breaks at around 100 users) is in the discussion summary below.
+current code breaks at around 100 users) is summarized at the end of this
+section, in full in `discovery-notes/user-sources-cost.md`.
 
 - **Sources:** `SOURCES` in `src/convex/lib/discoverySources.ts`, one adapter
   per source kind. Add or remove a source there and deploy.
-  - Covered: Recent's X and launch feeds, Seesaw, typographicposters, and 20
-    Are.na channels. Awwwards, One Page Love and Siteinspire come in over RSS.
+  - Covered: Recent's X feed, Seesaw, typographicposters, and 11 Are.na
+    channels. Awwwards, One Page Love and Siteinspire come in over RSS.
+    Recent's launch feed was dropped in the by-eye review (2026-11-14).
   - The Are.na channels were scouted on 2026-11-14 and are listed, with
     runners-up and rejects, in `discovery-notes/arena-channels.md`. They sit
     in three groups (web, motion & code, graphic & type). Each group takes
-    one feed slot per round like a single source, so 20 channels don't drown
+    one feed slot per round like a single source, so the channels don't drown
     out the other sources.
   - Awwwards and One Page Love entries get one fetch each to resolve the
     original site. Siteinspire's detail pages are bot-walled, so its entries
@@ -142,7 +154,8 @@ current code breaks at around 100 users) is in the discussion summary below.
 - **Dev:** `npx convex run discovery:pollAll`, or
   `discovery:resetSource '{"key":"awwwards"}'` to re-fetch one source.
 
-**If users get to add sources later** (estimate from 2026-11-14):
+**If users get to add sources later** (estimate from 2026-11-14; details in
+`discovery-notes/user-sources-cost.md`):
 
 - **Cost:** about the Pro base ($25/month) up to 5,000 users × 5 sources,
   once polling is fixed.
@@ -872,32 +885,50 @@ cost: a feed of 30–60 good items a day is plenty.
 
 ## 6. Open questions
 
-1. **Scope.** Websites only, or also branding, posters and images (Behance,
-   Are.na, museums, X shots)? This decides between a website-gallery
-   ranker and a general visual one. Embeddings handle both.
-2. **Image on keep.** Keep the gallery's own image (instant, free, but a
-   different crop from your own screenshots), or re-capture with your
-   screenshot settings (consistent library, uses browser budget)?
-3. **Video.** Recent, Seesaw, landing.love and Spotted in Prod are video
-   first, but the library has no video type. Use stills in v1, or is video a
-   2.0 item type?
-4. **Feed shape.** An endless ranked grid, or a daily batch ("today's 30")
-   that you clear? A daily batch is simpler and caps the reviewing effort.
-5. **Skip.** Permanent hide plus a negative signal, or just "not now"?
-6. **X.** Is Recent's curated X feed enough, plus optional bookmark
+Still open:
+
+1. **Scope.** De facto broad now: websites plus branding, type, posters,
+   motion and Are.na images. Is that right, or should it narrow?
+2. **Taste ranking.** When does the feed move from round-robin to ranking
+   (kNN to the library, §5)? Volume is ~2,500 candidates and growing.
+3. **Embeddings.** Does "no embedding" rule out taste-ranking vectors for
+   feed items, or only re-hosting media?
+4. **X.** Is Recent's curated X feed enough, plus optional bookmark
    ingestion (~$1–3/mo)? Paid X discovery ($10–40/mo) only if not.
-7. **Gray areas.** Are you OK polling the two robots-disallowed feeds
+5. **Gray areas.** Are you OK polling the two robots-disallowed feeds
    (Awwwards, One Page Love), Recent's undocumented API and Seesaw's page data
    for personal use?
-8. **Are.na seeds.** Which channels or curators? A channel list in
-   re-collect, or your Are.na follow feed?
-9. **MaxiBestOf.** Pay for Pro and use the MCP, or email the owner about the
+6. **MaxiBestOf.** Pay for Pro and use the MCP, or email the owner about the
    blocked public API first?
-10. **Embeddings.** Does "no embedding" rule out taste-ranking vectors for
-    feed items, or only re-hosting media?
-11. **Cloudflare Workers Paid ($5/mo).** It removes the ~40-screenshots-a-day
+7. **Feed shape.** Endless for now. A daily batch ("today's 30") would cap
+   the reviewing effort.
+8. **Skip.** Currently "hide", with "show skipped again" in the panel. Should
+   skips also count against a source or style once ranking exists?
+9. **Video as an item type** (see Decisions).
+10. **Cloudflare Workers Paid ($5/mo).** It removes the ~40-screenshots-a-day
     ceiling. That's only needed if walled or imageless sources are wanted
     later.
 
-Resolved: multi-user (shipped, so the pool is global with per-user state)
-and bulk Are.na (out for now).
+To do (not decisions):
+
+- **Set `ARENA_TOKEN`** (an Are.na personal access token) on dev and prod.
+  Without it, 11 channels polled as a guest use a good share of the
+  30-a-minute per-IP limit.
+- **Before production,** deploy, then run
+  `npx convex run items:rebuildSearchText --prod` to backfill `normUrl`.
+- **Prune sources again** after using the feed for a while. The first by-eye
+  pass (2026-11-14) went on 12 images per source.
+- **Filter blank screenshots.** Are.na's screenshots of dark sites are
+  sometimes all black or all white; use a luminance or blurhash check.
+- **Expire untouched candidates** after 30–60 days.
+- **Check sources from Convex's IPs.** Every source works there so far, but
+  the research was done from a home IP.
+
+Resolved:
+
+- **Multi-user:** shipped, with a global pool and per-user state.
+- **Bulk Are.na:** out for now.
+- **Image on keep:** the source's own image, copied to R2.
+- **Are.na seeds:** 20 scouted channels in code.
+- **Pool model:** curated, set in code.
+- **Keep target:** a per-card picker.

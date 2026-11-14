@@ -1,33 +1,30 @@
 # Are.na channels for the discovery feed (scouted 2026-11-14)
 
 Two research agents checked about 70 channels through the v3 API, as a guest,
-about 140 calls in all. The 20 marked **in** are in `SOURCES`
-(`src/convex/lib/discoverySources.ts`), split into three groups that each take
-one feed slot per round. Taste was judged mostly from block titles, source
-domains and some thumbnail grids, so prune whatever doesn't land.
+about 140 calls in all, judging taste mostly from block titles, source domains
+and some thumbnail grids. Twenty went into `SOURCES`; a by-eye pass over each
+one's 12 newest blocks the same day cut that to the 11 marked **in**, split
+into three groups that each take one feed slot per round
+(`src/convex/lib/discoverySources.ts`).
 
 "Good" is the number of Image blocks and Link blocks with an image among the
 50 newest blocks; the feed drops everything else.
 
 ## Web, UI, motion and code
 
-| slug                                   | title (owner)                                       | blocks | last add   | good  | notes                                               |
-| -------------------------------------- | --------------------------------------------------- | ------ | ---------- | ----- | --------------------------------------------------- |
-| `websites-skgmukjoccg`                 | Websites (ryan-foo) — **in**                        | 958    | 2026-11-13 | 47/50 | Very active; studio and fashion sites               |
-| `interesting-web-design-and-ux`        | Interesting Web Design and UX (no-plans) — **in**   | 519    | 2026-11-13 | 49/50 | Studio sites plus interaction pieces                |
-| `graphical-user-interface-10gcq4luncg` | graphical user interface (juan-pantoja) — **in**    | 400    | 2026-11-13 | 38/50 | Considered product UI; 10 nested channels           |
-| `web-inspiration-yg1uretked0`          | Web-Inspiration (felix-pesendorfer) — **in**        | 455    | 2026-11-13 | 47/50 | Studio and portfolio sites                          |
-| `linked-bxsrqj4zxzm`                   | Linked (linusrogge)                                 | 305    | 2026-11-12 | 50/50 | Designer portfolios, all links                      |
-| `motion-_zversmdrws`                   | Motion (breanna-lorraine-nazaire) — **in**          | 1199   | 2026-11-12 | 50/50 | Brand motion GIFs                                   |
-| `design-motion-zcdmh2q4w84`            | design/motion (jake-chvatal)                        | 1269   | 2026-11-10 | 49/50 | Art-leaning motion and diagram GIFs                 |
-| `procedural-aesthetics-eaa2kwwgid0`    | Procedural Aesthetics (swiftp-luc-p) — **in**       | 219    | 2026-11-13 | 48/50 | Creative coding and real-time graphics, many from X |
-| `digital-product-design-s-ljfc89s8g`   | Digital Product Design (jonathan-hognelid) — **in** | 557    | 2026-10-22 | 50/50 | Polished product UI                                 |
-| `inspiration-website-qqjfhobia_c`      | .inspiration .website (sergio-abstracts)            | 496    | 2026-11-12 | 47/50 | Studio sites                                        |
-| `websites-and-work`                    | Websites and Work (adam-lucas) — **in**             | 401    | 2026-11-04 | 50/50 | Design-studio sites                                 |
-| `www-1m0ansswqwu`                      | WWW (alex-rainer) — **in**                          | 1088   | 2026-11-12 | 50/50 | Editorial, graphic-design-led sites                 |
-| `simply-motion`                        | Simply motion (stevan-djak) — **in**                | 877    | 2026-11-12 | 50/50 | Illustrative and brand motion                       |
-| `web-design-moodboard-ic-sehavbuy`     | Web Design Moodboard (matthew-flores) — **in**      | 525    | 2026-11-13 | 49/50 | The experimental, indie-web end                     |
-| `web-art-shvuorwbs8m`                  | web/art (jake-chvatal) — **in**                     | 968    | 2026-11-11 | 46/50 | Net art and coded experiments                       |
+| slug                                | title (owner)                                     | blocks | last add   | good  | notes                                               |
+| ----------------------------------- | ------------------------------------------------- | ------ | ---------- | ----- | --------------------------------------------------- |
+| `websites-skgmukjoccg`              | Websites (ryan-foo) — **in**                      | 958    | 2026-11-13 | 47/50 | Very active; studio and fashion sites               |
+| `interesting-web-design-and-ux`     | Interesting Web Design and UX (no-plans) — **in** | 519    | 2026-11-13 | 49/50 | Studio sites plus interaction pieces                |
+| `web-inspiration-yg1uretked0`       | Web-Inspiration (felix-pesendorfer) — **in**      | 455    | 2026-11-13 | 47/50 | Studio and portfolio sites                          |
+| `linked-bxsrqj4zxzm`                | Linked (linusrogge)                               | 305    | 2026-11-12 | 50/50 | Designer portfolios, all links                      |
+| `motion-_zversmdrws`                | Motion (breanna-lorraine-nazaire) — **in**        | 1199   | 2026-11-12 | 50/50 | Brand motion GIFs                                   |
+| `design-motion-zcdmh2q4w84`         | design/motion (jake-chvatal)                      | 1269   | 2026-11-10 | 49/50 | Art-leaning motion and diagram GIFs                 |
+| `procedural-aesthetics-eaa2kwwgid0` | Procedural Aesthetics (swiftp-luc-p) — **in**     | 219    | 2026-11-13 | 48/50 | Creative coding and real-time graphics, many from X |
+| `inspiration-website-qqjfhobia_c`   | .inspiration .website (sergio-abstracts)          | 496    | 2026-11-12 | 47/50 | Studio sites                                        |
+| `websites-and-work`                 | Websites and Work (adam-lucas) — **in**           | 401    | 2026-11-04 | 50/50 | Design-studio sites                                 |
+| `simply-motion`                     | Simply motion (stevan-djak) — **in**              | 877    | 2026-11-12 | 50/50 | Illustrative and brand motion                       |
+| `web-art-shvuorwbs8m`               | web/art (jake-chvatal) — **in**                   | 968    | 2026-11-11 | 46/50 | Net art and coded experiments                       |
 
 Also good: `open-hdmi` (VJ and GLSL work), `reference-motion-uxeafxbhf18`,
 `frame-by-frame-6iwyipat6ug`, `agencies-individuals-orgs`,
@@ -41,14 +38,9 @@ blocks).
 | `gr-26-graphics-thisisgrey-likes` | GR 26 (thisisgrey) — **in**                          | 2233   | 2026-11-13 | 49/50 | About 50 blocks every 3 days; named by year, so swap for GR 27 in 2027 |
 | `printer-matter-sans-packaging`   | Printer Matter (ryan-foo)                            | 7311   | 2026-11-13 | 47/50 | Printed matter; overlaps David Peyote                                  |
 | `graphic-sammal`                  | Graphic – Sammal (juha-pekka-laurila) — **in**       | 3553   | 2026-11-13 | 49/50 | Historic and contemporary                                              |
-| `vs-editorial-spread`             | [VS] Editorial / Spread (velours-studio) — **in**    | 1987   | 2026-11-01 | 50/50 | Magazine and book spreads                                              |
 | `through-the-lens-m-er9jn94ce`    | through the lens (ryan-foo)                          | 2482   | 2026-11-13 | 50/50 | Editorial photography                                                  |
 | `design-production-visuals`       | Design / Production / Visuals (zachery-eng) — **in** | 3966   | 2026-11-06 | 48/50 | Identity and type                                                      |
-| `fonts-fonts-for-sale`            | FONTS, FONTS FOR SALE (g-a-v-i-n) — **in**           | 487    | 2026-11-13 | 49/50 | Foundry sites and specimens                                            |
 | `creative-direction-david-peyote` | Creative direction (velours-studio)                  | 3404   | 2026-11-01 | 50/50 | Art-direction moodboard                                                |
-| `type-beat-b8bjxhbujmm`           | Type-Beat (lena-gwen) — **in**                       | 1198   | 2026-11-10 | 49/50 | Type and identity                                                      |
-| `packed-ecgwk16hxhc`              | PACKED! (ryan-foo) — **in**                          | 2688   | 2026-11-13 | 50/50 | Packaging and identity                                                 |
-| `tttype-oiqeojm-edq`              | tttype (goose-scow) — **in**                         | 565    | 2026-11-13 | 50/50 | Type history and lettering                                             |
 | `editorial-iyv2f_b4y1c`           | Editorial (emiliano-lopez)                           | 721    | 2026-11-10 | 48/50 | Slow, about 6 a month                                                  |
 | `editorial-design-references`     | EDITORIAL DESIGN–REFERENCES (nil-ramos-blanco)       | 206    | 2026-11-02 | 43/50 |                                                                        |
 | `the-word-is-everywhere`          | the word is everywhere (rodell-warner)               | 2031   | 2026-11-14 | 50/50 | Type in use                                                            |
@@ -61,6 +53,16 @@ sourcetype.com.
 
 ## Rejects (no need to re-check)
 
+- **Cut in the by-eye review (2026-11-14):** these were in `SOURCES` until
+  their newest blocks were seen side by side; they didn't match the taste.
+  - Web and UI: `www-1m0ansswqwu` (WWW, alex-rainer),
+    `web-design-moodboard-ic-sehavbuy` (Web Design Moodboard),
+    `graphical-user-interface-10gcq4luncg` (graphical user interface),
+    `digital-product-design-s-ljfc89s8g` (Digital Product Design).
+  - Type, editorial and packaging: `fonts-fonts-for-sale` (FONTS, FONTS FOR
+    SALE), `type-beat-b8bjxhbujmm` (Type-Beat), `tttype-oiqeojm-edq`
+    (tttype), `vs-editorial-spread` ([VS] Editorial / Spread),
+    `packed-ecgwk16hxhc` (PACKED!).
 - **Off-taste UI:** `ui-slick-as-a-lollipop`, `ui-ycju9x7nxho`,
   `mobile-ui-k3pd0lf7y5u`, `elements-1atntfcespc`, `ui-uknow` (Dribbble-style
   screens); `decade-2020-2029` (fashion campaigns).
