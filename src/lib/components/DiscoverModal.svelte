@@ -77,6 +77,7 @@
 		object-fit: contain;
 	}
 
+	/* The divider runs through the modal's padding, edge to edge */
 	.side {
 		width: 20rem;
 		flex-shrink: 0;
@@ -84,6 +85,9 @@
 		flex-direction: column;
 		gap: 1rem;
 		min-height: 0;
+		margin-block: -1rem;
+		padding: 1rem 0 1rem 1rem;
+		border-left: 1px solid var(--border);
 	}
 
 	h2 {
@@ -164,6 +168,10 @@
 
 		.side {
 			width: auto;
+			margin: 0 -1rem;
+			padding: 1rem 1rem 0;
+			border-left: none;
+			border-top: 1px solid var(--border);
 		}
 
 		.options {
