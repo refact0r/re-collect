@@ -1,8 +1,8 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { internalMutation, internalQuery, type MutationCtx } from './_generated/server';
-import { EMBEDDING_MODEL } from './lib/embedder';
+import { action, internalMutation, internalQuery, type MutationCtx } from './_generated/server';
+import { EMBEDDING_MODEL, embedQuery } from './lib/embedder';
 
 // The database side of item embeddings; the embedding run itself is
 // taggingActions.embedItem (Node, for sharp). One row per item in
@@ -81,5 +81,38 @@ export const backfill = internalMutation({
 		} else {
 			console.log(`embeddings backfill: ${scheduled} items scheduled`);
 		}
+	}
+});
+
+// How many nearest neighbours a search returns: enough to re-rank the keyword
+// matches and offer the closest of the rest
+const SEARCH_CANDIDATES = 64;
+
+// The caller's items nearest a text query, best first. Scores sit in a narrow
+// band whatever the query (a nonsense one scores like a good one), so callers
+// get ranks, not a relevance cutoff.
+export const search = action({
+	args: { token: v.string(), query: v.string() },
+	handler: async (ctx, { token, query }): Promise<Id<'items'>[]> => {
+		const userId = await ctx.runQuery(internal.users.userForToken, { token });
+		if (!query.trim()) return [];
+		const hits = await ctx.vectorSearch('itemEmbeddings', 'by_embedding', {
+			vector: await embedQuery(query),
+			limit: SEARCH_CANDIDATES,
+			filter: (q) => q.eq('userId', userId)
+		});
+		const itemIds = await ctx.runQuery(internal.embeddings.itemIdsForHits, {
+			ids: hits.map((hit) => hit._id)
+		});
+		return itemIds.filter((id) => id !== null);
+	}
+});
+
+// Vector search hits back to item ids, in hit order; null for a stale model's row
+export const itemIdsForHits = internalQuery({
+	args: { ids: v.array(v.id('itemEmbeddings')) },
+	handler: async (ctx, { ids }): Promise<(Id<'items'> | null)[]> => {
+		const rows = await Promise.all(ids.map((id) => ctx.db.get(id)));
+		return rows.map((row) => (row?.model === EMBEDDING_MODEL ? row.itemId : null));
 	}
 });

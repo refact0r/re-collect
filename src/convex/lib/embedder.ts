@@ -10,6 +10,8 @@ export const EMBEDDING_DIMENSIONS = 768;
 export const EMBEDDING_MODEL = `google/embeddinggemma-2@${EMBEDDING_DIMENSIONS}`;
 
 const TIMEOUT_MS = 30_000;
+// A search waits on its query's embedding, so it gets one quick try
+const QUERY_TIMEOUT_MS = 5_000;
 const RETRY_BACKOFF_MS = [1000, 4000]; // one per retry, after the initial attempt
 // ~2k tokens: enough to place an article or note without paying for all of it
 const MAX_TEXT_CHARS = 8_000;
@@ -89,7 +91,7 @@ interface EmbeddingResponse {
 // Rate limits, server errors and timeouts are worth another try; a bad request isn't
 class RetryableError extends Error {}
 
-async function runOnce(body: object): Promise<number[]> {
+async function runOnce(body: object, timeoutMs: number): Promise<number[]> {
 	const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
 	const token = process.env.CLOUDFLARE_API_TOKEN;
 	if (!accountId || !token) throw new Error('CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN not set');
@@ -102,7 +104,7 @@ async function runOnce(body: object): Promise<number[]> {
 				method: 'POST',
 				headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
 				body: JSON.stringify({ ...body, dimensions: EMBEDDING_DIMENSIONS }),
-				signal: AbortSignal.timeout(TIMEOUT_MS)
+				signal: AbortSignal.timeout(timeoutMs)
 			}
 		);
 	} catch (error) {
@@ -126,7 +128,7 @@ async function runOnce(body: object): Promise<number[]> {
 async function run(body: object): Promise<number[]> {
 	for (let attempt = 0; ; attempt++) {
 		try {
-			return await runOnce(body);
+			return await runOnce(body, TIMEOUT_MS);
 		} catch (error) {
 			if (!(error instanceof RetryableError) || attempt >= RETRY_BACKOFF_MS.length) throw error;
 			console.warn(`embedding attempt ${attempt + 1} failed:`, error.message);
@@ -152,3 +154,6 @@ export const embedImage = (jpegBase64: string) =>
 	);
 
 export const embedText = (text: string) => run({ input: [text] });
+
+export const embedQuery = (query: string) =>
+	runOnce({ input: [queryText(query)] }, QUERY_TIMEOUT_MS);
