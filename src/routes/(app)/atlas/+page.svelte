@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { getItemsContext, getCurrentItemsContext } from '#lib/context.js';
 	import { buildAtlas } from '#lib/atlas.js';
+	import LibraryMap from '#lib/components/atlas/LibraryMap.svelte';
 	import ColorFingerprint from '#lib/components/atlas/ColorFingerprint.svelte';
 	import StyleConstellation from '#lib/components/atlas/StyleConstellation.svelte';
 
 	const itemsQuery = getItemsContext();
-	// so the item modal opened from a swatch/column has the full list for context
+	// so the item modal opened from the map or a swatch has the full list for context
 	getCurrentItemsContext().list = () => itemsQuery.data ?? [];
 
 	const atlas = $derived(itemsQuery.data ? buildAtlas(itemsQuery.data) : null);
@@ -50,6 +51,17 @@
 				<span class="stat-label">colors</span>
 			</div>
 		</div>
+
+		{#if atlas.itemCount > 0}
+			<section>
+				<h3>library map</h3>
+				<p class="meta">
+					similar items sit together, by how they look or read — drag to pan, scroll or pinch to
+					zoom
+				</p>
+				<LibraryMap items={itemsQuery.data ?? []} />
+			</section>
+		{/if}
 
 		{#if atlas.swatches.length === 0 && atlas.styles.length === 0}
 			<p class="status-text">nothing to map yet — add some items and let tagging run</p>

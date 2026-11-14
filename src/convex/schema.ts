@@ -196,6 +196,20 @@ export default defineSchema({
 			filterFields: ['userId']
 		}),
 
+	// Each user's library map: a 2D layout of their item embeddings, cached
+	// because it's computed from every vector (embeddingMapActions.refresh).
+	// `signature` hashes the itemId:inputKey pairs it was laid out from, so an
+	// unchanged library isn't laid out again. One document holds every point,
+	// so the 8192-element array limit (1 MiB per document fits it at ~70 B a point)
+	// caps a map at 8192 items; past that it would need splitting.
+	embeddingMaps: defineTable({
+		userId: v.id('users'),
+		model: v.string(),
+		signature: v.string(),
+		points: v.array(v.object({ itemId: v.id('items'), x: v.number(), y: v.number() })),
+		computedAt: v.number()
+	}).index('by_user', ['userId']),
+
 	// Junction table for per-collection item ordering. Unscoped: rows are only
 	// reached through an owned item or collection, and both sides share an owner.
 	itemCollectionPositions: defineTable({

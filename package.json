@@ -59,7 +59,8 @@
 		"defuddle": "^0.19.6",
 		"fractional-indexing": "^4.0.0",
 		"linkedom": "^0.18.15",
-		"sharp": "^0.35.5"
+		"sharp": "^0.35.5",
+		"umap-js": "^1.4.0"
 	},
 	"imports": {
 		"#lib/*": "./src/lib/*"
