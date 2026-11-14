@@ -48,10 +48,6 @@ timeout, restart), `onTaggingComplete` marks the still-`pending` item
 `failed`. Screenshots work the same way through `screenshotPool` and
 `onScreenshotComplete`.
 
-The schema still accepts a legacy `processing` value on both fields; nothing
-writes it. `tagging:failStuckItems` (one-off) fails every busy row, so the
-literal can be dropped once it has run on each deployment.
-
 ## Palette extraction
 
 Color Thief MMCQ (`colorthief/internals`: recursive RGB median-cut with a
@@ -77,7 +73,7 @@ subject: v.optional(v.string()),
 aiTags: v.optional(v.array(v.string())),      // named aiTags to leave room for user tags later
 paletteHex: v.optional(v.array(v.string())),  // ["#rrggbb", ...], population-ordered
 paletteNames: v.optional(v.array(v.string())),
-taggingStatus: v.optional(v.union('pending' | 'completed' | 'failed')),  // + legacy 'processing', see above
+taggingStatus: v.optional(v.union('pending' | 'completed' | 'failed')),
 taggingError: v.optional(v.string()),
 taggingModelVersion: v.optional(v.string()),  // `${model}:${PROMPT_VERSION}`, e.g. "openai/gpt-6-luna:v5"
 ```

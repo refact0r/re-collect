@@ -75,13 +75,7 @@ export default defineSchema({
 		imageHeight: v.optional(v.number()),
 		// Screenshot generation status for URL items
 		screenshotStatus: v.optional(
-			v.union(
-				v.literal('pending'),
-				// No longer written; remove once tagging:failStuckItems has run on each deployment
-				v.literal('processing'),
-				v.literal('completed'),
-				v.literal('failed')
-			)
+			v.union(v.literal('pending'), v.literal('completed'), v.literal('failed'))
 		),
 		screenshotError: v.optional(v.string()),
 		// LLM tagger output
@@ -98,13 +92,7 @@ export default defineSchema({
 		fonts: v.optional(v.array(siteFontValidator)),
 		// Tagging status tracking
 		taggingStatus: v.optional(
-			v.union(
-				v.literal('pending'),
-				// No longer written; remove once tagging:failStuckItems has run on each deployment
-				v.literal('processing'),
-				v.literal('completed'),
-				v.literal('failed')
-			)
+			v.union(v.literal('pending'), v.literal('completed'), v.literal('failed'))
 		),
 		taggingError: v.optional(v.string()),
 		taggingModelVersion: v.optional(v.string()),

@@ -103,30 +103,6 @@ export const setPaletteHex = internalMutation({
 	}
 });
 
-// One-off recovery for items left busy (`pending`, or the retired `processing`)
-// by runs that died before tagging went through taggingPool. Once it has run
-// on a deployment no `processing` rows remain there. Run while nothing is
-// being saved or captured, since it
-// can't tell a stuck run from a live one: `npx convex run tagging:failStuckItems`
-export const failStuckItems = internalMutation({
-	args: {},
-	handler: async (ctx) => {
-		const busy = (status?: string) => status === 'pending' || status === 'processing';
-		let count = 0;
-		for await (const item of ctx.db.query('items')) {
-			const tagging = busy(item.taggingStatus);
-			const screenshot = busy(item.screenshotStatus);
-			if (!tagging && !screenshot) continue;
-			await ctx.db.patch(item._id, {
-				...(tagging && { taggingStatus: 'failed' as const, taggingError: 'Interrupted' }),
-				...(screenshot && { screenshotStatus: 'failed' as const, screenshotError: 'Interrupted' })
-			});
-			count++;
-		}
-		return count;
-	}
-});
-
 export const retagItem = userMutation({
 	args: {
 		itemId: v.id('items'),
