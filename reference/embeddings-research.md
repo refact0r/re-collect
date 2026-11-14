@@ -1,9 +1,10 @@
-# Embeddings — research (2026-11-05, model decided 2026-11-14)
+# Embeddings — research (2026-11-05, model decided and shipped 2026-11-14)
 
 Research for re-collect 2.0: embed every item so we can build "find similar",
-vibe search, the library map, taste drift and discovery-feed ranking. Nothing
-here is built. Prices were checked on official pages and the OpenRouter API
-on 2026-11-05 unless marked _unverified_. The benchmark in
+vibe search, the library map, taste drift and discovery-feed ranking. The
+pipeline, hybrid search and the library map are built and live; see
+"Shipped". The rest is still research. Prices were checked on official
+pages and the OpenRouter API on 2026-11-05 unless marked _unverified_. The benchmark in
 `experiments/embeddings/` ran every model below against the real prod
 library. This builds on `reference/discovery-research.md` and revises its
 model pick: Voyage turned out to be the weakest fit for vibe search (§1).
@@ -11,8 +12,8 @@ model pick: Voyage turned out to be the weakest fit for vibe search (§1).
 ## Decision (2026-11-14)
 
 **Build on EmbeddingGemma 2 (`google/embeddinggemma-2`, 768 dims) via
-Cloudflare Workers AI (`@cf/google/embeddinggemma-2`).** A prototype is
-built; see "Prototype" below.
+Cloudflare Workers AI (`@cf/google/embeddinggemma-2`).** Shipped to prod
+on 2026-11-14; see "Shipped" below.
 
 - **Host:** Cloudflare started serving the model on 2026-11-12.
   - It costs $0.0017/M tokens, and its free tier covers our volume.
@@ -55,11 +56,11 @@ built; see "Prototype" below.
   is gone. `experiments/embeddings/README.md` has the commands to rebuild
   it from a fresh read-only prod export. Prod had 95 items on 2026-11-14.
 
-## Prototype (2026-11-14, branch `refact0r/embeddings`)
+## Shipped (2026-11-14)
 
 Built on the decision above, skipping the cosine-parity check (the user's
-call). Three pieces, each its own commit, so search or the map can be
-reverted alone:
+call), and live on dev and prod with every item backfilled. Three pieces,
+each its own commit, so search or the map can be reverted alone:
 
 - **Pipeline:**
   - `lib/embedder.ts` calls Workers AI and decides what an item embeds as.
@@ -78,7 +79,7 @@ reverted alone:
   - Env: `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` (see `ops.md`).
 - **Hybrid search (`/search`):**
   - `embeddings.search` returns the 64 nearest item ids. Query embedding
-    takes 0.3–1.4 s, measured from a local backend.
+    took 0.3–1.4 s, measured from a local backend on a laptop.
   - Keyword matches stay the results. They're re-ranked by reciprocal rank
     fusion (k = 60) with their nearest-neighbour rank, and up to 24
     unmatched nearest items follow as "+ N similar".
@@ -97,10 +98,10 @@ reverted alone:
   - The map's staleness check reads all vectors on each visit, about 6 KB
     an item. Before large libraries, add a cheap staleness marker.
   - There's no "find similar" in the item modal yet.
-  - Prod isn't backfilled or deployed.
-  - It was tested on a local Convex backend seeded from a dev snapshot.
-    The shared cloud dev deployment kept being re-pushed by another
-    checkout's watcher.
+  - An item whose image fetch fails is only logged, not retried; a re-capture
+    or `embeddings:backfill` picks it up. (Seen once: a dev/prod item whose
+    R2 object had been deleted; see the shared-bucket note in `ops.md`.)
+  - Shared collections search keyword-only (`items.searchCollection`).
 
 ## TL;DR — recommendation
 
@@ -770,6 +771,11 @@ x[], y[], cluster[] }`, stored as parallel arrays, about 60 B per point.
 ## 6. Phased rollout, risks, open questions
 
 ### Phases
+
+Status 2026-11-14: the foundation (without the "More like this" strip),
+hybrid search and the map (without clusters or names, and refreshed on
+visit rather than by a cron) shipped; see "Shipped" for how they differ
+from this plan. The rest is open.
 
 1. **Foundation + find similar (M, about 1–2 days).**
    - The `itemEmbeddings` table and vector index.
