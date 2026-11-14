@@ -3,7 +3,7 @@
 Two research agents checked about 70 channels through the v3 API, as a guest,
 about 140 calls in all, judging taste mostly from block titles, source domains
 and some thumbnail grids. Twenty went into `SOURCES`; a by-eye pass over each
-one's 12 newest blocks the same day cut that to the 11 marked **in**, split
+one's 12 newest blocks the same day cut that to the 10 marked **in**, split
 into three groups that each take one feed slot per round
 (`src/convex/lib/discoverySources.ts`).
 
@@ -12,19 +12,18 @@ into three groups that each take one feed slot per round
 
 ## Web, UI, motion and code
 
-| slug                                | title (owner)                                     | blocks | last add   | good  | notes                                               |
-| ----------------------------------- | ------------------------------------------------- | ------ | ---------- | ----- | --------------------------------------------------- |
-| `websites-skgmukjoccg`              | Websites (ryan-foo) — **in**                      | 958    | 2026-11-13 | 47/50 | Very active; studio and fashion sites               |
-| `interesting-web-design-and-ux`     | Interesting Web Design and UX (no-plans) — **in** | 519    | 2026-11-13 | 49/50 | Studio sites plus interaction pieces                |
-| `web-inspiration-yg1uretked0`       | Web-Inspiration (felix-pesendorfer) — **in**      | 455    | 2026-11-13 | 47/50 | Studio and portfolio sites                          |
-| `linked-bxsrqj4zxzm`                | Linked (linusrogge)                               | 305    | 2026-11-12 | 50/50 | Designer portfolios, all links                      |
-| `motion-_zversmdrws`                | Motion (breanna-lorraine-nazaire) — **in**        | 1199   | 2026-11-12 | 50/50 | Brand motion GIFs                                   |
-| `design-motion-zcdmh2q4w84`         | design/motion (jake-chvatal)                      | 1269   | 2026-11-10 | 49/50 | Art-leaning motion and diagram GIFs                 |
-| `procedural-aesthetics-eaa2kwwgid0` | Procedural Aesthetics (swiftp-luc-p) — **in**     | 219    | 2026-11-13 | 48/50 | Creative coding and real-time graphics, many from X |
-| `inspiration-website-qqjfhobia_c`   | .inspiration .website (sergio-abstracts)          | 496    | 2026-11-12 | 47/50 | Studio sites                                        |
-| `websites-and-work`                 | Websites and Work (adam-lucas) — **in**           | 401    | 2026-11-04 | 50/50 | Design-studio sites                                 |
-| `simply-motion`                     | Simply motion (stevan-djak) — **in**              | 877    | 2026-11-12 | 50/50 | Illustrative and brand motion                       |
-| `web-art-shvuorwbs8m`               | web/art (jake-chvatal) — **in**                   | 968    | 2026-11-11 | 46/50 | Net art and coded experiments                       |
+| slug                              | title (owner)                                     | blocks | last add   | good  | notes                                 |
+| --------------------------------- | ------------------------------------------------- | ------ | ---------- | ----- | ------------------------------------- |
+| `websites-skgmukjoccg`            | Websites (ryan-foo) — **in**                      | 958    | 2026-11-13 | 47/50 | Very active; studio and fashion sites |
+| `interesting-web-design-and-ux`   | Interesting Web Design and UX (no-plans) — **in** | 519    | 2026-11-13 | 49/50 | Studio sites plus interaction pieces  |
+| `web-inspiration-yg1uretked0`     | Web-Inspiration (felix-pesendorfer) — **in**      | 455    | 2026-11-13 | 47/50 | Studio and portfolio sites            |
+| `linked-bxsrqj4zxzm`              | Linked (linusrogge)                               | 305    | 2026-11-12 | 50/50 | Designer portfolios, all links        |
+| `motion-_zversmdrws`              | Motion (breanna-lorraine-nazaire) — **in**        | 1199   | 2026-11-12 | 50/50 | Brand motion GIFs                     |
+| `design-motion-zcdmh2q4w84`       | design/motion (jake-chvatal)                      | 1269   | 2026-11-10 | 49/50 | Art-leaning motion and diagram GIFs   |
+| `inspiration-website-qqjfhobia_c` | .inspiration .website (sergio-abstracts)          | 496    | 2026-11-12 | 47/50 | Studio sites                          |
+| `websites-and-work`               | Websites and Work (adam-lucas) — **in**           | 401    | 2026-11-04 | 50/50 | Design-studio sites                   |
+| `simply-motion`                   | Simply motion (stevan-djak) — **in**              | 877    | 2026-11-12 | 50/50 | Illustrative and brand motion         |
+| `web-art-shvuorwbs8m`             | web/art (jake-chvatal) — **in**                   | 968    | 2026-11-11 | 46/50 | Net art and coded experiments         |
 
 Also good: `open-hdmi` (VJ and GLSL work), `reference-motion-uxeafxbhf18`,
 `frame-by-frame-6iwyipat6ug`, `agencies-individuals-orgs`,
@@ -55,10 +54,11 @@ sourcetype.com.
 
 - **Cut in the by-eye review (2026-11-14):** these were in `SOURCES` until
   their newest blocks were seen side by side; they didn't match the taste.
-  - Web and UI: `www-1m0ansswqwu` (WWW, alex-rainer),
+  - Web, UI and code: `www-1m0ansswqwu` (WWW, alex-rainer),
     `web-design-moodboard-ic-sehavbuy` (Web Design Moodboard),
     `graphical-user-interface-10gcq4luncg` (graphical user interface),
-    `digital-product-design-s-ljfc89s8g` (Digital Product Design).
+    `digital-product-design-s-ljfc89s8g` (Digital Product Design),
+    `procedural-aesthetics-eaa2kwwgid0` (Procedural Aesthetics).
   - Type, editorial and packaging: `fonts-fonts-for-sale` (FONTS, FONTS FOR
     SALE), `type-beat-b8bjxhbujmm` (Type-Beat), `tttype-oiqeojm-edq`
     (tttype), `vs-editorial-spread` ([VS] Editorial / Spread),

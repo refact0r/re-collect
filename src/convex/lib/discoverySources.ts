@@ -66,7 +66,6 @@ export const SOURCES: SourceConfig[] = [
 
 	arena('motion-_zversmdrws', 'Motion (breanna-lorraine-nazaire)', ARENA_MOTION),
 	arena('simply-motion', 'Simply motion', ARENA_MOTION),
-	arena('procedural-aesthetics-eaa2kwwgid0', 'Procedural Aesthetics', ARENA_MOTION),
 	arena('web-art-shvuorwbs8m', 'web/art', ARENA_MOTION),
 
 	arena('gr-26-graphics-thisisgrey-likes', 'GR 26 — Graphics ThisisGrey likes', ARENA_GRAPHIC),

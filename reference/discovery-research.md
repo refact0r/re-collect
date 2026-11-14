@@ -80,7 +80,7 @@ note, this file wins.
 | MaxiBestOf                               | The user likes it. Options: Pro MCP ($9/mo, $72/yr, $179 lifetime), or email the owner (Bertrand Bruandet) because their documented public API is Cloudflare-blocked. **Undecided**                              |
 | Dribbble / Behance bypass                | Not doing it: bot walls plus terms. Behance featured RSS is fine; Dribbble and Behance profile pages load but are against their terms                                                                            |
 | Bulk Are.na (River-style)                | **Out for now.** The sanctioned route is emailing help@are.na                                                                                                                                                    |
-| Specific Are.na channels                 | **Yes.** 11 channels in `SOURCES` (20 scouted, 9 cut by eye), in three groups (`discovery-notes/arena-channels.md`). A follow feed (`/v3/me/feed`) would need per-user tokens; not now                           |
+| Specific Are.na channels                 | **Yes.** 10 channels in `SOURCES` (20 scouted, 10 cut by eye), in three groups (`discovery-notes/arena-channels.md`). A follow feed (`/v3/me/feed`) would need per-user tokens; not now                          |
 | Pool model                               | **Curated pool (2026-11-14).** Sources live in code; everyone reads one shared pool; users only toggle sources. User-added sources later, if wanted (`user-sources-cost.md`)                                     |
 | Feed order                               | **Plain round-robin for now,** no taste ranking: too little volume for River-style embedding. Each source (or Are.na group) gets one slot per round                                                              |
 | Keeping                                  | **Browse, not triage (2026-11-14).** No skip or accept/reject: you scroll past what you don't want. Clicking a card opens a modal with the media and an "add to" list (library or a collection, last used first) |
@@ -105,7 +105,7 @@ section, in full in `discovery-notes/user-sources-cost.md`.
 
 - **Sources:** `SOURCES` in `src/convex/lib/discoverySources.ts`, one adapter
   per source kind. Add or remove a source there and deploy.
-  - Covered: Recent's X feed, Seesaw, typographicposters, and 11 Are.na
+  - Covered: Recent's X feed, Seesaw, typographicposters, and 10 Are.na
     channels. Awwwards, One Page Love and Siteinspire come in over RSS.
     Recent's launch feed was dropped in the by-eye review (2026-11-14).
   - The Are.na channels were scouted on 2026-11-14 and are listed, with
@@ -913,7 +913,7 @@ Still open:
 To do (not decisions):
 
 - **Set `ARENA_TOKEN`** (an Are.na personal access token) on dev and prod.
-  Without it, 11 channels polled as a guest use a good share of the
+  Without it, 10 channels polled as a guest use a good share of the
   30-a-minute per-IP limit.
 - **Before production,** deploy, then run
   `npx convex run items:rebuildSearchText --prod` to backfill `normUrl`.
