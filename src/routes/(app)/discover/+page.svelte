@@ -7,6 +7,7 @@
 	import DiscoverCard from '#lib/components/DiscoverCard.svelte';
 	import { useAction, useMutation, useQuery } from '#lib/convex.js';
 	import { getCollectionsContext } from '#lib/context.js';
+	import { getItemUrl } from '#lib/itemDisplay.js';
 	import { pageTitle } from '#lib/pageTitle.svelte.js';
 	import IconTune from '~icons/material-symbols-light/tune';
 	import IconStream from '~icons/material-symbols-light/view-agenda-outline';
@@ -113,9 +114,7 @@
 			toast = null;
 			return;
 		}
-		const params = new URLSearchParams(page.url.search);
-		params.set('item', itemId);
-		showToast({ text: `kept to ${into}`, href: `?${params}` });
+		showToast({ text: `kept to ${into}`, href: getItemUrl(itemId) });
 	}
 
 	function move(by: number) {

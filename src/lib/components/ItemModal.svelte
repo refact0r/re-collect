@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import ItemEditor from './ItemEditor.svelte';
+	import Modal from './Modal.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { getCurrentItemsContext, getItemsContext } from '#lib/context.js';
+	import { getItemUrl } from '#lib/itemDisplay.js';
 
 	interface Props {
 		itemId: Id<'items'>;
@@ -23,24 +24,11 @@
 
 	// The editor saves its own edits when it unmounts, so navigating only swaps the URL
 	async function navigateToItem(newItemId: Id<'items'>) {
-		const params = new URLSearchParams(page.url.search);
-		params.set('item', newItemId);
-		await goto(`${page.url.pathname}?${params}`, { replace: true, reset: false });
+		await goto(getItemUrl(newItemId), { replace: true, reset: false });
 	}
 
-	function handleBackdropClick(event: MouseEvent) {
-		if (event.target === event.currentTarget) {
-			onClose();
-		}
-	}
-
+	// Arrow key navigation (skip when typing in input fields)
 	async function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
-			onClose();
-			return;
-		}
-
-		// Arrow key navigation (skip when typing in input fields)
 		if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
 			const target = event.target as HTMLElement;
 			if (
@@ -65,44 +53,16 @@
 	}
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
-
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<div class="backdrop" onclick={handleBackdropClick} role="dialog" aria-modal="true" tabindex="-1">
-	<div class="modal modal-wide">
-		{#if ownItems.isLoading}
-			<p class="status-text">loading...</p>
-		{:else if ownItems.error}
-			<p class="status-text">error: {ownItems.error.message}</p>
-		{:else if !item}
-			<p class="status-text">item not found</p>
-		{:else}
-			{#key itemId}
-				<ItemEditor {item} readonly={!ownItem} {onClose} />
-			{/key}
-		{/if}
-	</div>
-</div>
-
-<style>
-	.modal {
-		height: calc(100vh - 4rem);
-		overflow: hidden;
-	}
-
-	@media (max-width: 768px) {
-		.backdrop {
-			align-items: flex-start;
-		}
-
-		.modal {
-			height: 100vh;
-			max-height: 100vh;
-			overflow-y: auto;
-			width: 100vw;
-			max-width: 100vw;
-			border: none;
-			padding: 0;
-		}
-	}
-</style>
+<Modal {onClose} onkeydown={handleKeydown} size="wide">
+	{#if ownItems.isLoading}
+		<p class="status-text">loading...</p>
+	{:else if ownItems.error}
+		<p class="status-text">error: {ownItems.error.message}</p>
+	{:else if !item}
+		<p class="status-text">item not found</p>
+	{:else}
+		{#key itemId}
+			<ItemEditor {item} readonly={!ownItem} {onClose} />
+		{/key}
+	{/if}
+</Modal>

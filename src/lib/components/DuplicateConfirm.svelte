@@ -4,6 +4,7 @@
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { getCollectionsContext } from '#lib/context.js';
 	import { getItemUrl } from '#lib/itemDisplay.js';
+	import Modal from './Modal.svelte';
 
 	interface Props {
 		// The saved copies, newest first (items.findByUrl)
@@ -38,46 +39,22 @@
 		const times = matches.length > 1 ? ` · saved ${matches.length} times` : '';
 		return `added ${added}, ${where}${times}`;
 	});
-
-	function handleBackdropClick(event: MouseEvent) {
-		if (event.target === event.currentTarget) onCancel();
-	}
-
-	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape') onCancel();
-	}
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
-
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<div
-	class="backdrop"
-	onclick={handleBackdropClick}
-	role="dialog"
-	aria-modal="true"
-	aria-labelledby="duplicate-title"
-	tabindex="-1"
->
-	<div class="modal">
-		<h2 id="duplicate-title">already saved</h2>
-		<p>
-			<a href={getItemUrl(latest._id)} onclick={onView}>{latest.title || latest.url}</a>
-		</p>
-		<p class="meta">{summary}</p>
-		<div class="actions">
-			<button onclick={onCancel}>cancel</button>
-			<!-- svelte-ignore a11y_autofocus -->
-			<button onclick={onAdd} autofocus>add anyway</button>
-		</div>
+<Modal onClose={onCancel} size="narrow" labelledby="duplicate-title">
+	<h2 id="duplicate-title">already saved</h2>
+	<p>
+		<a href={getItemUrl(latest._id)} onclick={onView}>{latest.title || latest.url}</a>
+	</p>
+	<p class="meta">{summary}</p>
+	<div class="actions">
+		<button onclick={onCancel}>cancel</button>
+		<!-- svelte-ignore a11y_autofocus -->
+		<button onclick={onAdd} autofocus>add anyway</button>
 	</div>
-</div>
+</Modal>
 
 <style>
-	.modal {
-		max-width: 24rem;
-	}
-
 	h2 {
 		margin: 0 0 0.75rem 0;
 	}

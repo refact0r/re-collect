@@ -2,6 +2,7 @@
 	import { api } from '../../convex/_generated/api.js';
 	import { useMutation } from '#lib/convex.js';
 	import type { CollectionSortOption } from '#lib/types.js';
+	import Modal from './Modal.svelte';
 
 	interface Props {
 		onClose: () => void;
@@ -57,85 +58,68 @@
 		isCreating = false;
 		if (created !== undefined) onClose();
 	}
-
-	function handleBackdropClick(event: MouseEvent) {
-		if (event.target === event.currentTarget) {
-			onClose();
-		}
-	}
-
-	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
-			onClose();
-		}
-	}
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
-
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<div class="backdrop" onclick={handleBackdropClick} role="dialog" aria-modal="true" tabindex="-1">
-	<div class="modal">
-		<h2>new collection</h2>
-		<div class="form">
-			<input type="text" bind:value={name} placeholder="collection name" disabled={isCreating} />
-			<div class="group">
-				<span class="group-label">sort</span>
-				<select bind:value={sortMode} disabled={isCreating}>
-					{#each sortOptions as opt (opt.value)}
-						<option value={opt.value}>{opt.label}</option>
-					{/each}
-				</select>
-			</div>
-			<div class="group">
-				<span class="group-label">view</span>
-				<div class="mode-options">
-					{#each viewOptions as opt (opt.value)}
-						<button
-							class:active={viewMode === opt.value}
-							onclick={() => (viewMode = opt.value)}
-							disabled={isCreating}
-						>
-							{opt.label}
-						</button>
-					{/each}
-				</div>
-			</div>
-			<div class="group">
-				<span class="group-label">ai tagging</span>
-				<div class="mode-options">
-					{#each taggingOptions as opt (opt.value)}
-						<button
-							class:active={taggingMode === opt.value}
-							onclick={() => (taggingMode = opt.value)}
-							disabled={isCreating}
-						>
-							{opt.label}
-						</button>
-					{/each}
-				</div>
-			</div>
-			<div class="group">
-				<span class="group-label">link image</span>
-				<div class="mode-options">
-					{#each linkImageOptions as opt (opt.value)}
-						<button
-							class:active={linkImageMode === opt.value}
-							onclick={() => (linkImageMode = opt.value)}
-							disabled={isCreating}
-						>
-							{opt.label}
-						</button>
-					{/each}
-				</div>
-			</div>
-			<div class="actions">
-				<button onclick={onClose} disabled={isCreating}>cancel</button>
-				<button onclick={handleCreate} disabled={isCreating || !name.trim()}>create</button>
+<Modal {onClose}>
+	<h2>new collection</h2>
+	<div class="form">
+		<input type="text" bind:value={name} placeholder="collection name" disabled={isCreating} />
+		<div class="group">
+			<span class="group-label">sort</span>
+			<select bind:value={sortMode} disabled={isCreating}>
+				{#each sortOptions as opt (opt.value)}
+					<option value={opt.value}>{opt.label}</option>
+				{/each}
+			</select>
+		</div>
+		<div class="group">
+			<span class="group-label">view</span>
+			<div class="mode-options">
+				{#each viewOptions as opt (opt.value)}
+					<button
+						class:active={viewMode === opt.value}
+						onclick={() => (viewMode = opt.value)}
+						disabled={isCreating}
+					>
+						{opt.label}
+					</button>
+				{/each}
 			</div>
 		</div>
+		<div class="group">
+			<span class="group-label">ai tagging</span>
+			<div class="mode-options">
+				{#each taggingOptions as opt (opt.value)}
+					<button
+						class:active={taggingMode === opt.value}
+						onclick={() => (taggingMode = opt.value)}
+						disabled={isCreating}
+					>
+						{opt.label}
+					</button>
+				{/each}
+			</div>
+		</div>
+		<div class="group">
+			<span class="group-label">link image</span>
+			<div class="mode-options">
+				{#each linkImageOptions as opt (opt.value)}
+					<button
+						class:active={linkImageMode === opt.value}
+						onclick={() => (linkImageMode = opt.value)}
+						disabled={isCreating}
+					>
+						{opt.label}
+					</button>
+				{/each}
+			</div>
+		</div>
+		<div class="actions">
+			<button onclick={onClose} disabled={isCreating}>cancel</button>
+			<button onclick={handleCreate} disabled={isCreating || !name.trim()}>create</button>
+		</div>
 	</div>
-</div>
+</Modal>
 
 <style>
 	h2 {

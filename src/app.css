@@ -334,37 +334,6 @@ button.error {
 	gap: 0.5rem;
 }
 
-/* Modal */
-
-.backdrop {
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background: oklch(from var(--bg-1) l c h / 0.5);
-	backdrop-filter: blur(5px);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 1000;
-}
-
-.modal {
-	background: var(--bg-1);
-	border: 1px solid var(--border);
-	padding: 1rem;
-	max-width: 32rem;
-	width: 100%;
-	max-height: calc(100vh - 4rem);
-	overflow-y: auto;
-	position: relative;
-}
-
-.modal-wide {
-	max-width: calc(100vw - 4rem);
-}
-
 /* Status Messages */
 
 .status-text,
