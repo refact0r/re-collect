@@ -1,7 +1,19 @@
 import { ConvexError, v } from 'convex/values';
-import { internalAction, internalMutation, type MutationCtx } from './_generated/server';
+import {
+	internalAction,
+	internalMutation,
+	internalQuery,
+	type MutationCtx
+} from './_generated/server';
 import { internal } from './_generated/api';
-import { hashPassword, hashToken, normalizeUsername, randomToken, userQuery } from './lib/auth';
+import {
+	hashPassword,
+	hashToken,
+	normalizeUsername,
+	randomToken,
+	requireUser,
+	userQuery
+} from './lib/auth';
 
 // The signed-in user; also how an action checks its caller's token
 export const me = userQuery({
@@ -10,6 +22,12 @@ export const me = userQuery({
 		const user = await ctx.db.get(ctx.userId);
 		return { username: user?.username ?? '' };
 	}
+});
+
+// A public action's caller: its token resolved to the user, or Unauthorized
+export const userForToken = internalQuery({
+	args: { token: v.string() },
+	handler: async (ctx, { token }) => await requireUser(ctx, token)
 });
 
 // Admin commands, run from the CLI (add --prod for production)

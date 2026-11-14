@@ -18,7 +18,7 @@ export const keep = action({
 	},
 	returns: v.id('items'),
 	handler: async (ctx, { candidateId, collectionId, token }): Promise<Id<'items'>> => {
-		await ctx.runQuery(internal.discovery.userForToken, { token });
+		await ctx.runQuery(internal.users.userForToken, { token });
 		const candidate = await ctx.runQuery(internal.discovery.getCandidate, { candidateId });
 		if (!candidate) throw new ConvexError('that post is gone');
 

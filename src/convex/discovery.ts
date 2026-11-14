@@ -12,7 +12,7 @@ import {
 	internalQuery,
 	type ActionCtx
 } from './_generated/server';
-import { requireUser, userMutation, userQuery } from './lib/auth';
+import { userMutation, userQuery } from './lib/auth';
 import {
 	SOURCES,
 	fetchSource,
@@ -133,11 +133,6 @@ export const setSourceHidden = userMutation({
 });
 
 // ============ Keeping (called by discoveryKeep.ts) ============
-
-export const userForToken = internalQuery({
-	args: { token: v.string() },
-	handler: async (ctx, { token }) => await requireUser(ctx, token)
-});
 
 export const getCandidate = internalQuery({
 	args: { candidateId: v.id('discoveryCandidates') },
