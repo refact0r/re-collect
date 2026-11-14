@@ -73,22 +73,22 @@ note, this file wins.
 
 ## Decisions and status (from the discussion)
 
-| Topic                                    | Where it stands                                                                                                                                                                        |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Screenshots or re-hosting for feed items | **No.** Use each source's own media; copy to R2 only on keep                                                                                                                           |
-| "No embedding"                           | Asked whether this also rules out taste-ranking vectors; **unanswered**. If it does, rank by tag overlap (source tags + our AI tags)                                                   |
-| MaxiBestOf                               | The user likes it. Options: Pro MCP ($9/mo, $72/yr, $179 lifetime), or email the owner (Bertrand Bruandet) because their documented public API is Cloudflare-blocked. **Undecided**    |
-| Dribbble / Behance bypass                | Not doing it: bot walls plus terms. Behance featured RSS is fine; Dribbble and Behance profile pages load but are against their terms                                                  |
-| Bulk Are.na (River-style)                | **Out for now.** The sanctioned route is emailing help@are.na                                                                                                                          |
-| Specific Are.na channels                 | **Yes.** 11 channels in `SOURCES` (20 scouted, 9 cut by eye), in three groups (`discovery-notes/arena-channels.md`). A follow feed (`/v3/me/feed`) would need per-user tokens; not now |
-| Pool model                               | **Curated pool (2026-11-14).** Sources live in code; everyone reads one shared pool; users only toggle sources. User-added sources later, if wanted (`user-sources-cost.md`)           |
-| Feed order                               | **Plain round-robin for now,** no taste ranking: too little volume for River-style embedding. Each source (or Are.na group) gets one slot per round                                    |
-| Keeping                                  | **A per-card picker** (library or a collection, last used first), not one "keep to" setting, because a mixed feed's keeps go to different places                                       |
-| X posts (via Recent)                     | **Keep as image items** linking back to the post, not link items                                                                                                                       |
-| Video                                    | **No video item type yet.** The feed plays the source's MP4. Keeping saves the poster frame as an image, and tagging runs on that frame. A video type would be its own feature         |
-| Already-saved links                      | **Hidden from the feed** via `items.normUrl` (`by_user_normUrl` index)                                                                                                                 |
-| Multi-user                               | Shipped. The candidate pool is global, with per-user keep/skip and source toggles                                                                                                      |
-| Scope (websites only vs broader visual)  | **Open**; see §6                                                                                                                                                                       |
+| Topic                                    | Where it stands                                                                                                                                                                                                  |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Screenshots or re-hosting for feed items | **No.** Use each source's own media; copy to R2 only on keep                                                                                                                                                     |
+| "No embedding"                           | Asked whether this also rules out taste-ranking vectors; **unanswered**. If it does, rank by tag overlap (source tags + our AI tags)                                                                             |
+| MaxiBestOf                               | The user likes it. Options: Pro MCP ($9/mo, $72/yr, $179 lifetime), or email the owner (Bertrand Bruandet) because their documented public API is Cloudflare-blocked. **Undecided**                              |
+| Dribbble / Behance bypass                | Not doing it: bot walls plus terms. Behance featured RSS is fine; Dribbble and Behance profile pages load but are against their terms                                                                            |
+| Bulk Are.na (River-style)                | **Out for now.** The sanctioned route is emailing help@are.na                                                                                                                                                    |
+| Specific Are.na channels                 | **Yes.** 11 channels in `SOURCES` (20 scouted, 9 cut by eye), in three groups (`discovery-notes/arena-channels.md`). A follow feed (`/v3/me/feed`) would need per-user tokens; not now                           |
+| Pool model                               | **Curated pool (2026-11-14).** Sources live in code; everyone reads one shared pool; users only toggle sources. User-added sources later, if wanted (`user-sources-cost.md`)                                     |
+| Feed order                               | **Plain round-robin for now,** no taste ranking: too little volume for River-style embedding. Each source (or Are.na group) gets one slot per round                                                              |
+| Keeping                                  | **Browse, not triage (2026-11-14).** No skip or accept/reject: you scroll past what you don't want. Clicking a card opens a modal with the media and an "add to" list (library or a collection, last used first) |
+| X posts (via Recent)                     | **Keep as image items** linking back to the post, not link items                                                                                                                                                 |
+| Video                                    | **No video item type yet.** The feed plays the source's MP4. Keeping saves the poster frame as an image, and tagging runs on that frame. A video type would be its own feature                                   |
+| Already-saved links                      | **Hidden from the feed** via `items.normUrl` (`by_user_normUrl` index)                                                                                                                                           |
+| Multi-user                               | Shipped. The candidate pool is global, with per-user source toggles; added cards drop out through the user's own library                                                                                         |
+| Scope (websites only vs broader visual)  | **Open**; see §6                                                                                                                                                                                                 |
 
 ## Prototype (2026-11-13, curated pool since 2026-11-14)
 
@@ -121,7 +121,6 @@ section, in full in `discovery-notes/user-sources-cost.md`.
     shared Convex IP.
 - **Backend:** `src/convex/discovery.ts`, with three tables:
   - `discoveryCandidates`: the shared pool, deduped by normalized URL.
-  - `discoveryStates`: each user's keep/skip.
   - `discoverySources`: poll state only (last poll, last error).
   - A cron polls every source every 6 hours.
   - Each user's turned-off sources are `hiddenSources` on their `discover`
@@ -132,24 +131,26 @@ section, in full in `discovery-notes/user-sources-cost.md`.
   Are.na image.
 - **Feed order:** round-robin across sources (or source groups), newest first
   within a round.
-  A card's round counts what you already acted on, so keeping or skipping
-  doesn't reshuffle the rest.
+  Saved links drop out only after dealing, so adding one doesn't reshuffle
+  the rest.
 - **Hiding saved links:** links already in your library are left out by an
   indexed lookup on `items.normUrl`. The feed checks only the cards on the
   page, not the whole library.
-- **Page:** a stream or grid view and a sources panel (turn sources on or
-  off, "show skipped again"). Keep opens a picker on the card: the library
-  or a collection, with the last one you used first. Keys: j/k to move, s to
-  keep (then 1–9, or Enter for the first), x to skip, u to undo, o to open.
-  Video loops play only while on screen.
+- **Page:** the same masonry grid as collection pages (`src/lib/masonry.ts`,
+  filled row by row, with the +/- column control saved on the `discover`
+  viewPreferences row) and a sources dropdown like the collection filter.
+  Cards show only the media, the title and where it's from (the site, or
+  "Are.na"); very tall media is cropped from the top. Clicking a card opens a
+  modal with the full media, a link to the original and an "add to" list.
+  A modified click opens the original. No keybinds. Video loops play only
+  while on screen.
 - **Video:** the app has no video item type. In the feed, a source's MP4 is
   hotlinked and played. Keeping saves only the poster frame, as an image
   item, and tagging runs on that frame.
 - **Tests:** `src/convex/discovery.test.ts` covers the library check,
-  per-user source toggles and skips.
+  and per-user source toggles.
 - **Still prototype shortcuts:**
   - Every poll runs all sources at once (fine at ~10 sources).
-  - The feed reads all of the user's keep/skip rows each time.
   - Old candidates never expire.
 - **Dev:** `npx convex run discovery:pollAll`, or
   `discovery:resetSource '{"key":"awwwards"}'` to re-fetch one source.
@@ -902,8 +903,8 @@ Still open:
    blocked public API first?
 7. **Feed shape.** Endless for now. A daily batch ("today's 30") would cap
    the reviewing effort.
-8. **Skip.** Currently "hide", with "show skipped again" in the panel. Should
-   skips also count against a source or style once ranking exists?
+8. **Taste signal.** With skip gone (browse, not triage), adds are the only
+   signal. If ranking comes, does it need an explicit "less like this"?
 9. **Video as an item type** (see Decisions).
 10. **Cloudflare Workers Paid ($5/mo).** It removes the ~40-screenshots-a-day
     ceiling. That's only needed if walled or imageless sources are wanted
@@ -931,4 +932,4 @@ Resolved:
 - **Image on keep:** the source's own image, copied to R2.
 - **Are.na seeds:** 20 scouted channels in code.
 - **Pool model:** curated, set in code.
-- **Keep target:** a per-card picker.
+- **Keep target:** an "add to" list in the card's modal.

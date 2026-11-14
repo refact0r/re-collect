@@ -70,15 +70,3 @@ test('a turned-off source leaves only that user’s feed', async () => {
 	});
 	expect(await feedUrls(tokens.a)).toHaveLength(3);
 });
-
-test('skips are per user and can be undone', async () => {
-	const { t, tokens, feedUrls } = await setup();
-	const [first] = (await t.query(api.discovery.feed, { limit: 10, token: tokens.a })).candidates;
-	await t.mutation(api.discovery.skip, { candidateId: first._id, token: tokens.a });
-
-	expect(await feedUrls(tokens.a)).not.toContain(first.url);
-	expect(await feedUrls(tokens.b)).toContain(first.url);
-
-	await t.mutation(api.discovery.unskip, { candidateId: first._id, token: tokens.a });
-	expect(await feedUrls(tokens.a)).toContain(first.url);
-});

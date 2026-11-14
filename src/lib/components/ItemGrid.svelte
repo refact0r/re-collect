@@ -7,6 +7,7 @@
 	import { useDeleteItem, useMutation } from '#lib/convex.js';
 	import { pointerDrag } from '#lib/pointerDrag.js';
 	import { shouldDisplayAsImage, getItemUrl, isBusy } from '#lib/itemDisplay.js';
+	import { GAP, columnCountFor, columnWidthFor } from '#lib/masonry.js';
 	import type { DisplayItem } from '#lib/types.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
 	import IconError from '~icons/material-symbols-light/error-outline';
@@ -37,11 +38,6 @@
 	let containerWidth = $state(0);
 
 	// Layout constants
-	const GAP = 16;
-	const MIN_COL_WIDTH = 320;
-	const MAX_COLS = 6; // for the width-derived count, before columnOffset
-	const MAX_OFFSET_COLS = 12;
-	const MIN_COLS = 1;
 	// Card padding: 0.5rem (8px) on each side, 0.25rem (4px) bottom when a title follows; border: 1px on each side
 	const CARD_BORDER = 2; // 1px * 2
 	const CARD_CHROME_X = 16 + CARD_BORDER; // 8px * 2 + border = 18px
@@ -83,20 +79,8 @@
 		return null;
 	}
 
-	let autoColumnCount = $derived(
-		containerWidth === 0
-			? MIN_COLS
-			: Math.min(
-					MAX_COLS,
-					Math.max(MIN_COLS, Math.floor((containerWidth + GAP) / (MIN_COL_WIDTH + GAP)))
-				)
-	);
-
-	let columnCount = $derived(
-		Math.min(MAX_OFFSET_COLS, Math.max(MIN_COLS, autoColumnCount + columnOffset))
-	);
-
-	let columnWidth = $derived((containerWidth - (columnCount - 1) * GAP) / columnCount);
+	const columnCount = $derived(columnCountFor(containerWidth, columnOffset));
+	const columnWidth = $derived(columnWidthFor(containerWidth, columnCount));
 
 	const chromeY = $derived(showTitles ? CARD_CHROME_Y_TITLED : CARD_CHROME_Y);
 

@@ -59,8 +59,8 @@ function viewPrefs<Saved extends ViewFields, Fields>(
 	};
 }
 
-// Home and search keep theirs in a viewPreferences row
-export function useViewPrefs(key: 'home' | 'search') {
+// Home, search and discover keep theirs in a viewPreferences row
+export function useViewPrefs(key: 'home' | 'search' | 'discover') {
 	const mutate = useMutation();
 	const saved = useQuery(api.viewPreferences.get, () => ({ key }));
 	return viewPrefs(

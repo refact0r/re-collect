@@ -176,13 +176,6 @@ export default defineSchema({
 		.index('by_source_published', ['sourceKey', 'publishedAt'])
 		.index('by_source_externalId', ['sourceKey', 'externalId']),
 
-	discoveryStates: defineTable({
-		userId: v.id('users'),
-		candidateId: v.id('discoveryCandidates'),
-		state: v.union(v.literal('kept'), v.literal('skipped')),
-		itemId: v.optional(v.id('items'))
-	}).index('by_user_candidate', ['userId', 'candidateId']),
-
 	// Junction table for per-collection item ordering. Unscoped: rows are only
 	// reached through an owned item or collection, and both sides share an owner.
 	itemCollectionPositions: defineTable({

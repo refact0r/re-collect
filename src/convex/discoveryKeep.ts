@@ -9,6 +9,7 @@ import { fetchImage, upload } from './imageImport';
 // Keeps a discovery candidate: its media is copied into R2 (it was only
 // hotlinked until now) and it becomes an ordinary library item. A site keeps as
 // a URL item with that image; anything else as an image item linking back.
+// Saved under the candidate's own URL, so the feed drops it from then on.
 export const keep = action({
 	args: {
 		candidateId: v.id('discoveryCandidates'),
@@ -17,17 +18,16 @@ export const keep = action({
 	},
 	returns: v.id('items'),
 	handler: async (ctx, { candidateId, collectionId, token }): Promise<Id<'items'>> => {
-		const userId = await ctx.runQuery(internal.discovery.userForToken, { token });
+		await ctx.runQuery(internal.discovery.userForToken, { token });
 		const candidate = await ctx.runQuery(internal.discovery.getCandidate, { candidateId });
 		if (!candidate) throw new ConvexError('that post is gone');
 
 		const collections = collectionId ? [collectionId] : undefined;
 		const text = { title: candidate.title, ogDescription: candidate.description };
-		let itemId: Id<'items'>;
 		try {
 			const image = await fetchImage(candidate.imageUrl, candidate.url);
 			const imageKey = await upload(ctx, image, token);
-			itemId = await ctx.runMutation(api.items.add, {
+			return await ctx.runMutation(api.items.add, {
 				type: candidate.kind === 'site' ? 'url' : 'image',
 				url: candidate.url,
 				...text,
@@ -41,7 +41,7 @@ export const keep = action({
 			if (error instanceof ConvexError && error.data === 'Unauthorized') throw error;
 			// Without the source's image, the worker captures the page as usual
 			console.warn(`discovery keep: ${candidate.imageUrl} failed, saving the page:`, error);
-			itemId = await ctx.runMutation(api.items.add, {
+			return await ctx.runMutation(api.items.add, {
 				type: 'url',
 				url: candidate.url,
 				...text,
@@ -49,7 +49,5 @@ export const keep = action({
 				token
 			});
 		}
-		await ctx.runMutation(internal.discovery.markKept, { userId, candidateId, itemId });
-		return itemId;
 	}
 });

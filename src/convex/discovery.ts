@@ -1,17 +1,16 @@
 // Discovery feed (prototype): a curated list of outside sources
 // (lib/discoverySources.ts) polled into one shared candidate pool. Each user
 // sees it as a mixed feed of the sources they haven't turned off, and keeps
-// from it or skips. Keeping is discoveryKeep.ts. Background:
+// what catches their eye (discoveryKeep.ts). Background:
 // reference/discovery-research.md.
 import { ConvexError, v, type Infer } from 'convex/values';
 import { internal } from './_generated/api';
-import type { Doc, Id } from './_generated/dataModel';
+import type { Doc } from './_generated/dataModel';
 import {
 	internalAction,
 	internalMutation,
 	internalQuery,
-	type ActionCtx,
-	type QueryCtx
+	type ActionCtx
 } from './_generated/server';
 import { requireUser, userMutation, userQuery } from './lib/auth';
 import {
@@ -52,32 +51,22 @@ type Dealt = { candidate: FeedCandidate; round: number };
 const byRound = (a: Dealt, b: Dealt) =>
 	a.round - b.round || b.candidate.publishedAt - a.candidate.publishedAt;
 
-export type FeedCandidate = Doc<'discoveryCandidates'> & { sourceName: string };
+// `from` is the short label cards show: the site, not the Are.na channel
+export type FeedCandidate = Doc<'discoveryCandidates'> & { sourceName: string; from: string };
 
 // A plain round-robin over the user's sources: each source's newest-first list
 // is dealt out one card per source (or source group) per round, newest first
-// within a round. A
-// card's round counts the cards the user already acted on, so keeping or
-// skipping one never reshuffles the rest. Links already in the library are left
-// out.
+// within a round. Links already in the library (kept ones included) are left
+// out only after dealing, so keeping a card never reshuffles the rest.
 export const feed = userQuery({
 	args: { limit: v.number() },
 	handler: async (ctx, { limit }) => {
 		const prefs = await getPreferences(ctx, PREFS_KEY);
 		const hidden = new Set(prefs?.hiddenSources ?? []);
-		const polls = new Map(
-			(await ctx.db.query('discoverySources').collect()).map((row) => [row.key, row])
-		);
-		const states = await ctx.db
-			.query('discoveryStates')
-			.withIndex('by_user_candidate', (q) => q.eq('userId', ctx.userId))
-			.collect();
-		const acted = new Set<string>(states.map((s) => s.candidateId));
 
 		// Within a group (a set of Are.na channels), its sources are dealt into
-		// one list first, so the group takes a single slot per round. Positions
-		// count acted-on cards, which are dropped only afterwards.
-		const groups = new Map<string, { candidate: FeedCandidate; round: number }[]>();
+		// one list first, so the group takes a single slot per round
+		const groups = new Map<string, Dealt[]>();
 		for (const source of SOURCES) {
 			if (hidden.has(source.key)) continue;
 			const candidates = await ctx.db
@@ -87,13 +76,19 @@ export const feed = userQuery({
 				.take(source.group ? PER_GROUPED_SOURCE : PER_SOURCE);
 			const group = groups.get(source.group ?? source.key) ?? [];
 			candidates.forEach((candidate, round) =>
-				group.push({ candidate: { ...candidate, sourceName: source.name }, round })
+				group.push({
+					candidate: {
+						...candidate,
+						sourceName: source.name,
+						from: source.kind === 'arena' ? 'Are.na' : source.name
+					},
+					round
+				})
 			);
 			groups.set(source.group ?? source.key, group);
 		}
 		const dealt = [...groups.values()]
 			.flatMap((group) => group.sort(byRound).map(({ candidate }, round) => ({ candidate, round })))
-			.filter(({ candidate }) => !acted.has(candidate._id))
 			.sort(byRound);
 
 		// Checked only as far as the page reaches, one index lookup each
@@ -117,12 +112,8 @@ export const feed = userQuery({
 				key: source.key,
 				name: source.name,
 				group: source.group ?? null,
-				hidden: hidden.has(source.key),
-				lastPolledAt: polls.get(source.key)?.lastPolledAt ?? null,
-				lastError: polls.get(source.key)?.lastError ?? null
-			})),
-			kept: states.filter((s) => s.state === 'kept').length,
-			skipped: states.filter((s) => s.state === 'skipped').length
+				hidden: hidden.has(source.key)
+			}))
 		};
 	}
 });
@@ -141,46 +132,6 @@ export const setSourceHidden = userMutation({
 	}
 });
 
-export const skip = userMutation({
-	args: { candidateId: v.id('discoveryCandidates') },
-	handler: async (ctx, { candidateId }) => {
-		const existing = await getState(ctx, ctx.userId, candidateId);
-		if (existing) return;
-		await ctx.db.insert('discoveryStates', { userId: ctx.userId, candidateId, state: 'skipped' });
-	}
-});
-
-export const unskip = userMutation({
-	args: { candidateId: v.id('discoveryCandidates') },
-	handler: async (ctx, { candidateId }) => {
-		const existing = await getState(ctx, ctx.userId, candidateId);
-		if (existing?.state === 'skipped') await ctx.db.delete(existing._id);
-	}
-});
-
-// Forget every skip, so the whole pool shows again
-export const resetSkips = userMutation({
-	args: {},
-	handler: async (ctx) => {
-		const states = await ctx.db
-			.query('discoveryStates')
-			.withIndex('by_user_candidate', (q) => q.eq('userId', ctx.userId))
-			.collect();
-		for (const state of states) if (state.state === 'skipped') await ctx.db.delete(state._id);
-	}
-});
-
-async function getState(
-	ctx: Pick<QueryCtx, 'db'>,
-	userId: Id<'users'>,
-	candidateId: Id<'discoveryCandidates'>
-) {
-	return await ctx.db
-		.query('discoveryStates')
-		.withIndex('by_user_candidate', (q) => q.eq('userId', userId).eq('candidateId', candidateId))
-		.unique();
-}
-
 // ============ Keeping (called by discoveryKeep.ts) ============
 
 export const userForToken = internalQuery({
@@ -191,19 +142,6 @@ export const userForToken = internalQuery({
 export const getCandidate = internalQuery({
 	args: { candidateId: v.id('discoveryCandidates') },
 	handler: async (ctx, { candidateId }) => await ctx.db.get(candidateId)
-});
-
-export const markKept = internalMutation({
-	args: {
-		userId: v.id('users'),
-		candidateId: v.id('discoveryCandidates'),
-		itemId: v.id('items')
-	},
-	handler: async (ctx, { userId, candidateId, itemId }) => {
-		const existing = await getState(ctx, userId, candidateId);
-		if (existing) await ctx.db.patch(existing._id, { state: 'kept', itemId });
-		else await ctx.db.insert('discoveryStates', { userId, candidateId, state: 'kept', itemId });
-	}
 });
 
 // ============ Polling (cron, crons.ts) ============
@@ -325,7 +263,7 @@ export const recordPoll = internalMutation({
 	}
 });
 
-// Dev: forget a source's candidates (and everyone's keep/skip on them), then
+// Dev: forget a source's candidates, then
 // poll it again. Run: npx convex run discovery:resetSource '{"key":"awwwards"}'
 export const resetSource = internalMutation({
 	args: { key: v.string() },
@@ -334,10 +272,6 @@ export const resetSource = internalMutation({
 			.query('discoveryCandidates')
 			.withIndex('by_source_published', (q) => q.eq('sourceKey', key))
 			.collect();
-		const ids = new Set<string>(candidates.map((c) => c._id));
-		for (const state of await ctx.db.query('discoveryStates').collect()) {
-			if (ids.has(state.candidateId)) await ctx.db.delete(state._id);
-		}
 		for (const candidate of candidates) await ctx.db.delete(candidate._id);
 		await ctx.scheduler.runAfter(0, internal.discovery.pollSource, { key });
 		return candidates.length;
