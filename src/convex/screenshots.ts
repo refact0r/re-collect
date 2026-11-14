@@ -14,6 +14,7 @@ import { patchItem } from './lib/searchText';
 import { linkImageModeValidator, siteFontValidator } from './schema';
 import { parseSiteFonts } from './lib/fonts';
 import { enqueueTagging } from './tagging';
+import { scheduleEmbedding } from './embeddings';
 
 // Well above the worker's worst case (~2 min: og fast path, browser launch,
 // navigation, network idle, settle delay, og image fetch, R2 put)
@@ -98,6 +99,7 @@ export const setCompleted = internalMutation({
 				itemId: args.itemId
 			});
 		}
+		await scheduleEmbedding(ctx, args.itemId);
 	}
 });
 
@@ -128,6 +130,8 @@ export const setFailed = internalMutation({
 			screenshotStatus: 'failed',
 			screenshotError: args.error
 		});
+		// Without an image, the item embeds as its text
+		await scheduleEmbedding(ctx, args.itemId);
 	}
 });
 
@@ -261,5 +265,6 @@ export const onScreenshotComplete = internalMutation({
 			screenshotStatus: 'failed',
 			screenshotError: args.result.kind === 'failed' ? args.result.error : 'Canceled'
 		});
+		await scheduleEmbedding(ctx, args.context.itemId);
 	}
 });

@@ -8,6 +8,7 @@ import { getOwned, userMutation } from './lib/auth';
 import { patchItem } from './lib/searchText';
 import { colorNamesForPalette } from './lib/colorNames';
 import { MAX_ERROR_CHARS } from './lib/tagger';
+import { scheduleEmbedding } from './embeddings';
 
 // The database side of tagging; the runs themselves are the Node actions in
 // taggingActions.ts.
@@ -46,6 +47,7 @@ export const onTaggingComplete = internalMutation({
 					? args.result.error.slice(0, MAX_ERROR_CHARS)
 					: 'Tagging was canceled'
 		});
+		await scheduleEmbedding(ctx, args.context.itemId);
 	}
 });
 
@@ -73,6 +75,8 @@ export const setCompleted = internalMutation({
 			taggingModelVersion: modelVersion,
 			taggingError: undefined
 		});
+		// Text-mode items embed their tags; a mode change swaps image for text
+		await scheduleEmbedding(ctx, itemId);
 	}
 });
 
@@ -88,6 +92,7 @@ export const setFailed = internalMutation({
 			taggingStatus: 'failed',
 			taggingError: args.error
 		});
+		await scheduleEmbedding(ctx, args.itemId);
 	}
 });
 

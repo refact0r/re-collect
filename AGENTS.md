@@ -2,7 +2,7 @@
 
 A personal web application for collecting, organizing, and rediscovering design inspiration, web screenshots, articles, and visual references. Similar to Are.na.
 
-Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads/serving), `icons.md` (icon system), `ops.md` (external configuration, env vars, deploys), `multi-user.md` (user scoping, auth options), `design-tokens.md` (site font extraction), `discovery-research.md` (discovery feed: sources, fetching, ranking; raw notes in `discovery-notes/`), `TODO.md` (future ideas).
+Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads/serving), `icons.md` (icon system), `ops.md` (external configuration, env vars, deploys), `multi-user.md` (user scoping, auth options), `design-tokens.md` (site font extraction), `discovery-research.md` (discovery feed: sources, fetching, ranking; raw notes in `discovery-notes/`), `embeddings-research.md` (embedding model decision, schema/pipeline plan, what embeddings unlock; benchmark scripts in `experiments/embeddings/`), `TODO.md` (future ideas).
 
 `experiments/tagging/` is the sandbox for the AI tagging feature; `architecture.md` there describes the shipped pipeline.
 

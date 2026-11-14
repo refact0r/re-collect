@@ -17,6 +17,7 @@ Set with `npx convex env set <name> <value>`, list with `npx convex env list`.
 - `CLOUDFLARE_SCREENSHOT_URL` — public URL of the screenshot worker.
 - `CLOUDFLARE_SCREENSHOT_KEY` — bearer token the screenshot worker checks. Must match the worker's `API_KEY` secret.
 - `OPENROUTER_API_KEY` — required for AI image tagging. Used by `lib/tagger.ts` (the `taggingActions` runs) against `https://openrouter.ai/api/v1/chat/completions`.
+- `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` — Workers AI, for item embeddings (`lib/embedder.ts`, `@cf/google/embeddinggemma-2`). The token needs only Workers AI Read + Edit. Without them nothing embeds, and semantic search falls back to keyword results. After setting them on a deployment (or after an `EMBEDDING_MODEL` change), embed the existing items with `npx convex run embeddings:backfill` (add `--prod` for production).
 - `TAGGING_MODEL` — optional. Defaults to `openai/gpt-6-luna`. Override to swap models without a code change.
 - `ARENA_TOKEN` — optional. An Are.na personal access token for the discovery feed's channel polls (`lib/discoverySources.ts`); without it they run as a guest, limited to 30 requests a minute per (shared) Convex IP.
 

@@ -176,6 +176,26 @@ export default defineSchema({
 		.index('by_source_published', ['sourceKey', 'publishedAt'])
 		.index('by_source_externalId', ['sourceKey', 'externalId']),
 
+	// One vector per item (see embeddings.ts), kept apart from `items` so the
+	// item queries never ship vectors to the client. `model` names the model and
+	// size that made it, so a model change can re-embed alongside the old rows.
+	itemEmbeddings: defineTable({
+		itemId: v.id('items'),
+		userId: v.id('users'), // copied from the item
+		model: v.string(),
+		// What was embedded ('image:<imageKey>' or 'text:<hash>'), so an unchanged
+		// item isn't embedded again
+		inputKey: v.string(),
+		embedding: v.array(v.float64())
+	})
+		.index('by_item', ['itemId'])
+		.index('by_user', ['userId'])
+		.vectorIndex('by_embedding', {
+			vectorField: 'embedding',
+			dimensions: 768,
+			filterFields: ['userId']
+		}),
+
 	// Junction table for per-collection item ordering. Unscoped: rows are only
 	// reached through an owned item or collection, and both sides share an owner.
 	itemCollectionPositions: defineTable({

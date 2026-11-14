@@ -9,9 +9,10 @@ import { internalAction, type ActionCtx } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { requestArticleTags, requestImageTags, type TagResult } from './lib/tagger';
+import { embeddingInput, embedImage, embedText, inputKey } from './lib/embedder';
 
-// Every tagging and palette job runs here, in the Node runtime: sharp needs it,
-// and its 512MB comfortably fits a decoded image or a parsed 4MB page
+// Every tagging, palette and embedding job runs here, in the Node runtime: sharp
+// needs it, and its 512MB comfortably fits a decoded image or a parsed 4MB page
 
 const MAX_EDGE_PX = 1024;
 const PALETTE_COLORS = 5;
@@ -60,6 +61,16 @@ async function fetchAndDecode(imageKey: string): Promise<{
 		.toBuffer({ resolveWithObject: true });
 
 	return { data, width: info.width, height: info.height };
+}
+
+// The decoded image as the JPEG the tagger and embedder are sent. JPEG has no
+// alpha: without flattening, transparent pixels turn black.
+async function toJpegBase64(data: Buffer, width: number, height: number): Promise<string> {
+	const jpeg = await sharp(data, { raw: { width, height, channels: 4 } })
+		.flatten({ background: '#ffffff' })
+		.jpeg({ quality: 85 })
+		.toBuffer();
+	return jpeg.toString('base64');
 }
 
 // Article extraction limits
@@ -176,12 +187,7 @@ export const tagImageItem = internalAction({
 				paletteHex: extractPalettePeaks(data, width, height, PALETTE_COLORS)
 			});
 
-			// JPEG has no alpha: without flattening, transparent pixels turn black
-			const jpeg = await sharp(data, { raw: { width, height, channels: 4 } })
-				.flatten({ background: '#ffffff' })
-				.jpeg({ quality: 85 })
-				.toBuffer();
-			return requestImageTags(jpeg.toString('base64'), itemId);
+			return requestImageTags(await toJpegBase64(data, width, height), itemId);
 		});
 	}
 });
@@ -196,5 +202,37 @@ export const tagTextItem = internalAction({
 			const article = await extractArticleText(item.url);
 			return requestArticleTags({ ...article, url: item.url }, itemId);
 		});
+	}
+});
+
+// Embeds an item's image (or, for notes and text-mode links, its words) into
+// itemEmbeddings. Skips items still waiting on their input and inputs already
+// embedded; failures are only logged, since search and the map just leave the
+// item out and the next write or a backfill retries it.
+export const embedItem = internalAction({
+	args: { itemId: v.id('items') },
+	handler: async (ctx, { itemId }): Promise<void> => {
+		const found = await ctx.runQuery(internal.embeddings.getItemForEmbedding, { itemId });
+		const input = found && embeddingInput(found.item);
+		if (!input) return;
+		const key = await inputKey(input);
+		if (key === found.embeddedKey) return;
+
+		try {
+			let embedding: number[];
+			if (input.kind === 'image') {
+				const { data, width, height } = await fetchAndDecode(input.imageKey);
+				embedding = await embedImage(await toJpegBase64(data, width, height));
+			} else {
+				embedding = await embedText(input.text);
+			}
+			await ctx.runMutation(internal.embeddings.saveEmbedding, {
+				itemId,
+				inputKey: key,
+				embedding
+			});
+		} catch (error) {
+			console.error(`embedItem ${itemId} failed:`, error);
+		}
 	}
 });

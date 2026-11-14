@@ -19,6 +19,7 @@ import {
 } from './lib/auth';
 import { buildSearchText, patchItem } from './lib/searchText';
 import { isWebUrl, normalizeUrl } from './lib/urls';
+import { deleteItemEmbeddings, scheduleEmbedding } from './embeddings';
 import { enqueueScreenshot } from './screenshots';
 import { enqueueTagging } from './tagging';
 import { getPreferences } from './viewPreferences';
@@ -204,6 +205,8 @@ export const add = userMutation({
 			await enqueueTagging(ctx, internal.taggingActions.tagTextItem, itemId);
 		}
 
+		await scheduleEmbedding(ctx, itemId);
+
 		return itemId;
 	}
 });
@@ -232,6 +235,7 @@ export const update = userMutation({
 		if ('url' in updates) updates.normUrl = updates.url && normalizeUrl(updates.url);
 
 		await patchItem(ctx, existing, { ...updates, dateModified: Date.now() });
+		await scheduleEmbedding(ctx, id);
 	}
 });
 
@@ -243,6 +247,7 @@ export const remove = userMutation({
 
 		// Delete all position records for this item
 		await deleteAllPositionsForItem(ctx, args.id);
+		await deleteItemEmbeddings(ctx, args.id);
 
 		// Delete associated image from R2
 		if (item.imageKey) {
