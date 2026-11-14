@@ -1,6 +1,6 @@
 <script lang="ts">
-	import IconRemove from '~icons/material-symbols-light/remove';
-	import IconAdd from '~icons/material-symbols-light/add';
+	import IconRemove from '~icons/material-symbols-light/remove-sharp';
+	import IconAdd from '~icons/material-symbols-light/add-sharp';
 
 	// Offset from the width-derived column count; ItemGrid clamps the result
 	const MAX_OFFSET = 5;

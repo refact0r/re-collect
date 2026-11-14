@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import IconClose from '~icons/material-symbols-light/close';
-	import IconChevronLeft from '~icons/material-symbols-light/chevron-left';
-	import IconChevronRight from '~icons/material-symbols-light/chevron-right';
+	import IconClose from '~icons/material-symbols-light/close-sharp';
+	import IconChevronLeft from '~icons/material-symbols-light/chevron-left-sharp';
+	import IconChevronRight from '~icons/material-symbols-light/chevron-right-sharp';
 	import Logo from '#lib/assets/logo.svelte';
 	import { getCollectionsContext } from '#lib/context.js';
 

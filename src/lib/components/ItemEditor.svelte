@@ -10,7 +10,7 @@
 	import { isWebUrl } from '../../convex/lib/urls.js';
 	import { getCollectionsContext } from '#lib/context.js';
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
-	import IconCheck from '~icons/material-symbols/check';
+	import IconCheck from '~icons/material-symbols-light/check-sharp';
 	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
 
 	interface Props {

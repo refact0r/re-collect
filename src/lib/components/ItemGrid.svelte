@@ -9,8 +9,9 @@
 	import { shouldDisplayAsImage, getItemUrl, isBusy } from '#lib/itemDisplay.js';
 	import { GAP, columnCountFor, columnWidthFor } from '#lib/masonry.js';
 	import type { DisplayItem } from '#lib/types.js';
-	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
-	import IconError from '~icons/material-symbols-light/error-outline';
+	import IconSchedule from '~icons/material-symbols-light/schedule-outline-sharp';
+	import IconError from '~icons/material-symbols-light/error-outline-sharp';
+	import IconDrag from '~icons/material-symbols-light/drag-indicator-sharp';
 
 	const mutate = useMutation();
 	const deleteItem = useDeleteItem();
@@ -371,7 +372,7 @@
 					>
 						{@render cardContent(realItem)}
 						{#if isDraggable}
-							<span class="drag-handle" data-drag-handle aria-hidden="true">⠿</span>
+							<span class="drag-handle" data-drag-handle aria-hidden="true"><IconDrag /></span>
 						{/if}
 					</a>
 				{/if}
@@ -522,17 +523,20 @@
 		padding: 0.25rem;
 		background: var(--bg-1);
 		border: 1px solid var(--border);
-		font-size: 1rem;
-		line-height: 1;
 		color: var(--txt-3);
 		touch-action: none;
 		-webkit-touch-callout: none;
 		user-select: none;
 	}
 
+	.drag-handle :global(svg) {
+		width: 1rem;
+		height: 1rem;
+	}
+
 	@media (hover: none) {
 		.drag-handle {
-			display: block;
+			display: flex;
 		}
 	}
 

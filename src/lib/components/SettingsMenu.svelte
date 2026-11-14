@@ -4,7 +4,7 @@
 	import { useMutation, useQuery } from '#lib/convex.js';
 	import { getCollectionsContext } from '#lib/context.js';
 	import Dropdown from './Dropdown.svelte';
-	import IconSettings from '~icons/material-symbols-light/settings-outline';
+	import IconSettings from '~icons/material-symbols-light/settings-outline-sharp';
 
 	interface Props {
 		// Without a collection, ingestion settings apply to collection-less adds (home
@@ -82,7 +82,7 @@
 </script>
 
 <div class="settings-menu">
-	<Dropdown label="">
+	<Dropdown label="" title="settings">
 		{#snippet icon()}
 			<IconSettings />
 		{/snippet}

@@ -3,11 +3,12 @@
 
 	interface Props {
 		label: string;
+		title?: string;
 		icon: Snippet;
 		content: Snippet<[() => void]>;
 	}
 
-	let { label, icon, content }: Props = $props();
+	let { label, title, icon, content }: Props = $props();
 
 	let open = $state(false);
 	let containerEl: HTMLDivElement;
@@ -32,7 +33,7 @@
 <svelte:window onkeydown={handleKeydown} onclick={handleClickOutside} />
 
 <div class="dropdown-wrapper" bind:this={containerEl}>
-	<button class="trigger" onclick={() => (open = !open)}>
+	<button class="trigger" {title} onclick={() => (open = !open)}>
 		{@render icon()}
 		{label}
 	</button>

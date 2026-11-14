@@ -1,5 +1,5 @@
 <script lang="ts">
-	import IconTune from '~icons/material-symbols-light/tune';
+	import IconFilter from '~icons/material-symbols-light/filter-alt-outline-sharp';
 	import Dropdown from './Dropdown.svelte';
 
 	interface Source {
@@ -29,7 +29,7 @@
 
 <Dropdown {label}>
 	{#snippet icon()}
-		<IconTune />
+		<IconFilter />
 	{/snippet}
 	{#snippet content()}
 		{#each sections as [group, list] (group)}

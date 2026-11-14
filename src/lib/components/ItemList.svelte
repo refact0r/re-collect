@@ -4,13 +4,13 @@
 	import { shouldDisplayAsImage, getItemUrl, isBusy } from '#lib/itemDisplay.js';
 	import { isWebUrl } from '../../convex/lib/urls.js';
 	import type { DisplayItem } from '#lib/types.js';
-	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
-	import IconError from '~icons/material-symbols-light/error-outline';
-	import IconDelete from '~icons/material-symbols-light/delete-outline';
-	import IconLink from '~icons/material-symbols-light/link';
-	import IconText from '~icons/material-symbols-light/notes';
-	import IconImage from '~icons/material-symbols-light/image-outline';
-	import IconOpenInNew from '~icons/material-symbols-light/open-in-new';
+	import IconSchedule from '~icons/material-symbols-light/schedule-outline-sharp';
+	import IconError from '~icons/material-symbols-light/error-outline-sharp';
+	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
+	import IconLink from '~icons/material-symbols-light/link-sharp';
+	import IconText from '~icons/material-symbols-light/notes-sharp';
+	import IconImage from '~icons/material-symbols-light/image-outline-sharp';
+	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
 
 	const deleteItem = useDeleteItem();
 

@@ -7,7 +7,7 @@
 	import SortDropdown from './SortDropdown.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import type { ViewPrefs } from '#lib/prefs.svelte.js';
-	import IconSearch from '~icons/material-symbols-light/search';
+	import IconSearch from '~icons/material-symbols-light/search-sharp';
 
 	interface Props {
 		// A collection page: adds go into it and manual sort is offered

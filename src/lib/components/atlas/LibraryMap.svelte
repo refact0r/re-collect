@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import IconAdd from '~icons/material-symbols-light/add';
-	import IconRemove from '~icons/material-symbols-light/remove';
-	import IconFit from '~icons/material-symbols-light/fit-screen';
+	import IconAdd from '~icons/material-symbols-light/add-sharp';
+	import IconRemove from '~icons/material-symbols-light/remove-sharp';
+	import IconFit from '~icons/material-symbols-light/fit-screen-sharp';
 	import { api } from '../../../convex/_generated/api.js';
 	import { useAction, useQuery } from '#lib/convex.js';
 	import { getItemUrl, shouldDisplayAsImage } from '#lib/itemDisplay.js';

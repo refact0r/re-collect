@@ -23,30 +23,67 @@
 	});
 </script>
 
-<Modal {onClose} labelledby="discover-title">
-	<div class="media">
-		<DiscoverMedia {candidate} />
-	</div>
-	<h2 id="discover-title">{candidate.title || domain}</h2>
-	<p class="meta">
-		{candidate.sourceName} ·
-		<a href={candidate.url} target="_blank" rel="noopener noreferrer">{domain} <IconOpen /></a>
-	</p>
+<Modal {onClose} labelledby="discover-title" size="wide">
+	<div class="layout">
+		<div class="media">
+			<DiscoverMedia {candidate} />
+		</div>
+		<div class="side">
+			<div>
+				<h2 id="discover-title">{candidate.title || domain}</h2>
+				<p class="meta">
+					{candidate.sourceName} ·
+					<a href={candidate.url} target="_blank" rel="noopener noreferrer">
+						{domain}
+						<IconOpen />
+					</a>
+				</p>
+			</div>
 
-	<p class="meta label">add to</p>
-	<div class="options">
-		{#each options as option, i (option.id)}
-			<!-- svelte-ignore a11y_autofocus -->
-			<button onclick={() => onAdd(option.id)} autofocus={i === 0}>{option.name}</button>
-		{/each}
+			<div class="add">
+				<p class="meta">add to</p>
+				<div class="options">
+					{#each options as option, i (option.id)}
+						<!-- svelte-ignore a11y_autofocus -->
+						<button onclick={() => onAdd(option.id)} autofocus={i === 0}>{option.name}</button>
+					{/each}
+				</div>
+			</div>
+
+			<button class="cancel" onclick={onClose}>cancel</button>
+		</div>
 	</div>
 </Modal>
 
 <style>
+	.layout {
+		display: flex;
+		gap: 1rem;
+		height: 100%;
+	}
+
+	/* Media is shown whole, scaled to fit the pane */
 	.media {
-		max-height: 60vh;
-		overflow-y: auto;
-		margin-bottom: 0.75rem;
+		flex: 1;
+		min-width: 0;
+		display: grid;
+		place-items: center;
+		container-type: size;
+	}
+
+	.media :global(:is(img, video)) {
+		width: 100cqw;
+		height: 100cqh;
+		object-fit: contain;
+	}
+
+	.side {
+		width: 20rem;
+		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		min-height: 0;
 	}
 
 	h2 {
@@ -66,20 +103,24 @@
 		height: 1rem;
 	}
 
-	.label {
-		margin-top: 1rem;
-		margin-bottom: 0.5rem;
+	/* The list takes the column's spare height and scrolls only past it */
+	.add {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		min-height: 0;
 	}
 
 	.options {
 		display: flex;
 		flex-direction: column;
-		max-height: 14rem;
+		min-height: 0;
 		overflow-y: auto;
 		border: 1px solid var(--border);
 	}
 
 	.options button {
+		flex-shrink: 0;
 		justify-content: flex-start;
 		border: none;
 		background: transparent;
@@ -95,5 +136,38 @@
 	.options button:focus-visible {
 		background: var(--bg-3);
 		color: var(--txt-1);
+	}
+
+	.cancel {
+		margin-top: auto;
+		flex-shrink: 0;
+	}
+
+	/* The wide modal is full-screen here: stack, and the whole sheet scrolls */
+	@media (max-width: 768px) {
+		.layout {
+			flex-direction: column;
+			height: auto;
+			padding: 1rem;
+		}
+
+		.media {
+			display: block;
+			container-type: normal;
+		}
+
+		.media :global(:is(img, video)) {
+			width: 100%;
+			height: auto;
+			max-height: 70vh;
+		}
+
+		.side {
+			width: auto;
+		}
+
+		.options {
+			overflow-y: visible;
+		}
 	}
 </style>

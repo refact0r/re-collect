@@ -18,8 +18,8 @@
 	import Sidebar from '#lib/components/Sidebar.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { api } from '../../convex/_generated/api.js';
-	import IconMenu from '~icons/material-symbols-light/menu';
-	import IconSearch from '~icons/material-symbols-light/search';
+	import IconMenu from '~icons/material-symbols-light/menu-sharp';
+	import IconSearch from '~icons/material-symbols-light/search-sharp';
 
 	let { children, data } = $props();
 	setupConvex(PUBLIC_CONVEX_URL);

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import IconSort from '~icons/material-symbols-light/sort';
+	import IconSort from '~icons/material-symbols-light/sort-sharp';
 	import Dropdown from './Dropdown.svelte';
 	import type { CollectionSortOption } from '#lib/types.js';
 

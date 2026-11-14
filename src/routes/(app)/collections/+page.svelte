@@ -8,6 +8,7 @@
 	import { pointerDrag } from '#lib/pointerDrag.js';
 	import { getCollectionsContext, type CollectionsData } from '#lib/context.js';
 	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
+	import IconDrag from '~icons/material-symbols-light/drag-indicator-sharp';
 
 	type CollectionCard = CollectionsData[number];
 
@@ -155,9 +156,10 @@
 		</div>
 		{#if withActions}
 			<div class="actions">
-				<span class="icon drag-handle" data-drag-handle aria-hidden="true">⠿</span>
+				<span class="drag-handle" data-drag-handle aria-hidden="true"><IconDrag /></span>
 				<button
 					class="icon danger"
+					aria-label="delete collection"
 					onclick={(e) => {
 						e.preventDefault();
 						e.stopPropagation();
@@ -240,12 +242,15 @@
 	/* A mouse drags the whole card; touch screens get a handle so swipes still scroll */
 	.drag-handle {
 		display: none;
-		font-size: 1rem;
-		line-height: 1;
+		padding: 0.5rem;
 		color: var(--txt-3);
 		touch-action: none;
 		-webkit-touch-callout: none;
 		user-select: none;
+	}
+	.drag-handle :global(svg) {
+		width: 1.5rem;
+		height: 1.5rem;
 	}
 	@media (hover: none) {
 		.drag-handle {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import IconFilterList from '~icons/material-symbols-light/filter-list';
+	import IconFilter from '~icons/material-symbols-light/filter-alt-outline-sharp';
 	import Dropdown from './Dropdown.svelte';
 
 	const UNCOLLECTED = 'uncollected';
@@ -38,7 +38,7 @@
 
 <Dropdown {label}>
 	{#snippet icon()}
-		<IconFilterList />
+		<IconFilter />
 	{/snippet}
 	{#snippet content()}
 		{#each collections as col (col._id)}
