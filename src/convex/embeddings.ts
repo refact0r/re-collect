@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { action, internalMutation, internalQuery, type MutationCtx } from './_generated/server';
-import { EMBEDDING_MODEL, embedQuery } from './lib/embedder';
+import { EMBEDDING_MODEL, embedQuery, embeddingInput, inputKey } from './lib/embedder';
 
 // The database side of item embeddings; the embedding run itself is
 // taggingActions.embedItem (Node, for sharp). One row per item in
@@ -38,18 +38,21 @@ export const getItemForEmbedding = internalQuery({
 
 export const saveEmbedding = internalMutation({
 	args: { itemId: v.id('items'), inputKey: v.string(), embedding: v.array(v.float64()) },
-	handler: async (ctx, { itemId, inputKey, embedding }) => {
-		// Deleted while the run was out
+	handler: async (ctx, { itemId, inputKey: key, embedding }) => {
+		// Deleted, or changed since the run read it (the change scheduled a newer
+		// run, which a slow older one mustn't overwrite)
 		const item = await ctx.db.get(itemId);
-		if (!item) return;
-		await deleteItemEmbeddings(ctx, itemId);
-		await ctx.db.insert('itemEmbeddings', {
-			itemId,
-			userId: item.userId,
-			model: EMBEDDING_MODEL,
-			inputKey,
-			embedding
-		});
+		const input = item && embeddingInput(item);
+		if (!item || !input || (await inputKey(input)) !== key) return;
+
+		const row = { model: EMBEDDING_MODEL, inputKey: key, embedding };
+		const existing = await ctx.db
+			.query('itemEmbeddings')
+			.withIndex('by_item', (q) => q.eq('itemId', itemId))
+			.first();
+		// Patched in place, so the row keeps its spot in by_user for a map read paging past it
+		if (existing) await ctx.db.patch(existing._id, row);
+		else await ctx.db.insert('itemEmbeddings', { itemId, userId: item.userId, ...row });
 	}
 });
 

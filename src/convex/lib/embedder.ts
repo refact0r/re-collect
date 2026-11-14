@@ -40,8 +40,9 @@ type EmbeddingFields = Pick<
 // embed as pixels; text-mode links and notes embed as their words.
 export function embeddingInput(item: EmbeddingFields): EmbeddingInput | null {
 	const textMode = item.taggingMode === 'text';
-	if (item.imageKey && !textMode) return { kind: 'image', imageKey: item.imageKey };
+	// A capture (first or redone) on its way replaces whatever image is there
 	if (item.type === 'url' && !textMode && item.screenshotStatus === 'pending') return null;
+	if (item.imageKey && !textMode) return { kind: 'image', imageKey: item.imageKey };
 	if (textMode && item.taggingStatus === 'pending') return null;
 	return { kind: 'text', text: documentText(item) };
 }

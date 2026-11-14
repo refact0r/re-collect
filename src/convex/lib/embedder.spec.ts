@@ -12,8 +12,11 @@ describe('embeddingInput', () => {
 		).toEqual({ kind: 'image', imageKey: 'b.webp' });
 	});
 
-	it('waits for a link’s first image to land', () => {
+	it('waits for a link’s capture to land, first or redone', () => {
 		expect(embeddingInput({ type: 'url', title: 'x', screenshotStatus: 'pending' })).toBeNull();
+		expect(
+			embeddingInput({ type: 'url', imageKey: 'old.webp', screenshotStatus: 'pending' })
+		).toBeNull();
 	});
 
 	it('falls back to text when a link never got an image', () => {
