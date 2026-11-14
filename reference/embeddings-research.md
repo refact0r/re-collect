@@ -11,8 +11,8 @@ model pick: Voyage turned out to be the weakest fit for vibe search (§1).
 ## Decision (2026-11-14)
 
 **Build on EmbeddingGemma 2 (`google/embeddinggemma-2`, 768 dims) via
-Cloudflare Workers AI (`@cf/google/embeddinggemma-2`).** Nothing is built
-yet.
+Cloudflare Workers AI (`@cf/google/embeddinggemma-2`).** A prototype is
+built; see "Prototype" below.
 
 - **Host:** Cloudflare started serving the model on 2026-11-12.
   - It costs $0.0017/M tokens, and its free tier covers our volume.
@@ -54,6 +54,53 @@ yet.
 - **The benchmark data is ephemeral.** It lived in a session scratchpad and
   is gone. `experiments/embeddings/README.md` has the commands to rebuild
   it from a fresh read-only prod export. Prod had 95 items on 2026-11-14.
+
+## Prototype (2026-11-14, branch `refact0r/embeddings`)
+
+Built on the decision above, skipping the cosine-parity check (the user's
+call). Three pieces, each its own commit, so search or the map can be
+reverted alone:
+
+- **Pipeline:**
+  - `lib/embedder.ts` calls Workers AI and decides what an item embeds as.
+    - Image items and visual/none links embed as their 1024px JPEG, with no
+      prefix.
+    - Notes, text-mode links and links whose capture failed embed as
+      `title: … | text: …` (subject, og description, notes, styles, tags,
+      content, host).
+  - `taggingActions.embedItem` writes one `itemEmbeddings` row per item.
+  - Every write that can change the input schedules it: add, update,
+    screenshot settle and tagging settle. The run skips items that aren't
+    ready and inputs it has already embedded (`inputKey`), so over-calling
+    is cheap.
+  - Failures are only logged. Use `embeddings:backfill` to fill gaps and
+    after a model change.
+  - Env: `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` (see `ops.md`).
+- **Hybrid search (`/search`):**
+  - `embeddings.search` returns the 64 nearest item ids. Query embedding
+    takes 0.3–1.4 s, measured from a local backend.
+  - Keyword matches stay the results. They're re-ranked by reciprocal rank
+    fusion (k = 60) with their nearest-neighbour rank, and up to 24
+    unmatched nearest items follow as "+ N similar".
+  - Scores sit in a ~0.10 band whatever the query (nonsense tops out at
+    0.65, like real queries), so they never filter. A nonsense query
+    therefore shows "no exact matches + 24 similar".
+- **Library map (`/atlas`):**
+  - `embeddingMapActions.refresh` runs UMAP (umap-js; cosine,
+    nNeighbors ≤ 15, minDist 0.2, seeded) in a Node action.
+  - It Procrustes-aligns the result to the previous layout and caches it in
+    `embeddingMaps`, one doc per user, capped at 8,192 points.
+  - Opening the atlas calls refresh. It's a no-op when the signature of
+    `itemId:inputKey` pairs is unchanged, but it still reads every vector
+    to compute that.
+- **Known gaps / next steps:**
+  - The map's staleness check reads all vectors on each visit, about 6 KB
+    an item. Before large libraries, add a cheap staleness marker.
+  - There's no "find similar" in the item modal yet.
+  - Prod isn't backfilled or deployed.
+  - It was tested on a local Convex backend seeded from a dev snapshot.
+    The shared cloud dev deployment kept being re-pushed by another
+    checkout's watcher.
 
 ## TL;DR — recommendation
 
