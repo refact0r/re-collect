@@ -10,11 +10,14 @@
 
 import type * as collections from "../collections.js";
 import type * as crons from "../crons.js";
+import type * as discovery from "../discovery.js";
+import type * as discoveryKeep from "../discoveryKeep.js";
 import type * as imageImport from "../imageImport.js";
 import type * as itemCollectionPositions from "../itemCollectionPositions.js";
 import type * as items from "../items.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_colorNames from "../lib/colorNames.js";
+import type * as lib_discoverySources from "../lib/discoverySources.js";
 import type * as lib_fonts from "../lib/fonts.js";
 import type * as lib_searchText from "../lib/searchText.js";
 import type * as lib_tagger from "../lib/tagger.js";
@@ -36,11 +39,14 @@ import type {
 declare const fullApi: ApiFromModules<{
   collections: typeof collections;
   crons: typeof crons;
+  discovery: typeof discovery;
+  discoveryKeep: typeof discoveryKeep;
   imageImport: typeof imageImport;
   itemCollectionPositions: typeof itemCollectionPositions;
   items: typeof items;
   "lib/auth": typeof lib_auth;
   "lib/colorNames": typeof lib_colorNames;
+  "lib/discoverySources": typeof lib_discoverySources;
   "lib/fonts": typeof lib_fonts;
   "lib/searchText": typeof lib_searchText;
   "lib/tagger": typeof lib_tagger;

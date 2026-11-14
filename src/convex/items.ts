@@ -18,7 +18,7 @@ import {
 	type ViewerQueryCtx
 } from './lib/auth';
 import { buildSearchText, patchItem } from './lib/searchText';
-import { isWebUrl } from './lib/urls';
+import { isWebUrl, normalizeUrl } from './lib/urls';
 import { enqueueScreenshot } from './screenshots';
 import { enqueueTagging } from './tagging';
 import { getPreferences } from './viewPreferences';
@@ -166,6 +166,7 @@ export const add = userMutation({
 			description: args.description,
 			ogDescription: args.ogDescription,
 			url: args.url,
+			normUrl: args.url ? normalizeUrl(args.url) : undefined,
 			content: args.content,
 			imageKey: args.imageKey,
 			imageWidth: args.imageWidth,
@@ -222,12 +223,13 @@ export const update = userMutation({
 
 		// Omitted fields stay as they are; values are trimmed and a blank one
 		// clears the field (patching a field to undefined removes it)
-		const updates: Partial<Pick<Doc<'items'>, keyof typeof fields>> = {};
+		const updates: Partial<Pick<Doc<'items'>, keyof typeof fields | 'normUrl'>> = {};
 		for (const key of ['title', 'description', 'url', 'content'] as const) {
 			const value = fields[key];
 			if (value !== undefined) updates[key] = value.trim() || undefined;
 		}
 		if (updates.url && !isWebUrl(updates.url)) throw new ConvexError(LINK_ERROR);
+		if ('url' in updates) updates.normUrl = updates.url && normalizeUrl(updates.url);
 
 		await patchItem(ctx, existing, { ...updates, dateModified: Date.now() });
 	}
@@ -372,8 +374,8 @@ export const searchCollection = viewerQuery({
 	}
 });
 
-// One-shot backfill after buildSearchText's inputs change: recomputes every
-// item's searchText from its current fields, a page per transaction.
+// One-shot backfill after buildSearchText's or normalizeUrl's inputs change:
+// recomputes every item's searchText and normUrl, a page per transaction.
 // Run with `npx convex run items:rebuildSearchText` (add --prod for production)
 export const rebuildSearchText = internalMutation({
 	args: { cursor: v.optional(v.string()) },
@@ -383,7 +385,10 @@ export const rebuildSearchText = internalMutation({
 			.paginate({ numItems: 100, cursor: args.cursor ?? null });
 		for (const item of page) {
 			const searchText = buildSearchText(item);
-			if (searchText !== item.searchText) await ctx.db.patch(item._id, { searchText });
+			const normUrl = item.url ? normalizeUrl(item.url) : undefined;
+			if (searchText !== item.searchText || normUrl !== item.normUrl) {
+				await ctx.db.patch(item._id, { searchText, normUrl });
+			}
 		}
 		if (!isDone) {
 			await ctx.scheduler.runAfter(0, internal.items.rebuildSearchText, {

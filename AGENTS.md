@@ -2,7 +2,7 @@
 
 A personal web application for collecting, organizing, and rediscovering design inspiration, web screenshots, articles, and visual references. Similar to Are.na.
 
-Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads/serving), `icons.md` (icon system), `ops.md` (external configuration, env vars, deploys), `multi-user.md` (user scoping, auth options), `design-tokens.md` (site font extraction), `TODO.md` (future ideas).
+Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads/serving), `icons.md` (icon system), `ops.md` (external configuration, env vars, deploys), `multi-user.md` (user scoping, auth options), `design-tokens.md` (site font extraction), `discovery-research.md` (discovery feed: sources, fetching, ranking; raw notes in `discovery-notes/`), `TODO.md` (future ideas).
 
 `experiments/tagging/` is the sandbox for the AI tagging feature; `architecture.md` there describes the shipped pipeline.
 
@@ -40,6 +40,7 @@ Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads
 - **Manual ordering**: Fractional indexing (lexicographical position strings) — `collections.position` for collections, `itemCollectionPositions` table for items within a collection
 - **Collection membership**: `item.collections` (denormalized array), `itemCollectionPositions` (junction table) and `collections.itemCount` must stay in sync — always go through `addItemToCollection` / `removeItemFromCollection` in `itemCollectionPositions.ts`
 - **`searchText` is derived**: combined from title + description (user notes) + ogDescription + url + text-item content (capped) + AI-tagging output (subject, styles, aiTags) + paletteNames + font names (`fontSearchTerms` over `items.fonts`); any write to those fields goes through `patchItem(ctx, item, fields)` in `src/convex/lib/searchText.ts` (or sets `searchText: buildSearchText({ ...item, ...fields })` itself); `items:rebuildSearchText` backfills every item after its inputs change
+- **`normUrl` is derived too**: `normalizeUrl(url)` (`src/convex/lib/urls.ts`), set by `items.add` / `update` and backfilled by `items:rebuildSearchText`; the `by_user_normUrl` index answers "is this link already saved?" (the discovery feed uses it)
 - **Errors**: throw `ConvexError('<short lowercase message>')` for failures a user should read (prod clients only see "Server Error" for a plain `Error`); plain `Error` for internal invariants. `ConvexError('Unauthorized')` means a dead session
 - **Prose field ownership**: `description` is user notes (never machine-written), `ogDescription` is captured by the worker or the extension, `subject` is AI-generated; display shows `subject ?? ogDescription`
 - **R2 images served via public custom domain** (`R2_PUBLIC_URL` env var): URLs are stable `${R2_PUBLIC_URL}/${imageKey}`, no presigning; R2 keys are immutable, never overwrite one. Image keys reach `items.add` only via the caller's own `uploads` row (minted by `r2.generateUploadUrl`), since deleting an item deletes its object

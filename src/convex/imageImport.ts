@@ -13,7 +13,7 @@ const FETCH_TIMEOUT_MS = 30_000;
 const MAX_IMAGE_BYTES = 30 * 1024 * 1024;
 
 // Accepts http(s) and data: URLs
-async function fetchImage(imageUrl: string, pageUrl?: string) {
+export async function fetchImage(imageUrl: string, pageUrl?: string) {
 	const response = await fetch(imageUrl, {
 		// Referer gets past basic hotlink protection on most CDNs
 		headers: pageUrl ? { Referer: pageUrl } : {},
@@ -34,7 +34,7 @@ async function fetchImage(imageUrl: string, pageUrl?: string) {
 
 // Same path as the app's uploads, so the key gets the caller's `uploads` row
 // that items.add requires
-async function upload(ctx: ActionCtx, image: Image, token: string) {
+export async function upload(ctx: ActionCtx, image: Image, token: string) {
 	const { url, key } = await ctx.runMutation(api.r2.generateUploadUrl, { token });
 	const response = await fetch(url, {
 		method: 'PUT',

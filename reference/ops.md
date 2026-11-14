@@ -18,6 +18,7 @@ Set with `npx convex env set <name> <value>`, list with `npx convex env list`.
 - `CLOUDFLARE_SCREENSHOT_KEY` — bearer token the screenshot worker checks. Must match the worker's `API_KEY` secret.
 - `OPENROUTER_API_KEY` — required for AI image tagging. Used by `lib/tagger.ts` (the `taggingActions` runs) against `https://openrouter.ai/api/v1/chat/completions`.
 - `TAGGING_MODEL` — optional. Defaults to `openai/gpt-6-luna`. Override to swap models without a code change.
+- `ARENA_TOKEN` — optional. An Are.na personal access token for the discovery feed's channel polls (`lib/discoverySources.ts`); without it they run as a guest, limited to 30 requests a minute per (shared) Convex IP.
 
 ## Cloudflare R2
 

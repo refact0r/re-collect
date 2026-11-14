@@ -9,3 +9,20 @@ export function isWebUrl(value: string): boolean {
 		return false;
 	}
 }
+
+// One key per page, for spotting the same link twice (items, discovery
+// candidates): no protocol, www, trailing slash, hash or tracking params
+export function normalizeUrl(value: string): string {
+	try {
+		const url = new URL(value);
+		url.hash = '';
+		for (const param of [...url.searchParams.keys()]) {
+			if (/^(ref|utm_.*|via|source)$/i.test(param)) url.searchParams.delete(param);
+		}
+		const host = url.hostname.replace(/^www\./, '').toLowerCase();
+		const path = url.pathname.replace(/\/+$/, '');
+		return `${host}${path}${url.search}`;
+	} catch {
+		return value;
+	}
+}

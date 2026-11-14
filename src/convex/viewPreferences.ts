@@ -26,7 +26,8 @@ export const set = userMutation({
 		filterCollectionIds: v.optional(v.array(v.id('collections'))),
 		includeUncollected: v.optional(v.boolean()),
 		taggingMode: v.optional(taggingModeValidator),
-		linkImageMode: v.optional(linkImageModeValidator)
+		linkImageMode: v.optional(linkImageModeValidator),
+		hiddenSources: v.optional(v.array(v.string()))
 	},
 	handler: async (ctx, args) => {
 		const { key, ...updates } = args;

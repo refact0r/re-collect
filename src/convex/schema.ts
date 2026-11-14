@@ -69,6 +69,7 @@ export default defineSchema({
 		// there's no AI subject, and a search-token source
 		ogDescription: v.optional(v.string()),
 		url: v.optional(v.string()),
+		normUrl: v.optional(v.string()), // normalizeUrl(url) in lib/urls.ts, for spotting a saved link
 		content: v.optional(v.string()), // For text items
 		imageKey: v.optional(v.string()), // R2 object key for uploaded images
 		imageWidth: v.optional(v.number()), // Image dimensions for masonry layout
@@ -106,6 +107,7 @@ export default defineSchema({
 	})
 		.index('by_user_dateAdded', ['userId', 'dateAdded'])
 		.index('by_user_dateModified', ['userId', 'dateModified'])
+		.index('by_user_normUrl', ['userId', 'normUrl'])
 		.searchIndex('search_items', {
 			searchField: 'searchText',
 			filterFields: ['userId']
@@ -140,8 +142,46 @@ export default defineSchema({
 		includeUncollected: v.optional(v.boolean()),
 		// Ingestion defaults for collection-less adds (stored on the "home" row)
 		taggingMode: v.optional(taggingModeValidator),
-		linkImageMode: v.optional(linkImageModeValidator)
+		linkImageMode: v.optional(linkImageModeValidator),
+		// Discovery sources turned off in this user's feed (the "discover" row)
+		hiddenSources: v.optional(v.array(v.string()))
 	}).index('by_user_key', ['userId', 'key']),
+
+	// Discovery feed (prototype, see discovery.ts). The sources are a curated
+	// list in code (lib/discoverySources.ts); these rows hold their poll state.
+	// Candidates are shared by every user; what each user did with one is theirs.
+	discoverySources: defineTable({
+		key: v.string(), // SOURCES[].key
+		lastPolledAt: v.optional(v.number()),
+		lastError: v.optional(v.string())
+	}).index('by_key', ['key']),
+
+	discoveryCandidates: defineTable({
+		sourceKey: v.string(),
+		externalId: v.string(),
+		normUrl: v.string(), // lib/discoverySources.ts normalizeUrl; one candidate per page
+		kind: v.union(v.literal('site'), v.literal('image')),
+		url: v.string(),
+		title: v.optional(v.string()),
+		description: v.optional(v.string()),
+		author: v.optional(v.string()),
+		tags: v.optional(v.array(v.string())),
+		imageUrl: v.string(), // The source's own media, hotlinked until kept
+		imageWidth: v.optional(v.number()),
+		imageHeight: v.optional(v.number()),
+		videoUrl: v.optional(v.string()),
+		publishedAt: v.number()
+	})
+		.index('by_normUrl', ['normUrl'])
+		.index('by_source_published', ['sourceKey', 'publishedAt'])
+		.index('by_source_externalId', ['sourceKey', 'externalId']),
+
+	discoveryStates: defineTable({
+		userId: v.id('users'),
+		candidateId: v.id('discoveryCandidates'),
+		state: v.union(v.literal('kept'), v.literal('skipped')),
+		itemId: v.optional(v.id('items'))
+	}).index('by_user_candidate', ['userId', 'candidateId']),
 
 	// Junction table for per-collection item ordering. Unscoped: rows are only
 	// reached through an owned item or collection, and both sides share an owner.

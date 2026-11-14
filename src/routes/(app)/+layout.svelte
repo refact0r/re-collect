@@ -193,6 +193,9 @@
 					>collections</a
 				>
 				<a href="/atlas" class="nav-link" class:active={page.url.pathname === '/atlas'}>atlas</a>
+				<a href="/discover" class="nav-link" class:active={page.url.pathname === '/discover'}
+					>discover</a
+				>
 			</div>
 			<div class="nav-search">
 				<IconSearch />
