@@ -11,7 +11,6 @@
 	import type { DisplayItem } from '#lib/types.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline-sharp';
 	import IconError from '~icons/material-symbols-light/error-outline-sharp';
-	import IconDrag from '~icons/material-symbols-light/drag-indicator-sharp';
 
 	const mutate = useMutation();
 	const deleteItem = useDeleteItem();
@@ -368,12 +367,10 @@
 						class="clickable card"
 						class:titled={showTitles}
 						class:dragging={draggedItem?._id === realItem._id}
+						class:draggable={isDraggable}
 						onpointerdown={isDraggable ? (e) => handlePointerDown(realItem, e) : undefined}
 					>
 						{@render cardContent(realItem)}
-						{#if isDraggable}
-							<span class="drag-handle" data-drag-handle aria-hidden="true"><IconDrag /></span>
-						{/if}
 					</a>
 				{/if}
 			{/each}
@@ -514,30 +511,11 @@
 		white-space: nowrap;
 	}
 
-	/* A mouse drags the whole card; touch screens get a handle so swipes still scroll */
-	.drag-handle {
-		display: none;
-		position: absolute;
-		top: 0.25rem;
-		left: 0.25rem;
-		padding: 0.25rem;
-		background: var(--bg-1);
-		border: 1px solid var(--border);
-		color: var(--txt-3);
-		touch-action: none;
+	/* A long press on touch starts a drag, not a link preview or text selection */
+	.card.draggable {
 		-webkit-touch-callout: none;
+		-webkit-user-select: none;
 		user-select: none;
-	}
-
-	.drag-handle :global(svg) {
-		width: 1rem;
-		height: 1rem;
-	}
-
-	@media (hover: none) {
-		.drag-handle {
-			display: flex;
-		}
 	}
 
 	.placeholder {
