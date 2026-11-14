@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { dev } from '$app/env';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { onDestroy } from 'svelte';
@@ -17,11 +16,14 @@
 		getCurrentItemsContext
 	} from '#lib/context.js';
 	import type { CollectionSortOption } from '#lib/types.js';
+	import { pageTitle } from '#lib/pageTitle.svelte.js';
 
 	let { data } = $props();
 
 	const client = useConvexClient();
 	const getWriteToken = getWriteTokenContext();
+	// The viewer queries' optional token; mutations use getWriteToken(), which
+	// throws for a logged-out visitor
 	const token = $derived(data.writeToken ?? undefined);
 	const collectionId = $derived(page.params.id as Id<'collections'>);
 	const ownCollections = getCollectionsContext();
@@ -39,6 +41,11 @@
 	const collection = $derived(own ?? other.data);
 	const isOwner = $derived(!!own);
 	const isLoading = $derived(ownCollections.isLoading || other.isLoading);
+
+	$effect(() => {
+		pageTitle.value = collection?.name ?? null;
+		return () => (pageTitle.value = null);
+	});
 
 	// Everyone starts from the owner's saved view settings. The owner's changes
 	// save to the collection; anyone else's stay on this page. A local value
@@ -64,14 +71,19 @@
 		);
 	}
 
-	const items = useQuery(api.items.listByCollection, () => ({ collectionId, sortBy, token }));
+	// Waits for the collection, so a malformed or private id never reaches the
+	// id-validated item queries
+	const items = useQuery(api.items.listByCollection, () =>
+		collection ? { collectionId, sortBy, token } : 'skip'
+	);
 
 	// Visitors search within the collection (?q=); the box writes the URL after a
-	// pause, and follows it when something else changes it (a tag link, back)
-	const query = $derived(page.url.searchParams.get('q')?.trim() ?? '');
+	// pause, and follows it when something else changes it (a tag link, back).
+	// The owner has no box (their tag links go to /search), so ignores it.
+	const query = $derived(isOwner ? '' : (page.url.searchParams.get('q')?.trim() ?? ''));
 	const results = useQuery(
 		api.items.searchCollection,
-		() => (query ? { collectionId, query, token } : 'skip'),
+		() => (collection && query ? { collectionId, query, token } : 'skip'),
 		{ keepPreviousData: true }
 	);
 	let searchInput = $derived(query);
@@ -176,9 +188,6 @@
 </script>
 
 <svelte:head>
-	{#if collection}
-		<title>{dev ? 'DEV ' : ''}{collection.name} · re-collect</title>
-	{/if}
 	<!-- Link previews; only logged-out requests (crawlers included) load these -->
 	{#if data.collection}
 		<meta property="og:title" content={data.collection.name} />

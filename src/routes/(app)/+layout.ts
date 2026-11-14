@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { loginHref } from '#lib/login.js';
 import type { LayoutLoad } from './$types';
 
 // Logged-out visitors may only open shared collections; every other page is the
@@ -7,12 +8,7 @@ import type { LayoutLoad } from './$types';
 // redirect) only without a token, so a signed-in user never re-runs it.
 export const load: LayoutLoad = ({ data, route, url }) => {
 	if (!data.writeToken && route.id !== '/(app)/collections/[id]') {
-		redirect(
-			303,
-			url.pathname === '/'
-				? '/login'
-				: `/login?next=${encodeURIComponent(url.pathname + url.search)}`
-		);
+		redirect(303, loginHref(url));
 	}
 	return data;
 };

@@ -10,6 +10,7 @@
 	} from '#lib/context.js';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { loginHref } from '#lib/login.js';
 
 	import Logo from '#lib/assets/logo.svelte';
 	import ItemModal from '#lib/components/ItemModal.svelte';
@@ -51,7 +52,7 @@
 
 	// An ended session (signed out elsewhere, users:signOut) fails every query
 	$effect(() => {
-		if (collections.error?.message.includes('Unauthorized')) goto('/login');
+		if (collections.error?.message.includes('Unauthorized')) goto(loginHref(page.url));
 	});
 
 	const editItemId = $derived(page.url.searchParams.get('item') as Id<'items'> | null);
@@ -69,7 +70,10 @@
 		if (debounceTimer) clearTimeout(debounceTimer);
 	});
 
-	const searchQuery = $derived(page.url.searchParams.get('q') ?? '');
+	// Only the search page's query; a shared collection's ?q= is its own search
+	const searchQuery = $derived(
+		page.url.pathname === '/search' ? (page.url.searchParams.get('q') ?? '') : ''
+	);
 
 	function handleSearchFocus() {
 		if (page.url.pathname !== '/search') {
@@ -118,7 +122,7 @@
 				<div class="logo"><Logo /></div>
 				<span class="wordmark">re-collect</span>
 			</div>
-			<a href="/login?next={encodeURIComponent(page.url.pathname)}" class="nav-link">log in</a>
+			<a href={loginHref(page.url)} class="nav-link">log in</a>
 		</nav>
 	</header>
 

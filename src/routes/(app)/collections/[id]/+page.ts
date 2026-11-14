@@ -12,5 +12,6 @@ export const load: PageLoad = async ({ params, parent, fetch }) => {
 	const { writeToken } = await parent();
 	if (writeToken) return { collection: null };
 	const convex = new ConvexHttpClient(PUBLIC_CONVEX_URL, { fetch });
-	return { collection: await convex.query(api.collections.get, { id: params.id }) };
+	const collection = await convex.query(api.collections.get, { id: params.id });
+	return { collection, title: collection?.name };
 };

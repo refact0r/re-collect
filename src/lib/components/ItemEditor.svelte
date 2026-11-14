@@ -6,6 +6,7 @@
 	import type { DisplayItem } from '#lib/types.js';
 	import { mutate } from '#lib/mutationHelper.js';
 	import { fontDisplayName, fontQuery } from '../../convex/lib/fonts.js';
+	import { isWebUrl } from '../../convex/lib/urls.js';
 	import { getCollectionsContext, getWriteTokenContext } from '#lib/context.js';
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
 	import IconCheck from '~icons/material-symbols/check';
@@ -36,6 +37,7 @@
 	let url = $state('');
 	let content = $state('');
 	let initialized = $state(false);
+	const urlValid = $derived(!url || isWebUrl(url));
 
 	$effect(() => {
 		if (!initialized) {
@@ -62,7 +64,8 @@
 					id: itemId,
 					title,
 					description,
-					url,
+					// An invalid link keeps the saved one
+					url: urlValid ? url : undefined,
 					content,
 					token
 				});
@@ -151,21 +154,28 @@
 				</label>
 			{/if}
 
-			<label>
-				{item.type === 'url' ? 'url' : 'source url'}
-				<div class="url-input-row">
-					<input type="url" bind:value={url} {readonly} />
-					<a
-						href={url}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="icon-filled"
-						aria-label="open url"
-					>
-						<IconOpenInNew />
-					</a>
-				</div>
-			</label>
+			{#if !readonly || url}
+				<label>
+					{item.type === 'url' ? 'url' : 'source url'}
+					<div class="url-input-row">
+						<input type="url" bind:value={url} {readonly} />
+						{#if urlValid && url}
+							<a
+								href={url}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="icon-filled"
+								aria-label="open url"
+							>
+								<IconOpenInNew />
+							</a>
+						{/if}
+					</div>
+					{#if !urlValid && !readonly}
+						<span class="status-text">links must start with http:// or https://</span>
+					{/if}
+				</label>
+			{/if}
 
 			{#if !readonly}
 				<div class="collections-field">

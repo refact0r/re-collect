@@ -16,6 +16,7 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_colorNames from "../lib/colorNames.js";
 import type * as lib_fonts from "../lib/fonts.js";
 import type * as lib_searchText from "../lib/searchText.js";
+import type * as lib_urls from "../lib/urls.js";
 import type * as migrations_001_add_positions from "../migrations/001_add_positions.js";
 import type * as migrations_002_remove_collection_descriptions from "../migrations/002_remove_collection_descriptions.js";
 import type * as migrations_003_add_search_text from "../migrations/003_add_search_text.js";
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   "lib/colorNames": typeof lib_colorNames;
   "lib/fonts": typeof lib_fonts;
   "lib/searchText": typeof lib_searchText;
+  "lib/urls": typeof lib_urls;
   "migrations/001_add_positions": typeof migrations_001_add_positions;
   "migrations/002_remove_collection_descriptions": typeof migrations_002_remove_collection_descriptions;
   "migrations/003_add_search_text": typeof migrations_003_add_search_text;

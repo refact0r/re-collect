@@ -68,6 +68,7 @@ describe('shared collections', () => {
 			const [item] = await t.query(api.items.listByCollection, { collectionId, token });
 			expect(item).toMatchObject({ title: 'poster note', collections: [] });
 			expect(item.searchText).toBeUndefined();
+			expect(item.userId).toBeUndefined();
 
 			const found = await t.query(api.items.searchCollection, {
 				collectionId,
@@ -89,6 +90,25 @@ describe('shared collections', () => {
 		).toEqual([]);
 	});
 
+	test("searching a shared collection skips the owner's matches elsewhere", async () => {
+		const { t, owner, other, collectionId, privateId, share } = await setup();
+		await share(true);
+		await t.mutation(api.items.add, {
+			type: 'text',
+			title: 'poster draft',
+			content: 'private',
+			collections: [privateId],
+			token: owner
+		});
+
+		const found = await t.query(api.items.searchCollection, {
+			collectionId,
+			query: 'poster',
+			token: other
+		});
+		expect(found.map((item) => item.title)).toEqual(['poster note']);
+	});
+
 	test('unsharing cuts visitors off and only the owner can share', async () => {
 		const { t, other, collectionId, share } = await setup();
 		await share(true);
@@ -103,5 +123,16 @@ describe('shared collections', () => {
 	test('a malformed id from the URL is just not found', async () => {
 		const { t } = await setup();
 		expect(await t.query(api.collections.get, { id: 'not-an-id' })).toBeNull();
+	});
+
+	test('item links must be http(s)', async () => {
+		const { t, owner, itemId } = await setup();
+		await expect(
+			t.mutation(api.items.add, { type: 'url', url: 'javascript:alert(1)', token: owner })
+		).rejects.toThrow('http');
+		await expect(
+			t.mutation(api.items.update, { id: itemId, url: 'data:text/html,hi', token: owner })
+		).rejects.toThrow('http');
+		await t.mutation(api.items.update, { id: itemId, url: '', token: owner });
 	});
 });

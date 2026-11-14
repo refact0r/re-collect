@@ -111,7 +111,8 @@ const PREVIEW_SCAN = 24;
 
 async function getCollectionPreviews(
 	ctx: QueryCtx,
-	collectionId: Id<'collections'>
+	collectionId: Id<'collections'>,
+	limit = PREVIEW_LIMIT
 ): Promise<Array<{ _id: Id<'items'>; imageUrl: string; type: 'image' | 'url' }>> {
 	const recent = await ctx.db
 		.query('itemCollectionPositions')
@@ -121,7 +122,7 @@ async function getCollectionPreviews(
 
 	const previews: Array<{ _id: Id<'items'>; imageUrl: string; type: 'image' | 'url' }> = [];
 	for (const position of recent) {
-		if (previews.length >= PREVIEW_LIMIT) break;
+		if (previews.length >= limit) break;
 		const item = await ctx.db.get(position.itemId);
 		if (!item) continue;
 		const displayable =
@@ -166,7 +167,7 @@ export const get = viewerQuery({
 		const collection = id && (await getViewable(ctx, id));
 		if (!collection) return null;
 		const owner = await ctx.db.get(collection.userId);
-		const [cover] = await getCollectionPreviews(ctx, collection._id);
+		const [cover] = await getCollectionPreviews(ctx, collection._id, 1);
 		return {
 			_id: collection._id,
 			name: collection.name,

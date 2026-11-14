@@ -4,6 +4,7 @@
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { mutate } from '#lib/mutationHelper.js';
 	import { getWriteTokenContext } from '#lib/context.js';
+	import { isWebUrl } from '../../convex/lib/urls.js';
 	import IconUpload from '~icons/material-symbols-light/upload-sharp';
 
 	interface Props {
@@ -52,15 +53,6 @@
 		});
 	}
 
-	function isUrl(str: string): boolean {
-		try {
-			new URL(str);
-			return true;
-		} catch {
-			return false;
-		}
-	}
-
 	function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
 		return new Promise((resolve) => {
 			const img = new Image();
@@ -83,7 +75,7 @@
 		isAdding = true;
 		try {
 			const result = await mutate(writeToken, (token) => {
-				if (isUrl(value)) {
+				if (isWebUrl(value)) {
 					return client.mutation(api.items.add, {
 						type: 'url',
 						url: value,

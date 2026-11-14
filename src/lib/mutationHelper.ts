@@ -1,5 +1,7 @@
 import type { ConvexClient } from 'convex/browser';
 import { goto } from '$app/navigation';
+import { page } from '$app/state';
+import { loginHref } from '#lib/login.js';
 import { api } from '../convex/_generated/api.js';
 import type { Id } from '../convex/_generated/dataModel.js';
 
@@ -13,7 +15,7 @@ export async function mutate<T>(
 		return await fn(token);
 	} catch (e) {
 		if (e instanceof Error && e.message.includes('Unauthorized')) {
-			await goto('/login');
+			await goto(loginHref(page.url));
 			return null;
 		}
 		throw e;

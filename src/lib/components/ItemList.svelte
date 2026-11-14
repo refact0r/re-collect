@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { shouldDisplayAsImage, getItemUrl } from '#lib/itemDisplay.js';
+	import { isWebUrl } from '../../convex/lib/urls.js';
 	import type { DisplayItem } from '#lib/types.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline';
 	import IconError from '~icons/material-symbols-light/error-outline';
@@ -72,7 +73,7 @@
 					<span class="item-description">{getSecondaryText(item)}</span>
 				{/if}
 			</a>
-			{#if item.url}
+			{#if item.url && isWebUrl(item.url)}
 				<button class="icon link" title="Open link" onclick={(e) => handleOpenLink(item.url!, e)}>
 					<IconOpenInNew />
 				</button>

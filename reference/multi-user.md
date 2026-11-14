@@ -101,8 +101,18 @@ or that's shared, else null, so a private collection looks missing. Three
 queries use it: `collections.get` (display fields, owner username, cover image),
 `items.listByCollection` and `items.searchCollection` (the owner's search
 index, narrowed to the collection). For anyone but the owner, items come back
-without `collections` (which would reveal the owner's other collection ids),
-error messages or `searchText`.
+with only `VISITOR_FIELDS` (what the page shows, notes included) and an empty
+`collections` (which would reveal the owner's other collection ids); a field
+added to `items` later stays owner-only until it's listed there.
+
+`searchCollection` scans the first 256 hits of the owner's whole index and
+keeps the collection's members, so in a large library a broad query can miss
+members ranked below that. Search filter fields can't match inside an array,
+so a real fix would need a per-collection search table.
+
+Item links reach visitors' browsers, so they must be http(s): `items.add` /
+`update` reject other schemes (`javascript:` and the like), and the UI links
+only ones that pass, for rows saved before the check.
 
 A logged-out request for a collection page loads it during SSR (`+page.ts`)
 for link-preview meta tags (`og:title`, `og:image` from the newest image). It

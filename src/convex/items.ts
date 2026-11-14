@@ -1,4 +1,4 @@
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 import type { Doc } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { getOwnUpload, r2 } from './r2';
@@ -17,6 +17,7 @@ import {
 	type ViewerQueryCtx
 } from './lib/auth';
 import { buildSearchText } from './lib/searchText';
+import { isWebUrl } from './lib/urls';
 import { enqueueScreenshot } from './screenshots';
 import { getPreferences } from './viewPreferences';
 import {
@@ -38,21 +39,50 @@ export function getImageUrl(item: Doc<'items'>): string | null {
 	return null;
 }
 
-// An item as the caller gets it. Anyone but the owner (a visitor to a shared
-// collection) doesn't see which of the owner's other collections hold it, or
-// the internal error and search fields.
-function forViewer(ctx: ViewerQueryCtx, item: Doc<'items'>) {
-	const shown = { ...item, imageUrl: getImageUrl(item) };
-	if (item.userId === ctx.viewerId) return shown;
+// The item fields a visitor to someone else's shared collection gets: what the
+// page shows. Anything else (the owner's other collections, user id, errors,
+// search fields, fields added later) stays with the owner.
+const VISITOR_FIELDS = [
+	'_id',
+	'_creationTime',
+	'type',
+	'title',
+	'description',
+	'ogDescription',
+	'url',
+	'content',
+	'imageWidth',
+	'imageHeight',
+	'screenshotStatus',
+	'styles',
+	'subject',
+	'aiTags',
+	'paletteHex',
+	'fonts',
+	'taggingStatus',
+	'dateAdded',
+	'dateModified'
+] as const satisfies readonly (keyof Doc<'items'>)[];
+
+// An item as a listing returns it: the whole doc for its owner, the visitor
+// fields (and an empty `collections`) for anyone else
+export type ShownItem = Partial<Doc<'items'>> &
+	Pick<Doc<'items'>, (typeof VISITOR_FIELDS)[number] | 'collections'> & {
+		imageUrl: string | null;
+	};
+
+function forViewer(ctx: ViewerQueryCtx, item: Doc<'items'>): ShownItem {
+	const imageUrl = getImageUrl(item);
+	if (item.userId === ctx.viewerId) return { ...item, imageUrl };
+	const shown = Object.fromEntries(VISITOR_FIELDS.map((field) => [field, item[field]]));
 	return {
-		...shown,
+		...(shown as Pick<Doc<'items'>, (typeof VISITOR_FIELDS)[number]>),
 		collections: [],
-		screenshotError: undefined,
-		taggingError: undefined,
-		taggingModelVersion: undefined,
-		searchText: undefined
+		imageUrl
 	};
 }
+
+const LINK_ERROR = 'links must start with http:// or https://';
 
 export const add = userMutation({
 	args: {
@@ -71,6 +101,7 @@ export const add = userMutation({
 		linkImageMode: v.optional(linkImageModeValidator)
 	},
 	handler: async (ctx, args) => {
+		if (args.url && !isWebUrl(args.url)) throw new ConvexError(LINK_ERROR);
 		const now = Date.now();
 		const collections = args.collections ?? [];
 		const ownedCollections = await Promise.all(collections.map((id) => getOwned(ctx, id)));
@@ -179,6 +210,7 @@ export const update = userMutation({
 	},
 	handler: async (ctx, args) => {
 		const { id, collections, ...updates } = args;
+		if (args.url && !isWebUrl(args.url)) throw new ConvexError(LINK_ERROR);
 		const existing = await getOwned(ctx, id);
 		if (!existing) throw new Error('Item not found');
 

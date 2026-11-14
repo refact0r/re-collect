@@ -27,14 +27,15 @@
 		showIngestion && !collectionId ? { key: 'home', token: writeToken } : 'skip'
 	);
 
-	const source = $derived(
+	const collection = $derived(
 		collectionId
-			? ((collections.data ?? []).find((c: Doc<'collections'>) => c._id === collectionId) ?? null)
-			: homePrefs.data
+			? (collections.data?.find((c: Doc<'collections'>) => c._id === collectionId) ?? null)
+			: null
 	);
+	const source = $derived(collectionId ? collection : homePrefs.data);
 	const taggingMode = $derived(source?.taggingMode ?? 'visual');
 	const linkImageMode = $derived(source?.linkImageMode ?? 'screenshot');
-	const shared = $derived(!!(source && 'shared' in source && source.shared));
+	const shared = $derived(!!collection?.shared);
 
 	const taggingOptions = [
 		{ value: 'visual', label: 'visual' },
