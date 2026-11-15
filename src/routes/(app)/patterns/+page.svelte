@@ -409,6 +409,12 @@
 		min-width: 0;
 	}
 
+	.region-title .meta {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
 	/* Lately */
 
 	.shifts {
