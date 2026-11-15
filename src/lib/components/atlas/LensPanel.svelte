@@ -322,15 +322,15 @@
 		display: flex;
 		flex-direction: column;
 		overflow-y: auto;
-		font-size: 0.8125rem;
+		font-size: var(--text-sm);
 	}
 
 	.top {
 		flex-shrink: 0;
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
-		padding: 0.5rem 0.75rem;
+		gap: var(--space-lg);
+		padding: var(--space-md) var(--panel-pad);
 	}
 
 	.count {
@@ -343,8 +343,8 @@
 		flex-shrink: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 0.375rem;
-		padding: 0.5rem 0.75rem 0.75rem;
+		gap: var(--space-sm);
+		padding: var(--space-md) var(--panel-pad) var(--panel-pad);
 		border-top: 1px solid var(--border);
 	}
 
@@ -357,7 +357,7 @@
 	}
 
 	h3 {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		font-weight: var(--font-weight);
 		letter-spacing: normal;
 		color: var(--txt-3);
@@ -367,7 +367,7 @@
 		padding: 0;
 		border: none;
 		background: transparent;
-		font-size: 0.8125rem;
+		font-size: var(--text-sm);
 		color: var(--txt-3);
 	}
 
@@ -379,25 +379,25 @@
 	.field {
 		width: 100%;
 		min-width: 0;
-		padding: 0.25rem 0.5rem;
-		font-size: 0.8125rem;
+		padding: var(--pad-y-sm) var(--pad-x-sm);
+		font-size: var(--text-sm);
 	}
 
 	.styles-head {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
+		gap: var(--space-lg);
 	}
 
 	.styles-head .field {
 		flex: 1;
-		padding-block: 0.125rem;
+		padding-block: var(--space-2xs);
 	}
 
 	.rows {
 		display: flex;
 		flex-direction: column;
-		margin-inline: -0.375rem;
+		margin-inline: calc(-1 * var(--pad-x-xs));
 	}
 
 	.collection-rows {
@@ -409,13 +409,13 @@
 		flex: 1;
 		min-height: 0;
 		overflow-y: auto;
-		padding-bottom: 0.75rem;
+		padding-bottom: var(--panel-pad);
 	}
 
 	.color-strips {
 		display: flex;
 		flex-direction: column;
-		gap: 0.375rem;
+		gap: var(--space-sm);
 	}
 
 	.swatch {
@@ -426,8 +426,8 @@
 	.row {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.125rem 0.375rem;
+		gap: var(--gap);
+		padding: var(--pad-y-xs) var(--pad-x-xs);
 		cursor: pointer;
 	}
 
@@ -454,7 +454,7 @@
 	}
 
 	.empty {
-		padding: 0.125rem 0.375rem;
+		padding: var(--pad-y-xs) var(--pad-x-xs);
 		color: var(--txt-3);
 	}
 

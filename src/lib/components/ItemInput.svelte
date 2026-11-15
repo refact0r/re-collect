@@ -231,7 +231,7 @@
 <style>
 	.input-wrapper {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--gap);
 		align-items: flex-start;
 	}
 
@@ -239,7 +239,7 @@
 		flex: 1;
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--gap);
 		border: 1px solid var(--border);
 		background: var(--bg-2);
 	}

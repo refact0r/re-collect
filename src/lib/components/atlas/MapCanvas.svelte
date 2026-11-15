@@ -518,9 +518,9 @@
 		/* the layer has no width, so a chip would shrink to its longest word */
 		width: max-content;
 		max-width: 7.5rem;
-		padding: 0.25rem 0.375rem;
+		padding: var(--pad-y-xs) var(--pad-x-xs);
 		border: 1px solid var(--border);
-		font-size: 0.6875rem;
+		font-size: var(--text-xs);
 		line-height: 1.3;
 		color: var(--txt-2);
 		text-decoration: none;
@@ -565,9 +565,9 @@
 
 	.label {
 		z-index: 3;
-		gap: 0.375rem;
-		padding: 0.125rem 0.375rem;
-		font-size: 0.75rem;
+		gap: var(--space-sm);
+		padding: var(--pad-y-xs) var(--pad-x-xs);
+		font-size: var(--text-xs);
 		line-height: 1.4;
 		white-space: nowrap;
 		color: var(--txt-1);
@@ -586,10 +586,10 @@
 		z-index: 4;
 		width: max-content;
 		max-width: 16rem;
-		padding: 0.25rem 0.5rem;
+		padding: var(--pad-y-sm) var(--pad-x-sm);
 		background: var(--bg-1);
 		border: 1px solid var(--border);
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--txt-2);
 		white-space: nowrap;
 		overflow: hidden;

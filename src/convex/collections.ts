@@ -98,7 +98,7 @@ export const remove = userMutation({
 	}
 });
 
-const PREVIEW_LIMIT = 4;
+const PREVIEW_LIMIT = 6;
 // Newest memberships scanned for displayable images; bounds the read set per collection.
 const PREVIEW_SCAN = 24;
 

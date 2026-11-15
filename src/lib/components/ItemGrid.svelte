@@ -37,8 +37,9 @@
 	let containerElement: HTMLDivElement | undefined = $state();
 	let containerWidth = $state(0);
 
-	// Layout constants
-	// Card padding: 0.5rem (8px) on each side, 0.25rem (4px) bottom when a title follows; border: 1px on each side
+	// Layout constants. The card chrome mirrors the CSS and must match it: .card padding is
+	// --card-pad (8px) on each side, --space-xs (4px) at the bottom when titled, plus a 1px
+	// border; TEXT_CARD_PADDING is .text-card's --card-pad on both sides
 	const CARD_BORDER = 2; // 1px * 2
 	const CARD_CHROME_X = 16 + CARD_BORDER; // 8px * 2 + border = 18px
 	const CARD_CHROME_Y_TITLED = 12 + CARD_BORDER; // 8px + 4px + border = 14px
@@ -392,22 +393,22 @@
 <style>
 	.masonry {
 		display: flex;
-		gap: var(--spacing);
+		gap: var(--gutter);
 		width: 100%;
-		padding-bottom: 2rem;
+		padding-bottom: var(--space-2xl);
 	}
 
 	.column {
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		gap: var(--spacing);
+		gap: var(--gutter);
 		min-width: 0;
 	}
 
 	.card {
 		position: relative;
-		padding: 0.5rem;
+		padding: var(--card-pad);
 	}
 
 	.card.dragging {
@@ -416,7 +417,7 @@
 	}
 
 	.card.titled {
-		padding-bottom: 0.25rem;
+		padding-bottom: var(--space-xs);
 	}
 
 	.card img {
@@ -426,7 +427,7 @@
 	}
 
 	.text-card {
-		padding: 0.5rem;
+		padding: var(--card-pad);
 		background: var(--bg-2);
 		overflow-wrap: break-word;
 		overflow: auto;
@@ -447,7 +448,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--gap);
 		aspect-ratio: 1440 / 900;
 		justify-content: center;
 	}
@@ -477,7 +478,7 @@
 	.url-failed {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: var(--gap);
 		aspect-ratio: 1440 / 900;
 	}
 
@@ -485,26 +486,26 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--gap);
 		flex: 1;
 		justify-content: center;
 	}
 
 	.failed-actions {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--gap);
 	}
 
 	.retry-button,
 	.delete-button {
 		flex: 1;
-		padding: 0.25rem 0.5rem;
-		font-size: 0.875rem;
+		padding: var(--pad-y-sm) var(--pad-x-sm);
+		font-size: var(--text-sm);
 	}
 
 	.card-title {
-		padding-top: 0.25rem;
-		font-size: 0.875rem;
+		padding-top: var(--space-xs);
+		font-size: var(--text-sm);
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;

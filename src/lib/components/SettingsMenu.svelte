@@ -163,19 +163,19 @@
 
 	.panel {
 		min-width: 16rem;
-		padding: 0.75rem;
+		padding: var(--space-lg);
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: var(--space-lg);
 	}
 
 	.group {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: var(--gap-sm);
 	}
 
 	.group-label {
-		font-size: 1rem;
+		font-size: var(--text-base);
 	}
 </style>

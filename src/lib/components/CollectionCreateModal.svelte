@@ -119,31 +119,31 @@
 
 <style>
 	h2 {
-		margin: 0 0 1rem 0;
+		margin: 0 0 var(--space-xl) 0;
 	}
 
 	.form {
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: var(--space-lg);
 	}
 
 	.group {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: var(--gap-sm);
 	}
 
 	.group-label {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--txt-3);
 	}
 
 	.actions {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--gap);
 		width: 100%;
-		margin-top: 0.75rem;
+		margin-top: var(--space-lg);
 	}
 
 	.actions button {

@@ -95,7 +95,7 @@
 		width: 15rem;
 		min-width: 15rem;
 		border-right: 1px solid var(--border);
-		padding: var(--spacing);
+		padding: var(--gutter);
 		padding-bottom: 3.5rem;
 		display: flex;
 		flex-direction: column;
@@ -107,7 +107,7 @@
 	aside.collapsed {
 		width: 3rem;
 		min-width: 3rem;
-		padding: var(--spacing) 0.5rem;
+		padding: var(--gutter) var(--space-md);
 		padding-bottom: 3.5rem;
 	}
 
@@ -135,7 +135,7 @@
 		}
 
 		.close-mobile {
-			padding: 0.25rem;
+			padding: var(--pad-y-sm);
 		}
 
 		aside.mobile-open {
@@ -152,13 +152,13 @@
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
-			padding: 0.5rem;
+			padding: var(--space-md);
 			border-bottom: 1px solid var(--border);
 			flex-shrink: 0;
 		}
 
 		.logo {
-			padding: 0 0.5rem;
+			padding: 0 var(--space-md);
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
@@ -172,14 +172,14 @@
 		.main-nav {
 			display: flex;
 			flex-direction: column;
-			padding: var(--spacing);
-			gap: 0.25rem;
+			padding: var(--gutter);
+			gap: var(--gap-sm);
 			border-bottom: 1px solid var(--border);
 			flex-shrink: 0;
 		}
 
 		.collections {
-			padding: var(--spacing);
+			padding: var(--gutter);
 			flex: 1;
 			overflow-y: auto;
 		}
@@ -193,7 +193,7 @@
 		position: absolute;
 		bottom: 0.5rem;
 		right: 0.5rem;
-		padding: 0.25rem;
+		padding: var(--pad-y-sm);
 		width: 2rem;
 	}
 
@@ -210,7 +210,7 @@
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: var(--gap-sm);
 	}
 
 	li a {
@@ -224,10 +224,10 @@
 	}
 
 	.count {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--txt-3);
 		flex-shrink: 0;
-		margin-left: 0.5rem;
+		margin-left: var(--space-md);
 	}
 
 	.collapsed-link {
@@ -238,9 +238,9 @@
 
 	.collapsed-indicator {
 		text-align: center;
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--txt-3);
-		padding: 0.5rem;
+		padding: var(--space-md);
 	}
 
 	.collapsed ul {

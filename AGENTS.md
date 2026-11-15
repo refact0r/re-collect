@@ -47,6 +47,7 @@ Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads
 - **R2 images served via public custom domain** (`R2_PUBLIC_URL` env var): URLs are stable `${R2_PUBLIC_URL}/${imageKey}`, no presigning; R2 keys are immutable, never overwrite one. Image keys reach `items.add` only via the caller's own `uploads` row (minted by `r2.generateUploadUrl`), since deleting an item deletes its object
 - Svelte 5 only - do not use deprecated Svelte features
 - Use global styles/colors from `app.css` (`--bg-*`, `--txt-*`); prefer scoped styles over inline
+- **Spacing and type come from variables** (`:root` in `app.css`), never a raw `rem`/`px` in a `padding`, `gap`, `margin` or `font-size`: use the role when one fits (`--pad-y` / `--pad-x` for controls, `-sm` for compact controls and tooltips, `-xs` for tags, chips and dense rows, `--card-pad` / `--panel-pad` / `--modal-pad`, `--gap` / `--gap-sm`, `--gutter`), else a `--space-*` step; font sizes are `--text-*`. Padding is tighter vertically than horizontally. Component-specific dimensions (widths, icon sizes, offsets) stay literal; anything that must match a control's height is derived (`calc(1.5rem + 2 * var(--pad-y))`)
 
 ## Svelte MCP
 

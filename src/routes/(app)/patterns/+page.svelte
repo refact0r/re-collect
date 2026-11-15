@@ -172,12 +172,12 @@
 			<p class="status-text">too few items on the map to find regions yet</p>
 		{:else}
 			<section>
-				<h3>regions</h3>
+				<h2>regions</h2>
 				<p class="meta">the aesthetics you keep coming back to</p>
 				<div class="regions">
 					{#each regions as region (region.id)}
 						{@const more = moreStyles(region)}
-						<a href="/atlas?region={region.id}" class="clickable region">
+						<a href="/atlas?region={region.id}" class="clickable set-card">
 							<div class="region-head">
 								<div class="region-title">
 									<span>{region.name}</span>
@@ -189,7 +189,7 @@
 							</div>
 							<div class="mosaic">
 								{#each typical(region, 6) as item (item._id)}
-									<div class="tile">{@render thumb(item)}</div>
+									<div>{@render thumb(item)}</div>
 								{/each}
 							</div>
 						</a>
@@ -200,7 +200,7 @@
 			{#if shift && (rising.length > 0 || falling.length > 0)}
 				{@const since = shift.since}
 				<section>
-					<h3>lately</h3>
+					<h2>lately</h2>
 					<p class="meta">
 						your last {shift.count} saves, since {shortDate(since)}, against everything before
 					</p>
@@ -218,7 +218,7 @@
 
 		{#if loners.length > 0}
 			<section>
-				<h3>one of a kind</h3>
+				<h2>one of a kind</h2>
 				<p class="meta">unlike anything else saved</p>
 				<div class="loners">
 					{#each loners as item (item._id)}
@@ -233,7 +233,7 @@
 
 		{#if graph.styles.length > 2}
 			<section>
-				<h3>styles</h3>
+				<h2>styles</h2>
 				<p class="meta">styles pull together when they share an item</p>
 				<StyleConstellation styles={graph.styles} pairs={graph.pairs} />
 			</section>
@@ -241,7 +241,7 @@
 
 		{#if fonts.length > 0}
 			<section>
-				<h3>typefaces</h3>
+				<h2>typefaces</h2>
 				<ul class="fonts">
 					{#each fonts as font (font.query)}
 						{@const sites = lookup(font.itemIds)}
@@ -300,12 +300,12 @@
 	section {
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: var(--space-lg);
 		min-width: 0;
 	}
 
 	section > .meta {
-		margin-top: -0.5rem;
+		margin-top: calc(-1 * var(--space-md));
 	}
 
 	img {
@@ -322,9 +322,9 @@
 		justify-content: center;
 		width: 100%;
 		height: 100%;
-		padding: 0.25rem;
+		padding: var(--space-xs);
 		border: 1px solid var(--border);
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		color: var(--txt-3);
 		text-align: center;
 		overflow: hidden;
@@ -339,7 +339,7 @@
 	.thumbs {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
+		gap: var(--gap);
 	}
 
 	.thumb-link {
@@ -363,7 +363,7 @@
 	.stats {
 		display: grid;
 		grid-template-columns: repeat(5, 1fr);
-		gap: var(--spacing);
+		gap: var(--gutter);
 	}
 
 	.stat {
@@ -371,11 +371,11 @@
 		flex-direction: column;
 		border: 1px solid var(--border);
 		background: var(--bg-2);
-		padding: 0.75rem 1rem;
+		padding: var(--space-lg) var(--space-xl);
 	}
 
 	.stat-value {
-		font-size: 2rem;
+		font-size: var(--text-3xl);
 		font-weight: 500;
 		letter-spacing: -0.02ch;
 		color: var(--txt-1);
@@ -384,7 +384,7 @@
 	}
 
 	.stat-label {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--txt-3);
 	}
 
@@ -393,33 +393,20 @@
 	.regions {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
-		gap: var(--spacing);
-	}
-
-	.region {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		padding: 0.75rem;
+		gap: var(--gutter);
 	}
 
 	.region-head {
 		display: flex;
 		justify-content: space-between;
 		align-items: baseline;
-		gap: 0.5rem;
+		gap: var(--gap);
 	}
 
 	.region-title {
 		display: flex;
 		flex-direction: column;
 		min-width: 0;
-	}
-
-	.mosaic {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 2px;
 	}
 
 	/* Lately */
@@ -432,9 +419,9 @@
 	.shift {
 		display: grid;
 		grid-template-columns: 16rem 1fr;
-		gap: var(--spacing);
+		gap: var(--gutter);
 		align-items: center;
-		padding-block: 0.5rem;
+		padding-block: var(--space-md);
 		border-top: 1px solid var(--border);
 
 		&:last-child {
@@ -449,7 +436,7 @@
 	.shift-info {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: var(--gap-sm);
 		min-width: 0;
 	}
 
@@ -465,8 +452,8 @@
 	.compare {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
-		margin-block: 0.125rem;
+		gap: var(--space-2xs);
+		margin-block: var(--space-2xs);
 	}
 
 	.compare .bar.recent > span {
@@ -478,13 +465,13 @@
 	.loners {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
-		gap: var(--spacing);
+		gap: var(--gutter);
 	}
 
 	.loner {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: var(--gap-sm);
 		min-width: 0;
 		text-decoration: none;
 
@@ -499,7 +486,7 @@
 	}
 
 	.loner-title {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -509,15 +496,15 @@
 
 	.fonts {
 		columns: 2 18rem;
-		column-gap: calc(var(--spacing) * 2);
+		column-gap: calc(var(--gutter) * 2);
 		list-style: none;
 	}
 
 	.font {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding-block: 0.25rem;
+		gap: var(--gap);
+		padding-block: var(--space-xs);
 		break-inside: avoid;
 	}
 
@@ -530,7 +517,7 @@
 
 	.font-sites {
 		display: flex;
-		gap: 0.25rem;
+		gap: var(--gap-sm);
 		flex-shrink: 0;
 		margin-left: auto;
 
@@ -547,7 +534,7 @@
 		align-items: center;
 		justify-content: center;
 		border: 1px solid var(--border);
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		color: var(--txt-3);
 		text-decoration: none;
 
@@ -566,12 +553,12 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: baseline;
-		gap: 0.375rem 0.5rem;
+		gap: var(--space-sm) var(--gap);
 	}
 
 	.pair {
-		padding: 0.125rem 0.5rem;
-		font-size: 0.875rem;
+		padding: var(--pad-y-xs) var(--pad-x-xs);
+		font-size: var(--text-sm);
 		background: var(--bg-2);
 		border: 1px solid var(--border);
 	}
@@ -580,7 +567,7 @@
 		.page-header {
 			flex-direction: column;
 			align-items: flex-start;
-			gap: 0.25rem;
+			gap: var(--gap-sm);
 		}
 
 		.stats {
@@ -602,7 +589,7 @@
 
 		.shift {
 			grid-template-columns: 1fr;
-			gap: 0.5rem;
+			gap: var(--gap);
 		}
 	}
 </style>

@@ -105,8 +105,8 @@
 	.list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
-		padding-bottom: 2rem;
+		gap: var(--gap);
+		padding-bottom: var(--space-2xl);
 	}
 
 	.list-item-wrapper {
@@ -124,7 +124,7 @@
 		min-width: 0;
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--gap);
 		padding: var(--pad-y) var(--pad-x);
 		text-decoration: none;
 		color: inherit;
@@ -187,12 +187,12 @@
 	}
 
 	.icon {
-		margin-right: 0.5rem;
-		padding: 0.25rem;
+		margin-right: var(--pad-x);
+		padding: var(--pad-y-sm);
 	}
 
 	.icon.link {
-		margin-right: 0.25rem;
+		margin-right: var(--space-xs);
 	}
 
 	.icon:hover {

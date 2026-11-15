@@ -89,8 +89,8 @@
 <style>
 	.top-row {
 		display: flex;
-		gap: 0.5rem;
-		margin-bottom: var(--spacing);
+		gap: var(--gap);
+		margin-bottom: var(--gutter);
 		align-items: flex-start;
 	}
 
@@ -101,7 +101,7 @@
 	.search {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--gap);
 		padding-left: var(--pad-x);
 		border: 1px solid var(--border);
 		background: var(--bg-2);
@@ -129,7 +129,7 @@
 
 	.controls {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--gap);
 		align-items: center;
 	}
 

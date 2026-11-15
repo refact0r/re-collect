@@ -235,7 +235,7 @@
 
 <style>
 	header {
-		padding: 0.5rem var(--spacing) 0.5rem var(--spacing);
+		padding: var(--space-md) var(--gutter);
 		border-bottom: 1px solid var(--border);
 		flex-shrink: 0;
 	}
@@ -243,17 +243,17 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: var(--spacing);
+		gap: var(--gutter);
 	}
 	.menu-btn {
 		display: none;
 	}
 	.nav-links {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--gap);
 	}
 	.logo {
-		padding: 0 0.5rem;
+		padding: 0 var(--pad-x);
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -265,7 +265,7 @@
 	.nav-search {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--gap);
 		padding: var(--pad-y) var(--pad-x);
 		border: 1px solid var(--border);
 		background: var(--bg-2);
@@ -308,7 +308,7 @@
 		/* a full-bleed page (the atlas map) positions itself against it */
 		position: relative;
 		flex: 1;
-		padding: var(--spacing);
+		padding: var(--gutter);
 		overflow-y: auto;
 	}
 	.wordmark {
@@ -322,22 +322,22 @@
 			display: flex;
 		}
 		header {
-			padding: 0.5rem var(--spacing) 0.5rem 0.5rem;
+			padding: var(--space-md) var(--gutter) var(--space-md) var(--space-md);
 		}
 		nav {
-			gap: 0.5rem;
+			gap: var(--gap);
 		}
 		.menu-btn {
 			display: flex;
-			padding: 0.25rem;
+			padding: var(--pad-y-sm);
 		}
 		.nav-links {
 			display: none;
 		}
 		.nav-search {
 			flex: 1;
-			padding: 0.25rem 0.25rem 0.25rem var(--pad-x);
-			gap: 0.5rem;
+			padding: var(--pad-y-sm) var(--space-xs) var(--pad-y-sm) var(--pad-x);
+			gap: var(--gap);
 		}
 		.nav-search :global(svg) {
 			width: 1.375rem;

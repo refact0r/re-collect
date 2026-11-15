@@ -74,20 +74,20 @@
 		align-items: center;
 		justify-content: center;
 		min-height: 100vh;
-		padding: var(--spacing);
+		padding: var(--gutter);
 		background: var(--bg-1);
 	}
 
 	.login-box {
 		background: var(--bg-1);
 		border: 1px solid var(--border);
-		padding: var(--spacing);
+		padding: var(--gutter);
 		width: 100%;
 		max-width: 24rem;
 	}
 
 	h1 {
-		font-size: 1.5rem;
-		margin-bottom: 0.5rem;
+		font-size: var(--text-xl);
+		margin-bottom: var(--space-md);
 	}
 </style>

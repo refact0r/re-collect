@@ -226,7 +226,7 @@
 		min-height: 0;
 		display: flex;
 		flex-direction: column;
-		font-size: 0.8125rem;
+		font-size: var(--text-sm);
 	}
 
 	.body {
@@ -240,15 +240,15 @@
 		border-bottom: 1px solid var(--border);
 		display: flex;
 		align-items: flex-start;
-		gap: 0.5rem;
-		padding: 0.5rem 0.25rem 0.5rem 0.75rem;
+		gap: var(--gap);
+		padding: var(--space-md) var(--space-xs) var(--space-md) var(--panel-pad);
 	}
 
 	h3 {
 		flex: 1;
 		min-width: 0;
-		padding-top: 0.125rem;
-		font-size: 0.875rem;
+		padding-top: var(--space-2xs);
+		font-size: var(--text-sm);
 		overflow-wrap: anywhere;
 	}
 
@@ -261,11 +261,11 @@
 	}
 
 	.header .num {
-		padding-top: 0.125rem;
+		padding-top: var(--space-2xs);
 	}
 
 	button.close {
-		padding: 0.125rem;
+		padding: var(--pad-y-xs);
 	}
 
 	button.close :global(svg) {
@@ -276,8 +276,8 @@
 	section {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
-		padding: 0.5rem 0.75rem 0.75rem;
+		gap: var(--gap);
+		padding: var(--space-md) var(--panel-pad) var(--panel-pad);
 	}
 
 	section + section {
@@ -285,7 +285,7 @@
 	}
 
 	h4 {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		font-weight: var(--font-weight);
 		color: var(--txt-3);
 	}
@@ -300,7 +300,7 @@
 	}
 
 	.text-block {
-		padding: 0.5rem;
+		padding: var(--card-pad);
 		border: 1px solid var(--border);
 		white-space: pre-wrap;
 		overflow-wrap: anywhere;
@@ -337,18 +337,18 @@
 	.colors {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: var(--space-2xs);
 	}
 
 	.chips {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.25rem;
+		gap: var(--gap-sm);
 	}
 
 	.chip {
-		padding: 0 0.375rem;
-		font-size: 0.8125rem;
+		padding: 0 var(--pad-x-xs);
+		font-size: var(--text-sm);
 		background: var(--bg-2);
 		color: var(--txt-2);
 	}
@@ -366,12 +366,12 @@
 
 	.actions {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--gap);
 	}
 
 	.button {
 		flex: 1;
-		padding: 0.25rem 0.5rem;
+		padding: var(--pad-y-sm) var(--pad-x-sm);
 		text-align: center;
 		text-decoration: none;
 		background: var(--bg-2);
@@ -391,7 +391,7 @@
 	.thumbs {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(3.25rem, 1fr));
-		gap: 0.25rem;
+		gap: var(--gap-sm);
 	}
 
 	/* The group's thumbnails run four across and show four full rows before
@@ -431,8 +431,8 @@
 	}
 
 	.thumb span {
-		padding: 0.125rem;
-		font-size: 0.625rem;
+		padding: var(--space-2xs);
+		font-size: var(--text-xs);
 		line-height: 1.2;
 		color: var(--txt-3);
 		overflow: hidden;
@@ -443,14 +443,14 @@
 	.rows {
 		display: flex;
 		flex-direction: column;
-		margin-inline: -0.375rem;
+		margin-inline: calc(-1 * var(--pad-x-xs));
 	}
 
 	.row {
 		justify-content: space-between;
-		gap: 0.5rem;
-		padding: 0.125rem 0.375rem;
-		font-size: 0.8125rem;
+		gap: var(--gap);
+		padding: var(--pad-y-xs) var(--pad-x-xs);
+		font-size: var(--text-sm);
 		background: transparent;
 		border: none;
 		text-align: left;
@@ -480,13 +480,13 @@
 	.create input {
 		flex: 1;
 		min-width: 0;
-		padding: 0.25rem 0.5rem;
-		font-size: 0.8125rem;
+		padding: var(--pad-y-sm) var(--pad-x-sm);
+		font-size: var(--text-sm);
 	}
 
 	.create button {
-		padding: 0.25rem 0.5rem;
-		font-size: 0.8125rem;
+		padding: var(--pad-y-sm) var(--pad-x-sm);
+		font-size: var(--text-sm);
 		border-left: none;
 	}
 </style>

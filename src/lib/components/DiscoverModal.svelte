@@ -66,7 +66,7 @@
 <style>
 	.layout {
 		display: flex;
-		gap: 1rem;
+		gap: var(--space-xl);
 		height: 100%;
 	}
 
@@ -91,10 +91,10 @@
 		flex-shrink: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: var(--space-xl);
 		min-height: 0;
-		margin-block: -1rem;
-		padding: 1rem 0 1rem 1rem;
+		margin-block: calc(-1 * var(--modal-pad));
+		padding: var(--modal-pad) 0 var(--modal-pad) var(--modal-pad);
 		border-left: 1px solid var(--border);
 	}
 
@@ -107,7 +107,7 @@
 		color: inherit;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.125rem;
+		gap: var(--space-2xs);
 	}
 
 	.meta :global(svg) {
@@ -119,7 +119,7 @@
 	.add {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: var(--gap);
 		min-height: 0;
 	}
 
@@ -134,7 +134,7 @@
 	.options button {
 		flex-shrink: 0;
 		justify-content: space-between;
-		gap: 0.5rem;
+		gap: var(--gap);
 		border: none;
 		background: transparent;
 		padding: var(--pad-y) var(--pad-x);
@@ -161,7 +161,7 @@
 	}
 
 	.count {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--txt-3);
 	}
 
@@ -201,7 +201,7 @@
 		.layout {
 			flex-direction: column;
 			height: auto;
-			padding: 1rem;
+			padding: var(--modal-pad);
 		}
 
 		.media {
@@ -217,8 +217,8 @@
 
 		.side {
 			width: auto;
-			margin: 0 -1rem;
-			padding: 1rem 1rem 0;
+			margin: 0 calc(-1 * var(--modal-pad));
+			padding: var(--modal-pad) var(--modal-pad) 0;
 			border-left: none;
 			border-top: 1px solid var(--border);
 		}

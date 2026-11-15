@@ -56,7 +56,7 @@
 
 <style>
 	h2 {
-		margin: 0 0 0.75rem 0;
+		margin: 0 0 var(--space-lg) 0;
 	}
 
 	a {
@@ -65,8 +65,8 @@
 
 	.actions {
 		display: flex;
-		gap: 0.5rem;
-		margin-top: 1rem;
+		gap: var(--gap);
+		margin-top: var(--space-xl);
 	}
 
 	.actions button {

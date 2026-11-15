@@ -50,7 +50,7 @@
 	}
 
 	.trigger {
-		gap: 0.25rem;
+		gap: var(--gap-sm);
 	}
 
 	.trigger :global(svg) {
@@ -63,7 +63,7 @@
 		position: absolute;
 		top: 100%;
 		right: 0;
-		margin-top: 0.5rem;
+		margin-top: var(--space-md);
 		background: var(--bg-2);
 		border: 1px solid var(--border);
 		min-width: 10rem;

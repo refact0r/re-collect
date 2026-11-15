@@ -164,7 +164,7 @@
 <style>
 	.controls {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--gap);
 		align-items: center;
 	}
 
@@ -179,8 +179,8 @@
 		transform: translateX(-50%);
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
-		padding: 0.5rem 0.75rem;
+		gap: var(--space-lg);
+		padding: var(--space-md) var(--space-lg);
 		background: var(--bg-2);
 		border: 1px solid var(--border);
 		z-index: 50;

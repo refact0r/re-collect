@@ -99,12 +99,12 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 0.5rem;
+		margin-bottom: var(--space-md);
 	}
 
 	.view-controls {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--gap);
 	}
 
 	.result-count {

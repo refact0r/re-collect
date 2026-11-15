@@ -55,7 +55,7 @@
 	.modal {
 		background: var(--bg-1);
 		border: 1px solid var(--border);
-		padding: 1rem;
+		padding: var(--modal-pad);
 		max-width: 32rem;
 		width: 100%;
 		max-height: calc(100vh - 4rem);

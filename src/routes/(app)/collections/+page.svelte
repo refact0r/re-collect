@@ -134,7 +134,7 @@
 		{#each displayCollections as collection (collection._id)}
 			<a
 				href="/collections/{collection._id}"
-				class="clickable collection-card"
+				class="clickable set-card collection-card"
 				class:dragging={draggedCollection?._id === collection._id}
 				onpointerdown={(e) => handlePointerDown(collection, e)}
 			>
@@ -169,18 +169,14 @@
 			</div>
 		{/if}
 	</div>
-	{#if collection.previews?.length > 0}
-		<div class="preview-row">
-			{#each collection.previews as preview (preview._id)}
-				<div class="thumb-wrapper">
-					<img src={preview.imageUrl} alt="" class="preview-thumb" loading="lazy" />
-				</div>
-			{/each}
-			{#each Array(Math.max(0, 4 - collection.previews.length)) as _, i (i)}
-				<div class="thumb-wrapper placeholder"></div>
-			{/each}
-		</div>
-	{/if}
+	<div class="mosaic">
+		{#each collection.previews as preview (preview._id)}
+			<img src={preview.imageUrl} alt="" loading="lazy" />
+		{/each}
+		{#each Array(Math.max(0, 6 - collection.previews.length)) as _, i (i)}
+			<div></div>
+		{/each}
+	</div>
 {/snippet}
 
 {#if draggedCollection}
@@ -189,7 +185,7 @@
 		style:transform="translate3d({previewPosition.x}px, {previewPosition.y}px, 0) rotate(2deg)"
 		style:width="{previewWidth}px"
 	>
-		<div class="clickable collection-card">
+		<div class="clickable set-card collection-card">
 			{@render cardBody(draggedCollection, false)}
 		</div>
 	</div>
@@ -203,17 +199,11 @@
 	.list {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
-		gap: var(--spacing);
+		gap: var(--gutter);
 	}
 	.collection-card.dragging {
 		opacity: 0.35;
 		pointer-events: none;
-	}
-	.collection-card {
-		padding: var(--spacing);
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing);
 	}
 	.collection-card:has(button:hover) {
 		background-color: transparent;
@@ -222,19 +212,19 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
-		gap: var(--spacing);
+		gap: var(--gutter);
 	}
 	.collection-info h3 {
 		margin: 0;
 	}
 	.count {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--txt-3);
-		margin: 0.25rem 0 0 0;
+		margin: var(--space-xs) 0 0 0;
 	}
 	.actions {
 		display: flex;
-		gap: 0.25rem;
+		gap: var(--gap-sm);
 		flex-shrink: 0;
 	}
 	.drag-preview {
@@ -249,25 +239,5 @@
 	}
 	.drag-preview .collection-card {
 		background: var(--bg-1);
-	}
-	.preview-row {
-		display: flex;
-		gap: 0.5rem;
-		overflow: hidden;
-	}
-	.thumb-wrapper {
-		display: flex;
-		aspect-ratio: 1 / 1;
-		flex: 1;
-	}
-	.thumb-wrapper.placeholder {
-		border: 1px solid var(--border);
-	}
-	.preview-thumb {
-		max-width: 100%;
-		width: 100%;
-		object-fit: cover;
-		background: var(--bg-2);
-		flex-shrink: 0;
 	}
 </style>

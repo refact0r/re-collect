@@ -58,7 +58,7 @@
 	.option {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--gap);
 		padding: var(--pad-y) var(--pad-x);
 		cursor: pointer;
 		white-space: nowrap;

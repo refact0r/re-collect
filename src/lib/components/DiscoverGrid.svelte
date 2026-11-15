@@ -11,8 +11,8 @@
 
 	let { candidates, columnOffset, onOpen }: Props = $props();
 
-	// Card chrome as in ItemGrid's titled cards: 8px padding, 4px below the
-	// title line, 1px border
+	// Card chrome as in ItemGrid's titled cards: --card-pad (8px) padding, --space-xs (4px)
+	// below the title line, 1px border
 	const CHROME_X = 18;
 	const CHROME_Y = 14 + 25;
 	const FALLBACK_ASPECT = 0.75;
@@ -72,7 +72,7 @@
 <style>
 	.masonry {
 		display: flex;
-		gap: var(--spacing);
+		gap: var(--gutter);
 		width: 100%;
 	}
 
@@ -80,19 +80,19 @@
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		gap: var(--spacing);
+		gap: var(--gutter);
 		min-width: 0;
 	}
 
 	.card {
-		padding: 0.5rem 0.5rem 0.25rem;
+		padding: var(--card-pad) var(--card-pad) var(--space-xs);
 	}
 
 	.caption {
 		display: flex;
-		gap: 0.5rem;
-		padding-top: 0.25rem;
-		font-size: 0.875rem;
+		gap: var(--gap);
+		padding-top: var(--space-xs);
+		font-size: var(--text-sm);
 		line-height: 1.5;
 		white-space: nowrap;
 	}

@@ -447,7 +447,7 @@
 		bottom: 4rem;
 		z-index: 9;
 		transform: translateX(-50%);
-		font-size: 1.5rem;
+		font-size: var(--text-xl);
 		font-weight: 500;
 		letter-spacing: -0.02ch;
 		color: var(--txt-1);
@@ -480,7 +480,7 @@
 
 	.tools {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--gap);
 		pointer-events: auto;
 	}
 
@@ -495,12 +495,12 @@
 	}
 
 	.tools button {
-		padding: 0.25rem 0.5rem;
-		font-size: 0.875rem;
+		padding: var(--pad-y-sm) var(--pad-x-sm);
+		font-size: var(--text-sm);
 	}
 
 	.tools button.icon {
-		padding: 0.25rem;
+		padding: var(--pad-y-sm);
 	}
 
 	.tools button.icon.active {

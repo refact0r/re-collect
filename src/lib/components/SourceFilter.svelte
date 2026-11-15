@@ -50,16 +50,16 @@
 
 <style>
 	.group {
-		padding: 0.5rem var(--pad-x) 0.25rem;
+		padding: var(--space-md) var(--pad-x) var(--space-xs);
 		border-top: 1px solid var(--bg-3);
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--txt-3);
 	}
 
 	.option {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--gap);
 		padding: var(--pad-y) var(--pad-x);
 		cursor: pointer;
 		white-space: nowrap;

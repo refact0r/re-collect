@@ -10,14 +10,43 @@
 	--danger-border: oklch(40% 0.08 20);
 	--font: 'DM Sans', system-ui, sans-serif;
 	--font-weight: 400;
-	--spacing: 1rem;
-	--pad-y: 0.375rem; /* control padding, vertical */
-	--pad-x: 0.5rem; /* control padding, horizontal */
+
+	/* Space scale: every padding, gap and margin is a step of this, or a role below */
+	--space-2xs: 0.125rem;
+	--space-xs: 0.25rem;
+	--space-sm: 0.375rem;
+	--space-md: 0.5rem;
+	--space-lg: 0.75rem;
+	--space-xl: 1rem;
+	--space-2xl: 2rem;
+
+	/* Roles. Padding is always tighter vertically than horizontally */
+	--pad-y: var(--space-sm); /* controls: buttons, inputs, nav links, menu and list rows */
+	--pad-x: var(--space-md);
+	--pad-y-sm: var(--space-xs); /* compact controls and tooltips */
+	--pad-x-sm: var(--space-md);
+	--pad-y-xs: var(--space-2xs); /* tags, chips and dense panel rows */
+	--pad-x-xs: var(--space-sm);
+	--card-pad: var(--space-md); /* inside item cards */
+	--panel-pad: var(--space-lg); /* inside docked side panels */
+	--modal-pad: var(--space-xl); /* inside modals */
+	--gap: var(--space-md); /* between sibling controls or items */
+	--gap-sm: var(--space-xs); /* within a control, or a label and its field */
+	--gutter: var(--space-xl); /* page and region margins */
+
+	/* Type scale */
+	--text-xs: 0.75rem;
+	--text-sm: 0.875rem;
+	--text-base: 1rem;
+	--text-lg: 1.125rem;
+	--text-xl: 1.5rem;
+	--text-2xl: 1.75rem;
+	--text-3xl: 2rem;
 }
 
 @media (max-width: 768px) {
 	:root {
-		--spacing: 0.75rem;
+		--gutter: var(--space-lg);
 	}
 }
 
@@ -53,13 +82,13 @@ h3 {
 	letter-spacing: -0.02ch;
 }
 h1 {
-	font-size: 1.75rem;
+	font-size: var(--text-2xl);
 }
 h2 {
-	font-size: 1.5rem;
+	font-size: var(--text-xl);
 }
 h3 {
-	font-size: 1.125rem;
+	font-size: var(--text-lg);
 }
 
 /* Form Elements */
@@ -68,7 +97,7 @@ input,
 textarea,
 select {
 	padding: var(--pad-y) var(--pad-x);
-	font-size: 1rem;
+	font-size: var(--text-base);
 	font-family: var(--font);
 	font-weight: var(--font-weight);
 	border: 1px solid var(--border);
@@ -170,12 +199,12 @@ button {
 	background: var(--bg-2);
 	border: 1px solid var(--border);
 	padding: var(--pad-y) var(--pad-x);
-	font-size: 1rem;
+	font-size: var(--text-base);
 	line-height: 1.5;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: 0.5rem;
+	gap: var(--gap);
 	text-decoration: none;
 }
 
@@ -365,30 +394,59 @@ button.error {
 	outline-offset: 1px;
 }
 
+/* A card for a named set of items (a collection, an atlas region): a heading over a mosaic */
+.set-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap);
+	padding: var(--space-lg);
+}
+
+/* A set card's preview images, three across at 4:3; an empty tile is a blank slot */
+.mosaic {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: var(--space-2xs);
+
+	& > * {
+		aspect-ratio: 4 / 3;
+		overflow: hidden;
+	}
+
+	& img,
+	& > :empty {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		background: var(--bg-2);
+	}
+}
+
 /* Forms */
 
 .form {
 	display: flex;
 	flex-direction: column;
-	gap: 1rem;
+	gap: var(--space-xl);
 }
 
 .form label {
 	display: flex;
 	flex-direction: column;
-	gap: 0.25rem;
+	gap: var(--gap-sm);
 }
 
 .form .actions {
 	display: flex;
-	gap: 0.5rem;
+	gap: var(--gap);
 }
 
 /* Status Messages */
 
 .status-text,
 .meta {
-	font-size: 0.875rem;
+	font-size: var(--text-sm);
 	color: var(--txt-3);
 }
 
@@ -398,7 +456,7 @@ button.error {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	margin-bottom: var(--spacing);
+	margin-bottom: var(--gutter);
 }
 
 .page-header h1 {
@@ -409,10 +467,10 @@ button.error {
 .page-column {
 	display: flex;
 	flex-direction: column;
-	gap: 2rem;
+	gap: var(--space-2xl);
 	max-width: 64rem;
 	margin: 0 auto;
-	padding-bottom: 2rem;
+	padding-bottom: var(--space-2xl);
 
 	& > .page-header {
 		margin-bottom: 0;

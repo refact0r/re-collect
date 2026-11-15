@@ -205,7 +205,7 @@
 
 <style>
 	h1 {
-		margin: 0 0 var(--spacing) 0;
+		margin: 0 0 var(--gutter) 0;
 		padding: 0;
 	}
 
@@ -225,7 +225,7 @@
 	.title-input {
 		all: unset;
 		border: 1px solid var(--border);
-		padding: 0.25rem 0.5rem;
+		padding: var(--pad-y-sm) var(--pad-x-sm);
 		width: 100%;
 		max-width: 600px;
 	}

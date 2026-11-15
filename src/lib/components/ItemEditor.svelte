@@ -325,7 +325,7 @@
 <style>
 	.editor-layout {
 		display: flex;
-		gap: 1rem;
+		gap: var(--space-xl);
 		align-items: stretch;
 		min-height: 0;
 		height: 100%;
@@ -343,21 +343,21 @@
 	.form {
 		width: 25rem;
 		min-height: 0;
-		margin-block: -1rem;
-		padding: 1rem 0 1rem 1rem;
+		margin-block: calc(-1 * var(--modal-pad));
+		padding: var(--modal-pad) 0 var(--modal-pad) var(--modal-pad);
 		border-left: 1px solid var(--border);
 	}
 
 	.fields {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: var(--space-xl);
 		flex: 1;
 		min-height: 0;
 		overflow-y: auto;
 		/* extend through the modal padding so the scrollbar sits at its edge */
-		margin-right: -1rem;
-		padding-right: 1rem;
+		margin-right: calc(-1 * var(--modal-pad));
+		padding-right: var(--modal-pad);
 	}
 
 	.content-preview img {
@@ -368,7 +368,7 @@
 
 	.url-preview {
 		width: 100%;
-		padding: 0.5rem;
+		padding: var(--space-md);
 		border: 1px solid var(--border);
 		background: var(--bg-2);
 		display: flex;
@@ -397,18 +397,18 @@
 		flex: 1;
 		resize: vertical;
 		font-family: var(--font);
-		font-size: 1rem;
+		font-size: var(--text-base);
 	}
 
 	.collections-field,
 	.tag-field {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: var(--gap-sm);
 	}
 
 	.field-label {
-		font-size: 1rem;
+		font-size: var(--text-base);
 	}
 
 	.palette-strip {
@@ -422,19 +422,19 @@
 	}
 
 	.subject-text {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--txt-2);
 	}
 
 	.chip-list {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.375rem;
+		gap: var(--space-sm);
 	}
 
 	.chip {
-		padding: 0.125rem 0.5rem;
-		font-size: 0.875rem;
+		padding: var(--pad-y-xs) var(--pad-x-xs);
+		font-size: var(--text-sm);
 		background: var(--bg-2);
 		border: 1px solid var(--border);
 		color: var(--txt-2);
@@ -448,7 +448,7 @@
 
 	.collections-container {
 		border: 1px solid var(--border);
-		padding: 1rem;
+		padding: var(--modal-pad);
 		max-height: 12rem;
 		overflow-y: auto;
 	}
@@ -456,19 +456,19 @@
 	.collection-list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: var(--gap);
 	}
 
 	.checkbox-label {
 		flex-direction: row;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--gap);
 		cursor: pointer;
 	}
 
 	.url-input-row {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--gap);
 	}
 
 	.url-input-row input {
@@ -477,7 +477,7 @@
 
 	.actions {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--gap);
 		align-items: center;
 	}
 
@@ -493,7 +493,7 @@
 
 		.content-preview {
 			display: block;
-			padding: 1rem;
+			padding: var(--modal-pad);
 			container-type: normal;
 		}
 
@@ -512,7 +512,7 @@
 		.form {
 			width: 100%;
 			margin-block: 0;
-			padding: 1rem;
+			padding: var(--modal-pad);
 			padding-bottom: 5rem;
 			border-left: none;
 			border-top: 1px solid var(--border);
@@ -524,7 +524,7 @@
 
 		.actions {
 			display: flex;
-			gap: 0.5rem;
+			gap: var(--gap);
 		}
 	}
 </style>
