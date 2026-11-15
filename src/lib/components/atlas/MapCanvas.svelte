@@ -483,6 +483,9 @@
 		background: var(--bg-2);
 		outline: 1px solid transparent;
 		z-index: 1;
+		/* each card is its own layer, so a pan or zoom only moves it: its image,
+		   drawn small from a full-size screenshot, is never painted again */
+		will-change: transform;
 		-webkit-user-drag: none;
 		transition:
 			opacity 200ms ease,
