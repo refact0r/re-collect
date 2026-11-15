@@ -1,13 +1,14 @@
 <script lang="ts">
 	import type { FeedCandidate } from '../../convex/discovery';
+	import IconArrow from '~icons/material-symbols-light/arrow-forward';
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
 	import DiscoverMedia from './DiscoverMedia.svelte';
 	import Modal from './Modal.svelte';
 
 	interface Props {
 		candidate: FeedCandidate;
-		// Where it can be added: '' is the library alone, the last one used first
-		options: { id: string; name: string }[];
+		// Where it can be added: '' is the library alone (uncollected), the last one used first
+		options: { id: string; name: string; count?: number }[];
 		onAdd: (optionId: string) => void;
 		onClose: () => void;
 	}
@@ -30,7 +31,7 @@
 		</div>
 		<div class="side">
 			<div>
-				<h2 id="discover-title">{candidate.title || domain}</h2>
+				<h2 id="discover-title">{candidate.title || 'untitled'}</h2>
 				<p class="meta">
 					{candidate.sourceName} ·
 					<a href={candidate.url} target="_blank" rel="noopener noreferrer">
@@ -45,7 +46,14 @@
 				<div class="options">
 					{#each options as option, i (option.id)}
 						<!-- svelte-ignore a11y_autofocus -->
-						<button onclick={() => onAdd(option.id)} autofocus={i === 0}>{option.name}</button>
+						<button onclick={() => onAdd(option.id)} autofocus={i === 0}>
+							<span class="name">{option.name}</span>
+							<!-- The count gives way to an arrow on hover: this is where it goes -->
+							<span class="end">
+								<span class="count">{option.count ?? ''}</span>
+								<IconArrow />
+							</span>
+						</button>
 					{/each}
 				</div>
 			</div>
@@ -125,11 +133,52 @@
 
 	.options button {
 		flex-shrink: 0;
-		justify-content: flex-start;
+		justify-content: space-between;
+		gap: 0.5rem;
 		border: none;
 		background: transparent;
 		padding: 0.5rem;
 		text-align: left;
+	}
+
+	.name {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	/* Count and arrow share one slot, right-aligned */
+	.end {
+		display: grid;
+		justify-items: end;
+		align-items: center;
+		flex-shrink: 0;
+	}
+
+	.end > :global(*) {
+		grid-area: 1 / 1;
+		transition: opacity 0.1s;
+	}
+
+	.count {
+		font-size: 0.875rem;
+		color: var(--txt-3);
+	}
+
+	.end :global(svg) {
+		width: 1.25rem;
+		height: 1.25rem;
+		opacity: 0;
+	}
+
+	.options button:hover .count,
+	.options button:focus-visible .count {
+		opacity: 0;
+	}
+
+	.options button:hover .end :global(svg),
+	.options button:focus-visible .end :global(svg) {
+		opacity: 1;
 	}
 
 	.options button + button {

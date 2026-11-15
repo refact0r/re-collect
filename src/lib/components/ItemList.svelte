@@ -37,7 +37,7 @@
 	function getDisplayText(item: DisplayItem): string {
 		if (item.title) return item.title;
 		if (item.url) return item.url;
-		return 'Untitled';
+		return 'untitled';
 	}
 
 	// Secondary line: AI summary, else captured og:description; text items

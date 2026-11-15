@@ -8,7 +8,7 @@
 	import DiscoverModal from '#lib/components/DiscoverModal.svelte';
 	import SourceFilter from '#lib/components/SourceFilter.svelte';
 	import { useAction, useMutation, useQuery } from '#lib/convex.js';
-	import { getCollectionsContext } from '#lib/context.js';
+	import { getCollectionsContext, getItemsContext } from '#lib/context.js';
 	import { getItemUrl } from '#lib/itemDisplay.js';
 	import { pageTitle } from '#lib/pageTitle.svelte.js';
 	import { useViewPrefs } from '#lib/prefs.svelte.js';
@@ -17,6 +17,7 @@
 
 	const mutate = useMutation();
 	const runAction = useAction();
+	const items = getItemsContext();
 	const collections = getCollectionsContext();
 	const prefs = useViewPrefs('discover');
 
@@ -32,12 +33,21 @@
 	const added = new SvelteSet<string>();
 	const cards = $derived((feed.data?.candidates ?? []).filter((c) => !added.has(c._id)));
 
-	// Where an add can go, the last one used first. '' is the library alone.
+	// Where an add can go, the last one used first. '' is the library alone,
+	// in no collection
 	let lastAddedTo = $state(stored('discover:lastAddedTo'));
 	const options = $derived.by(() => {
 		const all = [
-			{ id: '', name: 'library' },
-			...(collections.data ?? []).map((c) => ({ id: c._id as string, name: c.name }))
+			{
+				id: '',
+				name: 'uncollected',
+				count: items.data?.filter((i) => i.collections.length === 0).length
+			},
+			...(collections.data ?? []).map((c) => ({
+				id: c._id as string,
+				name: c.name,
+				count: c.itemCount
+			}))
 		];
 		const last = all.findIndex((o) => o.id === lastAddedTo);
 		return last > 0 ? [all[last], ...all.toSpliced(last, 1)] : all;
@@ -74,7 +84,8 @@
 		open = null;
 		lastAddedTo = option.id;
 		added.add(candidate._id);
-		showToast({ text: `adding to ${option.name}...` }, 30_000);
+		const where = option.id ? option.name : 'library';
+		showToast({ text: `adding to ${where}...` }, 30_000);
 		const itemId = await runAction(api.discoveryKeep.keep, {
 			candidateId: candidate._id,
 			collectionId: (option.id || undefined) as Id<'collections'> | undefined
@@ -84,7 +95,7 @@
 			toast = null;
 			return;
 		}
-		showToast({ text: `added to ${option.name}`, href: getItemUrl(itemId) });
+		showToast({ text: `added to ${where}`, href: getItemUrl(itemId) });
 	}
 
 	// Infinite scroll: grow the window as the end comes into view
