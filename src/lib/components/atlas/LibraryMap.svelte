@@ -5,6 +5,8 @@
 	import IconFit from '~icons/material-symbols-light/fit-screen-sharp';
 	import { api } from '../../../convex/_generated/api.js';
 	import { useAction, useQuery } from '#lib/convex.js';
+	import { getCollectionsContext } from '#lib/context.js';
+	import CollectionFilter from '../CollectionFilter.svelte';
 	import { getItemUrl, shouldDisplayAsImage } from '#lib/itemDisplay.js';
 	import type { DisplayItem } from '#lib/types.js';
 
@@ -19,12 +21,15 @@
 	// Past this many points on screen, images give way to palette swatches, so the
 	// fitted view of a big library doesn't fetch every full-size image
 	const MAX_IMAGES = 400;
+	// The filter's "uncollected" option, next to collection ids
+	const UNCOLLECTED = 'uncollected';
 
 	interface Placed {
 		item: DisplayItem;
 		x: number;
 		y: number;
 		image: { width: number; height: number } | null;
+		dim: boolean;
 	}
 
 	const mapQuery = useQuery(api.embeddingMap.get, () => ({}));
@@ -48,13 +53,35 @@
 			: { width: Math.round(THUMB * ratio), height: THUMB };
 	}
 
+	const collections = getCollectionsContext();
+	const options = $derived([...(collections.data ?? []).map((c) => c._id), UNCOLLECTED]);
+	// The collections picked out on the map; none (or all) shows everything.
+	// Other points only dim, so every item keeps its place.
+	let picked = $state<Set<string>>(new Set());
+	const filtering = $derived(picked.size > 0 && !options.every((id) => picked.has(id)));
+	const inFilter = (item: DisplayItem) =>
+		item.collections.length > 0
+			? item.collections.some((id) => picked.has(id))
+			: picked.has(UNCOLLECTED);
+
 	const placed = $derived.by(() => {
 		const byId = new Map(items.map((item) => [item._id, item]));
 		return (mapQuery.data?.points ?? []).flatMap((p): Placed[] => {
 			const item = byId.get(p.itemId);
-			return item ? [{ item, x: p.x, y: p.y, image: imageBox(item) }] : [];
+			if (!item) return [];
+			return [{ item, x: p.x, y: p.y, image: imageBox(item), dim: filtering && !inFilter(item) }];
 		});
 	});
+	// What the fitted view frames: the picked-out points, or all of them
+	const framed = $derived.by(() => {
+		const shown = placed.filter((p) => !p.dim);
+		return shown.length > 0 ? shown : placed;
+	});
+
+	function pick(next: Set<string>) {
+		picked = next;
+		moved = null;
+	}
 
 	const label = (item: DisplayItem) =>
 		item.title || item.subject || item.url || item.content?.slice(0, 80) || 'untitled';
@@ -68,12 +95,12 @@
 	let width = $state(0);
 	let height = $state(0);
 
-	// The view that shows every point; it follows new layouts and resizes until
-	// the user pans or zooms
+	// The view that shows every framed point; it follows new layouts, resizes and
+	// filter changes until the user pans or zooms
 	const fitted = $derived.by((): View => {
-		if (placed.length === 0 || width === 0) return { k: 1, x: 0, y: 0 };
-		const xs = placed.map((p) => p.x);
-		const ys = placed.map((p) => p.y);
+		if (framed.length === 0 || width === 0) return { k: 1, x: 0, y: 0 };
+		const xs = framed.map((p) => p.x);
+		const ys = framed.map((p) => p.y);
 		const [minX, maxX, minY, maxY] = [
 			Math.min(...xs),
 			Math.max(...xs),
@@ -205,7 +232,7 @@
 			{#each visible as p (p.item._id)}
 				<a
 					href={getItemUrl(p.item._id)}
-					class={['point', { chip: !p.image, hovered: hoveredId === p.item._id }]}
+					class={['point', { chip: !p.image, dim: p.dim, hovered: hoveredId === p.item._id }]}
 					style:transform="translate(calc({p.x * view.k}px - 50%), calc({p.y * view.k}px - 50%))"
 					style:width={p.image ? `${p.image.width}px` : undefined}
 					style:height={p.image ? `${p.image.height}px` : undefined}
@@ -246,6 +273,12 @@
 			</p>
 		{/if}
 	</div>
+
+	{#if (collections.data?.length ?? 0) > 0}
+		<div class="filter">
+			<CollectionFilter collections={collections.data ?? []} selected={picked} onchange={pick} />
+		</div>
+	{/if}
 
 	<div class="overlay">
 		{#if updating && placed.length > 0}
@@ -354,9 +387,18 @@
 		overflow-wrap: anywhere;
 	}
 
+	.point:not(.dim) {
+		z-index: 1;
+	}
+
+	.point.dim {
+		opacity: 0.15;
+	}
+
 	.point.hovered,
 	.point:focus-visible {
 		z-index: 2;
+		opacity: 1;
 		outline-color: var(--txt-2);
 	}
 
@@ -389,6 +431,15 @@
 		align-items: center;
 		justify-content: center;
 		margin: 0;
+	}
+
+	.filter {
+		position: absolute;
+		top: 0.5rem;
+		right: 0.5rem;
+		z-index: 4;
+		background: var(--bg-1);
+		border: 1px solid var(--border);
 	}
 
 	.overlay {
