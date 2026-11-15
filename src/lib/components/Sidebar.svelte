@@ -25,6 +25,9 @@
 			>collections</a
 		>
 		<a href="/atlas" class="nav-link" class:active={page.url.pathname === '/atlas'}>atlas</a>
+		<a href="/patterns" class="nav-link" class:active={page.url.pathname === '/patterns'}
+			>patterns</a
+		>
 		<a href="/discover" class="nav-link" class:active={page.url.pathname === '/discover'}
 			>discover</a
 		>

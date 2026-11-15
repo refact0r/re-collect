@@ -1,0 +1,596 @@
+<script lang="ts">
+	import type { Id } from '../../../convex/_generated/dataModel.js';
+	import {
+		colorStrips,
+		countStyles,
+		findRegions,
+		fontPairings,
+		itemLabel,
+		outliers,
+		recentShift,
+		styleGraph,
+		fontsByUse,
+		type MapPoint,
+		type Region,
+		type Shift
+	} from '#lib/atlas.js';
+	import StyleConstellation from '#lib/components/atlas/StyleConstellation.svelte';
+	import { getCollectionsContext, getCurrentItemsContext, getItemsContext } from '#lib/context.js';
+	import { getItemUrl, shouldDisplayAsImage } from '#lib/itemDisplay.js';
+	import { useLibraryMap } from '#lib/libraryMap.svelte.js';
+	import { pageTitle } from '#lib/pageTitle.svelte.js';
+	import type { DisplayItem } from '#lib/types.js';
+
+	type ItemId = Id<'items'>;
+
+	const itemsQuery = getItemsContext();
+	const collections = getCollectionsContext();
+	const map = useLibraryMap();
+
+	getCurrentItemsContext().list = () => itemsQuery.data ?? [];
+
+	$effect(() => {
+		pageTitle.value = 'patterns';
+		return () => (pageTitle.value = null);
+	});
+
+	const items = $derived(itemsQuery.data ?? []);
+	const byId = $derived(new Map(items.map((item) => [item._id, item])));
+	const points = $derived(map.points.filter((p) => byId.has(p.itemId)));
+	const pointById = $derived(new Map(points.map((p) => [p.itemId, p])));
+	const lookup = (ids: ItemId[]) => ids.flatMap((itemId) => byId.get(itemId) ?? []);
+
+	const firstAdded = $derived(
+		items.length ? Math.min(...items.map((item) => item.dateAdded)) : null
+	);
+
+	const stats = $derived.by(() => {
+		const strips = colorStrips(items);
+		return [
+			{ label: 'items', value: items.length },
+			{ label: 'collections', value: collections.data?.length ?? 0 },
+			{ label: 'styles', value: countStyles(items).length },
+			{ label: 'tags', value: new Set(items.flatMap((item) => item.aiTags ?? [])).size },
+			{ label: 'colors', value: strips.hue.length + strips.tone.length }
+		];
+	});
+
+	const regions = $derived(findRegions(points, items));
+	const shift = $derived(recentShift(regions, items));
+	const loners = $derived(lookup(outliers(points)));
+	// How many of a font's sites its card shows
+	const FONT_SITES = 4;
+	const fonts = $derived(fontsByUse(items));
+	const pairings = $derived(fontPairings(items));
+	const graph = $derived(styleGraph(items));
+
+	const rising = $derived(
+		shift?.shifts.filter((s) => s.recent > 0 && s.share > s.before).slice(0, 3) ?? []
+	);
+	const falling = $derived(
+		shift?.shifts
+			.filter((s) => s.before > 0 && s.share < s.before)
+			.reverse()
+			.slice(0, 2) ?? []
+	);
+
+	const monthYear = (time: number) =>
+		new Date(time).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toLowerCase();
+
+	function shortDate(time: number) {
+		const date = new Date(time);
+		const sameYear = date.getFullYear() === new Date().getFullYear();
+		return date
+			.toLocaleDateString('en-US', {
+				month: 'short',
+				day: 'numeric',
+				...(!sameYear && { year: 'numeric' })
+			})
+			.toLowerCase();
+	}
+
+	const percent = (share: number) => `${Math.round(share * 100)}%`;
+
+	// A region's items, the ones nearest its middle first
+	function typical(region: Region, limit: number) {
+		const distance = (p: MapPoint) => (p.x - region.x) ** 2 + (p.y - region.y) ** 2;
+		return lookup(
+			[...region.itemIds]
+				.sort((a, b) => distance(pointById.get(a)!) - distance(pointById.get(b)!))
+				.slice(0, limit)
+		);
+	}
+
+	// The distinctive styles left over once the two in the name are taken
+	function moreStyles(region: Region) {
+		const named = new Set(region.named);
+		return region.styles.filter((style) => !named.has(style)).slice(0, 3);
+	}
+
+	function recentIn(s: Shift, since: number) {
+		return lookup(s.region.itemIds)
+			.filter((item) => item.dateAdded >= since)
+			.sort((a, b) => b.dateAdded - a.dateAdded)
+			.slice(0, 6);
+	}
+</script>
+
+{#snippet thumb(item: DisplayItem)}
+	{#if shouldDisplayAsImage(item)}
+		<img src={item.imageUrl} alt="" loading="lazy" />
+	{:else}
+		<span class="chip">{itemLabel(item)}</span>
+	{/if}
+{/snippet}
+
+{#snippet thumbLink(item: DisplayItem)}
+	<a
+		href={getItemUrl(item._id)}
+		class="thumb-link"
+		aria-label={itemLabel(item)}
+		title={itemLabel(item)}
+	>
+		{@render thumb(item)}
+	</a>
+{/snippet}
+
+<div class="page-column">
+	<div class="page-header">
+		<h1>patterns</h1>
+		{#if firstAdded !== null}
+			<p class="meta">collecting since {monthYear(firstAdded)}</p>
+		{/if}
+	</div>
+
+	{#if itemsQuery.isLoading}
+		<p class="status-text">loading...</p>
+	{:else if itemsQuery.error}
+		<p class="status-text">error: {itemsQuery.error.message}</p>
+	{:else if items.length === 0}
+		<p class="status-text">nothing saved yet</p>
+	{:else}
+		<div class="stats">
+			{#each stats as stat (stat.label)}
+				<div class="stat">
+					<span class="stat-value">{stat.value}</span>
+					<span class="stat-label">{stat.label}</span>
+				</div>
+			{/each}
+		</div>
+
+		{#if points.length === 0}
+			<p class="status-text">
+				{#if map.pending}
+					mapping the library...
+				{:else if map.failed}
+					couldn't map the library
+				{:else}
+					nothing on the map yet
+				{/if}
+			</p>
+		{:else if regions.length === 0}
+			<p class="status-text">too few items on the map to find regions yet</p>
+		{:else}
+			<section>
+				<h3>regions</h3>
+				<p class="meta">the aesthetics you keep coming back to</p>
+				<div class="regions">
+					{#each regions as region (region.id)}
+						{@const more = moreStyles(region)}
+						<a href="/atlas?region={region.id}" class="clickable region">
+							<div class="region-head">
+								<div class="region-title">
+									<span class="region-name">{region.name}</span>
+									{#if more.length > 0}
+										<span class="meta">{more.join(' · ')}</span>
+									{/if}
+								</div>
+								<span class="meta">{region.itemIds.length}</span>
+							</div>
+							<div class="mosaic">
+								{#each typical(region, 6) as item (item._id)}
+									<div class="tile">{@render thumb(item)}</div>
+								{/each}
+							</div>
+						</a>
+					{/each}
+				</div>
+			</section>
+
+			{#if shift && (rising.length > 0 || falling.length > 0)}
+				{@const since = shift.since}
+				<section>
+					<h3>lately</h3>
+					<p class="meta">
+						your last {shift.count} saves, since {shortDate(since)}, against everything before
+					</p>
+					<div class="shifts">
+						{#each rising as s (s.region.id)}
+							{@render shiftRow(s, since, false)}
+						{/each}
+						{#each falling as s (s.region.id)}
+							{@render shiftRow(s, since, true)}
+						{/each}
+					</div>
+				</section>
+			{/if}
+		{/if}
+
+		{#if loners.length > 0}
+			<section>
+				<h3>one of a kind</h3>
+				<p class="meta">unlike anything else saved</p>
+				<div class="loners">
+					{#each loners as item (item._id)}
+						<a href="/atlas?focus={item._id}" class="loner">
+							<div class="tile">{@render thumb(item)}</div>
+							<span class="loner-title">{itemLabel(item)}</span>
+						</a>
+					{/each}
+				</div>
+			</section>
+		{/if}
+
+		{#if graph.styles.length > 2}
+			<section>
+				<h3>styles</h3>
+				<p class="meta">styles pull together when they share an item</p>
+				<StyleConstellation styles={graph.styles} pairs={graph.pairs} />
+			</section>
+		{/if}
+
+		{#if fonts.length > 0}
+			<section>
+				<h3>typefaces</h3>
+				<div class="fonts">
+					{#each fonts as font (font.query)}
+						<div class="font">
+							<div class="font-head">
+								<a href="/atlas?font={encodeURIComponent(font.query)}" class="font-name">
+									{font.name}
+								</a>
+								<span class="meta">{font.itemIds.length}</span>
+							</div>
+							<div class="font-sites">
+								{#each lookup(font.itemIds.slice(0, FONT_SITES)) as item (item._id)}
+									{@render thumbLink(item)}
+								{/each}
+							</div>
+						</div>
+					{/each}
+				</div>
+
+				{#if pairings.length > 0}
+					<div class="pairings">
+						<span class="meta">set together on the same site</span>
+						{#each pairings as pair (`${pair.a}\u0000${pair.b}`)}
+							<span class="pair">{pair.a} + {pair.b} <span class="meta">{pair.count}</span></span>
+						{/each}
+					</div>
+				{/if}
+			</section>
+		{/if}
+	{/if}
+</div>
+
+{#snippet shiftRow(s: Shift, since: number, quiet: boolean)}
+	<div class={['shift', { quiet }]}>
+		<div class="shift-info">
+			<a href="/atlas?region={s.region.id}" class="shift-name">{s.region.name}</a>
+			<div class="compare">
+				<span class="bar recent"><span style:width={percent(s.share)}></span></span>
+				<span class="bar"><span style:width={percent(s.before)}></span></span>
+			</div>
+			<span class="meta">{percent(s.share)} of recent · {percent(s.before)} before</span>
+		</div>
+		<div class="thumbs">
+			{#each recentIn(s, since) as item (item._id)}
+				{@render thumbLink(item)}
+			{/each}
+		</div>
+	</div>
+{/snippet}
+
+<style>
+	section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		min-width: 0;
+	}
+
+	section > .meta {
+		margin-top: -0.5rem;
+	}
+
+	img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		background: var(--bg-2);
+	}
+
+	.chip {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100%;
+		padding: 0.25rem;
+		border: 1px solid var(--border);
+		font-size: 0.75rem;
+		color: var(--txt-3);
+		text-align: center;
+		overflow: hidden;
+		overflow-wrap: anywhere;
+	}
+
+	.tile {
+		aspect-ratio: 4 / 3;
+		overflow: hidden;
+	}
+
+	.thumbs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.thumb-link {
+		display: block;
+		width: 4rem;
+		aspect-ratio: 4 / 3;
+		overflow: hidden;
+
+		&:hover {
+			opacity: 0.8;
+		}
+
+		&:focus-visible {
+			outline: 1px solid var(--txt-3);
+			outline-offset: 1px;
+		}
+	}
+
+	/* Stats */
+
+	.stats {
+		display: grid;
+		grid-template-columns: repeat(5, 1fr);
+		gap: var(--spacing);
+	}
+
+	.stat {
+		display: flex;
+		flex-direction: column;
+		border: 1px solid var(--border);
+		background: var(--bg-2);
+		padding: 0.75rem 1rem;
+	}
+
+	.stat-value {
+		font-size: 2rem;
+		font-weight: 500;
+		letter-spacing: -0.02ch;
+		color: var(--txt-1);
+		line-height: 1.2;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.stat-label {
+		font-size: 0.875rem;
+		color: var(--txt-3);
+	}
+
+	/* Regions */
+
+	.regions {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+		gap: var(--spacing);
+	}
+
+	.region {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 0.75rem;
+	}
+
+	.region-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 0.5rem;
+	}
+
+	.region-title {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	.region-name {
+		color: var(--txt-1);
+	}
+
+	.mosaic {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 2px;
+	}
+
+	/* Lately */
+
+	.shifts {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.shift {
+		display: grid;
+		grid-template-columns: 16rem 1fr;
+		gap: var(--spacing);
+		align-items: center;
+		padding-block: 0.5rem;
+		border-top: 1px solid var(--border);
+
+		&:last-child {
+			border-bottom: 1px solid var(--border);
+		}
+	}
+
+	.shift.quiet {
+		opacity: 0.6;
+	}
+
+	.shift-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		min-width: 0;
+	}
+
+	.shift-name,
+	.font-name {
+		color: var(--txt-1);
+		text-decoration: none;
+
+		&:hover {
+			text-decoration: underline;
+		}
+	}
+
+	.compare {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		margin-block: 0.125rem;
+	}
+
+	.compare .bar.recent > span {
+		background: var(--txt-2);
+	}
+
+	/* One of a kind */
+
+	.loners {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+		gap: var(--spacing);
+	}
+
+	.loner {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		min-width: 0;
+		text-decoration: none;
+
+		&:hover .tile {
+			opacity: 0.8;
+		}
+
+		&:focus-visible {
+			outline: 1px solid var(--txt-3);
+			outline-offset: 1px;
+		}
+	}
+
+	.loner-title {
+		font-size: 0.875rem;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	/* Typefaces: a card per font, like the regions */
+
+	.fonts {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+		gap: var(--spacing);
+	}
+
+	.font {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		min-width: 0;
+		padding: 0.75rem;
+		border: 1px solid var(--border);
+	}
+
+	.font-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 0.5rem;
+		min-width: 0;
+	}
+
+	.font-name {
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+
+	.font-sites {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 0.375rem;
+
+		& .thumb-link {
+			width: auto;
+		}
+	}
+
+	.pairings {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.375rem 0.5rem;
+	}
+
+	.pair {
+		padding: 0.125rem 0.5rem;
+		font-size: 0.875rem;
+		background: var(--bg-2);
+		border: 1px solid var(--border);
+	}
+
+	@media (max-width: 768px) {
+		.page-header {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 0.25rem;
+		}
+
+		.stats {
+			grid-template-columns: repeat(2, 1fr);
+		}
+
+		/* five tiles: the first takes a row to itself */
+		.stat:first-child {
+			grid-column: span 2;
+		}
+
+		.regions {
+			grid-template-columns: 1fr;
+		}
+
+		.fonts {
+			grid-template-columns: repeat(2, 1fr);
+		}
+
+		.loners {
+			grid-template-columns: repeat(2, 1fr);
+		}
+
+		.shift {
+			grid-template-columns: 1fr;
+			gap: 0.5rem;
+		}
+	}
+</style>

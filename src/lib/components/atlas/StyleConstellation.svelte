@@ -178,7 +178,7 @@
 	{/each}
 	{#each simNodes as node (node.name)}
 		<a
-			href="/search?q={encodeURIComponent(node.name)}"
+			href="/atlas?style={encodeURIComponent(node.name)}"
 			class="node"
 			class:dimmed={isDimmed(node.name)}
 			onmouseenter={() => (hovered = node.name)}
