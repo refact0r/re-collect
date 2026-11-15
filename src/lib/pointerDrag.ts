@@ -1,25 +1,12 @@
 // Pointer drag for reorderable grids. A mouse or pen drags the whole card once it
-// moves a few pixels, so a plain click still opens it; touch drags after a long
-// press held still, so swipes keep scrolling the page and taps still open it. While
+// moves a few pixels, so a plain click still opens it; touch never drags, so swipes
+// scroll and long presses keep the browser's own menu. While
 // dragging, the nearest scroll container auto-scrolls near its edges, Escape
 // cancels, and the click that ends the drag is swallowed.
 
 const MOVE_THRESHOLD = 5;
-const LONG_PRESS_MS = 400;
 const EDGE = 64;
 const MAX_SCROLL_SPEED = 20;
-
-// A browser only lets a touchmove listener stop the page scrolling if a blocking one
-// was already on the element when the touch began, so the cards carry one from the
-// start (blockTouchScroll) and this flag tells it when a touch drag is underway
-let touchDragging = false;
-
-/** Attachment for draggable cards: keeps a touch drag from also scrolling the page */
-export function blockTouchScroll(el: Element) {
-	const block = (ev: Event) => touchDragging && ev.preventDefault();
-	el.addEventListener('touchmove', block, { passive: false });
-	return () => el.removeEventListener('touchmove', block);
-}
 
 interface DragCallbacks {
 	/** The drag begins; (x, y) is where the pointer went down */
@@ -33,8 +20,8 @@ interface DragCallbacks {
 /** Call from a draggable element's pointerdown; returns a function that cancels the drag */
 export function pointerDrag(e: PointerEvent, { start, move, end }: DragCallbacks): () => void {
 	const target = e.target as Element;
-	const touch = e.pointerType === 'touch';
 	if (
+		e.pointerType === 'touch' ||
 		!e.isPrimary ||
 		e.button !== 0 ||
 		e.ctrlKey ||
@@ -53,14 +40,12 @@ export function pointerDrag(e: PointerEvent, { start, move, end }: DragCallbacks
 	let dragging = false;
 	let autoScrollArmed = false;
 	let frame = 0;
-	let pressTimer = 0;
 	const scroller = scrollParent(e.currentTarget as Element);
 	const listeners = new AbortController();
 	const { signal } = listeners;
 
 	function begin() {
 		dragging = true;
-		touchDragging = touch;
 		document.body.style.cursor = 'grabbing';
 		document.body.style.userSelect = 'none';
 		// Scroll events don't bubble; capturing on document sees the scroller's
@@ -92,10 +77,8 @@ export function pointerDrag(e: PointerEvent, { start, move, end }: DragCallbacks
 
 	function finish(commit: boolean) {
 		listeners.abort();
-		clearTimeout(pressTimer);
 		if (!dragging) return;
 		dragging = false;
-		touchDragging = false;
 		cancelAnimationFrame(frame);
 		document.body.style.cursor = '';
 		document.body.style.userSelect = '';
@@ -110,22 +93,13 @@ export function pointerDrag(e: PointerEvent, { start, move, end }: DragCallbacks
 			if (!ours(ev)) return;
 			pointer = { x: ev.clientX, y: ev.clientY };
 			if (dragging) move(pointer.x, pointer.y);
-			else if (Math.hypot(pointer.x - origin.x, pointer.y - origin.y) >= MOVE_THRESHOLD) {
-				// A touch that moves before the long press is a scroll, not a drag
-				if (touch) finish(false);
-				else begin();
-			}
+			else if (Math.hypot(pointer.x - origin.x, pointer.y - origin.y) >= MOVE_THRESHOLD) begin();
 		},
 		{ signal }
 	);
 	document.addEventListener('pointerup', (ev) => ours(ev) && finish(true), { signal });
 	document.addEventListener('pointercancel', (ev) => ours(ev) && finish(false), { signal });
 	window.addEventListener('keydown', (ev) => ev.key === 'Escape' && finish(false), { signal });
-	if (touch) {
-		pressTimer = window.setTimeout(begin, LONG_PRESS_MS);
-		// Android opens a context menu on a long press
-		window.addEventListener('contextmenu', (ev) => ev.preventDefault(), { signal });
-	}
 
 	return () => finish(false);
 }

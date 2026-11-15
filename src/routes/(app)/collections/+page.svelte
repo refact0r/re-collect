@@ -5,7 +5,7 @@
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import CollectionCreateModal from '#lib/components/CollectionCreateModal.svelte';
 	import { useMutation } from '#lib/convex.js';
-	import { pointerDrag, blockTouchScroll } from '#lib/pointerDrag.js';
+	import { pointerDrag } from '#lib/pointerDrag.js';
 	import { getCollectionsContext, type CollectionsData } from '#lib/context.js';
 	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
 
@@ -137,7 +137,6 @@
 				class="clickable collection-card"
 				class:dragging={draggedCollection?._id === collection._id}
 				onpointerdown={(e) => handlePointerDown(collection, e)}
-				{@attach blockTouchScroll}
 			>
 				{@render cardBody(collection, true)}
 			</a>
@@ -237,16 +236,6 @@
 		display: flex;
 		gap: 0.25rem;
 		flex-shrink: 0;
-	}
-	/* A long press on touch starts our drag, not a link preview, text selection or the system's drag and drop */
-	.collection-card {
-		-webkit-touch-callout: none;
-		-webkit-user-select: none;
-		user-select: none;
-	}
-	.collection-card,
-	.collection-card :global(*) {
-		-webkit-user-drag: none;
 	}
 	.drag-preview {
 		position: fixed;
