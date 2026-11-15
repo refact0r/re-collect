@@ -21,6 +21,10 @@ export function useLibraryMap() {
 		get points() {
 			return map.data?.points ?? [];
 		},
+		// The stored layout hasn't arrived yet
+		get loading() {
+			return map.isLoading;
+		},
 		// Nothing to show yet, and a layout may still be on its way
 		get pending() {
 			return map.isLoading || updating;

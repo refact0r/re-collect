@@ -140,7 +140,9 @@
 		{/if}
 	</div>
 
-	{#if itemsQuery.isLoading}
+	<!-- Wait for the map too: the items may already be cached from another page,
+	     and the sections that don't need the map would render first, then jump -->
+	{#if itemsQuery.isLoading || map.loading}
 		<p class="status-text">loading...</p>
 	{:else if itemsQuery.error}
 		<p class="status-text">error: {itemsQuery.error.message}</p>
