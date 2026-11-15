@@ -58,8 +58,9 @@ function showDefaults() {
 	const source = collections.find((c) => c._id === select.value) ?? home;
 	document.getElementById('default-image').text =
 		`Default image (${source?.linkImageMode === 'og' ? 'og image' : 'screenshot'})`;
+	const understood = { visual: 'by look', text: 'by content', none: 'AI off' };
 	document.getElementById('default-tagging').text =
-		`Default tagging (${source?.taggingMode ?? 'visual'})`;
+		`Default (${understood[source?.taggingMode ?? 'visual']})`;
 }
 select.onchange = showDefaults;
 

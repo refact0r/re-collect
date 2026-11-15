@@ -9,8 +9,13 @@
 	import { fontDisplayName, fontQuery } from '../../convex/lib/fonts.js';
 	import { isWebUrl } from '../../convex/lib/urls.js';
 	import { getCollectionsContext } from '#lib/context.js';
+	import {
+		TAGGING_MODE_LABEL,
+		taggingModeOf,
+		taggingModesFor,
+		type TaggingMode
+	} from '#lib/taggingModes.js';
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
-	import IconCheck from '~icons/material-symbols-light/check-sharp';
 	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
 
 	interface Props {
@@ -81,7 +86,10 @@
 
 	const imageBusy = $derived(isBusy(item.screenshotStatus));
 	const tagBusy = $derived(isBusy(item.taggingStatus));
-	const hasTags = $derived(!!(item.styles?.length || item.aiTags?.length || item.subject));
+	const taggingMode = $derived(taggingModeOf(item));
+	// Looking needs an image that isn't being replaced; content and off always work
+	const canSetMode = (mode: TaggingMode) =>
+		!tagBusy && (mode !== 'visual' || (!imageBusy && !!item.imageKey));
 
 	// Clicking a mode re-fetches in that mode, so the active button doubles as refresh
 	async function reimage(mode: 'screenshot' | 'og') {
@@ -90,7 +98,9 @@
 		mutate(api.screenshots.reimageItem, { itemId, mode });
 	}
 
-	function retag(mode?: 'visual' | 'text') {
+	async function retag(mode: TaggingMode) {
+		// Persist the draft first so content tagging reads the url as edited
+		if (!(await save())) return;
 		mutate(api.tagging.retagItem, { itemId, mode });
 	}
 
@@ -180,11 +190,6 @@
 											checked={item.collections.includes(collection._id)}
 											onchange={() => toggleCollection(collection._id)}
 										/>
-										<span class="checkbox">
-											{#if item.collections.includes(collection._id)}
-												<IconCheck />
-											{/if}
-										</span>
 										{collection.name}
 									</label>
 								{/each}
@@ -274,34 +279,25 @@
 				</div>
 			{/if}
 
-			{#if item.type !== 'text' && !readonly}
+			{#if !readonly}
 				<div class="tag-field">
-					<div class="field-label">ai tagging</div>
-					{#if item.type === 'url'}
-						<!-- Clicking a mode re-tags in that mode, so the active button doubles as refresh -->
-						<div class="mode-options">
+					<div class="field-label">{TAGGING_MODE_LABEL}</div>
+					<!-- Clicking a mode re-tags in that mode, so the active button doubles as refresh -->
+					<div class="mode-options">
+						{#each taggingModesFor(item.type) as opt (opt.value)}
 							<button
-								class={{ active: (item.taggingMode ?? 'visual') === 'visual' }}
-								disabled={tagBusy || imageBusy || !item.imageKey}
-								onclick={() => retag('visual')}
+								class={{ active: taggingMode === opt.value }}
+								disabled={!canSetMode(opt.value)}
+								onclick={() => retag(opt.value)}
 							>
-								visual
+								{opt.label}
 							</button>
-							<button
-								class={{ active: item.taggingMode === 'text' }}
-								disabled={tagBusy}
-								onclick={() => retag('text')}
-							>
-								text
-							</button>
-						</div>
-						{#if tagBusy}
-							<p class="status-text">tagging...</p>
-						{/if}
-					{:else}
-						<button disabled={tagBusy || imageBusy || !item.imageKey} onclick={() => retag()}>
-							{tagBusy ? 'tagging...' : hasTags ? 're-tag' : 'tag'}
-						</button>
+						{/each}
+					</div>
+					{#if tagBusy}
+						<p class="status-text">tagging...</p>
+					{:else if taggingMode === 'none'}
+						<p class="status-text">ai off: not tagged, embedded or mapped</p>
 					{/if}
 					{#if item.taggingStatus === 'failed'}
 						<p class="status-text">failed: {item.taggingError}</p>
@@ -466,40 +462,8 @@
 	.checkbox-label {
 		flex-direction: row;
 		align-items: center;
-		gap: 1rem;
+		gap: 0.5rem;
 		cursor: pointer;
-	}
-
-	.checkbox-label input {
-		position: absolute;
-		opacity: 0;
-		pointer-events: none;
-	}
-
-	.checkbox {
-		width: 1.125rem;
-		height: 1.125rem;
-		border: 1px solid var(--border);
-		background: var(--bg-2);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-	}
-
-	.checkbox-label:hover .checkbox {
-		border-color: var(--txt-3);
-	}
-
-	.checkbox-label input:checked + .checkbox {
-		background: var(--txt-2);
-		border-color: var(--txt-2);
-		color: var(--bg-1);
-	}
-
-	.checkbox :global(svg) {
-		width: 0.875rem;
-		height: 0.875rem;
 	}
 
 	.url-input-row {

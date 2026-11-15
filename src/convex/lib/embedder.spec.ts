@@ -38,6 +38,29 @@ describe('embeddingInput', () => {
 		});
 	});
 
+	it('embeds a look-mode link as its image, og image or screenshot alike', () => {
+		expect(
+			embeddingInput({
+				type: 'url',
+				imageKey: 'og/a.png',
+				screenshotStatus: 'completed',
+				taggingMode: 'visual'
+			})
+		).toEqual({ kind: 'image', imageKey: 'og/a.png' });
+	});
+
+	it('embeds nothing with AI off, whatever the type and state', () => {
+		for (const item of [
+			{ type: 'url' as const, imageKey: 'a.webp', screenshotStatus: 'completed' as const },
+			{ type: 'url' as const, screenshotStatus: 'failed' as const, title: 't' },
+			{ type: 'url' as const, screenshotStatus: 'pending' as const },
+			{ type: 'image' as const, imageKey: 'b.jpg' },
+			{ type: 'text' as const, content: 'c' }
+		]) {
+			expect(embeddingInput({ ...item, taggingMode: 'none' })).toBeNull();
+		}
+	});
+
 	it('embeds notes as words', () => {
 		expect(embeddingInput({ type: 'text', title: 'n', content: 'c' })).toEqual({
 			kind: 'text',

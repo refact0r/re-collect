@@ -199,7 +199,12 @@ export const tagTextItem = internalAction({
 		await runTagging(ctx, itemId, async (item) => {
 			// The URL was cleared after this run was queued
 			if (item.type !== 'url' || !item.url) throw new Error('Item has no URL to tag');
-			const article = await extractArticleText(item.url);
+			// A page with no readable article (a video, a JS app) is tagged from the
+			// description its capture read off it instead
+			const article = await extractArticleText(item.url).catch((error: unknown) => {
+				if (!item.ogDescription) throw error;
+				return { title: item.title, text: item.ogDescription };
+			});
 			return requestArticleTags({ ...article, url: item.url }, itemId);
 		});
 	}
@@ -212,17 +217,26 @@ export const tagTextItem = internalAction({
 export const embedItem = internalAction({
 	args: { itemId: v.id('items') },
 	handler: async (ctx, { itemId }): Promise<void> => {
-		const found = await ctx.runQuery(internal.embeddings.getItemForEmbedding, { itemId });
-		const input = found && embeddingInput(found.item);
-		if (!input) return;
-		const key = await inputKey(input);
-		if (key === found.embeddedKey) return;
+		// The input the item wants embedded now, by its key
+		const wanted = async () => {
+			const found = await ctx.runQuery(internal.embeddings.getItemForEmbedding, { itemId });
+			const input = found && embeddingInput(found.item);
+			return input && { input, key: await inputKey(input), embeddedKey: found.embeddedKey };
+		};
+		const first = await wanted();
+		if (!first || first.key === first.embeddedKey) return;
+		const { input, key } = first;
 
 		try {
 			let embedding: number[];
 			if (input.kind === 'image') {
-				const { data, width, height } = await fetchAndDecode(input.imageKey);
-				embedding = await embedImage(await toJpegBase64(data, width, height));
+				const jpeg = await fetchAndDecode(input.imageKey).then(({ data, width, height }) =>
+					toJpegBase64(data, width, height)
+				);
+				// Decoding takes a moment: an item turned off (or changed) meanwhile
+				// mustn't have its image sent anyway
+				if ((await wanted())?.key !== key) return;
+				embedding = await embedImage(jpeg);
 			} else {
 				embedding = await embedText(input.text);
 			}

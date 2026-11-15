@@ -55,7 +55,9 @@ export const getForLayout = internalQuery({
 // ~6 KB a vector, so a page stays far under a query's read limits
 const VECTOR_PAGE_SIZE = 256;
 
-// A page of the user's current-model vectors; rows from another model are stale
+// A page of the user's current-model image vectors: the map shows how things
+// look, so items read as words (notes, content links, failed captures) stay off
+// it. Rows from another model are stale.
 export const vectorPage = internalQuery({
 	args: { userId: v.id('users'), cursor: v.union(v.string(), v.null()) },
 	handler: async (ctx, { userId, cursor }) => {
@@ -64,7 +66,7 @@ export const vectorPage = internalQuery({
 			.withIndex('by_user', (q) => q.eq('userId', userId))
 			.paginate({ numItems: VECTOR_PAGE_SIZE, cursor });
 		const rows = page
-			.filter((row) => row.model === EMBEDDING_MODEL)
+			.filter((row) => row.model === EMBEDDING_MODEL && row.inputKey.startsWith('image:'))
 			.map(({ itemId, embedding }) => ({ itemId, embedding }));
 		return { rows, isDone, continueCursor };
 	}

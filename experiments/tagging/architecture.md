@@ -143,7 +143,8 @@ Tagging runs go through `taggingPool`; `repaletteItem` is a plain scheduled
 action (it writes no status, so there is nothing to settle). "Visual tagging
 is on" means `taggingMode` is neither `'none'` nor `'text'`; palette
 extraction always runs on a new image. `retagItem` also switches the item's
-`taggingMode` to the mode it ran.
+`taggingMode` to the mode it ran; to `'none'` (AI off) it runs nothing and
+clears the item's tags and embedding instead.
 
 Text items are never tagged. URL items with `taggingMode: 'text'` skip visual
 tagging entirely: `tagTextItem` (no worker/browser involvement) fetches the

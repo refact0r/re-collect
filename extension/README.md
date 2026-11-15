@@ -13,7 +13,7 @@ Page saves can take their image from:
 - **Visible area**: the extension captures what's on screen.
 - **Selected area**: drag out a region on the page (Esc cancels) and the extension captures just that.
 
-The popup's tagging picker can likewise override the collection's tagging mode (visual, text or none) for that save. The "Default" options show what the selected collection would use. Context-menu saves always use the collection's defaults.
+The popup's second picker can likewise override how the collection has its items understood (by look, by content, or AI off: no tagging or embedding) for that save. The "Default" options show what the selected collection would use. Context-menu saves always use the collection's defaults.
 
 Captures are taken at the screen's pixel density and saved as WebP. `imageImport.addPageWithImage` stores the image in R2 and creates a URL item that uses it in place of the worker's screenshot, so it's tagged right away. The page's og:description is read from the page.
 

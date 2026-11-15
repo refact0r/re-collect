@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { TAGGING_MODE_LABEL, taggingModeOptions, type TaggingMode } from '#lib/taggingModes.js';
 	import { api } from '../../convex/_generated/api.js';
 	import { useMutation } from '#lib/convex.js';
 	import type { CollectionSortOption } from '#lib/types.js';
@@ -18,7 +19,7 @@
 	// undefined on the doc means the default; only send values that differ
 	let sortMode = $state<CollectionSortOption>('manual');
 	let viewMode = $state<'grid' | 'list'>('grid');
-	let taggingMode = $state<'visual' | 'text' | 'none'>('visual');
+	let taggingMode = $state<TaggingMode>('visual');
 	let linkImageMode = $state<'screenshot' | 'og'>('screenshot');
 
 	const sortOptions: { value: CollectionSortOption; label: string }[] = [
@@ -33,11 +34,6 @@
 	const viewOptions = [
 		{ value: 'grid', label: 'grid' },
 		{ value: 'list', label: 'list' }
-	] as const;
-	const taggingOptions = [
-		{ value: 'visual', label: 'visual' },
-		{ value: 'text', label: 'text' },
-		{ value: 'none', label: 'none' }
 	] as const;
 	const linkImageOptions = [
 		{ value: 'screenshot', label: 'screenshot' },
@@ -87,9 +83,9 @@
 			</div>
 		</div>
 		<div class="group">
-			<span class="group-label">ai tagging</span>
+			<span class="group-label">{TAGGING_MODE_LABEL}</span>
 			<div class="mode-options">
-				{#each taggingOptions as opt (opt.value)}
+				{#each taggingModeOptions as opt (opt.value)}
 					<button
 						class:active={taggingMode === opt.value}
 						onclick={() => (taggingMode = opt.value)}

@@ -33,7 +33,7 @@ Consult `reference/` when working with those systems: `convex-r2.md` (R2 uploads
 - **Item links are http(s) only** (`isWebUrl` in `src/convex/lib/urls.ts`): `items.add` / `update` reject anything else (and a URL item without one), and the UI only links ones that pass (older rows were never checked)
 - **Tab title**: the root layout owns the one `<title>`; pages set `pageTitle` (`src/lib/pageTitle.svelte.ts`) in an effect, or return `title` from load for SSR
 - **3 item types**: URL (screenshot or og:image via Cloudflare Worker, or a screenshot supplied by the browser extension), image (R2-stored), text
-- **Ingestion modes**: `taggingMode` (`visual` / `text` / `none`) and `linkImageMode` (`screenshot` / `og`) are per-collection defaults (home defaults live in `viewPreferences`), snapshotted onto the item at add time
+- **Ingestion modes**: `taggingMode` (`visual` / `text` / `none`) and `linkImageMode` (`screenshot` / `og`) are per-collection defaults (home defaults live in `viewPreferences`), snapshotted onto the item at add time and changeable per item (`tagging.retagItem`, `screenshots.reimageItem`). `linkImageMode` is only the thumbnail; `taggingMode` is how the item is understood, shown as "look" / "content" / "off": tagging, embedding and the atlas map follow it, and `none` keeps the item away from every AI service (`retagItem` to `none` clears its tags and embedding). Images are look-or-off, notes content-or-off
 - Items can belong to multiple collections
 - **Modal routing**: Items open via `?item=<id>` query param (preserves page context)
 - **Context sharing**: Collections and items lists passed down via Svelte context (typed helpers in `src/lib/context.ts`)

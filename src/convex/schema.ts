@@ -3,6 +3,12 @@ import { v } from 'convex/values';
 
 // Ingestion mode validators, shared by every table/mutation that stores them.
 // undefined always means the default: 'visual' / 'screenshot'.
+// taggingMode is how the app understands an item, shown as "look" / "content" /
+// "off": tagging and embedding follow it (an image's pixels or a link's words),
+// only items embedded as images go on the atlas map, and 'none' keeps the item
+// away from every AI service (no tags, no embedding). Images can't be read as
+// content and notes can't be looked at, so they only switch between their one
+// mode and off.
 export const taggingModeValidator = v.union(
 	v.literal('visual'),
 	v.literal('text'),
@@ -97,7 +103,8 @@ export default defineSchema({
 		),
 		taggingError: v.optional(v.string()),
 		taggingModelVersion: v.optional(v.string()),
-		// Ingestion prefs snapshotted from the first collection at add time
+		// Ingestion prefs snapshotted from the first collection at add time, then
+		// set per item (taggingMode on notes is only ever 'none')
 		taggingMode: v.optional(taggingModeValidator),
 		linkImageMode: v.optional(linkImageModeValidator), // URL items only
 		searchText: v.optional(v.string()), // Derived full-text search field, see lib/searchText.ts

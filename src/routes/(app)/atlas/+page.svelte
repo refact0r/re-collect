@@ -56,8 +56,8 @@
 			<section>
 				<h3>library map</h3>
 				<p class="meta">
-					similar items sit together, by how they look or read — drag to pan, scroll or pinch to
-					zoom
+					items you keep for their look, placed by how alike they look — drag to pan, scroll or
+					pinch to zoom
 				</p>
 				<LibraryMap items={itemsQuery.data ?? []} />
 			</section>

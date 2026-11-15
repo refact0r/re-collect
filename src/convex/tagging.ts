@@ -8,7 +8,8 @@ import { getOwned, userMutation } from './lib/auth';
 import { patchItem } from './lib/searchText';
 import { colorNamesForPalette } from './lib/colorNames';
 import { MAX_ERROR_CHARS } from './lib/tagger';
-import { scheduleEmbedding } from './embeddings';
+import { deleteItemEmbeddings, scheduleEmbedding } from './embeddings';
+import { taggingModeValidator } from './schema';
 
 // The database side of tagging; the runs themselves are the Node actions in
 // taggingActions.ts.
@@ -108,21 +109,43 @@ export const setPaletteHex = internalMutation({
 	}
 });
 
+// Switches how an item is understood and re-tags it in that mode: 'visual' tags
+// its image, 'text' a link's article (a note isn't tagged, only embedded), and
+// 'none' turns AI off, clearing what it wrote and the item's embedding
 export const retagItem = userMutation({
 	args: {
 		itemId: v.id('items'),
-		// Omitted: retag in the item's current mode (defaulting to visual)
-		mode: v.optional(v.union(v.literal('visual'), v.literal('text')))
+		// Omitted: retag in the item's current mode
+		mode: v.optional(taggingModeValidator)
 	},
 	handler: async (ctx, args) => {
 		const item = await getOwned(ctx, args.itemId);
 		if (!item) throw new ConvexError('item not found');
-		if (item.type === 'text') throw new ConvexError('text items cannot be tagged');
 		// `pending` is set in the same transaction as the enqueue and cleared only
-		// when the run settles, so this is what keeps runs from overlapping
+		// when the run settles, so this is what keeps runs from overlapping (and a
+		// run's results from landing on an item just turned off)
 		if (item.taggingStatus === 'pending') throw new ConvexError('tagging already in progress');
 
-		const mode = args.mode ?? (item.taggingMode === 'text' ? 'text' : 'visual');
+		const mode = args.mode ?? item.taggingMode ?? (item.type === 'text' ? 'text' : 'visual');
+		if (mode === 'none') {
+			await patchItem(ctx, item, {
+				taggingMode: 'none',
+				taggingStatus: undefined,
+				taggingError: undefined,
+				taggingModelVersion: undefined,
+				subject: undefined,
+				styles: undefined,
+				aiTags: undefined
+			});
+			await deleteItemEmbeddings(ctx, item._id);
+			return;
+		}
+		if (item.type === 'text') {
+			if (mode !== 'text') throw new ConvexError('notes are read by their content');
+			await ctx.db.patch(args.itemId, { taggingMode: undefined });
+			await scheduleEmbedding(ctx, args.itemId);
+			return;
+		}
 		if (mode === 'text') {
 			if (item.type !== 'url' || !item.url) {
 				throw new ConvexError('only URL items can be text-tagged');

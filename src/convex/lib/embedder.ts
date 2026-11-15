@@ -35,10 +35,11 @@ type EmbeddingFields = Pick<
 	| 'taggingMode'
 >;
 
-// What an item embeds as, or null while it's still waiting on the input it
-// should embed (an image on its way, or text-mode tags not written yet). Images
-// embed as pixels; text-mode links and notes embed as their words.
+// What an item embeds as, or null when it has AI off or is still waiting on the
+// input it should embed (an image on its way, or text-mode tags not written yet).
+// Images embed as pixels; text-mode links and notes embed as their words.
 export function embeddingInput(item: EmbeddingFields): EmbeddingInput | null {
+	if (item.taggingMode === 'none') return null;
 	const textMode = item.taggingMode === 'text';
 	// A capture (first or redone) on its way replaces whatever image is there
 	if (item.type === 'url' && !textMode && item.screenshotStatus === 'pending') return null;

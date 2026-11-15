@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { TAGGING_MODE_LABEL, taggingModeOptions, type TaggingMode } from '#lib/taggingModes.js';
 	import { api } from '../../convex/_generated/api.js';
 	import type { Doc, Id } from '../../convex/_generated/dataModel.js';
 	import { useMutation, useQuery } from '#lib/convex.js';
@@ -34,11 +35,6 @@
 	const linkImageMode = $derived(source?.linkImageMode ?? 'screenshot');
 	const shared = $derived(!!collection?.shared);
 
-	const taggingOptions = [
-		{ value: 'visual', label: 'visual' },
-		{ value: 'text', label: 'text' },
-		{ value: 'none', label: 'none' }
-	] as const;
 	const titleOptions = [
 		{ value: false, label: 'hidden' },
 		{ value: true, label: 'shown' }
@@ -72,10 +68,7 @@
 		await sharing;
 	}
 
-	function setDefaults(fields: {
-		taggingMode?: 'visual' | 'text' | 'none';
-		linkImageMode?: 'screenshot' | 'og';
-	}) {
+	function setDefaults(fields: { taggingMode?: TaggingMode; linkImageMode?: 'screenshot' | 'og' }) {
 		if (collectionId) mutate(api.collections.update, { id: collectionId, ...fields });
 		else mutate(api.viewPreferences.set, { key: 'home', ...fields });
 	}
@@ -120,9 +113,9 @@
 				{/if}
 				{#if showIngestion}
 					<div class="group">
-						<span class="group-label">ai tagging default</span>
+						<span class="group-label">{TAGGING_MODE_LABEL} default</span>
 						<div class="mode-options">
-							{#each taggingOptions as opt (opt.value)}
+							{#each taggingModeOptions as opt (opt.value)}
 								<button
 									class:active={taggingMode === opt.value}
 									onclick={() => setDefaults({ taggingMode: opt.value })}

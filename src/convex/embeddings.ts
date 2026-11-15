@@ -60,8 +60,8 @@ export const saveEmbedding = internalMutation({
 });
 
 // Embeds every item without a current embedding (all of them after a model
-// change), a page per transaction, with the runs spread out to stay under the
-// Workers AI rate limit.
+// change) and deletes the embeddings of items with AI off, a page per
+// transaction, with the runs spread out to stay under the Workers AI rate limit.
 // Run with `npx convex run embeddings:backfill` (add --prod for production)
 export const backfill = internalMutation({
 	args: { cursor: v.optional(v.string()), scheduled: v.optional(v.number()) },
@@ -71,6 +71,10 @@ export const backfill = internalMutation({
 			.paginate({ numItems: 100, cursor: args.cursor ?? null });
 		let scheduled = args.scheduled ?? 0;
 		for (const item of page) {
+			if (item.taggingMode === 'none') {
+				await deleteItemEmbeddings(ctx, item._id);
+				continue;
+			}
 			const existing = await ctx.db
 				.query('itemEmbeddings')
 				.withIndex('by_item', (q) => q.eq('itemId', item._id))

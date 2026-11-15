@@ -138,11 +138,18 @@ export const add = userMutation({
 		// and are snapshotted onto the item; later membership changes don't
 		// re-apply them.
 		const defaultsSource = ownedCollections[0] ?? (await getPreferences(ctx, 'home'));
-		// 'text' tagging only applies to URL items; images in a text-mode
-		// collection fall back to visual tagging
+		// Each type keeps only the modes it has: images in a text-mode collection
+		// fall back to visual tagging, and notes (always read as content) only
+		// record AI being off
 		const rawTaggingMode = args.taggingMode ?? defaultsSource?.taggingMode;
 		const taggingMode =
-			args.type === 'image' && rawTaggingMode === 'text' ? 'visual' : rawTaggingMode;
+			args.type === 'text'
+				? rawTaggingMode === 'none'
+					? 'none'
+					: undefined
+				: args.type === 'image' && rawTaggingMode === 'text'
+					? 'visual'
+					: rawTaggingMode;
 		const linkImageMode = args.linkImageMode ?? defaultsSource?.linkImageMode;
 		const wantsTextTagging = args.type === 'url' && !!args.url && taggingMode === 'text';
 		// URL items may arrive with their image already captured (the browser
@@ -174,7 +181,7 @@ export const add = userMutation({
 			imageHeight: args.imageHeight,
 			...screenshotFields,
 			...taggingFields,
-			taggingMode: args.type !== 'text' ? taggingMode : undefined,
+			taggingMode,
 			linkImageMode: args.type === 'url' ? linkImageMode : undefined,
 			searchText: buildSearchText(args),
 			collections: [],
@@ -296,15 +303,15 @@ export const list = userQuery({
 		let items = await query.order(sortBy.endsWith('Newest') ? 'desc' : 'asc').collect();
 		if (sortBy.startsWith('title')) items.sort(compareItems[sortBy]);
 
-		if (args.collectionIds && args.collectionIds.length > 0) {
-			const filterSet = new Set(args.collectionIds);
-			items = items.filter(
-				(item) =>
-					item.collections.some((c) => filterSet.has(c)) ||
-					(args.includeUncollected === true && item.collections.length === 0)
+		// Only the picked collections (and uncollected items, if picked); no picks is everything
+		const { collectionIds = [], includeUncollected = false } = args;
+		if (collectionIds.length > 0 || includeUncollected) {
+			const picked = new Set(collectionIds);
+			items = items.filter((item) =>
+				item.collections.length > 0
+					? item.collections.some((c) => picked.has(c))
+					: includeUncollected
 			);
-		} else if (args.includeUncollected === false) {
-			items = items.filter((item) => item.collections.length > 0);
 		}
 
 		return items.map((item) => ({

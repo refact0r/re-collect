@@ -64,8 +64,10 @@ each its own commit, so search or the map can be reverted alone:
 
 - **Pipeline:**
   - `lib/embedder.ts` calls Workers AI and decides what an item embeds as.
-    - Image items and visual/none links embed as their 1024px JPEG, with no
-      prefix.
+    - Image items and visual (look) links embed as their 1024px JPEG, with
+      no prefix, whether the link's image is a screenshot or an og image.
+    - Items with `taggingMode: 'none'` (AI off) aren't embedded, and
+      switching an item to it deletes its row.
     - Notes, text-mode links and links whose capture failed embed as
       `title: … | text: …` (subject, og description, notes, styles, tags,
       content, host).
@@ -91,6 +93,9 @@ each its own commit, so search or the map can be reverted alone:
     nNeighbors ≤ 15, minDist 0.2, seeded) in a Node action.
   - It Procrustes-aligns the result to the previous layout and caches it in
     `embeddingMaps`, one doc per user, capped at 8,192 points.
+  - Only image embeddings are laid out (`vectorPage`): the map shows how
+    things look, so notes, content links and failed captures stay off it but
+    remain in search.
   - Opening the atlas calls refresh. Every embedding save or delete bumps
     the map doc's `version` (`markMapStale`), and refresh records the version
     it read as `layoutVersion`. When the two match it's a one-document no-op;
