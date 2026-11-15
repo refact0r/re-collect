@@ -6,7 +6,6 @@
 		findRegions,
 		fontPairings,
 		itemLabel,
-		outliers,
 		recentShift,
 		styleGraph,
 		fontsByUse,
@@ -57,7 +56,6 @@
 
 	const regions = $derived(findRegions(points, items));
 	const shift = $derived(recentShift(regions, items));
-	const loners = $derived(lookup(outliers(points)));
 	// How many of a font's sites its row shows; the atlas has the rest
 	const FONT_SITES = 5;
 	const fonts = $derived(fontsByUse(items));
@@ -216,21 +214,6 @@
 			{/if}
 		{/if}
 
-		{#if loners.length > 0}
-			<section>
-				<h2>one of a kind</h2>
-				<p class="meta">unlike anything else saved</p>
-				<div class="loners">
-					{#each loners as item (item._id)}
-						<a href="/atlas?focus={item._id}" class="loner">
-							<div class="tile">{@render thumb(item)}</div>
-							<span class="loner-title">{itemLabel(item)}</span>
-						</a>
-					{/each}
-				</div>
-			</section>
-		{/if}
-
 		{#if graph.styles.length > 2}
 			<section>
 				<h2>styles</h2>
@@ -329,11 +312,6 @@
 		text-align: center;
 		overflow: hidden;
 		overflow-wrap: anywhere;
-	}
-
-	.tile {
-		aspect-ratio: 4 / 3;
-		overflow: hidden;
 	}
 
 	.thumbs {
@@ -466,38 +444,6 @@
 		background: var(--txt-2);
 	}
 
-	/* One of a kind */
-
-	.loners {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
-		gap: var(--gutter);
-	}
-
-	.loner {
-		display: flex;
-		flex-direction: column;
-		gap: var(--gap-sm);
-		min-width: 0;
-		text-decoration: none;
-
-		&:hover .tile {
-			opacity: 0.8;
-		}
-
-		&:focus-visible {
-			outline: 1px solid var(--txt-3);
-			outline-offset: 1px;
-		}
-	}
-
-	.loner-title {
-		font-size: var(--text-sm);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
 	/* Typefaces: a row per font, most used first, reading down each column */
 
 	.fonts {
@@ -587,10 +533,6 @@
 
 		.regions {
 			grid-template-columns: 1fr;
-		}
-
-		.loners {
-			grid-template-columns: repeat(2, 1fr);
 		}
 
 		.shift {

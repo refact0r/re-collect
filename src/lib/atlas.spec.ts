@@ -9,7 +9,6 @@ import {
 	litItems,
 	monthsOf,
 	noLenses,
-	outliers,
 	recentShift,
 	fontsByUse,
 	UNCOLLECTED,
@@ -152,30 +151,6 @@ describe('litItems', () => {
 		expect(lit({ hue: brush('b'), added: [0, 15] })).toEqual(new Set());
 	});
 });
-
-describe('outliers', () => {
-	const grid: MapPoint[] = Array.from({ length: 16 }, (_, i) => ({
-		itemId: id(`g${i}`),
-		x: i % 4,
-		y: Math.floor(i / 4)
-	}));
-
-	it('finds the points far from the rest, loneliest first', () => {
-		const points = [
-			...grid,
-			{ itemId: id('lone'), x: 20, y: 20 },
-			{ itemId: id('stray'), x: -8, y: 0 }
-		];
-		expect(outliers(points)).toEqual(['lone', 'stray']);
-		expect(outliers(points, 1)).toEqual(['lone']);
-	});
-
-	it('finds none in an even spread or a tiny library', () => {
-		expect(outliers(grid)).toEqual([]);
-		expect(outliers([...grid.slice(0, 6), { itemId: id('lone'), x: 20, y: 20 }])).toEqual([]);
-	});
-});
-
 describe('recentShift', () => {
 	const old = Array.from({ length: 12 }, (_, i) => item(`o${i}`, { dateAdded: i + 1 }));
 	const fresh = Array.from({ length: 8 }, (_, i) => item(`r${i}`, { dateAdded: 100 + i }));

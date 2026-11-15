@@ -366,41 +366,6 @@ export function monthsOf(items: DisplayItem[]): Month[] {
 
 /* Patterns: what the map says about the library */
 
-export interface Neighbour {
-	itemId: ItemId;
-	distance: number;
-}
-
-// Each point's nearest others on the map, closest first
-export function nearestNeighbours(points: MapPoint[], k: number): Map<ItemId, Neighbour[]> {
-	return new Map(
-		points.map((p) => [
-			p.itemId,
-			points
-				.filter((other) => other !== p)
-				.map((other) => ({ itemId: other.itemId, distance: Math.sqrt(distance2(p, other)) }))
-				.sort((a, b) => a.distance - b.distance)
-				.slice(0, k)
-		])
-	);
-}
-
-// The items with the most room around them: their nearest neighbours sit well
-// over the usual distance away. Loneliest first.
-export function outliers(points: MapPoint[], limit = 6): ItemId[] {
-	if (points.length < MIN_REGION_POINTS) return [];
-	const gaps = [...nearestNeighbours(points, 3)].map(([itemId, neighbours]) => ({
-		itemId,
-		gap: neighbours.reduce((sum, n) => sum + n.distance, 0) / neighbours.length
-	}));
-	const usual = gaps.map((g) => g.gap).sort((a, b) => a - b)[Math.floor(gaps.length / 2)];
-	return gaps
-		.filter((g) => usual > 0 && g.gap > usual * 1.6)
-		.sort((a, b) => b.gap - a.gap)
-		.slice(0, limit)
-		.map((g) => g.itemId);
-}
-
 export interface Shift {
 	region: Region;
 	// How many of the recent items landed in the region, and its share of them
