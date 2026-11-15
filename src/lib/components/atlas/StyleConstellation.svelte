@@ -227,14 +227,13 @@
 	}
 
 	.node text {
-		fill: var(--txt-3);
+		fill: var(--txt-2);
 		font-size: var(--text-xs);
 		text-anchor: middle;
 		pointer-events: none;
 	}
 
 	.node text.big {
-		fill: var(--txt-2);
 		font-size: var(--text-sm);
 	}
 
