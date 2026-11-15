@@ -58,8 +58,8 @@
 	const regions = $derived(findRegions(points, items));
 	const shift = $derived(recentShift(regions, items));
 	const loners = $derived(lookup(outliers(points)));
-	// How many of a font's sites its card shows
-	const FONT_SITES = 4;
+	// How many of a font's sites its row shows; the atlas has the rest
+	const FONT_SITES = 5;
 	const fonts = $derived(fontsByUse(items));
 	const pairings = $derived(fontPairings(items));
 	const graph = $derived(styleGraph(items));
@@ -180,7 +180,7 @@
 						<a href="/atlas?region={region.id}" class="clickable region">
 							<div class="region-head">
 								<div class="region-title">
-									<span class="region-name">{region.name}</span>
+									<span>{region.name}</span>
 									{#if more.length > 0}
 										<span class="meta">{more.join(' · ')}</span>
 									{/if}
@@ -242,23 +242,28 @@
 		{#if fonts.length > 0}
 			<section>
 				<h3>typefaces</h3>
-				<div class="fonts">
+				<ul class="fonts">
 					{#each fonts as font (font.query)}
-						<div class="font">
-							<div class="font-head">
-								<a href="/atlas?font={encodeURIComponent(font.query)}" class="font-name">
-									{font.name}
-								</a>
-								<span class="meta">{font.itemIds.length}</span>
-							</div>
+						{@const sites = lookup(font.itemIds)}
+						{@const more = sites.length - FONT_SITES}
+						{@const onAtlas =
+							sites.length === 1
+								? `/atlas?focus=${sites[0]._id}`
+								: `/atlas?font=${encodeURIComponent(font.query)}`}
+						<li class="font">
+							<a class="font-name" href={onAtlas}>{font.name}</a>
+							<span class="meta">{sites.length}</span>
 							<div class="font-sites">
-								{#each lookup(font.itemIds.slice(0, FONT_SITES)) as item (item._id)}
+								{#each sites.slice(0, FONT_SITES) as item (item._id)}
 									{@render thumbLink(item)}
 								{/each}
+								{#if more > 0}
+									<a class="more" href={onAtlas}>+{more}</a>
+								{/if}
 							</div>
-						</div>
+						</li>
 					{/each}
-				</div>
+				</ul>
 
 				{#if pairings.length > 0}
 					<div class="pairings">
@@ -411,10 +416,6 @@
 		min-width: 0;
 	}
 
-	.region-name {
-		color: var(--txt-1);
-	}
-
 	.mosaic {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
@@ -454,11 +455,10 @@
 
 	.shift-name,
 	.font-name {
-		color: var(--txt-1);
 		text-decoration: none;
 
 		&:hover {
-			text-decoration: underline;
+			color: var(--txt-1);
 		}
 	}
 
@@ -505,44 +505,60 @@
 		text-overflow: ellipsis;
 	}
 
-	/* Typefaces: a card per font, like the regions */
+	/* Typefaces: a row per font, most used first, reading down each column */
 
 	.fonts {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
-		gap: var(--spacing);
+		columns: 2 18rem;
+		column-gap: calc(var(--spacing) * 2);
+		list-style: none;
 	}
 
 	.font {
 		display: flex;
-		flex-direction: column;
+		align-items: center;
 		gap: 0.5rem;
-		min-width: 0;
-		padding: 0.75rem;
-		border: 1px solid var(--border);
-	}
-
-	.font-head {
-		display: flex;
-		justify-content: space-between;
-		align-items: baseline;
-		gap: 0.5rem;
-		min-width: 0;
+		padding-block: 0.25rem;
+		break-inside: avoid;
 	}
 
 	.font-name {
+		min-width: 0;
 		overflow: hidden;
 		white-space: nowrap;
 		text-overflow: ellipsis;
 	}
 
 	.font-sites {
-		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		gap: 0.375rem;
+		display: flex;
+		gap: 0.25rem;
+		flex-shrink: 0;
+		margin-left: auto;
 
-		& .thumb-link {
-			width: auto;
+		& .thumb-link,
+		& .more {
+			width: 2rem;
+			aspect-ratio: 1;
+		}
+	}
+
+	/* The sites past the ones shown, as an empty thumbnail that opens the atlas */
+	.more {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid var(--border);
+		font-size: 0.75rem;
+		color: var(--txt-3);
+		text-decoration: none;
+
+		&:hover {
+			border-color: var(--txt-3);
+			color: var(--txt-1);
+		}
+
+		&:focus-visible {
+			outline: 1px solid var(--txt-3);
+			outline-offset: 1px;
 		}
 	}
 
@@ -578,10 +594,6 @@
 
 		.regions {
 			grid-template-columns: 1fr;
-		}
-
-		.fonts {
-			grid-template-columns: repeat(2, 1fr);
 		}
 
 		.loners {

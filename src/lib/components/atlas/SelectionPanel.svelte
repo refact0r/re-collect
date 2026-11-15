@@ -249,7 +249,6 @@
 		min-width: 0;
 		padding-top: 0.125rem;
 		font-size: 0.875rem;
-		color: var(--txt-1);
 		overflow-wrap: anywhere;
 	}
 
