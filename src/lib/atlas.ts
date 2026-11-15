@@ -426,8 +426,9 @@ export function fontsByUse(items: DisplayItem[]): FontUse[] {
 	for (const item of items) {
 		for (const font of fontsOf(item)) {
 			const query = fontQuery(font);
-			const use = fonts.get(query) ?? { name: fontDisplayName(font), query, itemIds: [] };
-			fonts.set(query, { ...use, itemIds: [...use.itemIds, item._id] });
+			let use = fonts.get(query);
+			if (!use) fonts.set(query, (use = { name: fontDisplayName(font), query, itemIds: [] }));
+			use.itemIds.push(item._id);
 		}
 	}
 	return [...fonts.values()].sort(

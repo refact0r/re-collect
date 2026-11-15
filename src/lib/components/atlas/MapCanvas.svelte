@@ -37,8 +37,8 @@
 		hideUnlit?: boolean;
 		selected: Set<ItemId>;
 		labels: MapLabel[];
-		// A card's longer side in px when the whole map is in view; cards are part
-		// of the map's surface, so they grow and shrink with the zoom
+		// A card's longer side in px; cards keep it at any zoom, so zooming in
+		// spreads them apart (and each image is decoded at one size)
 		thumb: number;
 		// A color to ring each item with (the color wheel)
 		rings?: Map<ItemId, string> | null;
@@ -70,10 +70,9 @@
 		empty
 	}: Props = $props();
 
+	// Zoom limits, relative to the view of the whole map
 	const MIN_ZOOM = 0.5;
-	// Zooming in stops once a card nearly fills the view (but always goes this far)
-	const LEAST_MAX_ZOOM = 2;
-	const CARD_FILL = 0.9;
+	const MAX_ZOOM = 40;
 	// How far a fit to a few close items may zoom in
 	const MAX_FIT_ZOOM = 6;
 	const DRAG_THRESHOLD = 4;
@@ -100,12 +99,10 @@
 			: { width: Math.round(thumb * ratio), height: thumb };
 	}
 
-	// The view that shows every given point inside the inset. `card` is a card's
-	// size in map units, which the view then leaves room for; without it the
-	// cards are `thumb` px, which is the view of the whole map.
-	function fitTo(framed: Placed[], card?: number): View {
+	// The view that shows every given point, and the cards around them, inside the inset
+	function fitTo(framed: Placed[]): View {
 		if (framed.length === 0 || width === 0) return { k: 1, x: 0, y: 0 };
-		const margin = 12 + (card === undefined ? thumb / 2 : 0);
+		const margin = 12 + thumb / 2;
 		const left = inset.left + margin;
 		const top = inset.top + margin;
 		const w = Math.max(width - inset.right - margin - left, 40);
@@ -118,8 +115,7 @@
 			Math.min(...ys),
 			Math.max(...ys)
 		];
-		const span = (size: number) => (card === undefined ? Math.max(size, 0.5) : size + card);
-		const k = Math.min(w / span(maxX - minX), h / span(maxY - minY));
+		const k = Math.min(w / Math.max(maxX - minX, 0.5), h / Math.max(maxY - minY, 0.5));
 		return {
 			k,
 			x: left + w / 2 - (k * (minX + maxX)) / 2,
@@ -127,17 +123,16 @@
 		};
 	}
 
-	// The view of the whole map: zoom limits and the cards' size are relative to it
+	// The view of the whole map, which the zoom limits are relative to
 	const whole = $derived(fitTo(points));
-	const maxZoom = $derived(Math.max(LEAST_MAX_ZOOM, (Math.min(width, height) * CARD_FILL) / thumb));
 	// The items a fit frames (all of them when null); the view follows new
 	// layouts, resizes and panels until the user pans or zooms
 	let frame = $state<Set<ItemId> | null>(null);
 	const fitted = $derived.by((): View => {
 		const framed = frame && points.filter((p) => frame!.has(p.item._id));
 		if (!framed?.length) return whole;
-		const view = fitTo(framed, thumb / whole.k);
-		const k = Math.min(view.k, whole.k * Math.min(MAX_FIT_ZOOM, maxZoom));
+		const view = fitTo(framed);
+		const k = Math.min(view.k, whole.k * MAX_FIT_ZOOM);
 		// zoom about the middle of the clear area the fit centred the frame in
 		const cx = (width + inset.left - inset.right) / 2;
 		const cy = (height + inset.top - inset.bottom) / 2;
@@ -145,8 +140,6 @@
 	});
 	let moved = $state<View | null>(null);
 	const view = $derived(moved ?? fitted);
-	// How much bigger the map is drawn than when all of it is in view
-	const scale = $derived(view.k / whole.k);
 
 	// Programmatic moves glide; the user's own pans and zooms don't
 	let gliding = $state(false);
@@ -170,7 +163,7 @@
 	}
 
 	function zoomAt(factor: number, cx: number, cy: number) {
-		const k = Math.min(whole.k * maxZoom, Math.max(whole.k * MIN_ZOOM, view.k * factor));
+		const k = Math.min(whole.k * MAX_ZOOM, Math.max(whole.k * MIN_ZOOM, view.k * factor));
 		const f = k / view.k;
 		moved = { k, x: cx - (cx - view.x) * f, y: cy - (cy - view.y) * f };
 	}
@@ -186,8 +179,7 @@
 	const onScreen = $derived(
 		points.filter((p) => {
 			const { x, y } = screen(p);
-			const reach = thumb * scale;
-			return x > -reach && x < width + reach && y > -reach && y < height + reach;
+			return x > -thumb && x < width + thumb && y > -thumb && y < height + thumb;
 		})
 	);
 	const visible = $derived(gliding && points.length <= MAX_IMAGES ? points : onScreen);
@@ -202,17 +194,33 @@
 		return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 	}
 
-	// Svelte's onwheel is passive, and zooming has to stop the browser's own pinch zoom
+	// Svelte's onwheel is passive, and zooming has to stop the browser's own pinch zoom.
+	// A trackpad sends wheel events faster than frames, so a frame's worth of them
+	// is applied as one zoom.
 	function wheelZoom(el: HTMLElement) {
+		let pending: { factor: number; x: number; y: number } | null = null;
+		let frame = 0;
 		const onWheel = (e: WheelEvent) => {
 			e.preventDefault();
 			const { x, y } = local(e);
 			const delta = e.deltaY * (e.deltaMode === 1 ? 16 : 1);
 			// a trackpad pinch arrives as ctrl+wheel with small deltas
-			zoomAt(Math.exp(-delta * (e.ctrlKey ? 0.01 : 0.002)), x, y);
+			const factor = Math.exp(-delta * (e.ctrlKey ? 0.01 : 0.002));
+			if (pending) {
+				pending = { factor: pending.factor * factor, x, y };
+				return;
+			}
+			pending = { factor, x, y };
+			frame = requestAnimationFrame(() => {
+				zoomAt(pending!.factor, pending!.x, pending!.y);
+				pending = null;
+			});
 		};
 		el.addEventListener('wheel', onWheel, { passive: false });
-		return () => el.removeEventListener('wheel', onWheel);
+		return () => {
+			el.removeEventListener('wheel', onWheel);
+			cancelAnimationFrame(frame);
+		};
 	}
 
 	// Pressed pointers' last positions; event bookkeeping, nothing renders from it
@@ -345,12 +353,8 @@
 	role="application"
 	aria-label="map of the library, similar items placed together"
 >
-	<!-- the map's surface, scaled as one: cards sit at their place in the view of the whole map -->
-	<div
-		class="layer"
-		style:transform="translate({view.x}px, {view.y}px) scale({scale})"
-		style:--s={scale}
-	>
+	<!-- cards, names and the hover label keep their size at any zoom; only where they sit scales -->
+	<div class="layer" style:transform="translate({view.x}px, {view.y}px)">
 		{#each visible as p (p.item._id)}
 			{@const id = p.item._id}
 			{@const image = imageBox(p.item)}
@@ -367,7 +371,7 @@
 						hovered: hoveredId === id
 					}
 				]}
-				style:transform="translate(calc({p.x * whole.k}px - 50%), calc({p.y * whole.k}px - 50%))"
+				style:transform="translate(calc({p.x * view.k}px - 50%), calc({p.y * view.k}px - 50%))"
 				style:width={image ? `${image.width}px` : undefined}
 				style:height={image ? `${image.height}px` : undefined}
 				style:--ring={rings?.get(id)}
@@ -390,10 +394,7 @@
 				{/if}
 			</a>
 		{/each}
-	</div>
 
-	<!-- names and the hover label keep their size at any zoom -->
-	<div class="layer" style:transform="translate({view.x}px, {view.y}px)">
 		{#each labels as label (label.id)}
 			<button
 				class="label"
@@ -408,7 +409,7 @@
 
 		{#if hovered}
 			{@const x = hovered.x * view.k}
-			{@const y = hovered.y * view.k - ((imageBox(hovered.item)?.height ?? 24) * scale) / 2 - 6}
+			{@const y = hovered.y * view.k - (imageBox(hovered.item)?.height ?? 24) / 2 - 6}
 			<div class="tooltip" style:transform="translate(calc({x}px - 50%), calc({y}px - 100%))">
 				{itemLabel(hovered.item)}
 			</div>
@@ -480,8 +481,7 @@
 	.point {
 		display: block;
 		background: var(--bg-2);
-		/* lines are divided by the layer's scale, so they stay hairlines */
-		outline: calc(1px / var(--s)) solid transparent;
+		outline: 1px solid transparent;
 		z-index: 1;
 		-webkit-user-drag: none;
 		transition:
@@ -497,7 +497,7 @@
 	}
 
 	.point.ringed {
-		box-shadow: 0 0 0 calc(2px / var(--s)) var(--ring);
+		box-shadow: 0 0 0 2px var(--ring);
 	}
 
 	.point img {
@@ -555,8 +555,8 @@
 	.point.selected {
 		z-index: 2;
 		opacity: 1;
-		outline: calc(2px / var(--s)) solid var(--txt-1);
-		outline-offset: calc(1px / var(--s));
+		outline: 2px solid var(--txt-1);
+		outline-offset: 1px;
 	}
 
 	.map.dragging .point {

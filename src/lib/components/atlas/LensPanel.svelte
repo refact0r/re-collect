@@ -132,17 +132,43 @@
 
 	/* color */
 
+	// A strip is only so many pixels wide, so past this many swatches neighbours
+	// share a cell, shown in the middle one's color
+	const MAX_CELLS = 240;
+
+	// A run of swatches (indexes, both ends included) drawn as one cell
+	interface Cell {
+		hex: string;
+		from: number;
+		to: number;
+	}
+
+	function cellsOf(swatches: Swatch[]): Cell[] {
+		const count = Math.min(swatches.length, MAX_CELLS);
+		return Array.from({ length: count }, (_, i) => {
+			const from = Math.floor((i * swatches.length) / count);
+			const to = Math.floor(((i + 1) * swatches.length) / count) - 1;
+			return { hex: swatches[Math.floor((from + to) / 2)].hex, from, to };
+		});
+	}
+
 	const strips = $derived(colorStrips(items));
 	const colorStripRows = $derived(
 		(['hue', 'tone'] as const)
-			.map((lens) => ({ lens, swatches: strips[lens] }))
+			.map((lens) => ({ lens, swatches: strips[lens], cells: cellsOf(strips[lens]) }))
 			.filter((row) => row.swatches.length > 0)
 	);
 
-	function brushColor(lens: 'hue' | 'tone', swatches: Swatch[], range: [number, number] | null) {
+	function brushColor(
+		lens: 'hue' | 'tone',
+		{ swatches, cells }: { swatches: Swatch[]; cells: Cell[] },
+		range: [number, number] | null
+	) {
 		const brush: Brush | null = range && {
 			range,
-			itemIds: new Set(swatches.slice(range[0], range[1] + 1).map((s) => s.itemId))
+			itemIds: new Set(
+				swatches.slice(cells[range[0]].from, cells[range[1]].to + 1).map((s) => s.itemId)
+			)
 		};
 		emit(lens === 'hue' ? { hue: brush } : { tone: brush });
 	}
@@ -218,17 +244,17 @@
 		<section>
 			<h3>color</h3>
 			<div class="color-strips">
-				{#each colorStripRows as { lens, swatches } (lens)}
+				{#each colorStripRows as row (row.lens)}
 					<RangeStrip
 						--strip-height="1.75rem"
-						count={swatches.length}
-						range={lenses[lens]?.range ?? null}
-						onchange={(range) => brushColor(lens, swatches, range)}
-						clickSpan={Math.round(swatches.length * 0.03)}
-						label={lens === 'hue' ? 'hue' : 'light to dark'}
+						count={row.cells.length}
+						range={lenses[row.lens]?.range ?? null}
+						onchange={(range) => brushColor(row.lens, row, range)}
+						clickSpan={Math.round(row.cells.length * 0.03)}
+						label={row.lens === 'hue' ? 'hue' : 'light to dark'}
 					>
 						{#snippet cell(i)}
-							<div class="swatch" style:background={swatches[i].hex}></div>
+							<div class="swatch" style:background={row.cells[i].hex}></div>
 						{/snippet}
 					</RangeStrip>
 				{/each}
