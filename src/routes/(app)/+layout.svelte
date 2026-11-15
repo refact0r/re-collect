@@ -14,6 +14,7 @@
 	import { loginHref } from '#lib/login.js';
 
 	import Logo from '#lib/assets/logo.svelte';
+	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import ItemModal from '#lib/components/ItemModal.svelte';
 	import Sidebar from '#lib/components/Sidebar.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
@@ -232,6 +233,8 @@
 {#if editItemId}
 	<ItemModal itemId={editItemId} onClose={closeModal} />
 {/if}
+
+<ConfirmDialog />
 
 <style>
 	header {

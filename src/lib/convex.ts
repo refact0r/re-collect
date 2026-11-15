@@ -11,6 +11,7 @@ import { goto } from '$app/navigation';
 import { page } from '$app/state';
 import { api } from '../convex/_generated/api.js';
 import type { Id } from '../convex/_generated/dataModel.js';
+import { confirmAction } from './confirm.svelte.js';
 import { getWriteTokenContext } from './context';
 import { loginHref } from './login.js';
 
@@ -132,8 +133,14 @@ export function useAction() {
 // onConfirmed runs before the request, e.g. to close the modal showing it.
 export function useDeleteItem() {
 	const mutate = useMutation();
-	return (id: Id<'items'>, onConfirmed?: () => void) => {
-		if (!confirm('Delete this item? This cannot be undone.')) return;
+	return async (id: Id<'items'>, onConfirmed?: () => void) => {
+		const ok = await confirmAction({
+			title: 'delete this item?',
+			message: 'this cannot be undone.',
+			action: 'delete',
+			danger: true
+		});
+		if (!ok) return;
 		onConfirmed?.();
 		mutate(api.items.remove, { id });
 	};

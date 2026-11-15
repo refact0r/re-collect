@@ -1,3 +1,9 @@
+<script lang="ts" module>
+	// Open modals, innermost last: only it answers keys, so Escape on a
+	// confirm over the item modal closes just the confirm
+	const open: symbol[] = [];
+</script>
+
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
@@ -14,7 +20,15 @@
 
 	let { onClose, onkeydown, size = 'default', labelledby, children }: Props = $props();
 
+	const self = Symbol();
+
+	$effect(() => {
+		open.push(self);
+		return () => void open.splice(open.indexOf(self), 1);
+	});
+
 	function handleKeydown(event: KeyboardEvent) {
+		if (open.at(-1) !== self) return;
 		if (event.key === 'Escape') onClose();
 		else onkeydown?.(event);
 	}

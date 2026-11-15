@@ -4,6 +4,7 @@
 	import { api } from '../../../convex/_generated/api.js';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import CollectionCreateModal from '#lib/components/CollectionCreateModal.svelte';
+	import { confirmAction } from '#lib/confirm.svelte.js';
 	import { useMutation } from '#lib/convex.js';
 	import { pointerDrag } from '#lib/pointerDrag.js';
 	import { getCollectionsContext, type CollectionsData } from '#lib/context.js';
@@ -16,10 +17,14 @@
 
 	let showCreateModal = $state(false);
 
-	function handleDelete(id: Id<'collections'>) {
-		if (confirm('Delete this collection? Items will not be deleted.')) {
-			mutate(api.collections.remove, { id });
-		}
+	async function handleDelete(id: Id<'collections'>) {
+		const ok = await confirmAction({
+			title: 'delete this collection?',
+			message: 'its items stay in your library.',
+			action: 'delete',
+			danger: true
+		});
+		if (ok) mutate(api.collections.remove, { id });
 	}
 
 	// ============ DRAG REORDERING ============
