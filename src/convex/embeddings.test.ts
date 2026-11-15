@@ -104,3 +104,48 @@ test('a stale model’s row doesn’t count as embedded', async () => {
 	const found = await t.query(internal.embeddings.getItemForEmbedding, { itemId });
 	expect(found?.embeddedKey).toBeNull();
 });
+
+test('embedding writes mark the library map stale, including ones made mid-layout', async () => {
+	vi.useFakeTimers(); // Keep the scheduled embedding run from calling out
+	const { t, token, userId, itemId } = await setup();
+	const map = () => t.query(internal.embeddingMap.getForLayout, { userId });
+	const stale = async () => {
+		const m = await map();
+		return !m || m.version !== m.layoutVersion;
+	};
+	const layout = (layoutVersion: number) =>
+		t.mutation(internal.embeddingMap.save, {
+			userId,
+			model: EMBEDDING_MODEL,
+			points: [{ itemId, x: 0, y: 0 }],
+			layoutVersion
+		});
+
+	await t.mutation(internal.embeddings.saveEmbedding, {
+		itemId,
+		inputKey: await noteKey(),
+		embedding: vector(0.1)
+	});
+	expect(await stale()).toBe(true);
+	// Before the first layout the map is only a placeholder
+	expect(await t.query(api.embeddingMap.get, { token })).toBeNull();
+
+	const read = (await map())!.version;
+	await layout(read);
+	expect(await stale()).toBe(false);
+
+	// A save that lands while a layout runs leaves it stale
+	const during = (await map())!.version;
+	await t.mutation(internal.embeddings.saveEmbedding, {
+		itemId,
+		inputKey: await noteKey(),
+		embedding: vector(0.2)
+	});
+	await layout(during);
+	expect(await stale()).toBe(true);
+
+	await layout((await map())!.version);
+	await t.mutation(api.items.remove, { id: itemId, token });
+	expect(await stale()).toBe(true);
+	vi.useRealTimers();
+});

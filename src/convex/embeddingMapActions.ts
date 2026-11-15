@@ -1,6 +1,5 @@
 'use node';
 
-import { createHash } from 'node:crypto';
 import { ConvexError, v } from 'convex/values';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -20,8 +19,12 @@ export const refresh = action({
 	args: { token: v.string() },
 	handler: async (ctx, { token }): Promise<boolean> => {
 		const userId = await ctx.runQuery(internal.users.userForToken, { token });
+		const previous = await ctx.runQuery(internal.embeddingMap.getForLayout, { userId });
+		if (previous?.model === EMBEDDING_MODEL && previous.version === previous.layoutVersion) {
+			return false;
+		}
 
-		const rows: { itemId: Id<'items'>; inputKey: string; embedding: number[] }[] = [];
+		const rows: { itemId: Id<'items'>; embedding: number[] }[] = [];
 		let cursor: string | null = null;
 		for (;;) {
 			const page: {
@@ -35,13 +38,6 @@ export const refresh = action({
 		}
 		if (rows.length > MAX_POINTS) throw new ConvexError('library too big to map');
 
-		rows.sort((a, b) => (a.itemId < b.itemId ? -1 : 1));
-		const signature = createHash('sha256')
-			.update(rows.map((row) => `${row.itemId}:${row.inputKey}`).join('\n'))
-			.digest('hex');
-		const previous = await ctx.runQuery(internal.embeddingMap.getForLayout, { userId });
-		if (previous?.model === EMBEDDING_MODEL && previous.signature === signature) return false;
-
 		// Aligned to the previous layout even across a model change, so the map
 		// keeps its orientation
 		const points = layoutMap(
@@ -52,8 +48,8 @@ export const refresh = action({
 		await ctx.runMutation(internal.embeddingMap.save, {
 			userId,
 			model: EMBEDDING_MODEL,
-			signature,
-			points
+			points,
+			layoutVersion: previous?.version ?? 0
 		});
 		return true;
 	}

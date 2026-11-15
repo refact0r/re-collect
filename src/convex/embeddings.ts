@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { action, internalMutation, internalQuery, type MutationCtx } from './_generated/server';
+import { markMapStale } from './embeddingMap';
 import { EMBEDDING_MODEL, embedQuery, embeddingInput, inputKey } from './lib/embedder';
 
 // The database side of item embeddings; the embedding run itself is
@@ -21,6 +22,7 @@ export async function deleteItemEmbeddings(ctx: MutationCtx, itemId: Id<'items'>
 		.withIndex('by_item', (q) => q.eq('itemId', itemId))
 		.collect();
 	for (const row of rows) await ctx.db.delete(row._id);
+	if (rows.length) await markMapStale(ctx, rows[0].userId);
 }
 
 export const getItemForEmbedding = internalQuery({
@@ -53,6 +55,7 @@ export const saveEmbedding = internalMutation({
 		// Patched in place, so the row keeps its spot in by_user for a map read paging past it
 		if (existing) await ctx.db.patch(existing._id, row);
 		else await ctx.db.insert('itemEmbeddings', { itemId, userId: item.userId, ...row });
+		await markMapStale(ctx, item.userId);
 	}
 });
 

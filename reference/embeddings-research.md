@@ -91,12 +91,11 @@ each its own commit, so search or the map can be reverted alone:
     nNeighbors ≤ 15, minDist 0.2, seeded) in a Node action.
   - It Procrustes-aligns the result to the previous layout and caches it in
     `embeddingMaps`, one doc per user, capped at 8,192 points.
-  - Opening the atlas calls refresh. It's a no-op when the signature of
-    `itemId:inputKey` pairs is unchanged, but it still reads every vector
-    to compute that.
+  - Opening the atlas calls refresh. Every embedding save or delete bumps
+    the map doc's `version` (`markMapStale`), and refresh records the version
+    it read as `layoutVersion`. When the two match it's a one-document no-op;
+    a change made mid-layout leaves them apart, so the next visit redoes it.
 - **Known gaps / next steps:**
-  - The map's staleness check reads all vectors on each visit, about 6 KB
-    an item. Before large libraries, add a cheap staleness marker.
   - There's no "find similar" in the item modal yet.
   - An item whose image fetch fails is only logged, not retried; a re-capture
     or `embeddings:backfill` picks it up. (Seen once: a dev/prod item whose
