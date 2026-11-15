@@ -93,6 +93,54 @@ textarea {
 	resize: vertical;
 }
 
+input[type='checkbox'] {
+	appearance: none;
+	flex-shrink: 0;
+	width: 1.125rem;
+	height: 1.125rem;
+	padding: 0;
+	border-color: var(--txt-3);
+	background: transparent;
+	display: grid;
+	place-content: center;
+	cursor: pointer;
+
+	&::before {
+		content: '';
+		width: 0.875rem;
+		height: 0.875rem;
+		background: var(--bg-1);
+		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='square'/%3E%3C/svg%3E")
+			center / contain no-repeat;
+		visibility: hidden;
+	}
+
+	&:checked {
+		background: var(--txt-2);
+		border-color: var(--txt-2);
+
+		&::before {
+			visibility: visible;
+		}
+	}
+
+	:hover > &,
+	&:hover {
+		border-color: var(--txt-2);
+	}
+
+	:hover > &:checked,
+	&:checked:hover {
+		background: var(--txt-1);
+		border-color: var(--txt-1);
+	}
+
+	&:focus-visible {
+		outline: 1px solid var(--txt-3);
+		outline-offset: 1px;
+	}
+}
+
 select {
 	padding: calc(0.5rem + 1.5px) 0.5rem;
 	cursor: pointer;

@@ -16,31 +16,27 @@
 	// Strings and a flag rather than the docs, so neither other pref writes nor
 	// collection count updates restart the items query
 	const savedIds = $derived(prefs.saved?.filterCollectionIds?.join() ?? '');
-	const includeUncollected = $derived(prefs.saved?.includeUncollected !== false);
+	const includeUncollected = $derived(prefs.saved?.includeUncollected ?? false);
 	const existingIds = $derived(collections.data?.map((c) => c._id).join());
 
-	// No saved filter means everything, so new collections show up; a saved one
-	// counts only collections that still exist
+	// The picked collections that still exist, and uncollected items if picked;
+	// picking none shows everything
 	const filter = $derived.by(() => {
-		if (!savedIds && includeUncollected) return null;
 		const existing = existingIds?.split(',');
 		const ids = savedIds.split(',').filter((id) => id && (existing?.includes(id) ?? true));
+		if (ids.length === 0 && !includeUncollected) return null;
 		return { collectionIds: ids as Id<'collections'>[], includeUncollected };
 	});
 
 	const selected = $derived(
 		new Set<string>(
-			filter
-				? [...filter.collectionIds, ...(filter.includeUncollected ? [UNCOLLECTED] : [])]
-				: [...(collections.data ?? []).map((c) => c._id), UNCOLLECTED]
+			filter ? [...filter.collectionIds, ...(filter.includeUncollected ? [UNCOLLECTED] : [])] : []
 		)
 	);
 
 	function setFilter(next: Set<string>) {
-		const all = next.has(UNCOLLECTED) && (collections.data ?? []).every((c) => next.has(c._id));
-		const collectionIds = [...next].filter((id) => id !== UNCOLLECTED) as Id<'collections'>[];
 		prefs.set({
-			filterCollectionIds: all ? [] : collectionIds,
+			filterCollectionIds: [...next].filter((id) => id !== UNCOLLECTED) as Id<'collections'>[],
 			includeUncollected: next.has(UNCOLLECTED)
 		});
 	}
@@ -59,5 +55,10 @@
 	collections={collections.data ?? []}
 	filterCollectionIds={selected}
 	onFilterChange={setFilter}
+	filterCount={items.data?.length}
 />
-<ItemsView {items} {prefs} empty="no items yet. add your first one above!" />
+<ItemsView
+	{items}
+	{prefs}
+	empty={filter ? 'nothing in the picked collections' : 'no items yet. add your first one above!'}
+/>

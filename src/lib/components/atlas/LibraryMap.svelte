@@ -73,10 +73,8 @@
 		});
 	});
 	// What the fitted view frames: the picked-out points, or all of them
-	const framed = $derived.by(() => {
-		const shown = placed.filter((p) => !p.dim);
-		return shown.length > 0 ? shown : placed;
-	});
+	const shown = $derived(placed.filter((p) => !p.dim));
+	const framed = $derived(shown.length > 0 ? shown : placed);
 
 	function pick(next: Set<string>) {
 		picked = next;
@@ -276,7 +274,12 @@
 
 	{#if (collections.data?.length ?? 0) > 0}
 		<div class="filter">
-			<CollectionFilter collections={collections.data ?? []} selected={picked} onchange={pick} />
+			<CollectionFilter
+				collections={collections.data ?? []}
+				selected={picked}
+				onchange={pick}
+				count={shown.length}
+			/>
 		</div>
 	{/if}
 

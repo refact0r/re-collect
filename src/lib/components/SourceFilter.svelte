@@ -69,13 +69,4 @@
 		background: var(--bg-3);
 		color: var(--txt-1);
 	}
-
-	.option input[type='checkbox'] {
-		accent-color: var(--txt-2);
-		cursor: pointer;
-	}
-
-	.option:hover input[type='checkbox'] {
-		accent-color: var(--txt-1);
-	}
 </style>

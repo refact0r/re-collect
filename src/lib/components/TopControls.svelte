@@ -16,6 +16,8 @@
 		collections?: { _id: Id<'collections'>; name: string }[];
 		filterCollectionIds?: Set<string>;
 		onFilterChange?: (selected: Set<string>) => void;
+		// How many items the filter leaves on the page
+		filterCount?: number;
 		// Someone else's collection: a search box in place of the add bar, and only
 		// the view settings in the menu
 		readonly?: boolean;
@@ -29,6 +31,7 @@
 		collections,
 		filterCollectionIds,
 		onFilterChange,
+		filterCount,
 		readonly = false,
 		query = '',
 		onQueryChange
@@ -53,7 +56,12 @@
 	</div>
 	<div class="controls">
 		{#if collections && filterCollectionIds && onFilterChange}
-			<CollectionFilter {collections} selected={filterCollectionIds} onchange={onFilterChange} />
+			<CollectionFilter
+				{collections}
+				selected={filterCollectionIds}
+				onchange={onFilterChange}
+				count={filterCount}
+			/>
 		{/if}
 		<SortDropdown
 			value={prefs.sortBy}

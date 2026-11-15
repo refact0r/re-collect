@@ -15,15 +15,11 @@
 		collections: Collection[];
 		selected: Set<string>;
 		onchange: (selected: Set<string>) => void;
+		// Items the filter leaves showing (undefined while they load)
+		count: number | undefined;
 	}
 
-	let { collections, selected, onchange }: Props = $props();
-
-	// +1 for the "Uncollected" option
-	const totalOptions = $derived(collections.length + 1);
-	const label = $derived(
-		selected.size === totalOptions || selected.size === 0 ? 'all' : String(selected.size)
-	);
+	let { collections, selected, onchange, count }: Props = $props();
 
 	function toggle(id: string) {
 		const next = new SvelteSet(selected);
@@ -36,7 +32,7 @@
 	}
 </script>
 
-<Dropdown {label}>
+<Dropdown label={count === undefined ? '' : String(count)} title="filter by collection">
 	{#snippet icon()}
 		<IconFilter />
 	{/snippet}
@@ -71,15 +67,6 @@
 	.option:hover {
 		background: var(--bg-3);
 		color: var(--txt-1);
-	}
-
-	.option input[type='checkbox'] {
-		accent-color: var(--txt-2);
-		cursor: pointer;
-	}
-
-	.option:hover input[type='checkbox'] {
-		accent-color: var(--txt-1);
 	}
 
 	.uncollected {
