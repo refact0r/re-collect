@@ -52,7 +52,7 @@
 		text-align: left;
 		border: none;
 		background: transparent;
-		padding: 0.5rem;
+		padding: var(--pad-y) var(--pad-x);
 		white-space: nowrap;
 		justify-content: flex-start;
 	}

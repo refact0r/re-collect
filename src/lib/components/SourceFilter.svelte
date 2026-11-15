@@ -50,7 +50,7 @@
 
 <style>
 	.group {
-		padding: 0.5rem 0.5rem 0.25rem;
+		padding: 0.5rem var(--pad-x) 0.25rem;
 		border-top: 1px solid var(--bg-3);
 		font-size: 0.875rem;
 		color: var(--txt-3);
@@ -60,7 +60,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		padding: 0.5rem;
+		padding: var(--pad-y) var(--pad-x);
 		cursor: pointer;
 		white-space: nowrap;
 	}

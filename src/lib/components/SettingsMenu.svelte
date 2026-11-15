@@ -148,7 +148,7 @@
 	/* Match the icon-filled buttons this sits next to in the controls row */
 	.settings-menu :global(.trigger) {
 		aspect-ratio: 1;
-		padding: 0.5rem;
+		padding: var(--pad-y);
 	}
 
 	/* The default dropdown height cap is for long lists; this panel is short and fixed */

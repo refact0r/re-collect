@@ -261,7 +261,7 @@
 	textarea {
 		flex: 1;
 		resize: none;
-		min-height: 2.5rem;
+		min-height: calc(1.5rem + 2 * var(--pad-y));
 		max-height: calc(1.5rem * 8);
 		overflow-y: auto;
 		width: 100%;

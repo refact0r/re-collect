@@ -266,7 +266,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		padding: 0.5rem;
+		padding: var(--pad-y) var(--pad-x);
 		border: 1px solid var(--border);
 		background: var(--bg-2);
 	}
@@ -314,7 +314,7 @@
 	.wordmark {
 		display: flex;
 		align-items: center;
-		padding: 0.5rem;
+		padding: var(--pad-y) var(--pad-x);
 	}
 
 	@media (max-width: 768px) {
@@ -336,7 +336,7 @@
 		}
 		.nav-search {
 			flex: 1;
-			padding: 0.25rem 0.25rem 0.25rem 0.5rem;
+			padding: 0.25rem 0.25rem 0.25rem var(--pad-x);
 			gap: 0.5rem;
 		}
 		.nav-search :global(svg) {

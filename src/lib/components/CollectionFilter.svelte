@@ -59,7 +59,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		padding: 0.5rem;
+		padding: var(--pad-y) var(--pad-x);
 		cursor: pointer;
 		white-space: nowrap;
 	}

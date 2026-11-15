@@ -137,7 +137,7 @@
 		gap: 0.5rem;
 		border: none;
 		background: transparent;
-		padding: 0.5rem;
+		padding: var(--pad-y) var(--pad-x);
 		text-align: left;
 	}
 

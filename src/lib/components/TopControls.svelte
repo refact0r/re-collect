@@ -102,7 +102,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
-		padding-left: 0.5rem;
+		padding-left: var(--pad-x);
 		border: 1px solid var(--border);
 		background: var(--bg-2);
 		cursor: text;
@@ -121,7 +121,7 @@
 	.search input {
 		flex: 1;
 		min-width: 0;
-		min-height: 2.5rem;
+		min-height: calc(1.5rem + 2 * var(--pad-y));
 		border: none;
 		background: transparent;
 		outline: none;
