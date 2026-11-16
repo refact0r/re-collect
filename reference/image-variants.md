@@ -81,7 +81,10 @@ their untouched originals.
   `saveVariants`, which drops everything if the image changed meanwhile.
   Copies are AVIF quality 60 with full-resolution color (4:4:4), upright, keep
   the original's color profile, and skip shrink-on-load (moiré); see Quality
-  below. Animations are WebP quality 90 (sharp can't write animated AVIF).
+  below. A copy over 4 megapixels (a portrait image's 2048 copy) and an
+  animation are WebP quality 90 with smart subsampling instead: the AVIF
+  encoder needs ~60 bytes per pixel (a 6 MP copy took ~390 MB, WebP ~190 MB),
+  and sharp can't write animated AVIF.
   Very tall images are held to 16383px.
 - **Deleting them**: `deleteImageObjects` deletes the original and its copies;
   `items.remove` and `setCompleted` (on a new image) go through it.

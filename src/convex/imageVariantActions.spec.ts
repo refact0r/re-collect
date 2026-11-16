@@ -45,6 +45,15 @@ describe('makeCopies', () => {
 		expect(copies[1].data.length).toBeLessThan(noisy.length / 2);
 	});
 
+	it('makes a copy over 4 megapixels WebP, which takes far less memory to encode', async () => {
+		const { copies } = await makeCopies(await image(2600, 3600));
+		expect(widths(copies)).toEqual([512, 2048]);
+		const formats = await Promise.all(
+			copies.map(async (copy) => (await sharp(copy.data).metadata()).format)
+		);
+		expect(formats).toEqual(['heif', 'webp']);
+	});
+
 	it('turns an EXIF-rotated image upright', async () => {
 		const sideways = await sharp(await image(2000, 1000))
 			.withMetadata({ orientation: 6 })

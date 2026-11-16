@@ -32,15 +32,18 @@ const MAX_ANIMATED_PIXELS = 50_000_000;
 
 // Copies are AVIF with full-resolution color: smaller than WebP at quality 80
 // and without its half-resolution color, which smears colored text
-// (reference/image-variants.md has the measurements). sharp can't write an
-// animated AVIF, so animations stay WebP.
+// (reference/image-variants.md has the measurements). The AVIF encoder needs
+// ~60 bytes per pixel, so a bigger copy (a portrait image's 2048 one) is WebP
+// at high quality, the runner-up; so is an animation, which sharp can't write
+// as AVIF.
+const MAX_AVIF_PIXELS = 4_000_000;
 const COPY_FORMATS = {
-	still: {
+	avif: {
 		contentType: 'image/avif',
 		ext: 'avif',
 		encode: (s: Sharp) => s.avif({ quality: 60, chromaSubsampling: '4:4:4' })
 	},
-	animated: {
+	webp: {
 		contentType: 'image/webp',
 		ext: 'webp',
 		encode: (s: Sharp) => s.webp({ quality: 90, smartSubsample: true })
@@ -176,10 +179,11 @@ export async function makeCopies(data: Buffer) {
 	if (widths.length === 0) return { width, height, copies: [] };
 
 	const animated = pages > 1 && width * height * pages <= MAX_ANIMATED_PIXELS;
-	const format = animated ? COPY_FORMATS.animated : COPY_FORMATS.still;
 
 	const copies = [];
 	for (const target of widths) {
+		const pixels = target * Math.min(MAX_SIDE, (target * height) / width);
+		const format = animated || pixels > MAX_AVIF_PIXELS ? COPY_FORMATS.webp : COPY_FORMATS.avif;
 		const { data: out, info } = await format
 			.encode(
 				sharp(data, { animated })
