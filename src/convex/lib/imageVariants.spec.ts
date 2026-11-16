@@ -2,29 +2,42 @@ import { describe, expect, it } from 'vitest';
 import { imageSrcset, variantWidthsFor } from './imageVariants';
 
 describe('variantWidthsFor', () => {
-	it('picks the widths a fifth or more under the original', () => {
-		expect(variantWidthsFor(5865)).toEqual([256, 768, 1536]);
-		expect(variantWidthsFor(2880)).toEqual([256, 768, 1536]);
-		expect(variantWidthsFor(1920)).toEqual([256, 768, 1536]);
-		expect(variantWidthsFor(1440)).toEqual([256, 768]);
-		expect(variantWidthsFor(960)).toEqual([256, 768]);
-		expect(variantWidthsFor(959)).toEqual([256]);
-		expect(variantWidthsFor(319)).toEqual([]);
+	it('picks the tiers a fifth or more under the original', () => {
+		expect(variantWidthsFor(3840)).toEqual([512, 2048]);
+		expect(variantWidthsFor(2560)).toEqual([512, 2048]);
+		expect(variantWidthsFor(2559)).toEqual([512]);
+		expect(variantWidthsFor(1440)).toEqual([512]);
+		expect(variantWidthsFor(640)).toEqual([512]);
+		expect(variantWidthsFor(639)).toEqual([]);
+	});
+
+	it('gives a heavy original a grid copy at its own width, up to the grid tier', () => {
+		expect(variantWidthsFor(1600, true)).toEqual([512, 1600]);
+		expect(variantWidthsFor(2400, true)).toEqual([512, 2048]);
+		expect(variantWidthsFor(3840, true)).toEqual([512, 2048]);
+		expect(variantWidthsFor(600, true)).toEqual([600]);
 	});
 });
 
 describe('imageSrcset', () => {
 	const base = 'https://img.test';
 	const variants = [
-		{ key: 'variants/a-256w.webp', width: 256 },
-		{ key: 'variants/a-768w.webp', width: 768 }
+		{ key: 'variants/a-512w.webp', width: 512 },
+		{ key: 'variants/a-2048w.webp', width: 2048 }
 	];
 
 	it('lists the variants, then the original at its own width', () => {
 		expect(
-			imageSrcset(base, { imageKey: 'a.png', imageWidth: 1440, imageVariants: variants })
+			imageSrcset(base, { imageKey: 'a.png', imageWidth: 3840, imageVariants: variants })
 		).toBe(
-			'https://img.test/variants/a-256w.webp 256w, https://img.test/variants/a-768w.webp 768w, https://img.test/a.png 1440w'
+			'https://img.test/variants/a-512w.webp 460w, https://img.test/variants/a-2048w.webp 1843w, https://img.test/a.png 3840w'
+		);
+	});
+
+	it('leaves out an original no wider than its widest variant', () => {
+		const full = [variants[0], { key: 'variants/a-1600w.webp', width: 1600 }];
+		expect(imageSrcset(base, { imageKey: 'a.png', imageWidth: 1600, imageVariants: full })).toBe(
+			'https://img.test/variants/a-512w.webp 460w, https://img.test/variants/a-1600w.webp 1440w'
 		);
 	});
 

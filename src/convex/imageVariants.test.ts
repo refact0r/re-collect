@@ -10,8 +10,8 @@ import { newTest, type Test } from './testing.helpers';
 
 const MAKE_VARIANTS = 'imageVariantActions:makeVariants';
 const VARIANTS = [
-	{ key: 'variants/v-256w.webp', width: 256 },
-	{ key: 'variants/v-768w.webp', width: 768 }
+	{ key: 'variants/v-512w.webp', width: 512 },
+	{ key: 'variants/v-2048w.webp', width: 2048 }
 ];
 
 function setup() {
@@ -38,7 +38,7 @@ async function makeItem(t: Test, fields: Partial<Doc<'items'>> = {}) {
 			userId,
 			type: 'image',
 			imageKey: 'a.png',
-			imageWidth: 1440,
+			imageWidth: 3000,
 			imageHeight: 900,
 			collections: [],
 			dateAdded: 0,
@@ -67,7 +67,7 @@ describe('saving variants', () => {
 		const [shown] = await t.query(api.items.list, { token });
 		expect(shown.imageUrl).toBe('https://img.test/a.png');
 		expect(shown.imageSrcset).toBe(
-			'https://img.test/variants/v-256w.webp 256w, https://img.test/variants/v-768w.webp 768w, https://img.test/a.png 1440w'
+			'https://img.test/variants/v-512w.webp 460w, https://img.test/variants/v-2048w.webp 1843w, https://img.test/a.png 3000w'
 		);
 	});
 
@@ -94,14 +94,14 @@ describe('saving variants', () => {
 	test('a second run for the same image keeps the first', async () => {
 		const { t, deleted } = setup();
 		const { itemId } = await makeItem(t, { imageVariants: VARIANTS });
-		const late = [{ key: 'variants/late-256w.webp', width: 256 }];
+		const late = [{ key: 'variants/late-512w.webp', width: 512 }];
 		await t.mutation(internal.imageVariants.saveVariants, {
 			itemId,
 			imageKey: 'a.png',
 			variants: late
 		});
 		expect((await getItem(t, itemId))?.imageVariants).toEqual(VARIANTS);
-		expect(deletedKeys(deleted)).toEqual(['variants/late-256w.webp']);
+		expect(deletedKeys(deleted)).toEqual(['variants/late-512w.webp']);
 	});
 
 	test('fills in a size the item lacked', async () => {
@@ -119,6 +119,47 @@ describe('saving variants', () => {
 			imageWidth: 300,
 			imageHeight: 200
 		});
+	});
+
+	test('a capped original replaces the oversized one, which is deleted an hour later', async () => {
+		const { t, deleted, queued } = setup();
+		const { itemId } = await makeItem(t, { imageWidth: 6000, imageHeight: 4000 });
+		const original = { key: 'originals/o.png', width: 3840, height: 2560 };
+		await t.mutation(internal.imageVariants.saveVariants, {
+			itemId,
+			imageKey: 'a.png',
+			variants: VARIANTS,
+			original
+		});
+		expect(await getItem(t, itemId)).toMatchObject({
+			imageKey: 'originals/o.png',
+			imageWidth: 3840,
+			imageHeight: 2560,
+			imageVariants: VARIANTS
+		});
+		// Re-embedded as the new image
+		expect(queued()).toContain('taggingActions:embedItem');
+
+		// Runs still reading the old original get an hour
+		expect(deletedKeys(deleted)).toEqual([]);
+		vi.advanceTimersByTime(60 * 60 * 1000);
+		await t.finishInProgressScheduledFunctions();
+		expect(deletedKeys(deleted)).toEqual(['a.png']);
+	});
+
+	test('a capped original for an image replaced meanwhile is dropped too', async () => {
+		const { t, deleted } = setup();
+		const { itemId } = await makeItem(t, { imageKey: 'b.png' });
+		await t.mutation(internal.imageVariants.saveVariants, {
+			itemId,
+			imageKey: 'a.png',
+			variants: VARIANTS,
+			original: { key: 'originals/o.png', width: 3840, height: 2560 }
+		});
+		expect((await getItem(t, itemId))?.imageKey).toBe('b.png');
+		expect(deletedKeys(deleted).sort()).toEqual(
+			['originals/o.png', ...VARIANTS.map((v) => v.key)].sort()
+		);
 	});
 });
 
@@ -156,7 +197,7 @@ describe('the image lifecycle', () => {
 		await t.mutation(internal.screenshots.setCompleted, {
 			itemId,
 			imageKey: 'screenshots/new.webp',
-			imageWidth: 1440,
+			imageWidth: 3000,
 			imageHeight: 900
 		});
 		const item = await getItem(t, itemId);
@@ -185,5 +226,14 @@ describe('the image lifecycle', () => {
 		await t.mutation(internal.imageVariants.backfill, {});
 		expect(queued()).toEqual([MAKE_VARIANTS]);
 		expect(vi.mocked(Workpool.prototype.enqueueAction).mock.calls[0][2]).toEqual({ itemId });
+	});
+
+	test('a remake deletes every image’s variants and queues them all again', async () => {
+		const { t, deleted, queued } = setup();
+		const { itemId } = await makeItem(t, { imageVariants: VARIANTS });
+		await t.mutation(internal.imageVariants.backfill, { remake: true });
+		expect((await getItem(t, itemId))?.imageVariants).toBeUndefined();
+		expect(deletedKeys(deleted)).toEqual(VARIANTS.map((v) => v.key));
+		expect(queued()).toEqual([MAKE_VARIANTS]);
 	});
 });

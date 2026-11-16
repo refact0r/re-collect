@@ -3,6 +3,7 @@ import { Workpool } from '@convex-dev/workpool';
 import { components, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalMutation, internalQuery, type MutationCtx } from './_generated/server';
+import { scheduleEmbedding } from './embeddings';
 import { r2 } from './r2';
 import { imageVariantValidator } from './schema';
 
@@ -16,6 +17,10 @@ const variantPool = new Workpool(components.variantPool, {
 	retryActionsByDefault: true,
 	defaultRetryBehavior: { maxAttempts: 3, initialBackoffMs: 2000, base: 4 }
 });
+
+// How long a replaced (oversized) original outlives its replacement: tagging,
+// palette and embedding runs queued with the item may still be reading it
+const REPLACED_GRACE_MS = 60 * 60 * 1000;
 
 // Asks for the item's variants to be made, once its image is in place. Cheap
 // to over-call: the run skips an item whose current image already has them.
@@ -43,21 +48,38 @@ export const variantJob = internalQuery({
 	}
 });
 
-// Records a run's variants, unless the image changed (or another run finished
-// first) meanwhile, in which case the new objects belong to no one
+// Records a run's variants, and the capped image that replaces an oversized
+// original, unless the image changed (or another run finished first)
+// meanwhile, in which case the new objects belong to no one
 export const saveVariants = internalMutation({
 	args: {
 		itemId: v.id('items'),
 		imageKey: v.string(),
 		variants: v.array(imageVariantValidator),
+		original: v.optional(v.object({ key: v.string(), width: v.number(), height: v.number() })),
 		// The original's upright size, filled in where the item lacks it
 		width: v.optional(v.number()),
 		height: v.optional(v.number())
 	},
-	handler: async (ctx, { itemId, imageKey, variants, width, height }) => {
+	handler: async (ctx, { itemId, imageKey, variants, original, width, height }) => {
 		const item = await ctx.db.get(itemId);
 		if (item?.imageKey !== imageKey || item.imageVariants) {
+			if (original) await r2.deleteObject(ctx, original.key);
 			for (const { key } of variants) await r2.deleteObject(ctx, key);
+			return;
+		}
+		if (original) {
+			await ctx.db.patch(itemId, {
+				imageKey: original.key,
+				imageWidth: original.width,
+				imageHeight: original.height,
+				imageVariants: variants
+			});
+			await ctx.scheduler.runAfter(REPLACED_GRACE_MS, internal.imageVariants.deleteObjects, {
+				keys: [imageKey]
+			});
+			// Same picture, but an embedding is keyed by the image it was made from
+			await scheduleEmbedding(ctx, itemId);
 			return;
 		}
 		await ctx.db.patch(itemId, {
@@ -67,30 +89,43 @@ export const saveVariants = internalMutation({
 	}
 });
 
-// Deletes what a run stored before it failed partway
-export const discardVariants = internalMutation({
-	args: { variants: v.array(imageVariantValidator) },
-	handler: async (ctx, { variants }) => {
-		for (const { key } of variants) await r2.deleteObject(ctx, key);
+// Deletes R2 objects no item points at: what a failed run stored, or an
+// original a capped copy replaced
+export const deleteObjects = internalMutation({
+	args: { keys: v.array(v.string()) },
+	handler: async (ctx, { keys }) => {
+		for (const key of keys) await r2.deleteObject(ctx, key);
 	}
 });
 
-// Queues every item whose image has no variants yet.
-// Run with `npx convex run imageVariants:backfill` (add --prod for production)
+// Queues every image without variants. With `remake`, every image's variants
+// are deleted and made again (after VARIANT_WIDTHS or the encoding changes),
+// capping oversized originals on the way.
+// Run with `npx convex run imageVariants:backfill` (add --prod for production;
+// '{"remake": true}' to remake)
 export const backfill = internalMutation({
-	args: { cursor: v.optional(v.string()), scheduled: v.optional(v.number()) },
-	handler: async (ctx, args) => {
+	args: {
+		remake: v.optional(v.boolean()),
+		cursor: v.optional(v.string()),
+		scheduled: v.optional(v.number())
+	},
+	handler: async (ctx, { remake, ...args }) => {
 		const { page, isDone, continueCursor } = await ctx.db
 			.query('items')
 			.paginate({ numItems: 100, cursor: args.cursor ?? null });
 		let scheduled = args.scheduled ?? 0;
 		for (const item of page) {
-			if (!item.imageKey || item.imageVariants) continue;
+			if (!item.imageKey || (item.imageVariants && !remake)) continue;
+			if (item.imageVariants) {
+				for (const { key } of item.imageVariants) await r2.deleteObject(ctx, key);
+				await ctx.db.patch(item._id, { imageVariants: undefined });
+			}
 			await scheduleImageVariants(ctx, item._id);
 			scheduled++;
 		}
 		if (!isDone) {
 			await ctx.scheduler.runAfter(0, internal.imageVariants.backfill, {
+				remake,
 				cursor: continueCursor,
 				scheduled
 			});
