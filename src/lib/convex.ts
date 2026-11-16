@@ -14,6 +14,7 @@ import type { Id } from '../convex/_generated/dataModel.js';
 import { confirmAction } from './confirm.svelte.js';
 import { getWriteTokenContext } from './context';
 import { loginHref } from './login.js';
+import { notify } from './notice.svelte.js';
 
 // Every public function takes the caller's session token; these wrappers add it,
 // so callers pass only the function's own args. Call them during component init.
@@ -46,7 +47,10 @@ interface CallOptions {
 // An ended session goes to /login (which clears the dead cookie), set to come
 // back here. Anything else is logged and reported: a ConvexError's string data
 // is written for the user.
-export function reportError(error: unknown, { onError = (m) => alert(m) }: CallOptions = {}) {
+export function reportError(
+	error: unknown,
+	{ onError = (m) => notify(m, { error: true }) }: CallOptions = {}
+) {
 	if (isUnauthorized(error)) {
 		goto(loginHref(page.url));
 		return;

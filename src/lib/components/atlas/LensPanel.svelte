@@ -2,6 +2,7 @@
 	import { api } from '../../../convex/_generated/api.js';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import {
+		cellsOf,
 		colorStrips,
 		countStyles,
 		itemLabel,
@@ -9,6 +10,7 @@
 		noLenses,
 		UNCOLLECTED,
 		type Brush,
+		type Cell,
 		type Lenses,
 		type Swatch
 	} from '#lib/atlas.js';
@@ -21,7 +23,8 @@
 		collections: { _id: Id<'collections'>; name: string }[];
 		lenses: Lenses;
 		onchange: (lenses: Lenses) => void;
-		lit: number;
+		// How many items the lenses leave lit, null when no lens is active
+		lit: number | null;
 		playing: boolean;
 		onplay: () => void;
 		onselect: () => void;
@@ -35,15 +38,6 @@
 	const runAction = useAction();
 
 	const emit = (patch: Partial<Lenses>) => onchange({ ...lenses, ...patch });
-
-	const active = $derived(
-		lenses.collections.size > 0 ||
-			lenses.styles.size > 0 ||
-			!!lenses.hue ||
-			!!lenses.tone ||
-			!!lenses.added ||
-			!!lenses.found
-	);
 
 	/* find */
 
@@ -132,32 +126,22 @@
 
 	/* color */
 
-	// A strip is only so many pixels wide, so past this many swatches neighbours
-	// share a cell, shown in the middle one's color
-	const MAX_CELLS = 240;
-
-	// A run of swatches (indexes, both ends included) drawn as one cell
-	interface Cell {
-		hex: string;
-		from: number;
-		to: number;
-	}
-
-	function cellsOf(swatches: Swatch[]): Cell[] {
-		const count = Math.min(swatches.length, MAX_CELLS);
-		return Array.from({ length: count }, (_, i) => {
-			const from = Math.floor((i * swatches.length) / count);
-			const to = Math.floor(((i + 1) * swatches.length) / count) - 1;
-			return { hex: swatches[Math.floor((from + to) / 2)].hex, from, to };
-		});
-	}
-
 	const strips = $derived(colorStrips(items));
 	const colorStripRows = $derived(
 		(['hue', 'tone'] as const)
 			.map((lens) => ({ lens, swatches: strips[lens], cells: cellsOf(strips[lens]) }))
 			.filter((row) => row.swatches.length > 0)
 	);
+
+	// A brush is cell indexes, so one that no longer fits its rebuilt strip goes
+	$effect(() => {
+		const patch: Partial<Lenses> = {};
+		for (const lens of ['hue', 'tone'] as const) {
+			const cells = colorStripRows.find((row) => row.lens === lens)?.cells.length ?? 0;
+			if ((lenses[lens]?.range[1] ?? -1) >= cells) patch[lens] = null;
+		}
+		if (Object.keys(patch).length > 0) emit(patch);
+	});
 
 	function brushColor(
 		lens: 'hue' | 'tone',
@@ -215,13 +199,13 @@
 <div class="panel">
 	<div class="top">
 		<span class="count">
-			{#if active}
+			{#if lit !== null}
 				{lit} of {items.length}
 			{:else}
 				{items.length} items
 			{/if}
 		</span>
-		{#if active}
+		{#if lit !== null}
 			<button class="text-button" onclick={onselect}>select</button>
 			<button class="text-button" onclick={() => onchange(noLenses())}>clear</button>
 		{/if}

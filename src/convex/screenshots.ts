@@ -6,11 +6,13 @@ import {
 	type MutationCtx
 } from './_generated/server';
 import { internal, components } from './_generated/api';
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { NonRetryableError, Workpool, vOnCompleteArgs } from '@convex-dev/workpool';
 import { getOwned, userMutation } from './lib/auth';
 import { r2 } from './r2';
 import { patchItem } from './lib/searchText';
+import { MAX_ERROR_CHARS } from './lib/tagger';
+import { taggingModeOf } from './lib/taggingModes';
 import { linkImageModeValidator, siteFontValidator } from './schema';
 import { parseSiteFonts } from './lib/fonts';
 import { enqueueTagging } from './tagging';
@@ -77,7 +79,7 @@ export const setCompleted = internalMutation({
 		const fonts = args.fonts ?? item.fonts;
 		// Text-mode items tag off the article (scheduled at add time), so a new
 		// image only triggers palette extraction, not visual tagging
-		const wantsVisualTagging = item.taggingMode !== 'none' && item.taggingMode !== 'text';
+		const wantsVisualTagging = taggingModeOf(item) === 'visual';
 
 		await patchItem(ctx, item, {
 			screenshotStatus: 'completed',
@@ -125,15 +127,20 @@ export const setFailed = internalMutation({
 	handler: async (ctx, args) => {
 		const item = await ctx.db.get(args.itemId);
 		if (!item) return;
-
-		await ctx.db.patch(args.itemId, {
-			screenshotStatus: 'failed',
-			screenshotError: args.error
-		});
-		// Without an image, the item embeds as its text
-		await scheduleEmbedding(ctx, args.itemId);
+		await settleFailed(ctx, item, args.error);
 	}
 });
+
+// A failed re-fetch keeps showing the image the item already has (the error is
+// kept for the editor); only an item with no image at all is failed
+async function settleFailed(ctx: MutationCtx, item: Doc<'items'>, error: string) {
+	await ctx.db.patch(item._id, {
+		screenshotStatus: item.imageKey ? 'completed' : 'failed',
+		screenshotError: error.slice(0, MAX_ERROR_CHARS)
+	});
+	// No longer waiting on a capture: embeds as its image, or its text without one
+	await scheduleEmbedding(ctx, item._id);
+}
 
 // Re-fetch a URL item's image, switching to the given mode; omitting the mode
 // refreshes in the item's current one (e.g. retrying a failed capture)
@@ -260,11 +267,6 @@ export const onScreenshotComplete = internalMutation({
 	handler: async (ctx, args) => {
 		const item = await ctx.db.get(args.context.itemId);
 		if (item?.screenshotStatus !== 'pending') return;
-
-		await ctx.db.patch(args.context.itemId, {
-			screenshotStatus: 'failed',
-			screenshotError: args.result.kind === 'failed' ? args.result.error : 'Canceled'
-		});
-		await scheduleEmbedding(ctx, args.context.itemId);
+		await settleFailed(ctx, item, args.result.kind === 'failed' ? args.result.error : 'Canceled');
 	}
 });

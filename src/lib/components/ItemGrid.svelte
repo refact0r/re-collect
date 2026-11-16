@@ -7,7 +7,7 @@
 	import { useDeleteItem, useMutation } from '#lib/convex.js';
 	import { pointerDrag } from '#lib/pointerDrag.js';
 	import { shouldDisplayAsImage, getItemUrl, isBusy } from '#lib/itemDisplay.js';
-	import { GAP, columnCountFor, columnWidthFor } from '#lib/masonry.js';
+	import { GAP, columnCountFor, columnWidthFor, gapOf } from '#lib/masonry.js';
 	import type { DisplayItem } from '#lib/types.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline-sharp';
 	import IconError from '~icons/material-symbols-light/error-outline-sharp';
@@ -80,8 +80,10 @@
 		return null;
 	}
 
-	const columnCount = $derived(columnCountFor(containerWidth, columnOffset));
-	const columnWidth = $derived(columnWidthFor(containerWidth, columnCount));
+	// Read again whenever the width changes, which it does when the gap does
+	const gap = $derived(containerElement && containerWidth ? gapOf(containerElement) : GAP);
+	const columnCount = $derived(columnCountFor(containerWidth, columnOffset, gap));
+	const columnWidth = $derived(columnWidthFor(containerWidth, columnCount, gap));
 
 	const chromeY = $derived(showTitles ? CARD_CHROME_Y_TITLED : CARD_CHROME_Y);
 
@@ -148,13 +150,13 @@
 				columns[placeholder.col].length === placeholder.slot
 			) {
 				columns[placeholder.col].push({ _id: 'placeholder', height: placeholder.height });
-				columnHeights[placeholder.col] += placeholder.height + GAP;
+				columnHeights[placeholder.col] += placeholder.height + gap;
 				neighbors = { before: list[i - 1] ?? null, after: list[i] ?? null };
 			}
 			if (i === list.length) break;
 			const col = shortest();
 			columns[col].push(list[i]);
-			columnHeights[col] += heights[i] + GAP;
+			columnHeights[col] += heights[i] + gap;
 		}
 
 		if (placeholder && !neighbors) return null;
@@ -186,7 +188,7 @@
 	const displayColumns: GridCell[][] = $derived(simulation?.columns ?? normalColumns);
 
 	function getColumnFromCursorX(cursorX: number, containerRect: DOMRect): number {
-		const col = Math.floor((cursorX - containerRect.left) / (columnWidth + GAP));
+		const col = Math.floor((cursorX - containerRect.left) / (columnWidth + gap));
 		return Math.max(0, Math.min(columnCount - 1, col));
 	}
 
@@ -197,7 +199,7 @@
 		return column.map((item) => {
 			const height = estimateHeight(item);
 			const midpoint = y + height / 2;
-			y += height + GAP;
+			y += height + gap;
 			return midpoint;
 		});
 	}
@@ -284,71 +286,66 @@
 	onDestroy(() => cancelDrag?.());
 </script>
 
-{#snippet cardContent(item: DisplayItem)}
-	{#if shouldDisplayAsImage(item)}
-		<img
-			src={item.imageUrl}
-			alt={item.title ?? item.url ?? 'image'}
-			width={item.imageWidth}
-			height={item.imageHeight}
-			decoding="async"
-			loading="lazy"
-		/>
-	{:else if item.type === 'url'}
-		{#if isBusy(item.screenshotStatus)}
-			<div class="url-card url-loading">
-				<div class="loading-icon">
-					<IconSchedule />
+<!-- The link wraps the card's content but not its buttons, which can't sit inside a
+	link: its ::after (.card-link in app.css) stretches it over the whole card, and
+	the buttons sit above that. The drag preview passes no href, so has no link. -->
+{#snippet cardContent(item: DisplayItem, href?: string)}
+	{#if item.type === 'url' && !shouldDisplayAsImage(item) && item.screenshotStatus === 'failed'}
+		<div class="url-card url-failed">
+			<svelte:element this={href ? 'a' : 'div'} {href} class="card-link failed-content">
+				<div class="failed-icon">
+					<IconError />
 				</div>
 				<span class="url-text">{item.url}</span>
-			</div>
-		{:else if item.screenshotStatus === 'failed'}
-			<div class="url-card url-failed">
-				<div class="failed-content">
-					<div class="failed-icon">
-						<IconError />
-					</div>
-					<span class="url-text">{item.url}</span>
-					{#if item.screenshotError}
-						<span class="error-text" title={item.screenshotError}>Screenshot failed</span>
-					{/if}
+				{#if item.screenshotError}
+					<span class="error-text" title={item.screenshotError}>Screenshot failed</span>
+				{/if}
+			</svelte:element>
+			{#if !readonly}
+				<div class="failed-actions">
+					<button
+						class="retry-button"
+						title="Retry screenshot"
+						onclick={() => mutate(api.screenshots.reimageItem, { itemId: item._id })}
+					>
+						retry
+					</button>
+					<button class="delete-button" title="Delete item" onclick={() => deleteItem(item._id)}>
+						delete
+					</button>
 				</div>
-				{#if !readonly}
-					<div class="failed-actions">
-						<button
-							class="retry-button"
-							title="Retry screenshot"
-							onclick={(e) => {
-								e.preventDefault();
-								e.stopPropagation();
-								mutate(api.screenshots.reimageItem, { itemId: item._id });
-							}}
-						>
-							retry
-						</button>
-						<button
-							class="delete-button"
-							title="Delete item"
-							onclick={(e) => {
-								e.preventDefault();
-								e.stopPropagation();
-								deleteItem(item._id);
-							}}
-						>
-							delete
-						</button>
+			{/if}
+		</div>
+	{:else}
+		<svelte:element this={href ? 'a' : 'div'} {href} class="card-link">
+			{#if shouldDisplayAsImage(item)}
+				<img
+					src={item.imageUrl}
+					alt={item.title ?? item.url ?? 'image'}
+					width={item.imageWidth}
+					height={item.imageHeight}
+					decoding="async"
+					loading="lazy"
+				/>
+			{:else if item.type === 'url'}
+				{#if isBusy(item.screenshotStatus)}
+					<div class="url-card url-loading">
+						<div class="loading-icon">
+							<IconSchedule />
+						</div>
+						<span class="url-text">{item.url}</span>
+					</div>
+				{:else}
+					<div class="url-card">
+						<span class="url-text">{item.url}</span>
 					</div>
 				{/if}
-			</div>
-		{:else}
-			<div class="url-card">
-				<span class="url-text">{item.url}</span>
-			</div>
-		{/if}
-	{:else if item.type === 'text'}
-		<div class="text-card">
-			<p>{item.content}</p>
-		</div>
+			{:else if item.type === 'text'}
+				<div class="text-card">
+					<p>{item.content}</p>
+				</div>
+			{/if}
+		</svelte:element>
 	{/if}
 	{#if showTitles && item.title}
 		<div class="card-title">{item.title}</div>
@@ -363,15 +360,16 @@
 					<div class="placeholder" style:height="{(item as { height: number }).height}px"></div>
 				{:else}
 					{@const realItem = item as DisplayItem}
-					<a
-						href={getItemUrl(realItem._id)}
+					<!-- A mouse or pen drags the whole card; the keyboard reaches its link and buttons -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
 						class="clickable card"
 						class:titled={showTitles}
 						class:dragging={draggedItem?._id === realItem._id}
 						onpointerdown={isDraggable ? (e) => handlePointerDown(realItem, e) : undefined}
 					>
-						{@render cardContent(realItem)}
-					</a>
+						{@render cardContent(realItem, getItemUrl(realItem._id))}
+					</div>
 				{/if}
 			{/each}
 		</div>
@@ -496,6 +494,14 @@
 		gap: var(--gap);
 	}
 
+	/* Above the link's stretched ::after: the buttons, and the link's own content,
+	   so a long note still scrolls and an image keeps its context menu */
+	.card-link > *,
+	.failed-actions {
+		position: relative;
+		z-index: 1;
+	}
+
 	.retry-button,
 	.delete-button {
 		flex: 1;
@@ -534,7 +540,7 @@
 
 	@media (max-width: 768px) {
 		.masonry {
-			padding-bottom: 4rem;
+			padding-bottom: var(--toolbar-clearance);
 		}
 	}
 </style>

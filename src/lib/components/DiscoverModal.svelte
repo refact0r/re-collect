@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { FeedCandidate } from '../../convex/discovery';
+	import { isWebUrl } from '../../convex/lib/urls.js';
 	import IconArrow from '~icons/material-symbols-light/arrow-forward';
 	import IconOpenInNew from '~icons/material-symbols-light/open-in-new-sharp';
 	import DiscoverMedia from './DiscoverMedia.svelte';
@@ -34,7 +35,11 @@
 				<h2 id="discover-title">{candidate.title || 'untitled'}</h2>
 				<p class="meta">
 					{candidate.sourceName} ·
-					<a href={candidate.url} target="_blank" rel="noopener noreferrer">
+					<a
+						href={isWebUrl(candidate.url) ? candidate.url : undefined}
+						target="_blank"
+						rel="noopener noreferrer"
+					>
 						{domain}
 						<IconOpenInNew />
 					</a>

@@ -137,37 +137,42 @@
 {:else}
 	<div class="list" bind:this={listElement}>
 		{#each displayCollections as collection (collection._id)}
-			<a
-				href="/collections/{collection._id}"
+			<!-- A mouse or pen drags the whole card; the keyboard reaches its link and button -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
 				class="clickable set-card collection-card"
 				class:dragging={draggedCollection?._id === collection._id}
 				onpointerdown={(e) => handlePointerDown(collection, e)}
 			>
 				{@render cardBody(collection, true)}
-			</a>
+			</div>
 		{/each}
 	</div>
 {/if}
 
-{#snippet cardBody(collection: CollectionCard, withActions: boolean)}
+<!-- The name is the card's link, stretched over it (.card-link in app.css); the
+	delete button sits beside it, above the stretch. The drag preview has neither. -->
+{#snippet cardBody(collection: CollectionCard, interactive: boolean)}
 	<div class="info-row">
 		<div class="collection-info">
-			<h3>{collection.name}</h3>
+			<h3>
+				{#if interactive}
+					<a href="/collections/{collection._id}" class="card-link">{collection.name}</a>
+				{:else}
+					{collection.name}
+				{/if}
+			</h3>
 			<p class="count">
 				{collection.itemCount}
 				{collection.itemCount === 1 ? 'item' : 'items'}
 			</p>
 		</div>
-		{#if withActions}
+		{#if interactive}
 			<div class="actions">
 				<button
 					class="icon danger"
 					aria-label="delete collection"
-					onclick={(e) => {
-						e.preventDefault();
-						e.stopPropagation();
-						handleDelete(collection._id);
-					}}
+					onclick={() => handleDelete(collection._id)}
 				>
 					<IconDelete />
 				</button>
@@ -206,6 +211,9 @@
 		grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
 		gap: var(--gutter);
 	}
+	.collection-card {
+		position: relative;
+	}
 	.collection-card.dragging {
 		opacity: 0.35;
 		pointer-events: none;
@@ -228,6 +236,9 @@
 		margin: var(--space-xs) 0 0 0;
 	}
 	.actions {
+		/* above the stretched link */
+		position: relative;
+		z-index: 1;
 		display: flex;
 		gap: var(--gap-sm);
 		flex-shrink: 0;

@@ -91,6 +91,8 @@ export function pointerDrag(e: PointerEvent, { start, move, end }: DragCallbacks
 		'pointermove',
 		(ev) => {
 			if (!ours(ev)) return;
+			// Released where we missed the pointerup (e.g. while the window lost focus)
+			if (ev.buttons === 0) return finish(false);
 			pointer = { x: ev.clientX, y: ev.clientY };
 			if (dragging) move(pointer.x, pointer.y);
 			else if (Math.hypot(pointer.x - origin.x, pointer.y - origin.y) >= MOVE_THRESHOLD) begin();
@@ -100,6 +102,7 @@ export function pointerDrag(e: PointerEvent, { start, move, end }: DragCallbacks
 	document.addEventListener('pointerup', (ev) => ours(ev) && finish(true), { signal });
 	document.addEventListener('pointercancel', (ev) => ours(ev) && finish(false), { signal });
 	window.addEventListener('keydown', (ev) => ev.key === 'Escape' && finish(false), { signal });
+	window.addEventListener('blur', () => finish(false), { signal });
 
 	return () => finish(false);
 }

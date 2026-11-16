@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { api } from '../../../convex/_generated/api.js';
 	import { useAction, useMutation, useQuery } from '#lib/convex.js';
 
@@ -7,20 +8,32 @@
 
 	const me = useQuery(api.users.me, () => ({}));
 
+	// The browser extension gets its own session, so it never needs the password;
+	// a new token replaces the previous one. Only its hash is stored, so it can be
+	// shown just this once, and lives only in this page's state.
+	let extensionToken = $state<string | null>(null);
+	let tokenField = $state<HTMLInputElement>();
 	let tokenCopied = $state(false);
 
-	// The browser extension gets its own session, so it never needs the password;
-	// a new token replaces the previous one
-	async function copyExtensionToken() {
+	async function createExtensionToken() {
 		const token = await act(api.sessions.createExtensionToken, {});
 		if (token === undefined) return;
+		extensionToken = token;
+		tokenCopied = false;
+		await tick();
+		copyExtensionToken();
+	}
+
+	async function copyExtensionToken() {
+		if (!extensionToken) return;
 		try {
-			await navigator.clipboard.writeText(token);
+			await navigator.clipboard.writeText(extensionToken);
 			tokenCopied = true;
 			setTimeout(() => (tokenCopied = false), 2000);
 		} catch {
-			// Clipboard blocked: show it for manual copying instead
-			prompt('Copy your extension token:', token);
+			// Clipboard blocked: select it for copying by hand
+			tokenField?.focus();
+			tokenField?.select();
 		}
 	}
 
@@ -39,6 +52,8 @@
 	async function changePassword(event: SubmitEvent) {
 		event.preventDefault();
 		changingPassword = true;
+		passwordStatus = '';
+		passwordError = false;
 		// The form shows its own errors
 		const changed = await act(
 			api.sessions.changePassword,
@@ -66,10 +81,26 @@
 	<section>
 		<h2>browser extension</h2>
 		<p class="meta">
-			paste this token into the extension's settings. it survives password changes, and copying a
-			new one revokes the old one.
+			paste a token into the extension's settings. it survives password changes, and making a new
+			one revokes the old one.
 		</p>
-		<button onclick={copyExtensionToken}>{tokenCopied ? 'copied' : 'copy token'}</button>
+		<button onclick={createExtensionToken}>{extensionToken ? 'new token' : 'create token'}</button>
+		{#if extensionToken}
+			<div class="token">
+				<input
+					bind:this={tokenField}
+					value={extensionToken}
+					readonly
+					aria-label="extension token"
+					aria-describedby="token-note"
+					autocomplete="off"
+					spellcheck="false"
+					onfocus={(e) => e.currentTarget.select()}
+				/>
+				<button onclick={copyExtensionToken}>{tokenCopied ? 'copied' : 'copy'}</button>
+			</div>
+			<p class="meta" id="token-note">it won't be shown again once you leave this page.</p>
+		{/if}
 	</section>
 
 	<section>
@@ -120,8 +151,19 @@
 		gap: var(--space-lg);
 	}
 
-	section .form {
+	section .form,
+	.token {
 		width: 100%;
 		max-width: 24rem;
+	}
+
+	.token {
+		display: flex;
+		gap: var(--gap);
+	}
+
+	.token input {
+		flex: 1;
+		min-width: 0;
 	}
 </style>

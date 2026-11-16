@@ -1,19 +1,19 @@
-import puppeteer, { type Browser, type HTTPRequest, type Page } from '@cloudflare/puppeteer';
+import puppeteer, { type Browser, type HTTPRequest } from '@cloudflare/puppeteer';
 import { imageSize } from 'image-size';
 import { readFonts, type SiteFont } from './fonts.js';
+import {
+	classifyError,
+	collapseWhitespace,
+	decodeEntities,
+	isTrackerRequest,
+	isValidUrl
+} from './lib.js';
 
 // Minimal DOM globals for code running inside page.evaluate — the worker
 // tsconfig has no DOM lib, and these only exist in the browser context.
 declare const document: {
 	querySelector(selector: string): { getAttribute(name: string): string | null } | null;
 	baseURI: string;
-};
-declare const Image: new () => {
-	naturalWidth: number;
-	naturalHeight: number;
-	onload: (() => void) | null;
-	onerror: (() => void) | null;
-	src: string;
 };
 
 interface Env {
@@ -36,7 +36,7 @@ interface ScreenshotResponse {
 	captureTimeMs: number;
 	title?: string;
 	description?: string;
-	// Only present when the page was rendered in the browser (screenshot captures)
+	// Only present when the page was rendered in the browser (not the og fast path)
 	fonts?: SiteFont[];
 }
 
@@ -63,69 +63,20 @@ const OG_CONTENT_TYPE_EXT: Record<string, string> = {
 	'image/gif': 'gif',
 	'image/avif': 'avif'
 };
+// Some CDNs serve images untyped; those are kept when the bytes sniff as one
+const OCTET_STREAM = ['application/octet-stream', 'binary/octet-stream'];
+// image-size's names for the types above
+const SNIFFED_TYPES: Record<string, string> = {
+	jpg: 'image/jpeg',
+	png: 'image/png',
+	webp: 'image/webp',
+	gif: 'image/gif',
+	avif: 'image/avif'
+};
+const MAX_OG_BYTES = 20 * 1024 * 1024;
 
 const USER_AGENT =
 	'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
-
-// Validate URL is safe to screenshot
-function isValidUrl(url: string): boolean {
-	try {
-		const parsed = new URL(url);
-
-		// Only allow http/https
-		if (!['http:', 'https:'].includes(parsed.protocol)) {
-			return false;
-		}
-
-		// Block localhost and private/link-local IPs
-		const hostname = parsed.hostname.toLowerCase();
-		if (
-			hostname === 'localhost' ||
-			hostname.endsWith('.localhost') ||
-			hostname.endsWith('.local') ||
-			hostname.endsWith('.internal')
-		) {
-			return false;
-		}
-
-		// IPv4 literal: loopback, private (10/8, 172.16/12, 192.168/16),
-		// link-local (169.254/16), and 0.0.0.0/8
-		const ipv4 = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-		if (ipv4) {
-			const [a, b] = [Number(ipv4[1]), Number(ipv4[2])];
-			if (
-				a === 0 ||
-				a === 10 ||
-				a === 127 ||
-				(a === 169 && b === 254) ||
-				(a === 172 && b >= 16 && b <= 31) ||
-				(a === 192 && b === 168)
-			) {
-				return false;
-			}
-		}
-
-		// IPv6 literal (URL.hostname keeps the brackets): loopback, unspecified,
-		// unique-local (fc00::/7), link-local (fe80::/10), IPv4-mapped
-		if (hostname.startsWith('[')) {
-			const ipv6 = hostname.slice(1, -1);
-			if (
-				ipv6 === '::1' ||
-				ipv6 === '::' ||
-				ipv6.startsWith('fc') ||
-				ipv6.startsWith('fd') ||
-				/^fe[89ab]/.test(ipv6) ||
-				ipv6.includes('::ffff:')
-			) {
-				return false;
-			}
-		}
-
-		return true;
-	} catch {
-		return false;
-	}
-}
 
 // Generate a unique R2 key for a captured image
 function generateImageKey(itemId: string, prefix: string, ext: string): string {
@@ -133,99 +84,72 @@ function generateImageKey(itemId: string, prefix: string, ext: string): string {
 	return `${prefix}/${itemId}-${timestamp}.${ext}`;
 }
 
-// Download the page's og:image (already resolved to an absolute URL) and store
-// it in R2. Returns null whenever the image is unusable (too small, unfetchable,
-// weird content type) so the caller can fall back to a screenshot.
-async function tryOgImage(
-	page: Page,
+// Download an og:image (an absolute URL) and store it in R2. Returns null
+// whenever the image is unusable (too small or large, unfetchable, not a raster
+// image) so the caller can fall back to a screenshot.
+async function storeOgImage(
 	env: Env,
+	imageUrl: string,
 	pageUrl: string,
-	itemId: string,
-	imageUrl: string
+	itemId: string
 ): Promise<{ imageKey: string; width: number; height: number } | null> {
 	try {
-		// Measure in the browser: format-agnostic and reuses the page's cookies/referer
-		const dims = await page.evaluate(
-			(src: string, timeoutMs: number) => {
-				return new Promise<{ width: number; height: number } | null>((resolve) => {
-					const img = new Image();
-					const timer = setTimeout(() => resolve(null), timeoutMs);
-					img.onload = () => {
-						clearTimeout(timer);
-						resolve({ width: img.naturalWidth, height: img.naturalHeight });
-					};
-					img.onerror = () => {
-						clearTimeout(timer);
-						resolve(null);
-					};
-					img.src = src;
-				});
-			},
-			imageUrl,
-			OG_FETCH_TIMEOUT
-		);
-		if (!dims || dims.width < MIN_OG_WIDTH || dims.height < 1) {
-			console.log(`og:image rejected (dims: ${JSON.stringify(dims)})`);
-			return null;
-		}
-
 		const response = await fetch(imageUrl, {
 			headers: { 'User-Agent': USER_AGENT, Referer: pageUrl },
 			signal: AbortSignal.timeout(OG_FETCH_TIMEOUT)
 		});
 		if (!response.ok) return null;
-
-		const contentType = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
-		const ext = contentType ? OG_CONTENT_TYPE_EXT[contentType] : undefined;
-		if (!contentType || !ext) return null;
+		const declared = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase() ?? '';
+		if (!OG_CONTENT_TYPE_EXT[declared] && !OCTET_STREAM.includes(declared)) return null;
+		if (Number(response.headers.get('content-length')) > MAX_OG_BYTES) return null;
 
 		const buffer = await response.arrayBuffer();
-		const imageKey = generateImageKey(itemId, 'og', ext);
+		if (buffer.byteLength > MAX_OG_BYTES) return null;
+		// Stored as the type the bytes are, whatever the server called them
+		const dims = imageSize(new Uint8Array(buffer));
+		const contentType = dims.type ? SNIFFED_TYPES[dims.type] : undefined;
+		// EXIF orientations 5-8 are turned a quarter, so browsers show them on their side
+		const [width, height] =
+			(dims.orientation ?? 1) >= 5 ? [dims.height, dims.width] : [dims.width, dims.height];
+		if (!contentType || !width || !height || width < MIN_OG_WIDTH) {
+			console.log(`og:image rejected (${dims.type} ${width}x${height})`);
+			return null;
+		}
+
+		const imageKey = generateImageKey(itemId, 'og', OG_CONTENT_TYPE_EXT[contentType]);
 		await env.R2_BUCKET.put(imageKey, buffer, {
 			httpMetadata: {
 				contentType,
 				cacheControl: 'public, max-age=31536000, immutable'
 			}
 		});
-
-		return { imageKey, width: dims.width, height: dims.height };
+		return { imageKey, width, height };
 	} catch (error) {
 		console.log('og:image fetch failed:', error instanceof Error ? error.message : error);
 		return null;
 	}
 }
 
-const NAMED_ENTITIES: Record<string, string> = {
-	amp: '&',
-	lt: '<',
-	gt: '>',
-	quot: '"',
-	apos: "'",
-	nbsp: '\u00a0'
-};
-
-// HTMLRewriter hands over attribute values and text exactly as written in the
-// source, entities included. One pass, so "&amp;lt;" stays "&lt;".
-function decodeEntities(s: string): string {
-	return s.replace(
-		/&(?:#(\d+)|#x([0-9a-f]+)|(amp|lt|gt|quot|apos|nbsp));/gi,
-		(match, dec, hex, name) => {
-			if (name) return NAMED_ENTITIES[name.toLowerCase()];
-			const code = dec ? parseInt(dec, 10) : parseInt(hex, 16);
-			return code <= 0x10ffff ? String.fromCodePoint(code) : match;
-		}
+// Constant-time check of the bearer token; fails closed when API_KEY is unset
+async function isAuthorized(header: string | null, apiKey: string | undefined): Promise<boolean> {
+	if (!apiKey || !header) return false;
+	const encoder = new TextEncoder();
+	const [given, expected] = await Promise.all(
+		[header, `Bearer ${apiKey}`].map((s) => crypto.subtle.digest('SHA-256', encoder.encode(s)))
 	);
+	return crypto.subtle.timingSafeEqual(given, expected);
 }
 
 // Fast og path: fetch the page HTML directly and extract the og:image without
 // launching a browser (Browser Rendering free plan allows only ~10 min/day and
-// 1 launch per 20s). Returns null on any failure so the caller can fall back
-// to the full browser flow.
+// 1 launch per 20s). Returns no result on any failure so the caller can fall
+// back to the full browser flow, plus the og:image URL if that was what failed,
+// so the browser doesn't fetch the same image again.
 async function tryOgFast(
 	env: Env,
 	url: string,
 	itemId: string
-): Promise<ScreenshotResponse | null> {
+): Promise<{ result?: ScreenshotResponse; rejectedImage?: string }> {
 	const startTime = Date.now();
 	try {
 		const pageResponse = await fetch(url, {
@@ -236,9 +160,9 @@ async function tryOgFast(
 			},
 			signal: AbortSignal.timeout(OG_FETCH_TIMEOUT)
 		});
-		if (!pageResponse.ok) return null;
+		if (!pageResponse.ok) return {};
 		const pageType = pageResponse.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
-		if (pageType !== 'text/html' && pageType !== 'application/xhtml+xml') return null;
+		if (pageType !== 'text/html' && pageType !== 'application/xhtml+xml') return {};
 
 		const meta = {
 			ogImage: null as string | null,
@@ -254,7 +178,7 @@ async function tryOgFast(
 		const rewriter = new HTMLRewriter()
 			.on('meta', {
 				element(el) {
-					const content = decodeEntities(el.getAttribute('content') ?? '').trim();
+					const content = collapseWhitespace(decodeEntities(el.getAttribute('content') ?? ''));
 					if (!content) return;
 					const key = (el.getAttribute('property') ?? el.getAttribute('name'))?.toLowerCase();
 					if (key === 'og:image') meta.ogImage ??= content;
@@ -285,55 +209,30 @@ async function tryOgFast(
 		await rewriter.transform(pageResponse).arrayBuffer();
 
 		const rawImage = meta.ogImage ?? meta.twitterImage;
-		if (!rawImage) return null;
+		if (!rawImage) return {};
 
 		// Resolve relative URLs against <base href> or the final (post-redirect) URL
 		const pageUrl = pageResponse.url || url;
 		const base = meta.baseHref ? new URL(meta.baseHref, pageUrl).href : pageUrl;
 		const imageUrl = new URL(rawImage, base).href;
 
-		const imageResponse = await fetch(imageUrl, {
-			headers: { 'User-Agent': USER_AGENT, Referer: pageUrl },
-			signal: AbortSignal.timeout(OG_FETCH_TIMEOUT)
-		});
-		if (!imageResponse.ok) return null;
-
-		const contentType = imageResponse.headers
-			.get('content-type')
-			?.split(';')[0]
-			.trim()
-			.toLowerCase();
-		const ext = contentType ? OG_CONTENT_TYPE_EXT[contentType] : undefined;
-		if (!contentType || !ext) return null;
-
-		const buffer = await imageResponse.arrayBuffer();
-		const dims = imageSize(new Uint8Array(buffer));
-		if (!dims.width || !dims.height || dims.width < MIN_OG_WIDTH) {
-			console.log(`og:image rejected (dims: ${dims.width}x${dims.height})`);
-			return null;
-		}
-
-		const imageKey = generateImageKey(itemId, 'og', ext);
-		await env.R2_BUCKET.put(imageKey, buffer, {
-			httpMetadata: {
-				contentType,
-				cacheControl: 'public, max-age=31536000, immutable'
-			}
-		});
+		const image = await storeOgImage(env, imageUrl, pageUrl, itemId);
+		if (!image) return { rejectedImage: imageUrl };
 
 		// Decoded once the chunks are joined, since an entity can span two chunks
-		const title = decodeEntities(meta.pageTitle).trim() || meta.ogTitle || meta.twitterTitle;
+		const title =
+			collapseWhitespace(decodeEntities(meta.pageTitle)) || meta.ogTitle || meta.twitterTitle;
 		return {
-			imageKey,
-			width: dims.width,
-			height: dims.height,
-			captureTimeMs: Date.now() - startTime,
-			title: title || undefined,
-			description: meta.ogDescription ?? meta.description ?? undefined
+			result: {
+				...image,
+				captureTimeMs: Date.now() - startTime,
+				title: title || undefined,
+				description: meta.ogDescription ?? meta.description ?? undefined
+			}
 		};
 	} catch (error) {
 		console.log('fast og fetch failed:', error instanceof Error ? error.message : error);
-		return null;
+		return {};
 	}
 }
 
@@ -348,8 +247,7 @@ export default {
 		}
 
 		// Validate API key
-		const authHeader = request.headers.get('Authorization');
-		if (!env.API_KEY || !authHeader || authHeader !== `Bearer ${env.API_KEY}`) {
+		if (!(await isAuthorized(request.headers.get('Authorization'), env.API_KEY))) {
 			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
@@ -387,19 +285,23 @@ export default {
 		// og mode: try extracting the og:image with a plain fetch first — no
 		// browser time spent. Fall through to the browser flow if it fails
 		// (no og:image, bot-blocked fetch, unusable image).
+		let rejectedOgImage: string | undefined;
 		if (mode === 'og') {
-			const fast = await tryOgFast(env, url, itemId);
-			if (fast) {
-				console.log(`[${Date.now()}] og:image stored without browser in ${fast.captureTimeMs}ms`);
-				return new Response(JSON.stringify(fast), {
+			const { result, rejectedImage } = await tryOgFast(env, url, itemId);
+			if (result) {
+				console.log(`[${Date.now()}] og:image stored without browser in ${result.captureTimeMs}ms`);
+				return new Response(JSON.stringify(result), {
 					status: 200,
 					headers: { 'Content-Type': 'application/json' }
 				});
 			}
 			console.log(`[${Date.now()}] fast og path failed, falling back to browser`);
+			rejectedOgImage = rejectedImage;
 		}
 
 		let browser: Browser | null = null;
+		// Browser Rendering limits only show up while getting a browser and page
+		let acquiringBrowser = true;
 
 		try {
 			const startTime = Date.now();
@@ -411,6 +313,7 @@ export default {
 			console.log(`[${Date.now()}] Browser launched`);
 
 			const page = await browser.newPage();
+			acquiringBrowser = false;
 			console.log(`[${Date.now()}] New page created`);
 
 			// Set viewport
@@ -435,7 +338,6 @@ export default {
 			// Enable request interception to block tracking/analytics
 			await page.setRequestInterception(true);
 			page.on('request', (request: HTTPRequest) => {
-				const url = request.url();
 				const resourceType = request.resourceType();
 
 				// Never block the page itself (e.g. screenshotting an analytics vendor's own site)
@@ -446,20 +348,7 @@ export default {
 
 				// Block tracking, analytics, and ads that prevent network idle
 				if (
-					// Analytics & tracking services
-					url.includes('google-analytics.com') ||
-					url.includes('googletagmanager.com') ||
-					url.includes('facebook.com/tr') ||
-					url.includes('doubleclick.net') ||
-					url.includes('analytics') ||
-					url.includes('hotjar') ||
-					url.includes('segment.') ||
-					url.includes('mixpanel') ||
-					// Ad networks
-					url.includes('googlesyndication.com') ||
-					url.includes('adservice') ||
-					url.includes('adsystem') ||
-					url.includes('advertising') ||
+					isTrackerRequest(request.url()) ||
 					// Resource types that keep network busy ('ping' covers beacons)
 					resourceType === 'ping' ||
 					resourceType === 'websocket'
@@ -483,7 +372,8 @@ export default {
 			// Meta tags live in the initial HTML, so read them right away
 			const meta = await page.evaluate(() => {
 				const read = (selector: string) =>
-					document.querySelector(selector)?.getAttribute('content')?.trim() || null;
+					document.querySelector(selector)?.getAttribute('content')?.replace(/\s+/g, ' ').trim() ||
+					null;
 				const rawOgImage =
 					read('meta[property="og:image"]') ??
 					read('meta[name="twitter:image"]') ??
@@ -508,17 +398,22 @@ export default {
 			});
 
 			// og mode: use the page's own preview image when it's usable
-			if (mode === 'og' && meta.ogImage) {
-				const ogResult = await tryOgImage(page, env, page.url(), itemId, meta.ogImage);
+			// (skipping the one the fast path already fetched and rejected)
+			if (mode === 'og' && meta.ogImage && meta.ogImage !== rejectedOgImage) {
+				const ogResult = await storeOgImage(env, meta.ogImage, page.url(), itemId);
 				if (ogResult) {
+					const title = (await page.title()).trim() || meta.ogTitle;
+					// Read this early, a client-rendered page may have no text yet: an
+					// empty list would replace fonts an earlier screenshot found
+					const fonts = await readFonts(page);
 					const captureTimeMs = Date.now() - startTime;
 					console.log(`[${Date.now()}] og:image stored in ${captureTimeMs}ms`);
-					const title = (await page.title()).trim() || meta.ogTitle;
 					const response: ScreenshotResponse = {
 						...ogResult,
 						captureTimeMs,
 						title: title || undefined,
-						description: meta.description ?? undefined
+						description: meta.description ?? undefined,
+						fonts: fonts?.length ? fonts : undefined
 					};
 					return new Response(JSON.stringify(response), {
 						status: 200,
@@ -563,7 +458,7 @@ export default {
 
 			// Browser work is done - close it now so the R2 upload doesn't bill
 			// as browser time
-			await browser.close();
+			await browser.close().catch(() => {});
 			browser = null;
 
 			// Generate unique key for R2
@@ -602,40 +497,19 @@ export default {
 				console.error('Stack:', error.stack);
 			}
 
-			// Categorize errors for better handling
-			let statusCode = 500;
-			let userMessage = 'Failed to capture screenshot';
-
-			// Browser Rendering limit errors (launch rate, concurrency, daily
-			// time) - pass through as 429 so the caller can retry with backoff
-			if (/429|rate limit|too many|limit exceeded/i.test(errorMessage)) {
-				statusCode = 429;
-				userMessage = 'Browser rendering rate limited';
-			} else if (errorMessage.includes('net::ERR_NAME_NOT_RESOLVED')) {
-				statusCode = 502;
-				userMessage = 'Domain not found';
-			} else if (errorMessage.includes('net::ERR_CONNECTION_REFUSED')) {
-				statusCode = 502;
-				userMessage = 'Connection refused';
-			} else if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
-				statusCode = 504;
-				userMessage = 'Page load timeout';
-			} else if (errorMessage.includes('net::ERR_') || errorMessage.includes('Navigation')) {
-				statusCode = 502;
-				userMessage = 'Failed to load page';
-			}
-
+			const { status, error: userMessage } = classifyError(errorMessage, acquiringBrowser);
 			const errorResponse: ErrorResponse = {
 				error: userMessage
 			};
 
 			return new Response(JSON.stringify(errorResponse), {
-				status: statusCode,
+				status,
 				headers: { 'Content-Type': 'application/json' }
 			});
 		} finally {
+			// A crashed browser throws on close, which would replace the response
 			if (browser) {
-				await browser.close();
+				await browser.close().catch(() => {});
 			}
 		}
 	}

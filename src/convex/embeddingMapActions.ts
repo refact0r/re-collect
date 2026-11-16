@@ -19,10 +19,8 @@ export const refresh = action({
 	args: { token: v.string() },
 	handler: async (ctx, { token }): Promise<boolean> => {
 		const userId = await ctx.runQuery(internal.users.userForToken, { token });
-		const previous = await ctx.runQuery(internal.embeddingMap.getForLayout, { userId });
-		if (previous?.model === EMBEDDING_MODEL && previous.version === previous.layoutVersion) {
-			return false;
-		}
+		const state = await ctx.runQuery(internal.embeddingMap.getState, { userId });
+		if (state?.model === EMBEDDING_MODEL && state.version === state.layoutVersion) return false;
 
 		const rows: { itemId: Id<'items'>; embedding: number[] }[] = [];
 		let cursor: string | null = null;
@@ -33,23 +31,23 @@ export const refresh = action({
 				continueCursor: string;
 			} = await ctx.runQuery(internal.embeddingMap.vectorPage, { userId, cursor });
 			rows.push(...page.rows);
+			if (rows.length > MAX_POINTS) throw new ConvexError('library too big to map');
 			if (page.isDone) break;
 			cursor = page.continueCursor;
 		}
-		if (rows.length > MAX_POINTS) throw new ConvexError('library too big to map');
 
 		// Aligned to the previous layout even across a model change, so the map
 		// keeps its orientation
 		const points = layoutMap(
 			rows.map((row) => row.itemId),
 			rows.map((row) => row.embedding),
-			previous?.points
+			await ctx.runQuery(internal.embeddingMap.previousPoints, { userId })
 		);
 		await ctx.runMutation(internal.embeddingMap.save, {
 			userId,
 			model: EMBEDDING_MODEL,
 			points,
-			layoutVersion: previous?.version ?? 0
+			layoutVersion: state?.version ?? 0
 		});
 		return true;
 	}

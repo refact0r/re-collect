@@ -12,9 +12,7 @@ binding = "BROWSER"
 binding = "R2_BUCKET"
 bucket_name = "re-collect"
 
-[vars]
-# Set API_KEY in Cloudflare dashboard as a secret
-# wrangler secret put API_KEY
+# API_KEY is a secret, not a var: wrangler secret put API_KEY
 
 [observability]
 enabled = false

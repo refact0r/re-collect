@@ -1,6 +1,8 @@
 <script lang="ts" module>
 	// Grid cards crop very tall pages and posters from the top at this height / width
 	export const MAX_ASPECT = 2;
+	// The height / width a grid card gets when the media's size isn't known
+	export const FALLBACK_ASPECT = 0.75;
 </script>
 
 <script lang="ts">
@@ -16,7 +18,7 @@
 
 	const aspect = $derived.by(() => {
 		const { imageWidth: w, imageHeight: h } = candidate;
-		if (!w || !h) return undefined;
+		if (!w || !h) return cropped ? `1 / ${FALLBACK_ASPECT}` : undefined;
 		return `${w} / ${cropped ? Math.min(h, w * MAX_ASPECT) : h}`;
 	});
 

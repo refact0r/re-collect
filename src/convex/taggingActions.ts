@@ -1,6 +1,7 @@
 'use node';
 
 import { v } from 'convex/values';
+import { NonRetryableError } from '@convex-dev/workpool';
 import sharp from 'sharp';
 import { parseHTML } from 'linkedom';
 import Defuddle from 'defuddle';
@@ -9,7 +10,7 @@ import { internalAction, type ActionCtx } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { requestArticleTags, requestImageTags, type TagResult } from './lib/tagger';
-import { embeddingInput, embedImage, embedText, inputKey } from './lib/embedder';
+import { RetryableError, embeddingToMake, embedImage, embedText } from './lib/embedder';
 
 // Every tagging, palette and embedding job runs here, in the Node runtime: sharp
 // needs it, and its 512MB comfortably fits a decoded image or a parsed 4MB page
@@ -210,43 +211,43 @@ export const tagTextItem = internalAction({
 	}
 });
 
+// Only Workers AI's rate limits, server errors and timeouts are left for the
+// embedding pool to retry; anything else (a bad request, an image that won't
+// load) would fail the same way again
+function finalUnlessRetryable(error: unknown): never {
+	if (error instanceof RetryableError) throw error;
+	throw new NonRetryableError(error instanceof Error ? error.message : String(error), {
+		cause: error
+	});
+}
+
 // Embeds an item's image (or, for notes and text-mode links, its words) into
-// itemEmbeddings. Skips items still waiting on their input and inputs already
-// embedded; failures are only logged, since search and the map just leave the
-// item out and the next write or a backfill retries it.
+// itemEmbeddings. Runs on the embedding pool (embeddings.scheduleEmbedding), and
+// each attempt starts by re-reading the item, so one turned off or changed since
+// an earlier attempt isn't sent. Skips items still waiting on their input and
+// inputs already embedded.
 export const embedItem = internalAction({
 	args: { itemId: v.id('items') },
 	handler: async (ctx, { itemId }): Promise<void> => {
-		// The input the item wants embedded now, by its key
-		const wanted = async () => {
+		const toMake = async () => {
 			const found = await ctx.runQuery(internal.embeddings.getItemForEmbedding, { itemId });
-			const input = found && embeddingInput(found.item);
-			return input && { input, key: await inputKey(input), embeddedKey: found.embeddedKey };
+			return found && embeddingToMake(found.item, found.embeddedKey);
 		};
-		const first = await wanted();
-		if (!first || first.key === first.embeddedKey) return;
+		const first = await toMake();
+		if (!first) return;
 		const { input, key } = first;
 
-		try {
-			let embedding: number[];
-			if (input.kind === 'image') {
-				const jpeg = await fetchAndDecode(input.imageKey).then(({ data, width, height }) =>
-					toJpegBase64(data, width, height)
-				);
-				// Decoding takes a moment: an item turned off (or changed) meanwhile
-				// mustn't have its image sent anyway
-				if ((await wanted())?.key !== key) return;
-				embedding = await embedImage(jpeg);
-			} else {
-				embedding = await embedText(input.text);
-			}
-			await ctx.runMutation(internal.embeddings.saveEmbedding, {
-				itemId,
-				inputKey: key,
-				embedding
-			});
-		} catch (error) {
-			console.error(`embedItem ${itemId} failed:`, error);
+		let embedding: number[];
+		if (input.kind === 'image') {
+			const jpeg = await fetchAndDecode(input.imageKey)
+				.then(({ data, width, height }) => toJpegBase64(data, width, height))
+				.catch(finalUnlessRetryable);
+			// Turned off or changed while its image loaded
+			if ((await toMake())?.key !== key) return;
+			embedding = await embedImage(jpeg).catch(finalUnlessRetryable);
+		} else {
+			embedding = await embedText(input.text).catch(finalUnlessRetryable);
 		}
+		await ctx.runMutation(internal.embeddings.saveEmbedding, { itemId, inputKey: key, embedding });
 	}
 });

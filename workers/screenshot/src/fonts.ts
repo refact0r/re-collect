@@ -1,5 +1,6 @@
 import type { Page } from '@cloudflare/puppeteer';
 import { extractFonts } from './extractFonts.js';
+import { pickInternalName } from './lib.js';
 
 export interface SiteFont {
 	// First declared CSS font-family
@@ -10,29 +11,6 @@ export interface SiteFont {
 }
 
 const FONT_TIMEOUT = 8000;
-
-const foldName = (name: string) =>
-	name
-		.normalize('NFD')
-		.replace(/[\u0300-\u036f]/g, '')
-		.toLowerCase()
-		.replace(/[^a-z0-9]/g, '');
-
-// Of the fonts Chromium actually used for an element, pick the one that
-// corresponds to the CSS family (an element can mix fonts)
-function pickInternalName(
-	family: string,
-	used: { familyName: string; isCustomFont: boolean; glyphCount: number }[]
-): string | undefined {
-	const custom = used.filter((f) => f.isCustomFont && f.familyName.trim());
-	if (custom.length === 0) return undefined;
-	const key = foldName(family);
-	const match = custom.find((f) => {
-		const name = foldName(f.familyName);
-		return name.includes(key) || key.includes(name) || name.slice(0, 3) === key.slice(0, 3);
-	});
-	return (match ?? custom.reduce((a, b) => (b.glyphCount > a.glyphCount ? b : a))).familyName;
-}
 
 // Best effort: font extraction never fails a capture
 export async function readFonts(page: Page): Promise<SiteFont[] | undefined> {

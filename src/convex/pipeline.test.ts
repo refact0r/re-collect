@@ -1,22 +1,16 @@
 // @vitest-environment edge-runtime
-/// <reference types="vite/client" />
-import { convexTest } from 'convex-test';
-import workpool from '@convex-dev/workpool/test';
 import type { WorkId } from '@convex-dev/workpool';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { api, internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
-import schema from './schema';
 import { hashToken } from './lib/auth';
+import { MAX_ERROR_CHARS } from './lib/tagger';
 import { r2 } from './r2';
-
-const modules = import.meta.glob('./**/*.ts');
+import { newTest, type Test } from './testing.helpers';
 
 function setup() {
 	vi.useFakeTimers(); // Scheduled work runs only when a test drains it
-	const t = convexTest(schema, modules);
-	workpool.register(t, 'taggingPool');
-	workpool.register(t, 'screenshotPool');
+	const t = newTest();
 	const deleted = vi.spyOn(r2, 'deleteObject').mockResolvedValue();
 	return { t, deleted };
 }
@@ -26,8 +20,6 @@ afterEach(() => {
 	vi.restoreAllMocks();
 	vi.unstubAllEnvs();
 });
-
-type Test = ReturnType<typeof convexTest>;
 
 async function makeItem(t: Test, fields: Partial<Doc<'items'>> = {}) {
 	const token = 'a-token';
@@ -159,6 +151,82 @@ describe('screenshots', () => {
 			screenshotError: 'boom'
 		});
 	});
+
+	test('a failed re-fetch keeps showing the old image, until a capture succeeds', async () => {
+		const { t } = setup();
+		const { itemId, token } = await makeItem(t, {
+			imageKey: 'old.webp',
+			screenshotStatus: 'completed'
+		});
+		const shown = async () => {
+			const [item] = await t.query(api.items.list, { token });
+			return {
+				status: item.screenshotStatus,
+				imageUrl: item.imageUrl,
+				error: item.screenshotError
+			};
+		};
+
+		await t.mutation(api.screenshots.reimageItem, { itemId, token });
+		await t.mutation(internal.screenshots.setFailed, { itemId, error: 'x'.repeat(10_000) });
+		const afterError = await shown();
+		expect(afterError).toMatchObject({
+			status: 'completed',
+			imageUrl: expect.stringMatching(/old\.webp$/)
+		});
+		expect(afterError.error).toHaveLength(MAX_ERROR_CHARS);
+
+		await t.mutation(api.screenshots.reimageItem, { itemId, token });
+		await t.mutation(internal.screenshots.onScreenshotComplete, {
+			workId: 'work' as WorkId,
+			context: { itemId },
+			result: { kind: 'failed', error: 'rate limited' }
+		});
+		expect(await shown()).toMatchObject({ status: 'completed', error: 'rate limited' });
+
+		await t.mutation(internal.screenshots.setCompleted, {
+			itemId,
+			imageKey: 'new.webp',
+			imageWidth: 10,
+			imageHeight: 10
+		});
+		expect(await shown()).toMatchObject({
+			status: 'completed',
+			imageUrl: expect.stringMatching(/new\.webp$/),
+			error: undefined
+		});
+	});
+
+	// Only a look link tags its new image; content and off links just read its palette
+	test.each([
+		['visual', true],
+		['text', false],
+		['none', false]
+	] as const)(
+		'a new image replacing the old in %s mode deletes it; queues tagging: %s',
+		async (taggingMode, tags) => {
+			const { t, deleted } = setup();
+			const { itemId } = await makeItem(t, {
+				taggingMode,
+				imageKey: 'old.webp',
+				screenshotStatus: 'pending'
+			});
+
+			await t.mutation(internal.screenshots.setCompleted, {
+				itemId,
+				imageKey: 'new.webp',
+				imageWidth: 10,
+				imageHeight: 10
+			});
+			expect(deleted).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'old.webp');
+			expect((await getItem(t, itemId))?.taggingStatus).toBe(tags ? 'pending' : undefined);
+			const scheduled = await t.run(async (ctx) =>
+				(await ctx.db.system.query('_scheduled_functions').collect()).map((fn) => fn.name)
+			);
+			// The look run is queued on the tagging pool, marked by its pending status
+			expect(scheduled.includes('taggingActions:repaletteItem')).toBe(!tags);
+		}
+	);
 });
 
 describe('uploads sweep', () => {
@@ -171,7 +239,7 @@ describe('uploads sweep', () => {
 
 		await t.run(async (ctx) => {
 			await ctx.db.insert('uploads', { userId, key: 'abandoned' });
-			await ctx.db.insert('uploads', { userId, key: 'consumed' });
+			await ctx.db.insert('uploads', { userId, key: 'consumed', verifiedType: 'image/png' });
 		});
 		await t.mutation(api.items.add, {
 			type: 'image',

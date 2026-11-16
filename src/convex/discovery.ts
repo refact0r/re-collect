@@ -10,16 +10,18 @@ import {
 	internalAction,
 	internalMutation,
 	internalQuery,
-	type ActionCtx
+	type ActionCtx,
+	type QueryCtx
 } from './_generated/server';
 import { userMutation, userQuery } from './lib/auth';
 import {
 	SOURCES,
 	fetchSource,
 	resolveOriginal,
-	type FetchedCandidate
+	type FetchedCandidate,
+	type SourceConfig
 } from './lib/discoverySources';
-import { normalizeUrl } from './lib/urls';
+import { isWebUrl, normalizeUrl } from './lib/urls';
 import { getPreferences } from './viewPreferences';
 import schema from './schema';
 
@@ -27,82 +29,107 @@ import schema from './schema';
 // its slot, so needs fewer
 const PER_SOURCE = 100;
 const PER_GROUPED_SOURCE = 40;
+// Library lookups run in parallel batches of at most this many
+const LOOKUP_BATCH = 100;
 const PREFS_KEY = 'discover'; // The viewPreferences row holding hiddenSources
+// A poll looks at no more than a source's newest this many entries (Seesaw's
+// page; an RSS feed is otherwise as long as its site makes it), so expiry
+// knows how far back a poll can reach
+const POLL_LIMIT = 120;
+// Expiry: a candidate stored over a month ago goes, unless it's among its
+// source's newest KEEP_PER_SOURCE. That window holds everything a poll can
+// return, with room for sources that don't list strictly newest first, so a
+// slow source still returning months-old entries never sees one as new again;
+// and it holds the whole feed window (PER_SOURCE), so expiry never changes the feed
+const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+const KEEP_PER_SOURCE = 300;
+const EXPIRE_BATCH = 500;
 
-const candidateFields = schema.tables.discoveryCandidates.validator.fields;
-const fetchedValidator = v.object({
-	externalId: candidateFields.externalId,
-	kind: candidateFields.kind,
-	url: candidateFields.url,
-	title: candidateFields.title,
-	description: candidateFields.description,
-	author: candidateFields.author,
-	tags: candidateFields.tags,
-	imageUrl: candidateFields.imageUrl,
-	imageWidth: candidateFields.imageWidth,
-	imageHeight: candidateFields.imageHeight,
-	videoUrl: candidateFields.videoUrl,
-	publishedAt: candidateFields.publishedAt
-});
+const fetchedValidator = schema.tables.discoveryCandidates.validator.omit(
+	'sourceKey',
+	'normUrl',
+	'author',
+	'tags'
+);
 
 // ============ Feed ============
 
-type Dealt = { candidate: FeedCandidate; round: number };
+type Dealt = { candidate: Doc<'discoveryCandidates'>; source: SourceConfig; round: number };
 const byRound = (a: Dealt, b: Dealt) =>
 	a.round - b.round || b.candidate.publishedAt - a.candidate.publishedAt;
 
-// `from` is the short label cards show: the site, not the Are.na channel
-export type FeedCandidate = Doc<'discoveryCandidates'> & { sourceName: string; from: string };
+// Only what the cards show. `from` is their short label: the site, not the
+// Are.na channel
+const toCard = ({ candidate: c, source }: Dealt) => ({
+	_id: c._id,
+	url: c.url,
+	title: c.title,
+	imageUrl: c.imageUrl,
+	imageWidth: c.imageWidth,
+	imageHeight: c.imageHeight,
+	videoUrl: c.videoUrl,
+	sourceName: source.name,
+	from: source.kind === 'arena' ? 'Are.na' : source.name
+});
+export type FeedCandidate = ReturnType<typeof toCard>;
 
 // A plain round-robin over the user's sources: each source's newest-first list
 // is dealt out one card per source (or source group) per round, newest first
-// within a round. Links already in the library (kept ones included) are left
-// out only after dealing, so keeping a card never reshuffles the rest.
+// within a round. A link several sources carry shows once, as its first card,
+// and links already in the library (kept ones included) are left out; both
+// only after dealing, so keeping a card never reshuffles the rest.
 export const feed = userQuery({
 	args: { limit: v.number() },
 	handler: async (ctx, { limit }) => {
 		const prefs = await getPreferences(ctx, PREFS_KEY);
 		const hidden = new Set(prefs?.hiddenSources ?? []);
+		const sources = SOURCES.filter((source) => !hidden.has(source.key));
+		const lists = await Promise.all(
+			sources.map((source) =>
+				ctx.db
+					.query('discoveryCandidates')
+					.withIndex('by_source_published', (q) => q.eq('sourceKey', source.key))
+					.order('desc')
+					.take(source.group ? PER_GROUPED_SOURCE : PER_SOURCE)
+			)
+		);
 
 		// Within a group (a set of Are.na channels), its sources are dealt into
 		// one list first, so the group takes a single slot per round
 		const groups = new Map<string, Dealt[]>();
-		for (const source of SOURCES) {
-			if (hidden.has(source.key)) continue;
-			const candidates = await ctx.db
-				.query('discoveryCandidates')
-				.withIndex('by_source_published', (q) => q.eq('sourceKey', source.key))
-				.order('desc')
-				.take(source.group ? PER_GROUPED_SOURCE : PER_SOURCE);
+		sources.forEach((source, i) => {
 			const group = groups.get(source.group ?? source.key) ?? [];
-			candidates.forEach((candidate, round) =>
-				group.push({
-					candidate: {
-						...candidate,
-						sourceName: source.name,
-						from: source.kind === 'arena' ? 'Are.na' : source.name
-					},
-					round
-				})
-			);
+			lists[i].forEach((candidate, round) => group.push({ candidate, source, round }));
 			groups.set(source.group ?? source.key, group);
-		}
+		});
 		const dealt = [...groups.values()]
-			.flatMap((group) => group.sort(byRound).map(({ candidate }, round) => ({ candidate, round })))
+			.flatMap((group) => group.sort(byRound).map((card, round) => ({ ...card, round })))
 			.sort(byRound);
 
-		// Checked only as far as the page reaches, one index lookup each
+		// Checked only as far as the page reaches. Each batch holds no more cards
+		// than the page still needs, so none past its end is looked up
 		const shown: FeedCandidate[] = [];
+		const seen = new Set<string>();
 		let next = 0;
-		for (; next < dealt.length && shown.length < limit; next++) {
-			const { candidate } = dealt[next];
-			const saved = await ctx.db
-				.query('items')
-				.withIndex('by_user_normUrl', (q) =>
-					q.eq('userId', ctx.userId).eq('normUrl', candidate.normUrl)
+		while (next < dealt.length && shown.length < limit) {
+			const batch = dealt.slice(next, next + Math.min(limit - shown.length, LOOKUP_BATCH));
+			next += batch.length;
+			const firsts = batch.filter(({ candidate }) => {
+				if (seen.has(candidate.normUrl)) return false;
+				seen.add(candidate.normUrl);
+				return true;
+			});
+			const saved = await Promise.all(
+				firsts.map(({ candidate }) =>
+					ctx.db
+						.query('items')
+						.withIndex('by_user_normUrl', (q) =>
+							q.eq('userId', ctx.userId).eq('normUrl', candidate.normUrl)
+						)
+						.first()
 				)
-				.first();
-			if (!saved) shown.push(candidate);
+			);
+			shown.push(...firsts.filter((_, i) => !saved[i]).map(toCard));
 		}
 
 		return {
@@ -169,7 +196,9 @@ async function pollOne(ctx: ActionCtx, key: string): Promise<number> {
 	const source = SOURCES.find((s) => s.key === key);
 	if (!source) throw new Error(`unknown discovery source ${key}`);
 	try {
-		let fetched: FetchedCandidate[] = await fetchSource(source);
+		let fetched: FetchedCandidate[] = (await fetchSource(source))
+			.sort((a, b) => b.publishedAt - a.publishedAt)
+			.slice(0, POLL_LIMIT);
 		// Only unseen entries cost a detail-page fetch to find the original site
 		const fresh = new Set(
 			await ctx.runQuery(internal.discovery.unseen, {
@@ -227,24 +256,35 @@ export const unseen = internalQuery({
 	}
 });
 
+// Stored once per source entry; a link other sources also carry is stored under
+// each (the feed shows it once), so hiding one source never hides it from another.
+// Links reach an href, so anything but http(s) is dropped
 export const ingest = internalMutation({
 	args: { sourceKey: v.string(), candidates: v.array(fetchedValidator) },
 	handler: async (ctx, { sourceKey, candidates }) => {
 		let added = 0;
-		for (const candidate of candidates) {
-			const normUrl = normalizeUrl(candidate.url);
+		for (const { videoUrl, ...candidate } of candidates) {
+			if (!isWebUrl(candidate.url) || !isWebUrl(candidate.imageUrl)) continue;
 			const existing = await ctx.db
 				.query('discoveryCandidates')
-				.withIndex('by_normUrl', (q) => q.eq('normUrl', normUrl))
+				.withIndex('by_source_externalId', (q) =>
+					q.eq('sourceKey', sourceKey).eq('externalId', candidate.externalId)
+				)
 				.first();
 			if (existing) continue;
-			await ctx.db.insert('discoveryCandidates', { ...candidate, sourceKey, normUrl });
+			await ctx.db.insert('discoveryCandidates', {
+				...candidate,
+				...(videoUrl && isWebUrl(videoUrl) ? { videoUrl } : {}),
+				sourceKey,
+				normUrl: normalizeUrl(candidate.url)
+			});
 			added++;
 		}
 		return added;
 	}
 });
 
+// Poll state, written for a look in the dashboard; nothing reads it
 export const recordPoll = internalMutation({
 	args: { key: v.string(), error: v.optional(v.string()) },
 	handler: async (ctx, { key, error }) => {
@@ -255,6 +295,69 @@ export const recordPoll = internalMutation({
 		const poll = { lastPolledAt: Date.now(), lastError: error };
 		if (row) await ctx.db.patch(row._id, poll);
 		else await ctx.db.insert('discoverySources', { key, ...poll });
+	}
+});
+
+// ============ Expiry (cron, crons.ts) ============
+
+// Deletes the candidates past their source's newest KEEP_PER_SOURCE that were
+// stored over MAX_AGE_MS ago, and every candidate of a source no longer in
+// SOURCES (nothing polls or shows those). One page of one source per run, newest
+// first; the rest is scheduled, with `passed` counting the rows paged through.
+export const expireCandidates = internalMutation({
+	args: {
+		sourceKey: v.optional(v.string()),
+		passed: v.optional(v.number()),
+		cursor: v.optional(v.string())
+	},
+	handler: async (ctx, { sourceKey, passed = 0, cursor }) => {
+		const key = sourceKey ?? (await sourceAfter(ctx));
+		if (key === null) return;
+		const removed = !SOURCES.some((source) => source.key === key);
+		const cutoff = Date.now() - MAX_AGE_MS;
+		const { page, isDone, continueCursor } = await ctx.db
+			.query('discoveryCandidates')
+			.withIndex('by_source_published', (q) => q.eq('sourceKey', key))
+			.order('desc')
+			.paginate({ numItems: EXPIRE_BATCH, cursor: cursor ?? null });
+		for (const [i, candidate] of page.entries()) {
+			const expired = passed + i >= KEEP_PER_SOURCE && candidate._creationTime < cutoff;
+			if (removed || expired) await ctx.db.delete(candidate._id);
+		}
+		const next = isDone
+			? { sourceKey: (await sourceAfter(ctx, key)) ?? undefined }
+			: { sourceKey: key, passed: passed + page.length, cursor: continueCursor };
+		if (next.sourceKey) await ctx.scheduler.runAfter(0, internal.discovery.expireCandidates, next);
+	}
+});
+
+// The next source key with candidates after `after` (or the first), one index read
+async function sourceAfter(ctx: QueryCtx, after?: string) {
+	const candidate = await ctx.db
+		.query('discoveryCandidates')
+		.withIndex('by_source_published', (q) => (after === undefined ? q : q.gt('sourceKey', after)))
+		.first();
+	return candidate?.sourceKey ?? null;
+}
+
+// Migration: clears the author and tags candidates are no longer stored with,
+// so the schema can drop them. Run: npx convex run discovery:dropAuthorAndTags
+export const dropAuthorAndTags = internalMutation({
+	args: { cursor: v.optional(v.string()) },
+	handler: async (ctx, { cursor }) => {
+		const { page, isDone, continueCursor } = await ctx.db
+			.query('discoveryCandidates')
+			.paginate({ numItems: 200, cursor: cursor ?? null });
+		for (const candidate of page) {
+			if (candidate.author !== undefined || candidate.tags !== undefined) {
+				await ctx.db.patch(candidate._id, { author: undefined, tags: undefined });
+			}
+		}
+		if (!isDone) {
+			await ctx.scheduler.runAfter(0, internal.discovery.dropAuthorAndTags, {
+				cursor: continueCursor
+			});
+		}
 	}
 });
 

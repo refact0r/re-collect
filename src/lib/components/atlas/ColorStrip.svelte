@@ -1,13 +1,16 @@
 <script lang="ts">
-	import type { Swatch } from '#lib/atlas.js';
+	import { cellsOf, type Swatch } from '#lib/atlas.js';
 
-	// Every given swatch as one band of color; height via --strip-height
+	// The given swatches as bands of color, neighbours sharing one past
+	// MAX_CELLS; height via --strip-height
 	let { swatches }: { swatches: Swatch[] } = $props();
+
+	const cells = $derived(cellsOf(swatches));
 </script>
 
 <div class="strip" role="presentation">
-	{#each swatches as swatch, i (i)}
-		<span style:background={swatch.hex}></span>
+	{#each cells as cell (cell.from)}
+		<span style:background={cell.hex}></span>
 	{/each}
 </div>
 

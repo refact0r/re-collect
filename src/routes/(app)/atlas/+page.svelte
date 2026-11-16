@@ -14,10 +14,10 @@
 	import {
 		colorWheel,
 		findRegions,
-		itemColor,
 		litItems,
 		noLenses,
 		fontsByUse,
+		UNCOLLECTED,
 		type Lenses,
 		type Region
 	} from '#lib/atlas.js';
@@ -44,7 +44,14 @@
 	// The map's points whose item still exists, and those items
 	const points = $derived(map.points.filter((p) => byId.has(p.itemId)));
 	const mapped = $derived(points.map((p) => byId.get(p.itemId)!));
-	getCurrentItemsContext().list = () => mapped;
+	// The item modal steps through the items on the map (set during init so the
+	// modal, rendered after the page, sees it at once), until a page without one
+	const currentItems = getCurrentItemsContext();
+	const list = () => mapped;
+	currentItems.list = list;
+	$effect(() => () => {
+		if (currentItems.list === list) currentItems.list = () => [];
+	});
 
 	/* Arrangement: where each item sits */
 
@@ -63,11 +70,7 @@
 	);
 	// On the wheel each item wears the color it was placed by
 	const rings = $derived(
-		arrangement === 'color'
-			? new Map(
-					mapped.flatMap((item) => (itemColor(item) ? [[item._id, itemColor(item)!.hex]] : []))
-				)
-			: null
+		arrangement === 'color' ? new Map([...wheel].map(([id, at]) => [id, at.hex])) : null
 	);
 
 	function arrange(next: typeof arrangement) {
@@ -90,6 +93,14 @@
 	let lenses = $state.raw<Lenses>(noLenses());
 	const lit = $derived(litItems(mapped, lenses));
 	const litCount = $derived(lit?.size ?? mapped.length);
+
+	// A deleted collection stops filtering along with its row
+	$effect(() => {
+		if (!collections.data) return;
+		const existing = new Set<string>(collections.data.map((c) => c._id));
+		const kept = [...lenses.collections].filter((id) => id === UNCOLLECTED || existing.has(id));
+		if (kept.length < lenses.collections.size) lenses = { ...lenses, collections: new Set(kept) };
+	});
 
 	function toggleStyle(style: string) {
 		const styles = new Set(lenses.styles);
@@ -142,8 +153,8 @@
 	const selectedSet = $derived(new Set(selected.map((item) => item._id)));
 
 	function select(ids: ItemId[], region?: Region) {
-		// the panel opening for a selection narrows the map
-		if (!panelShown && ids.length > 0) canvas?.glide();
+		// the panel opening for a selection, or closing with it, resizes the map
+		if (!panelOpen && ids.length > 0 !== selected.length > 0) canvas?.glide();
 		selectedIds = ids;
 		selectedRegion = region;
 	}
@@ -217,7 +228,8 @@
 			}
 			const style = params.get('style');
 			if (style) lenses = { ...noLenses(), styles: new Set([style]) };
-			const font = fontsByUse(mapped).find((f) => f.query === params.get('font'));
+			// against every item, as the patterns page lists them; the ones off the map just don't light
+			const font = fontsByUse(items).find((f) => f.query === params.get('font'));
 			if (font) {
 				lenses = { ...noLenses(), found: { query: font.name, itemIds: new Set(font.itemIds) } };
 			}
@@ -281,7 +293,7 @@
 						<button
 							class={{ active: arrangement === option.value }}
 							onclick={() => arrange(option.value)}
-							disabled={placed.length === 0}
+							disabled={points.length === 0 || (option.value === 'color' && wheel.size === 0)}
 						>
 							{option.label}
 						</button>
@@ -379,7 +391,7 @@
 					collections={collections.data ?? []}
 					{lenses}
 					onchange={(next) => (lenses = next)}
-					lit={litCount}
+					lit={lit?.size ?? null}
 					{playing}
 					onplay={play}
 					onselect={() =>
@@ -514,13 +526,17 @@
 	}
 
 	@media (max-width: 768px) {
-		/* the panel becomes a sheet over the lower part of the map */
+		/* the panel becomes a sheet under the map, which shrinks to make room,
+		   keeping its controls in reach */
+		.atlas {
+			flex-direction: column;
+		}
+
+		.stage {
+			min-height: 0;
+		}
+
 		aside {
-			position: absolute;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			z-index: 20;
 			width: auto;
 			height: 60%;
 			border-left: none;

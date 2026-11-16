@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
+import { EMBEDDING_DIMENSIONS } from './lib/embedder';
 
 // Ingestion mode validators, shared by every table/mutation that stores them.
 // undefined always means the default: 'visual' / 'screenshot'.
@@ -40,10 +41,21 @@ export default defineSchema({
 	users: defineTable({
 		username: v.string(), // Lowercase, unique
 		passwordHash: v.string(), // PBKDF2, format in lib/auth.ts
-		// Password attempts since the last success, for the lockout in sessions.ts
+		// Unused (the lockout moved to loginAttempts); kept until users:dropLoginCounters
+		// has unset them on every deployment, so existing rows still validate
 		failedLogins: v.optional(v.number()),
 		lastFailedLogin: v.optional(v.number())
 	}).index('by_username', ['username']),
+
+	// Password attempts per submitted username, existing or not, since its last
+	// success: the lockout in sessions.ts. Forgotten a day after the last attempt.
+	loginAttempts: defineTable({
+		username: v.string(), // Normalized, at most 32 characters
+		count: v.number(),
+		lastAttempt: v.number()
+	})
+		.index('by_username', ['username'])
+		.index('by_lastAttempt', ['lastAttempt']),
 
 	// One per signed-in browser or extension; only the token's hash is stored
 	sessions: defineTable({
@@ -60,10 +72,14 @@ export default defineSchema({
 	}).index('by_codeHash', ['codeHash']),
 
 	// R2 keys minted by r2.generateUploadUrl and not yet attached to an item, so
-	// items.add only accepts a key its caller uploaded (and only once)
+	// items.add only accepts a key its caller uploaded (and only once), once
+	// the object is verified to be a raster image
 	uploads: defineTable({
 		userId: v.id('users'),
-		key: v.string()
+		key: v.string(),
+		// The raster type the object's bytes were checked to be (it is served as
+		// one too); unset until then, as on rows minted before the check existed
+		verifiedType: v.optional(v.string())
 	}).index('by_key', ['key']),
 
 	items: defineTable({
@@ -155,8 +171,9 @@ export default defineSchema({
 	}).index('by_user_key', ['userId', 'key']),
 
 	// Discovery feed (prototype, see discovery.ts). The sources are a curated
-	// list in code (lib/discoverySources.ts); these rows hold their poll state.
-	// Candidates are shared by every user; what each user did with one is theirs.
+	// list in code (lib/discoverySources.ts); these rows hold their poll state,
+	// written for a look in the dashboard and read by nothing.
+	// Candidates are shared by every user.
 	discoverySources: defineTable({
 		key: v.string(), // SOURCES[].key
 		lastPolledAt: v.optional(v.number()),
@@ -166,11 +183,13 @@ export default defineSchema({
 	discoveryCandidates: defineTable({
 		sourceKey: v.string(),
 		externalId: v.string(),
-		normUrl: v.string(), // lib/discoverySources.ts normalizeUrl; one candidate per page
+		// lib/urls.ts normalizeUrl: the feed shows a link once, however many sources carry it
+		normUrl: v.string(),
 		kind: v.union(v.literal('site'), v.literal('image')),
 		url: v.string(),
 		title: v.optional(v.string()),
 		description: v.optional(v.string()),
+		// No longer written; removed once discovery:dropAuthorAndTags has run on prod
 		author: v.optional(v.string()),
 		tags: v.optional(v.array(v.string())),
 		imageUrl: v.string(), // The source's own media, hotlinked until kept
@@ -179,7 +198,6 @@ export default defineSchema({
 		videoUrl: v.optional(v.string()),
 		publishedAt: v.number()
 	})
-		.index('by_normUrl', ['normUrl'])
 		.index('by_source_published', ['sourceKey', 'publishedAt'])
 		.index('by_source_externalId', ['sourceKey', 'externalId']),
 
@@ -199,25 +217,31 @@ export default defineSchema({
 		.index('by_user', ['userId'])
 		.vectorIndex('by_embedding', {
 			vectorField: 'embedding',
-			dimensions: 768,
+			dimensions: EMBEDDING_DIMENSIONS,
 			filterFields: ['userId']
 		}),
 
-	// Each user's library map: a 2D layout of their item embeddings, cached
-	// because it's computed from every vector (embeddingMapActions.refresh).
-	// `version` counts changes to the user's embeddings (embeddingMap.markMapStale)
-	// and `layoutVersion` is the count the points were laid out from, so an
-	// unchanged library isn't laid out again; a change before the first layout
-	// leaves a placeholder with no model and no points. One document holds every point,
-	// so the 8192-element array limit (1 MiB per document fits it at ~70 B a point)
-	// caps a map at 8192 items; past that it would need splitting.
-	embeddingMaps: defineTable({
+	// Each user's library map: a 2D layout of their image embeddings, cached
+	// because it's computed from every vector (embeddingMapActions.refresh). Its
+	// staleness lives apart from its points, so the writes that bump it don't
+	// rewrite or re-send the big document. `version` counts changes to the
+	// user's image embeddings (embeddingMap.markMapStale) and `layoutVersion`
+	// is the count the stored layout was made from, so an unchanged library
+	// isn't laid out again; a change before the first layout leaves a state with
+	// no model and no layout.
+	embeddingMapStates: defineTable({
 		userId: v.id('users'),
 		model: v.string(),
-		points: v.array(v.object({ itemId: v.id('items'), x: v.number(), y: v.number() })),
-		computedAt: v.number(),
 		version: v.number(),
 		layoutVersion: v.number()
+	}).index('by_user', ['userId']),
+	// Written only by a layout. One document holds every point, so the
+	// 8192-element array limit (1 MiB per document fits it at ~70 B a point)
+	// caps a map at 8192 items; past that it would need splitting.
+	embeddingMapLayouts: defineTable({
+		userId: v.id('users'),
+		model: v.string(),
+		points: v.array(v.object({ itemId: v.id('items'), x: v.number(), y: v.number() }))
 	}).index('by_user', ['userId']),
 
 	// Junction table for per-collection item ordering. Unscoped: rows are only

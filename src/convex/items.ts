@@ -18,6 +18,7 @@ import {
 	type ViewerQueryCtx
 } from './lib/auth';
 import { buildSearchText, patchItem } from './lib/searchText';
+import { storedTaggingMode } from './lib/taggingModes';
 import { isWebUrl, normalizeUrl } from './lib/urls';
 import { deleteItemEmbeddings, scheduleEmbedding } from './embeddings';
 import { enqueueScreenshot } from './screenshots';
@@ -126,10 +127,12 @@ export const add = userMutation({
 		if (ownedCollections.includes(null)) throw new ConvexError('collection not found');
 
 		// Deleting an item deletes its R2 object, so a key must be the caller's own
-		// fresh upload; consuming it ties the object to exactly this item
+		// fresh upload; consuming it ties the object to exactly this item. Only a
+		// verified raster image is served as an item's image.
 		if (args.imageKey) {
 			const upload = args.type !== 'text' ? await getOwnUpload(ctx, args.imageKey) : null;
 			if (!upload) throw new ConvexError('upload not found');
+			if (!upload.verifiedType) throw new ConvexError('that is not a supported image');
 			await ctx.db.delete(upload._id);
 		}
 
@@ -138,30 +141,22 @@ export const add = userMutation({
 		// and are snapshotted onto the item; later membership changes don't
 		// re-apply them.
 		const defaultsSource = ownedCollections[0] ?? (await getPreferences(ctx, 'home'));
-		// Each type keeps only the modes it has: images in a text-mode collection
-		// fall back to visual tagging, and notes (always read as content) only
-		// record AI being off
-		const rawTaggingMode = args.taggingMode ?? defaultsSource?.taggingMode;
-		const taggingMode =
-			args.type === 'text'
-				? rawTaggingMode === 'none'
-					? 'none'
-					: undefined
-				: args.type === 'image' && rawTaggingMode === 'text'
-					? 'visual'
-					: rawTaggingMode;
+		const taggingMode = storedTaggingMode(
+			args.type,
+			args.taggingMode ?? defaultsSource?.taggingMode
+		);
 		const linkImageMode = args.linkImageMode ?? defaultsSource?.linkImageMode;
-		const wantsTextTagging = args.type === 'url' && !!args.url && taggingMode === 'text';
+		const wantsTextTagging = args.type === 'url' && taggingMode === 'text';
 		// URL items may arrive with their image already captured (the browser
 		// extension's screenshot), which then stands in for the worker's
-		const hasImage = args.type !== 'text' && !!args.imageKey;
+		const hasImage = !!args.imageKey;
 		const wantsVisualTagging = hasImage && taggingMode !== 'none' && !wantsTextTagging;
 
 		// URL items in visual mode: screenshot/og image lands first, then tagging
 		// runs against it. Text mode tags off the article, in parallel with the
 		// image fetch. Items with an image: tagging runs directly off it.
 		const screenshotFields =
-			args.type === 'url' && args.url
+			args.type === 'url'
 				? { screenshotStatus: hasImage ? ('completed' as const) : ('pending' as const) }
 				: {};
 		const taggingFields =
@@ -195,6 +190,7 @@ export const add = userMutation({
 		}
 
 		// Trigger screenshot/og image generation for URL items without an image
+		// (`args.url` is always set for a URL item by now; it narrows the type)
 		if (args.type === 'url' && args.url && !hasImage) {
 			await enqueueScreenshot(ctx, { itemId, url: args.url, mode: linkImageMode });
 		}
@@ -238,8 +234,13 @@ export const update = userMutation({
 			const value = fields[key];
 			if (value !== undefined) updates[key] = value.trim() || undefined;
 		}
-		if (updates.url && !isWebUrl(updates.url)) throw new ConvexError(LINK_ERROR);
-		if ('url' in updates) updates.normUrl = updates.url && normalizeUrl(updates.url);
+		if ('url' in updates) {
+			// A URL item keeps a link; any link must be http(s)
+			if (updates.url ? !isWebUrl(updates.url) : existing.type === 'url') {
+				throw new ConvexError(LINK_ERROR);
+			}
+			updates.normUrl = updates.url && normalizeUrl(updates.url);
+		}
 
 		await patchItem(ctx, existing, { ...updates, dateModified: Date.now() });
 		await scheduleEmbedding(ctx, id);
@@ -273,6 +274,25 @@ export const addToCollection = userMutation({
 	handler: async (ctx, args) => {
 		if (!(await getOwned(ctx, args.itemId))) throw new ConvexError('item not found');
 		await addItemToCollection(ctx, args.itemId, args.collectionId);
+	}
+});
+
+// Most items one addManyToCollection call takes; the client sends bigger
+// selections in chunks
+const MAX_BATCH_ITEMS = 100;
+
+export const addManyToCollection = userMutation({
+	args: {
+		itemIds: v.array(v.id('items')),
+		collectionId: v.id('collections')
+	},
+	handler: async (ctx, args) => {
+		if (args.itemIds.length > MAX_BATCH_ITEMS) throw new ConvexError('too many items at once');
+		if (!(await getOwned(ctx, args.collectionId))) throw new ConvexError('collection not found');
+		for (const itemId of args.itemIds) {
+			if (!(await getOwned(ctx, itemId))) throw new ConvexError('item not found');
+			await addItemToCollection(ctx, itemId, args.collectionId);
+		}
 	}
 });
 

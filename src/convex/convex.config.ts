@@ -6,5 +6,6 @@ const app = defineApp();
 app.use(r2);
 app.use(workpool, { name: 'screenshotPool' });
 app.use(workpool, { name: 'taggingPool' });
+app.use(workpool, { name: 'embeddingPool' });
 
 export default app;

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { FeedCandidate } from '../../convex/discovery';
-	import { GAP, columnCountFor, columnWidthFor } from '#lib/masonry.js';
-	import DiscoverMedia, { MAX_ASPECT } from './DiscoverMedia.svelte';
+	import { isWebUrl } from '../../convex/lib/urls.js';
+	import { GAP, columnCountFor, columnWidthFor, gapOf } from '#lib/masonry.js';
+	import DiscoverMedia, { FALLBACK_ASPECT, MAX_ASPECT } from './DiscoverMedia.svelte';
 
 	interface Props {
 		candidates: FeedCandidate[];
@@ -15,11 +16,13 @@
 	// below the title line, 1px border
 	const CHROME_X = 18;
 	const CHROME_Y = 14 + 25;
-	const FALLBACK_ASPECT = 0.75;
 
+	let grid: HTMLDivElement | undefined = $state();
 	let width = $state(0);
-	const columnCount = $derived(columnCountFor(width, columnOffset));
-	const columnWidth = $derived(columnWidthFor(width, columnCount));
+	// Read again whenever the width changes, which it does when the gap does
+	const gap = $derived(grid && width ? gapOf(grid) : GAP);
+	const columnCount = $derived(columnCountFor(width, columnOffset, gap));
+	const columnWidth = $derived(columnWidthFor(width, columnCount, gap));
 
 	// Each card goes into the shortest column, so the feed reads across in rows
 	const columns = $derived.by(() => {
@@ -32,7 +35,7 @@
 					: FALLBACK_ASPECT;
 			const col = heights.indexOf(Math.min(...heights));
 			cols[col].push(candidate);
-			heights[col] += (columnWidth - CHROME_X) * Math.min(aspect, MAX_ASPECT) + CHROME_Y + GAP;
+			heights[col] += (columnWidth - CHROME_X) * Math.min(aspect, MAX_ASPECT) + CHROME_Y + gap;
 		}
 		return cols;
 	});
@@ -47,13 +50,13 @@
 	}
 </script>
 
-<div class="masonry" bind:clientWidth={width}>
+<div class="masonry" bind:this={grid} bind:clientWidth={width}>
 	{#each columns as column, i (i)}
 		<div class="column">
 			{#each column as candidate (candidate._id)}
 				<a
 					class="clickable card"
-					href={candidate.url}
+					href={isWebUrl(candidate.url) ? candidate.url : undefined}
 					target="_blank"
 					rel="noopener noreferrer"
 					onclick={(e) => open(e, candidate)}

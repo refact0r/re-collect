@@ -1,15 +1,18 @@
 // @vitest-environment edge-runtime
-/// <reference types="vite/client" />
-import { convexTest } from 'convex-test';
-import workpool from '@convex-dev/workpool/test';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { api, internal } from './_generated/api';
-import schema from './schema';
 import { hashToken } from './lib/auth';
+import { newTest, type Test } from './testing.helpers';
 
-const modules = import.meta.glob('./**/*.ts');
+// For tests that add items: their scheduled tagging and embedding runs never start
+function itemTest() {
+	vi.useFakeTimers();
+	return newTest();
+}
 
-type Test = ReturnType<typeof convexTest>;
+afterEach(() => {
+	vi.useRealTimers();
+});
 
 // A user with one session, skipping the slow password hash
 async function makeUser(t: Test, username: string) {
@@ -27,9 +30,42 @@ async function invite(t: Test) {
 	return code;
 }
 
+async function signup(t: Test, username: string, password: string) {
+	return await t.action(api.sessions.signup, { invite: await invite(t), username, password });
+}
+
+async function setAttempts(t: Test, username: string, count: number, lastAttempt: number) {
+	await t.run((ctx) => ctx.db.insert('loginAttempts', { username, count, lastAttempt }));
+}
+
+async function attemptsFor(t: Test, username: string) {
+	return await t.run((ctx) =>
+		ctx.db
+			.query('loginAttempts')
+			.withIndex('by_username', (q) => q.eq('username', username))
+			.unique()
+	);
+}
+
+// The error each login rejects with, or 'ok'
+async function tryLogins(t: Test, username: string, password: string, times: number) {
+	const messages = [];
+	for (let i = 0; i < times; i++) {
+		messages.push(
+			await t.action(api.sessions.login, { username, password }).then(
+				() => 'ok',
+				(error) => String(error.data)
+			)
+		);
+	}
+	return messages;
+}
+
+const HOUR = 60 * 60 * 1000;
+
 describe('per-user isolation', () => {
 	test("another user's items and collections look missing", async () => {
-		const t = convexTest(schema, modules);
+		const t = itemTest();
 		const a = await makeUser(t, 'a');
 		const b = await makeUser(t, 'b');
 
@@ -63,7 +99,7 @@ describe('per-user isolation', () => {
 	});
 
 	test("items can't join another user's collection", async () => {
-		const t = convexTest(schema, modules);
+		const t = itemTest();
 		const a = await makeUser(t, 'a');
 		const b = await makeUser(t, 'b');
 		const collectionId = await t.mutation(api.collections.create, {
@@ -87,19 +123,19 @@ describe('per-user isolation', () => {
 	});
 
 	test('an unknown token is rejected', async () => {
-		const t = convexTest(schema, modules);
+		const t = newTest();
 		await expect(t.query(api.items.list, { token: 'nope' })).rejects.toThrow('Unauthorized');
 	});
 });
 
 describe('uploads', () => {
 	test('an image key must be the caller’s own unused upload', async () => {
-		vi.useFakeTimers(); // Keep the scheduled tagging action from running
-		const t = convexTest(schema, modules);
-		workpool.register(t, 'taggingPool');
+		const t = itemTest();
 		const a = await makeUser(t, 'a');
 		const b = await makeUser(t, 'b');
-		await t.run((ctx) => ctx.db.insert('uploads', { userId: a.userId, key: 'a-key' }));
+		await t.run((ctx) =>
+			ctx.db.insert('uploads', { userId: a.userId, key: 'a-key', verifiedType: 'image/png' })
+		);
 
 		await expect(
 			t.mutation(api.items.add, { type: 'image', imageKey: 'a-key', token: b.token })
@@ -118,13 +154,12 @@ describe('uploads', () => {
 		await expect(
 			t.mutation(api.items.add, { type: 'image', imageKey: 'a-key', token: a.token })
 		).rejects.toThrow('upload not found');
-		vi.useRealTimers();
 	});
 });
 
 describe('accounts and sessions', () => {
 	test('invites are single-use', async () => {
-		const t = convexTest(schema, modules);
+		const t = newTest();
 		const code = await invite(t);
 		const token = await t.action(api.sessions.signup, {
 			invite: code,
@@ -139,17 +174,10 @@ describe('accounts and sessions', () => {
 	});
 
 	test('parallel guesses past the limit are locked out', async () => {
-		const t = convexTest(schema, modules);
-		await t.action(api.sessions.signup, {
-			invite: await invite(t),
-			username: 'sam',
-			password: 'correct horse'
-		});
+		const t = newTest();
+		await signup(t, 'sam', 'correct horse');
 		// One attempt left before the lockout
-		await t.run(async (ctx) => {
-			const user = await ctx.db.query('users').first();
-			await ctx.db.patch(user!._id, { failedLogins: 9, lastFailedLogin: Date.now() });
-		});
+		await setAttempts(t, 'sam', 9, Date.now());
 
 		const results = await Promise.allSettled(
 			[1, 2, 3].map(() =>
@@ -165,8 +193,109 @@ describe('accounts and sessions', () => {
 		).rejects.toThrow('too many attempts');
 	});
 
+	test('a made-up username fails and locks exactly like a real one', async () => {
+		const t = newTest();
+		await signup(t, 'sam', 'correct horse');
+
+		const real = await tryLogins(t, 'Sam', 'wrong guess', 11);
+		const fake = await tryLogins(t, 'nobody', 'wrong guess', 11);
+		expect(real).toEqual([
+			...Array(10).fill('wrong username or password'),
+			'too many attempts, try again later'
+		]);
+		expect(fake).toEqual(real);
+		expect(await attemptsFor(t, 'nobody')).toMatchObject({ count: 10 });
+	});
+
+	test('a successful login clears the count', async () => {
+		const t = newTest();
+		await signup(t, 'sam', 'correct horse');
+		await setAttempts(t, 'sam', 9, Date.now());
+
+		expect(await tryLogins(t, 'sam', 'correct horse', 1)).toEqual(['ok']);
+		expect(await attemptsFor(t, 'sam')).toBeNull();
+	});
+
+	test('a wrong current password counts, and a password change clears the count', async () => {
+		const t = newTest();
+		const token = await signup(t, 'sam', 'correct horse');
+
+		await expect(
+			t.action(api.sessions.changePassword, {
+				token,
+				currentPassword: 'wrong guess',
+				newPassword: 'battery staple'
+			})
+		).rejects.toThrow('current password is wrong');
+		expect(await attemptsFor(t, 'sam')).toMatchObject({ count: 1 });
+
+		await t.action(api.sessions.changePassword, {
+			token,
+			currentPassword: 'correct horse',
+			newPassword: 'battery staple'
+		});
+		expect(await attemptsFor(t, 'sam')).toBeNull();
+	});
+
+	test('setting a password from the CLI clears the count', async () => {
+		const t = newTest();
+		await signup(t, 'sam', 'correct horse');
+		await setAttempts(t, 'sam', 10, Date.now());
+
+		await t.action(internal.users.setPassword, { username: 'sam', password: 'battery staple' });
+		expect(await attemptsFor(t, 'sam')).toBeNull();
+	});
+
+	test('once locked, a name gets one attempt per lockout window', async () => {
+		const t = newTest();
+		await setAttempts(t, 'nobody', 10, Date.now() - 20 * 60 * 1000);
+
+		expect(await tryLogins(t, 'nobody', 'wrong guess', 2)).toEqual([
+			'wrong username or password',
+			'too many attempts, try again later'
+		]);
+	});
+
+	test('a count is forgotten a day after its last attempt', async () => {
+		const t = newTest();
+		await signup(t, 'sam', 'correct horse');
+		await setAttempts(t, 'sam', 10, Date.now() - 25 * HOUR);
+		await setAttempts(t, 'nobody', 10, Date.now() - 25 * HOUR);
+
+		expect(await tryLogins(t, 'sam', 'correct horse', 1)).toEqual(['ok']);
+		expect(await tryLogins(t, 'nobody', 'wrong guess', 1)).toEqual(['wrong username or password']);
+		expect(await attemptsFor(t, 'nobody')).toMatchObject({ count: 1 });
+	});
+
+	test('the sweep deletes only counts older than a day', async () => {
+		const t = newTest();
+		await setAttempts(t, 'old', 3, Date.now() - 25 * HOUR);
+		await setAttempts(t, 'recent', 3, Date.now() - HOUR);
+
+		await t.mutation(internal.sessions.sweepLoginAttempts, {});
+		expect(await attemptsFor(t, 'old')).toBeNull();
+		expect(await attemptsFor(t, 'recent')).toMatchObject({ count: 3 });
+	});
+
+	test('an over-long username is refused without storing it', async () => {
+		const t = newTest();
+		const long = 'x'.repeat(33);
+		expect(await tryLogins(t, long, 'wrong guess', 1)).toEqual(['wrong username or password']);
+		expect(await attemptsFor(t, long)).toBeNull();
+	});
+
+	test('signup without a valid invite never says whether a username is taken', async () => {
+		const t = newTest();
+		await signup(t, 'sam', 'correct horse');
+
+		await expect(
+			t.action(api.sessions.signup, { invite: 'bogus', username: 'sam', password: 'password1' })
+		).rejects.toThrow('invalid or already used');
+		await expect(signup(t, 'sam', 'password1')).rejects.toThrow('that username is taken');
+	});
+
 	test('a new extension token replaces the old one', async () => {
-		const t = convexTest(schema, modules);
+		const t = newTest();
 		const a = await makeUser(t, 'a');
 		const first = await t.action(api.sessions.createExtensionToken, { token: a.token });
 		const second = await t.action(api.sessions.createExtensionToken, { token: a.token });
@@ -177,7 +306,7 @@ describe('accounts and sessions', () => {
 	});
 
 	test('signing out other devices keeps only the caller', async () => {
-		const t = convexTest(schema, modules);
+		const t = newTest();
 		const a = await makeUser(t, 'a');
 		const b = await makeUser(t, 'b');
 		const extension = await t.action(api.sessions.createExtensionToken, { token: a.token });

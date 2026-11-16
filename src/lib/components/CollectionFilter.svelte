@@ -1,10 +1,8 @@
 <script lang="ts">
-	import { SvelteSet } from 'svelte/reactivity';
 	import type { Id } from '../../convex/_generated/dataModel.js';
+	import { UNCOLLECTED } from '#lib/atlas.js';
 	import IconFilter from '~icons/material-symbols-light/filter-alt-outline-sharp';
 	import Dropdown from './Dropdown.svelte';
-
-	const UNCOLLECTED = 'uncollected';
 
 	interface Collection {
 		_id: Id<'collections'>;
@@ -22,7 +20,7 @@
 	let { collections, selected, onchange, count }: Props = $props();
 
 	function toggle(id: string) {
-		const next = new SvelteSet(selected);
+		const next = new Set(selected);
 		if (next.has(id)) {
 			next.delete(id);
 		} else {

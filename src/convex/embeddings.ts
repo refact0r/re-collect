@@ -1,19 +1,43 @@
 import { v } from 'convex/values';
-import { internal } from './_generated/api';
+import { Workpool } from '@convex-dev/workpool';
+import { components, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { action, internalMutation, internalQuery, type MutationCtx } from './_generated/server';
+import {
+	action,
+	internalMutation,
+	internalQuery,
+	type MutationCtx,
+	type QueryCtx
+} from './_generated/server';
 import { markMapStale } from './embeddingMap';
-import { EMBEDDING_MODEL, embedQuery, embeddingInput, inputKey } from './lib/embedder';
+import {
+	EMBEDDING_MODEL,
+	embedQuery,
+	embeddingInput,
+	embeddingToMake,
+	inputKey,
+	isImageKey
+} from './lib/embedder';
 
 // The database side of item embeddings; the embedding run itself is
 // taggingActions.embedItem (Node, for sharp). One row per item in
 // itemEmbeddings, written once its image or text is final.
 
+// Bounds the Workers AI calls a burst of adds or a backfill makes at once, and
+// retries the ones that may pass later (rate limits, server errors, timeouts)
+// with backoff; embedItem marks every other failure final. A retry re-reads the
+// item, so one turned off or changed meanwhile isn't sent again.
+const embeddingPool = new Workpool(components.embeddingPool, {
+	maxParallelism: 5,
+	retryActionsByDefault: true,
+	defaultRetryBehavior: { maxAttempts: 4, initialBackoffMs: 2000, base: 4 }
+});
+
 // Asks for an item's embedding to be brought up to date. Cheap to over-call:
 // the run skips items that aren't ready and inputs it has already embedded, so
 // every write that could change what an item embeds as just calls this.
-export async function scheduleEmbedding(ctx: MutationCtx, itemId: Id<'items'>, delayMs = 0) {
-	await ctx.scheduler.runAfter(delayMs, internal.taggingActions.embedItem, { itemId });
+export async function scheduleEmbedding(ctx: MutationCtx, itemId: Id<'items'>) {
+	await embeddingPool.enqueueAction(ctx, internal.taggingActions.embedItem, { itemId });
 }
 
 export async function deleteItemEmbeddings(ctx: MutationCtx, itemId: Id<'items'>) {
@@ -22,19 +46,26 @@ export async function deleteItemEmbeddings(ctx: MutationCtx, itemId: Id<'items'>
 		.withIndex('by_item', (q) => q.eq('itemId', itemId))
 		.collect();
 	for (const row of rows) await ctx.db.delete(row._id);
-	if (rows.length) await markMapStale(ctx, rows[0].userId);
+	if (rows.some((row) => isImageKey(row.inputKey))) await markMapStale(ctx, rows[0].userId);
+}
+
+const findEmbedding = (ctx: QueryCtx, itemId: Id<'items'>) =>
+	ctx.db
+		.query('itemEmbeddings')
+		.withIndex('by_item', (q) => q.eq('itemId', itemId))
+		.first();
+
+// The input key of the item's current-model embedding, if it has one
+async function embeddedKey(ctx: QueryCtx, itemId: Id<'items'>) {
+	const row = await findEmbedding(ctx, itemId);
+	return row?.model === EMBEDDING_MODEL ? row.inputKey : null;
 }
 
 export const getItemForEmbedding = internalQuery({
 	args: { itemId: v.id('items') },
 	handler: async (ctx, { itemId }) => {
 		const item = await ctx.db.get(itemId);
-		if (!item) return null;
-		const existing = await ctx.db
-			.query('itemEmbeddings')
-			.withIndex('by_item', (q) => q.eq('itemId', itemId))
-			.first();
-		return { item, embeddedKey: existing?.model === EMBEDDING_MODEL ? existing.inputKey : null };
+		return item && { item, embeddedKey: await embeddedKey(ctx, itemId) };
 	}
 });
 
@@ -48,20 +79,20 @@ export const saveEmbedding = internalMutation({
 		if (!item || !input || (await inputKey(input)) !== key) return;
 
 		const row = { model: EMBEDDING_MODEL, inputKey: key, embedding };
-		const existing = await ctx.db
-			.query('itemEmbeddings')
-			.withIndex('by_item', (q) => q.eq('itemId', itemId))
-			.first();
+		const existing = await findEmbedding(ctx, itemId);
 		// Patched in place, so the row keeps its spot in by_user for a map read paging past it
 		if (existing) await ctx.db.patch(existing._id, row);
 		else await ctx.db.insert('itemEmbeddings', { itemId, userId: item.userId, ...row });
-		await markMapStale(ctx, item.userId);
+		// A text embedding leaves the map as it was, unless it replaced an image one
+		if (isImageKey(key) || (existing && isImageKey(existing.inputKey))) {
+			await markMapStale(ctx, item.userId);
+		}
 	}
 });
 
-// Embeds every item without a current embedding (all of them after a model
-// change) and deletes the embeddings of items with AI off, a page per
-// transaction, with the runs spread out to stay under the Workers AI rate limit.
+// Embeds every item whose embedding is missing or out of date (all of them
+// after a model change) and deletes the embeddings of items with AI off, a page
+// per transaction; the pool paces the runs.
 // Run with `npx convex run embeddings:backfill` (add --prod for production)
 export const backfill = internalMutation({
 	args: { cursor: v.optional(v.string()), scheduled: v.optional(v.number()) },
@@ -75,12 +106,8 @@ export const backfill = internalMutation({
 				await deleteItemEmbeddings(ctx, item._id);
 				continue;
 			}
-			const existing = await ctx.db
-				.query('itemEmbeddings')
-				.withIndex('by_item', (q) => q.eq('itemId', item._id))
-				.first();
-			if (existing?.model === EMBEDDING_MODEL) continue;
-			await scheduleEmbedding(ctx, item._id, scheduled * 100);
+			if (!(await embeddingToMake(item, await embeddedKey(ctx, item._id)))) continue;
+			await scheduleEmbedding(ctx, item._id);
 			scheduled++;
 		}
 		if (!isDone) {

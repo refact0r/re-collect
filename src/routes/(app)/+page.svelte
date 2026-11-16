@@ -6,9 +6,7 @@
 	import { useQuery } from '#lib/convex.js';
 	import { getCollectionsContext } from '#lib/context.js';
 	import { useViewPrefs } from '#lib/prefs.svelte.js';
-
-	// The filter's "uncollected" option, next to collection ids
-	const UNCOLLECTED = 'uncollected';
+	import { UNCOLLECTED } from '#lib/atlas.js';
 
 	const collections = getCollectionsContext();
 	const prefs = useViewPrefs('home');
@@ -42,10 +40,15 @@
 	}
 
 	// Saved prefs pick the sort and filter, so wait for them rather than fetch twice.
-	// The previous list stays up while a new sort or filter loads.
+	// The previous list stays up while a new sort or filter loads. Leaving out the
+	// default sort makes the default view the layout's own query, so it isn't run twice.
 	const items = useQuery(
 		api.items.list,
-		() => (prefs.loaded ? { sortBy: prefs.sortBy, ...filter } : 'skip'),
+		() => {
+			if (!prefs.loaded) return 'skip';
+			const sort = prefs.sortBy === 'dateAddedNewest' ? {} : { sortBy: prefs.sortBy };
+			return { ...sort, ...filter };
+		},
 		{ keepPreviousData: true }
 	);
 </script>

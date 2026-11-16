@@ -56,14 +56,14 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 });
 
 // A page or link already in the library is saved again only once the user OKs
-// it in the page. Where scripting isn't allowed it just saves. (The popup shows
-// its own warning before you click save.)
+// it in the page. Where scripting isn't allowed it just saves; once the question
+// is up, a failure (the page went away) doesn't. (The popup shows its own warning
+// before you click save.)
 async function confirmIfSaved(tab, url) {
 	const note = await savedNote(url);
 	if (!note) return true;
-	return inject(tab, (message) => confirm(message), [
-		`${note} in re-collect. Save it again?`
-	]).catch(() => true);
+	if (!(await inject(tab, () => true).catch(() => false))) return true;
+	return inject(tab, confirmInPage, [`${note} in re-collect. Save it again?`]).catch(() => false);
 }
 
 // The popup hands saves off here so area selection can happen after it closes
@@ -172,6 +172,67 @@ function showToast(ok, message) {
 	document.documentElement.append(host);
 	setTimeout(() => (toast.style.opacity = '0'), 2500);
 	setTimeout(() => host.remove(), 2800);
+}
+
+// Resolves true on "Save again"; false on Cancel (focused first), Escape or the
+// page going away
+function confirmInPage(message) {
+	document.getElementById('re-collect-confirm')?.remove();
+	return new Promise((resolve) => {
+		const host = document.createElement('div');
+		host.id = 're-collect-confirm';
+		const shadow = host.attachShadow({ mode: 'closed' });
+		const dialog = document.createElement('div');
+		dialog.setAttribute('role', 'alertdialog');
+		dialog.setAttribute('aria-labelledby', 'message');
+		dialog.style.cssText = `
+			position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 2147483647;
+			display: flex; flex-direction: column; gap: 12px; max-width: 320px; padding: 12px;
+			font: 14px/1.4 system-ui, sans-serif; color: #e6e6e6;
+			background: #1f1f1f; border: 1px solid #333; box-shadow: 0 4px 16px rgb(0 0 0 / 0.3);
+		`;
+		const text = document.createElement('p');
+		text.id = 'message';
+		text.style.margin = '0';
+		text.textContent = message;
+		const buttons = document.createElement('div');
+		buttons.style.cssText = 'display: flex; gap: 8px; justify-content: flex-end;';
+		const button = (label, ok) => {
+			const el = document.createElement('button');
+			el.textContent = label;
+			el.style.cssText = `padding: 4px 12px; font: inherit; color: inherit; cursor: pointer;
+				background: #2a2a2a; border: 1px solid #444; outline-offset: 2px;`;
+			el.onclick = () => finish(ok);
+			buttons.append(el);
+			return el;
+		};
+		const cancel = button('Cancel', false);
+		button('Save again', true);
+		dialog.append(text, buttons);
+		shadow.append(dialog);
+		document.documentElement.append(host);
+		const previous = document.activeElement;
+		cancel.focus();
+
+		const onKey = (e) => {
+			if (e.key !== 'Escape') return;
+			e.preventDefault();
+			e.stopPropagation();
+			finish(false);
+		};
+		const onHide = () => finish(false, true);
+		function finish(ok, now = false) {
+			host.remove();
+			removeEventListener('keydown', onKey, true);
+			removeEventListener('pagehide', onHide);
+			previous?.focus?.({ preventScroll: true });
+			// A screenshot save captures the tab next: let the dialog paint away first
+			if (now) resolve(ok);
+			else requestAnimationFrame(() => requestAnimationFrame(() => resolve(ok)));
+		}
+		addEventListener('keydown', onKey, true);
+		addEventListener('pagehide', onHide);
+	});
 }
 
 // Drag-to-select overlay. Resolves to the region in viewport CSS pixels, or

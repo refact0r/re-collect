@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { onDestroy, type Snippet } from 'svelte';
 	import { goto } from '$app/navigation';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import { itemLabel } from '#lib/atlas.js';
@@ -14,7 +14,7 @@
 		y: number;
 	}
 
-	export interface MapLabel {
+	interface MapLabel {
 		id: number;
 		text: string;
 		count: number;
@@ -150,6 +150,14 @@
 		glideTimer = setTimeout(() => (gliding = false), GLIDE_MS);
 	}
 
+	// The user taking over mid-glide moves the map at once, not 500ms behind
+	function stopGlide() {
+		clearTimeout(glideTimer);
+		gliding = false;
+	}
+
+	onDestroy(() => clearTimeout(glideTimer));
+
 	// Frames the given items, or the whole map
 	export function fit(ids?: ItemId[]) {
 		glide();
@@ -199,9 +207,10 @@
 	// is applied as one zoom.
 	function wheelZoom(el: HTMLElement) {
 		let pending: { factor: number; x: number; y: number } | null = null;
-		let frame = 0;
+		let raf = 0;
 		const onWheel = (e: WheelEvent) => {
 			e.preventDefault();
+			stopGlide();
 			const { x, y } = local(e);
 			const delta = e.deltaY * (e.deltaMode === 1 ? 16 : 1);
 			// a trackpad pinch arrives as ctrl+wheel with small deltas
@@ -211,7 +220,7 @@
 				return;
 			}
 			pending = { factor, x, y };
-			frame = requestAnimationFrame(() => {
+			raf = requestAnimationFrame(() => {
 				zoomAt(pending!.factor, pending!.x, pending!.y);
 				pending = null;
 			});
@@ -219,7 +228,7 @@
 		el.addEventListener('wheel', onWheel, { passive: false });
 		return () => {
 			el.removeEventListener('wheel', onWheel);
-			cancelAnimationFrame(frame);
+			cancelAnimationFrame(raf);
 		};
 	}
 
@@ -255,6 +264,7 @@
 			dragged = true;
 			dragging = true;
 			hoveredId = null;
+			if (!boxing) stopGlide();
 			const el = e.currentTarget as HTMLElement;
 			for (const id of pointers.keys()) el.setPointerCapture(id);
 		}
@@ -364,6 +374,7 @@
 					'point',
 					{
 						chip: !image,
+						imaged: image && showImages,
 						ringed: rings?.has(id),
 						dim: !isLit(id),
 						hidden: hideUnlit && !isLit(id),
@@ -462,7 +473,6 @@
 		position: absolute;
 		top: 0;
 		left: 0;
-		transform-origin: 0 0;
 	}
 
 	.point,
@@ -483,14 +493,18 @@
 		background: var(--bg-2);
 		outline: 1px solid transparent;
 		z-index: 1;
-		/* each card is its own layer, so a pan or zoom only moves it: its image,
-		   drawn small from a full-size screenshot, is never painted again */
-		will-change: transform;
 		-webkit-user-drag: none;
 		transition:
 			opacity 200ms ease,
 			width 150ms ease,
 			height 150ms ease;
+	}
+
+	/* each image card is its own layer, so a pan or zoom only moves it: its
+	   image, drawn small from a full-size screenshot, is never painted again
+	   (plain swatches and chips are cheap to repaint, and too many to layer) */
+	.point.imaged {
+		will-change: transform;
 	}
 
 	.gliding .point {

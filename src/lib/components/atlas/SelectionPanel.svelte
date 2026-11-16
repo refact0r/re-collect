@@ -51,6 +51,9 @@
 
 	/* add to collection */
 
+	// The most items addManyToCollection takes in one call
+	const ADD_BATCH = 100;
+
 	let adding = $state<Id<'collections'> | null>(null);
 	let newName = $state('');
 	let creating = $state(false);
@@ -68,8 +71,10 @@
 			.filter((item) => !item.collections.includes(collectionId))
 			.map((item) => item._id);
 		adding = collectionId;
-		for (const itemId of missing) {
-			if ((await mutate(api.items.addToCollection, { itemId, collectionId })) === undefined) break;
+		for (let i = 0; i < missing.length; i += ADD_BATCH) {
+			const itemIds = missing.slice(i, i + ADD_BATCH);
+			const added = await mutate(api.items.addManyToCollection, { itemIds, collectionId });
+			if (added === undefined) break;
 		}
 		adding = null;
 	}

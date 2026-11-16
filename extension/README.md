@@ -5,7 +5,7 @@ Save pages, links and images to re-collect from the browser. Plain JS Manifest V
 - **Toolbar popup**: saves the current tab. You can pick a collection, the image source and the tagging mode for that save.
 - **Context menu**: a "Save to …" submenu with Page (in each screenshot mode), Link and Image. It saves to the collection last picked in the popup (or uncollected), and its title shows the target.
 - A badge on the toolbar icon and a toast in the page confirm success or failure.
-- Pages and links already in your library aren't blocked: the popup says "Already saved" and its button becomes "Save again", and a context-menu save asks in the page first (`items.findByUrl`). Image saves aren't checked, since many images can come from one page.
+- Pages and links already in your library aren't blocked: the popup says "Already saved" and its button becomes "Save again", and a context-menu save asks first in a small dialog over the page (`items.findByUrl`; pages where extensions can't run scripts just save). Image saves aren't checked, since many images can come from one page.
 
 Page saves can take their image from:
 
@@ -25,11 +25,11 @@ Auto page saves and link saves call `items.add`, and the backend screenshots and
 2. Click **Load unpacked** and select this `extension/` folder.
 3. Open the extension's **Options** page and fill in:
    - **Convex deployment URL**: the `.convex.cloud` URL (`PUBLIC_CONVEX_URL`), not the `.convex.site` one.
-   - **Extension token**: in re-collect, open the **account** page and click **copy extension token**. That creates a separate session for the extension and copies its token, so paste it here.
+   - **Extension token**: in re-collect, open the **account** page and click **create token**. That creates a separate session for the extension and copies its token (it's also shown, only once, for copying by hand), so paste it here.
 
    Saving checks both and shows which account you're signed in as. Switching accounts resets the last-used collection.
 
-Everything you save belongs to the token's account. Signing that user out everywhere (`users:signOut`) also revokes the extension's token, so create a new one afterwards.
+Everything you save belongs to the token's account. Signing out everywhere also revokes the extension's token, so create a new one afterwards: that's **sign out everywhere else** on the account page (`sessions.signOutOthers`) as well as the `users:signOut` CLI command.
 
 After editing the source, click the reload icon on the extension's card.
 
@@ -40,5 +40,5 @@ The manifest also declares `background.scripts` and a gecko ID, so Firefox (121+
 ## Files
 
 - `api.js`: settings in `chrome.storage.local`, plus a tiny client for Convex's HTTP API (`POST /api/{query,mutation,action}`).
-- `background.js`: context menus, badge and toast.
+- `background.js`: context menus, badge, and the toast, save-again dialog and area selection it draws in the page.
 - `popup.*` and `options.*`: the two extension pages. `style.css` is shared between them.

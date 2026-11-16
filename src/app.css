@@ -47,6 +47,8 @@
 @media (max-width: 768px) {
 	:root {
 		--gutter: var(--space-lg);
+		/* room below the last content for the browser's bottom toolbar */
+		--toolbar-clearance: 4rem;
 	}
 }
 
@@ -389,9 +391,30 @@ button.error {
 	background: var(--bg-2);
 }
 
-.clickable:focus-visible {
+.clickable:focus-visible,
+.clickable:has(.card-link:focus-visible) {
 	outline: 1px solid var(--txt-3);
 	outline-offset: 1px;
+}
+
+/* A card with buttons of its own can't be a link, as a link can't hold buttons:
+   the card (position: relative) holds this link and the buttons side by side.
+   Its ::after stretches the link over the card, the buttons need a z-index to
+   sit above it, and the focus ring goes on the card. */
+.card-link {
+	display: block;
+	color: inherit;
+	text-decoration: none;
+}
+
+.card-link::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+}
+
+.card-link:focus-visible {
+	outline: none;
 }
 
 /* A card for a named set of items (a collection, an atlas region): a heading over a mosaic */

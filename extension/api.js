@@ -45,7 +45,7 @@ export function getMe() {
 }
 
 export function listCollections() {
-	return call('query', 'collections:listWithCounts');
+	return call('query', 'collections:list');
 }
 
 // Ingestion defaults for uncollected saves

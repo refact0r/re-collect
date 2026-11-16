@@ -12,7 +12,6 @@ export const EMBEDDING_MODEL = `google/embeddinggemma-2@${EMBEDDING_DIMENSIONS}`
 const TIMEOUT_MS = 30_000;
 // A search waits on its query's embedding, so it gets one quick try
 const QUERY_TIMEOUT_MS = 5_000;
-const RETRY_BACKOFF_MS = [1000, 4000]; // one per retry, after the initial attempt
 // ~2k tokens: enough to place an article or note without paying for all of it
 const MAX_TEXT_CHARS = 8_000;
 
@@ -83,6 +82,18 @@ export async function inputKey(input: EmbeddingInput): Promise<string> {
 	return `text:${hex.slice(0, 32)}`;
 }
 
+// Only image embeddings are laid out on the library map
+export const isImageKey = (key: string) => key.startsWith('image:');
+
+// What an item still needs embedded, given the input key of its current-model
+// embedding: null when it has AI off, is waiting on its input, or is up to date
+export async function embeddingToMake(item: EmbeddingFields, embeddedKey: string | null) {
+	const input = embeddingInput(item);
+	if (!input) return null;
+	const key = await inputKey(input);
+	return key === embeddedKey ? null : { input, key };
+}
+
 type ContentPart =
 	{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
 
@@ -90,10 +101,11 @@ interface EmbeddingResponse {
 	data?: { embedding: number[] }[];
 }
 
-// Rate limits, server errors and timeouts are worth another try; a bad request isn't
-class RetryableError extends Error {}
+// Rate limits, server errors and timeouts are worth another try (embedItem's
+// pool retries them); a bad request isn't
+export class RetryableError extends Error {}
 
-async function runOnce(body: object, timeoutMs: number): Promise<number[]> {
+async function run(body: object, timeoutMs: number): Promise<number[]> {
 	const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
 	const token = process.env.CLOUDFLARE_API_TOKEN;
 	if (!accountId || !token) throw new Error('CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN not set');
@@ -127,18 +139,6 @@ async function runOnce(body: object, timeoutMs: number): Promise<number[]> {
 	return normalize(embedding);
 }
 
-async function run(body: object): Promise<number[]> {
-	for (let attempt = 0; ; attempt++) {
-		try {
-			return await runOnce(body, TIMEOUT_MS);
-		} catch (error) {
-			if (!(error instanceof RetryableError) || attempt >= RETRY_BACKOFF_MS.length) throw error;
-			console.warn(`embedding attempt ${attempt + 1} failed:`, error.message);
-		}
-		await new Promise((resolve) => setTimeout(resolve, RETRY_BACKOFF_MS[attempt]));
-	}
-}
-
 // Unit length, so a dot product is the cosine similarity
 function normalize(vector: number[]): number[] {
 	const norm = Math.hypot(...vector) || 1;
@@ -152,10 +152,10 @@ export const embedImage = (jpegBase64: string) =>
 	run(
 		conversation([
 			{ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${jpegBase64}` } }
-		])
+		]),
+		TIMEOUT_MS
 	);
 
-export const embedText = (text: string) => run({ input: [text] });
+export const embedText = (text: string) => run({ input: [text] }, TIMEOUT_MS);
 
-export const embedQuery = (query: string) =>
-	runOnce({ input: [queryText(query)] }, QUERY_TIMEOUT_MS);
+export const embedQuery = (query: string) => run({ input: [queryText(query)] }, QUERY_TIMEOUT_MS);

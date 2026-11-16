@@ -1,7 +1,21 @@
+<script lang="ts" module>
+	import type { CollectionSortOption } from '#lib/types.js';
+
+	// 'manual' is only offered on collection pages
+	export const SORT_OPTIONS: { value: CollectionSortOption; label: string }[] = [
+		{ value: 'manual', label: 'manual' },
+		{ value: 'dateAddedNewest', label: 'added (new)' },
+		{ value: 'dateAddedOldest', label: 'added (old)' },
+		{ value: 'dateModifiedNewest', label: 'modified (new)' },
+		{ value: 'dateModifiedOldest', label: 'modified (old)' },
+		{ value: 'titleAsc', label: 'title (a-z)' },
+		{ value: 'titleDesc', label: 'title (z-a)' }
+	];
+</script>
+
 <script lang="ts">
 	import IconSort from '~icons/material-symbols-light/sort-sharp';
 	import Dropdown from './Dropdown.svelte';
-	import type { CollectionSortOption } from '#lib/types.js';
 
 	interface Props {
 		value: CollectionSortOption;
@@ -11,17 +25,9 @@
 
 	let { value, showManualSort = false, onchange }: Props = $props();
 
-	const options: { value: CollectionSortOption; label: string; manual?: boolean }[] = [
-		{ value: 'manual', label: 'manual', manual: true },
-		{ value: 'dateAddedNewest', label: 'added (new)' },
-		{ value: 'dateAddedOldest', label: 'added (old)' },
-		{ value: 'dateModifiedNewest', label: 'modified (new)' },
-		{ value: 'dateModifiedOldest', label: 'modified (old)' },
-		{ value: 'titleAsc', label: 'title (a-z)' },
-		{ value: 'titleDesc', label: 'title (z-a)' }
-	];
-
-	const visibleOptions = $derived(showManualSort ? options : options.filter((o) => !o.manual));
+	const visibleOptions = $derived(
+		showManualSort ? SORT_OPTIONS : SORT_OPTIONS.filter((o) => o.value !== 'manual')
+	);
 
 	const label = $derived(visibleOptions.find((o) => o.value === value)?.label ?? value);
 </script>

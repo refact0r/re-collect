@@ -8,6 +8,7 @@ import { getOwned, userMutation } from './lib/auth';
 import { patchItem } from './lib/searchText';
 import { colorNamesForPalette } from './lib/colorNames';
 import { MAX_ERROR_CHARS } from './lib/tagger';
+import { TAGGING_MODES, storedTaggingMode, taggingModeOf } from './lib/taggingModes';
 import { deleteItemEmbeddings, scheduleEmbedding } from './embeddings';
 import { taggingModeValidator } from './schema';
 
@@ -91,7 +92,7 @@ export const setFailed = internalMutation({
 		if (!item) return;
 		await ctx.db.patch(args.itemId, {
 			taggingStatus: 'failed',
-			taggingError: args.error
+			taggingError: args.error.slice(0, MAX_ERROR_CHARS)
 		});
 		await scheduleEmbedding(ctx, args.itemId);
 	}
@@ -126,7 +127,14 @@ export const retagItem = userMutation({
 		// run's results from landing on an item just turned off)
 		if (item.taggingStatus === 'pending') throw new ConvexError('tagging already in progress');
 
-		const mode = args.mode ?? item.taggingMode ?? (item.type === 'text' ? 'text' : 'visual');
+		const mode = args.mode ?? taggingModeOf(item);
+		if (!TAGGING_MODES[item.type].includes(mode)) {
+			throw new ConvexError(
+				item.type === 'text'
+					? 'notes are read by their content'
+					: 'only URL items can be text-tagged'
+			);
+		}
 		if (mode === 'none') {
 			await patchItem(ctx, item, {
 				taggingMode: 'none',
@@ -141,15 +149,12 @@ export const retagItem = userMutation({
 			return;
 		}
 		if (item.type === 'text') {
-			if (mode !== 'text') throw new ConvexError('notes are read by their content');
-			await ctx.db.patch(args.itemId, { taggingMode: undefined });
+			await ctx.db.patch(args.itemId, { taggingMode: storedTaggingMode(item.type, mode) });
 			await scheduleEmbedding(ctx, args.itemId);
 			return;
 		}
 		if (mode === 'text') {
-			if (item.type !== 'url' || !item.url) {
-				throw new ConvexError('only URL items can be text-tagged');
-			}
+			if (!item.url) throw new ConvexError('only URL items can be text-tagged');
 		} else {
 			if (!item.imageKey) throw new ConvexError('item has no image to tag');
 			// Don't tag an image that's about to be replaced; the new image

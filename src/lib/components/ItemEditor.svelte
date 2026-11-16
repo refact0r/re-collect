@@ -43,7 +43,8 @@
 	const draft = $state<Partial<Record<Field, string>>>({});
 	const value = (field: Field) => draft[field] ?? item[field] ?? '';
 	const url = $derived(value('url'));
-	const urlValid = $derived(!url || isWebUrl(url));
+	// A link item needs its link; others may leave the source url blank
+	const urlValid = $derived(isWebUrl(url) || (!url && item.type !== 'url'));
 	let deleted = false;
 
 	// Tag links search the user's own items, or for a visitor, this collection
@@ -168,7 +169,9 @@
 						{/if}
 					</div>
 					{#if !urlValid && !readonly}
-						<span class="status-text">links must start with http:// or https://</span>
+						<span class="status-text">
+							{url ? 'links must start with http:// or https://' : 'a link item needs its link'}
+						</span>
 					{/if}
 				</label>
 			{/if}
@@ -273,7 +276,8 @@
 					</div>
 					{#if imageBusy}
 						<p class="status-text">fetching image...</p>
-					{:else if item.screenshotStatus === 'failed'}
+					{:else if item.screenshotError}
+						<!-- Also after a failed re-fetch, which keeps the previous image -->
 						<p class="status-text">failed: {item.screenshotError}</p>
 					{/if}
 				</div>
@@ -513,18 +517,13 @@
 			width: 100%;
 			margin-block: 0;
 			padding: var(--modal-pad);
-			padding-bottom: 5rem;
+			padding-bottom: calc(var(--modal-pad) + var(--toolbar-clearance));
 			border-left: none;
 			border-top: 1px solid var(--border);
 		}
 
 		.text-content {
 			min-height: 30vh;
-		}
-
-		.actions {
-			display: flex;
-			gap: var(--gap);
 		}
 	}
 </style>

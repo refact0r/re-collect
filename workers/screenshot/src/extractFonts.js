@@ -50,7 +50,6 @@ export async function extractFonts() {
 			continue;
 		scanned++;
 		const style = getComputedStyle(el);
-		if (style.display === 'none') continue;
 		const family = declaredFamily(style.fontFamily);
 		// Icon fonts render Private Use Area glyphs
 		if (!family || GENERIC.test(family) || ICON_FONT.test(family) || /[\uE000-\uF8FF]/.test(text)) {

@@ -134,6 +134,20 @@ async function getCollectionPreviews(
 	return previews;
 }
 
+// Just what a collection picker needs (the browser extension's popup), in manual order
+export const list = userQuery({
+	args: {},
+	handler: async (ctx) => {
+		const collections = await byPosition(ctx).collect();
+		return collections.map(({ _id, name, taggingMode, linkImageMode }) => ({
+			_id,
+			name,
+			taggingMode,
+			linkImageMode
+		}));
+	}
+});
+
 export const listWithCounts = userQuery({
 	args: {},
 	handler: async (ctx) => {

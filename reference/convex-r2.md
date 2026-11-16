@@ -13,22 +13,54 @@ upstream examples lean on presigned GET URLs, which this app deliberately does
 
 ## Uploads
 
-Client-side flow in `ItemInput.svelte`:
+Only raster images (JPEG, PNG, WebP, GIF, AVIF: `RASTER_IMAGE_TYPES` in
+`r2.ts`) ever become an item's image: everything in the bucket is served from
+the public image domain, same site as the app, where an SVG or HTML file would
+run its scripts. Client-side flow in `ItemInput.svelte`:
 
-1. `api.r2.generateUploadUrl` (`src/convex/r2.ts`) → returns `{ key, url }` (a
-   presigned PUT URL — the one place presigning IS used) and records the key in
-   `uploads` against the caller.
-2. Client `fetch(url, { method: 'PUT', body: file })`.
-3. The item is created with `imageKey` set to the returned key. `items.add`
-   only accepts a key from the caller's own `uploads` row and deletes that row,
-   so each object belongs to exactly one item (deleting the item deletes the
-   object, which must never reach another user's image).
+1. `api.r2.generateUploadUrl({ contentType })` (`src/convex/r2.ts`) refuses
+   anything but a raster type, records the key in `uploads` against the caller
+   (unverified) and returns `{ key, url }`: a presigned PUT (the one place
+   presigning IS used) that `signUpload` signs with `content-type` among its
+   signed headers, so R2 rejects a PUT with any other Content-Type and the
+   object is served with the one the server allowed. The component's own
+   `generateUploadUrl` can't pin a type, hence the hand-rolled SigV4 (checked
+   against the AWS SDK's signer in `uploads.test.ts`).
+2. Client `fetch(url, { method: 'PUT', headers: { 'Content-Type': … }, body })`.
+3. `api.imageImport.verifyUpload({ key })` (a Node action) reads the object
+   back from the bucket (presigned GET, not the cached public domain) and
+   checks it is served as a raster type, at most 30 MB, and that its bytes
+   decode as a raster image (sharp). It then sets the row's `verifiedType`; on
+   any failure it deletes the object and the row at once.
+4. The item is created with `imageKey` set to the key. `items.add` only
+   accepts a key from the caller's own, verified `uploads` row and deletes that
+   row, so each object belongs to exactly one item (deleting the item deletes
+   the object, which must never reach another user's image).
+
+Unverified rows (abandoned, failed PUT, never checked) are swept with their
+objects after a day (`r2.sweepUploads`, daily cron).
 
 Images from the browser extension take the same path, server-side:
 `api.imageImport.addFromUrl` (a Node action) fetches a remote image and
-`api.imageImport.addPageWithImage` decodes the extension's own screenshot (a
-`data:` URL). Each then runs steps 1–2 from the action and creates the item, an
-image item or a URL item with that screenshot in place of the worker's.
+`api.imageImport.addPageWithImage` decodes the extension's own screenshot
+(only a base64 `data:image/…` URL; it never fetches anything). Each then runs
+steps 1–2 from the action via `upload()` and, having checked the bytes itself,
+marks the row verified directly (`internal.r2.markVerified`), then creates the
+item, an image item or a URL item with that screenshot in place of the
+worker's. `fetchImage` (also used by the discovery feed's keep) fetches only
+public http(s) addresses (`isPublicWebUrl`: no localhost or private/link-local
+IP literals), re-checks each of at most 3 redirects, and stores only raster
+types of up to 30 MB, by what the bytes are.
+
+What this leaves open:
+
+- A presigned PUT URL stays valid for 15 minutes, so its holder can PUT again
+  after verification and replace the bytes, but only under the same raster
+  Content-Type, which browsers never run as a page or script. A PUT's size
+  isn't signed either: an oversized upload fails verification and is deleted.
+- Optional defence in depth, dashboard configuration (`reference/ops.md`): a
+  Transform Rule on the image domain adding `Content-Security-Policy: sandbox;
+default-src 'none'` and `X-Content-Type-Options: nosniff`.
 
 The component's `metadata` table isn't used (nothing syncs or reads it);
 `r2.deleteObject` deletes the object either way.

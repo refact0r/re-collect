@@ -119,10 +119,21 @@ section, in full in `discovery-notes/user-sources-cost.md`.
   - Are.na calls send `ARENA_TOKEN` (a personal access token, Convex env var)
     when it's set. Without it they run as a guest, at 30 requests a minute per
     shared Convex IP.
-- **Backend:** `src/convex/discovery.ts`, with three tables:
-  - `discoveryCandidates`: the shared pool, deduped by normalized URL.
-  - `discoverySources`: poll state only (last poll, last error).
-  - A cron polls every source every 6 hours.
+- **Backend:** `src/convex/discovery.ts`, with two tables:
+  - `discoveryCandidates`: the shared pool, one row per source entry (by its
+    own id). Only http(s) links and media are stored.
+  - `discoverySources`: poll state only (last poll, last error), for the
+    dashboard; nothing reads it.
+  - A cron polls every source every 6 hours. A poll looks at no more than a
+    source's newest 120 entries (`POLL_LIMIT`).
+  - A daily cron (`discovery:expireCandidates`) deletes candidates stored over
+    30 days ago unless they're among their source's newest 300 by
+    `publishedAt`, and every candidate of a source no longer in `SOURCES`.
+    The 300 covers more than one poll returns, so a slow source (an Are.na
+    channel returning the same blocks for months) never re-ingests what was
+    deleted, and the whole feed window (100 per source), so expiry never
+    changes the feed.
+  - Only what the cards and keeping use is stored: no source author or tags.
   - Each user's turned-off sources are `hiddenSources` on their `discover`
     viewPreferences row.
 - **Keeping:** `src/convex/discoveryKeep.ts` copies the source's image into R2
@@ -131,7 +142,9 @@ section, in full in `discovery-notes/user-sources-cost.md`.
   Are.na image.
 - **Feed order:** round-robin across sources (or source groups), newest first
   within a round.
-  Saved links drop out only after dealing, so adding one doesn't reshuffle
+  A link several sources carry shows once, as its first card in that order,
+  so turning one of those sources off leaves it to the others. Repeats and
+  saved links drop out only after dealing, so adding one doesn't reshuffle
   the rest.
 - **Hiding saved links:** links already in your library are left out by an
   indexed lookup on `items.normUrl`. The feed checks only the cards on the
@@ -148,10 +161,11 @@ section, in full in `discovery-notes/user-sources-cost.md`.
   hotlinked and played. Keeping saves only the poster frame, as an image
   item, and tagging runs on that frame.
 - **Tests:** `src/convex/discovery.test.ts` covers the library check,
-  and per-user source toggles.
+  per-user source toggles, the cross-source dedupe, the http(s) check on
+  ingest and expiry; `src/convex/lib/discoverySources.spec.ts` covers the parsers on
+  inline fixtures.
 - **Still prototype shortcuts:**
   - Every poll runs all sources at once (fine at ~10 sources).
-  - Old candidates never expire.
 - **Dev:** `npx convex run discovery:pollAll`, or
   `discovery:resetSource '{"key":"awwwards"}'` to re-fetch one source.
 
@@ -165,8 +179,6 @@ section, in full in `discovery-notes/user-sources-cost.md`.
   - A per-source cursor, fetching 20 instead of 100 on routine polls.
   - Daily polling, with backoff for quiet sources.
   - A feed query limited to each user's own subscriptions.
-  - Candidate expiry.
-  - Caps on RSS feed size.
 - **Without those:** the feed query passes Convex's 16 MiB read limit at
   ~300 sources, and `pollAll` fails at a few hundred.
 
@@ -921,7 +933,6 @@ To do (not decisions):
   pass (2026-11-14) went on 12 images per source.
 - **Filter blank screenshots.** Are.na's screenshots of dark sites are
   sometimes all black or all white; use a luminance or blurhash check.
-- **Expire untouched candidates** after 30–60 days.
 - **Check sources from Convex's IPs.** Every source works there so far, but
   the research was done from a home IP.
 

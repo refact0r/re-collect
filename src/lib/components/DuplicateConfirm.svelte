@@ -48,9 +48,10 @@
 	</p>
 	<p class="meta">{summary}</p>
 	<div class="actions">
-		<button onclick={onCancel}>cancel</button>
+		<!-- The Enter that submitted the link, repeated, mustn't add the duplicate -->
 		<!-- svelte-ignore a11y_autofocus -->
-		<button onclick={onAdd} autofocus>add anyway</button>
+		<button onclick={onCancel} autofocus>cancel</button>
+		<button onclick={onAdd}>add anyway</button>
 	</div>
 </Modal>
 

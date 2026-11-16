@@ -7,6 +7,7 @@ import {
 } from './_generated/server';
 import { internal } from './_generated/api';
 import {
+	clearLoginAttempts,
 	hashPassword,
 	hashToken,
 	normalizeUsername,
@@ -15,7 +16,7 @@ import {
 	userQuery
 } from './lib/auth';
 
-// The signed-in user; also how an action checks its caller's token
+// The signed-in user
 export const me = userQuery({
 	args: {},
 	handler: async (ctx) => {
@@ -81,11 +82,24 @@ export const setPasswordHash = internalMutation({
 	args: { username: v.string(), passwordHash: v.string() },
 	handler: async (ctx, args) => {
 		const user = await getUser(ctx, args.username);
-		await ctx.db.patch(user._id, {
-			passwordHash: args.passwordHash,
-			failedLogins: undefined,
-			lastFailedLogin: undefined
-		});
+		await ctx.db.patch(user._id, { passwordHash: args.passwordHash });
+		await clearLoginAttempts(ctx, user.username);
+	}
+});
+
+// One-off: the lockout count moved from users to loginAttempts. Unsets the old
+// fields so the schema can drop them; run once on dev and prod, then delete
+// this and the fields. Run: npx convex run users:dropLoginCounters
+export const dropLoginCounters = internalMutation({
+	args: {},
+	handler: async (ctx) => {
+		let cleared = 0;
+		for await (const user of ctx.db.query('users')) {
+			if (user.failedLogins === undefined && user.lastFailedLogin === undefined) continue;
+			await ctx.db.patch(user._id, { failedLogins: undefined, lastFailedLogin: undefined });
+			cleared++;
+		}
+		return { cleared };
 	}
 });
 

@@ -1,27 +1,21 @@
 // @vitest-environment edge-runtime
-/// <reference types="vite/client" />
-import { convexTest } from 'convex-test';
 import { generateKeyBetween } from 'fractional-indexing';
-import workpool from '@convex-dev/workpool/test';
 import { expect, test, vi } from 'vitest';
 import { api, internal } from './_generated/api';
-import schema from './schema';
 import type { Id } from './_generated/dataModel';
 import { hashToken } from './lib/auth';
 import { normalizeUrl } from './lib/urls';
-
-const modules = import.meta.glob('./**/*.ts');
+import { newTest, type Test } from './testing.helpers';
 
 test('per-save overrides replace the collection’s ingestion defaults', async () => {
 	vi.useFakeTimers(); // Keep the scheduled tagging actions from running
-	const t = convexTest(schema, modules);
-	workpool.register(t, 'taggingPool');
+	const t = newTest();
 	const token = 'a-token';
 	const userId = await t.run(async (ctx) => {
 		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
 		await ctx.db.insert('sessions', { userId, tokenHash: await hashToken(token) });
-		await ctx.db.insert('uploads', { userId, key: 'key-1' });
-		await ctx.db.insert('uploads', { userId, key: 'key-2' });
+		await ctx.db.insert('uploads', { userId, key: 'key-1', verifiedType: 'image/png' });
+		await ctx.db.insert('uploads', { userId, key: 'key-2', verifiedType: 'image/png' });
 		return userId;
 	});
 	const collectionId = await t.mutation(api.collections.create, {
@@ -52,7 +46,7 @@ test('per-save overrides replace the collection’s ingestion defaults', async (
 
 test('captured fonts are stored, searchable, and kept when a capture brings none', async () => {
 	vi.useFakeTimers(); // Keep the scheduled palette/tagging actions from running
-	const t = convexTest(schema, modules);
+	const t = newTest();
 	const itemId = await t.run(async (ctx) => {
 		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
 		return ctx.db.insert('items', {
@@ -83,7 +77,7 @@ test('captured fonts are stored, searchable, and kept when a capture brings none
 });
 
 // A user with one session, skipping the slow password hash
-async function makeUser(t: ReturnType<typeof convexTest>) {
+async function makeUser(t: Test) {
 	const token = 'a-token';
 	const userId = await t.run(async (ctx) => {
 		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
@@ -95,7 +89,7 @@ async function makeUser(t: ReturnType<typeof convexTest>) {
 
 // Inserted directly: items.add would enqueue a screenshot on the workpool component
 function insertUrlItem(
-	t: ReturnType<typeof convexTest>,
+	t: Test,
 	userId: Id<'users'>,
 	fields: { url: string; title?: string; description?: string }
 ) {
@@ -112,7 +106,7 @@ function insertUrlItem(
 }
 
 test('only http(s) links become URL items', async () => {
-	const t = convexTest(schema, modules);
+	const t = newTest();
 	const { userId, token } = await makeUser(t);
 
 	for (const url of [
@@ -133,8 +127,33 @@ test('only http(s) links become URL items', async () => {
 	expect((await t.run((ctx) => ctx.db.get(itemId)))?.url).toBe('http://b.co');
 });
 
+test('a URL item keeps its link; other items can drop theirs', async () => {
+	const t = newTest();
+	const { userId, token } = await makeUser(t);
+	const link = await insertUrlItem(t, userId, { url: 'https://a.co' });
+	await expect(t.mutation(api.items.update, { id: link, url: '  ', token })).rejects.toThrow(
+		'links must start with http:// or https://'
+	);
+	expect((await t.run((ctx) => ctx.db.get(link)))?.url).toBe('https://a.co');
+
+	const image = await t.run((ctx) =>
+		ctx.db.insert('items', {
+			userId,
+			type: 'image',
+			url: 'https://a.co',
+			collections: [],
+			dateAdded: 0,
+			dateModified: 0
+		})
+	);
+	await t.mutation(api.items.update, { id: image, url: '', token });
+	const item = await t.run((ctx) => ctx.db.get(image));
+	expect(item).not.toHaveProperty('url');
+	expect(item).not.toHaveProperty('normUrl');
+});
+
 test('update leaves omitted fields alone and clears blank ones', async () => {
-	const t = convexTest(schema, modules);
+	const t = newTest();
 	const { userId, token } = await makeUser(t);
 	const itemId = await insertUrlItem(t, userId, {
 		url: 'https://b.co',
@@ -150,7 +169,7 @@ test('update leaves omitted fields alone and clears blank ones', async () => {
 });
 
 test('a stored empty title sorts by url, not first', async () => {
-	const t = convexTest(schema, modules);
+	const t = newTest();
 	const { userId, token } = await makeUser(t);
 	const legacy = await insertUrlItem(t, userId, { url: 'https://zine.co', title: '' });
 	const titled = await insertUrlItem(t, userId, { url: 'https://b.co', title: 'apple' });
@@ -160,7 +179,7 @@ test('a stored empty title sorts by url, not first', async () => {
 });
 
 test('text items are searchable by their content', async () => {
-	const t = convexTest(schema, modules);
+	const t = newTest();
 	const { token } = await makeUser(t);
 	const search = async (query: string) =>
 		(await t.query(api.items.search, { query, token })).map((i) => i._id);
@@ -178,7 +197,7 @@ test('text items are searchable by their content', async () => {
 });
 
 test('rebuildSearchText recomputes searchText from current fields', async () => {
-	const t = convexTest(schema, modules);
+	const t = newTest();
 	const itemId = await t.run(async (ctx) => {
 		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
 		return ctx.db.insert('items', {
@@ -198,7 +217,7 @@ test('rebuildSearchText recomputes searchText from current fields', async () => 
 
 test('deleting a collection drops its memberships without touching members', async () => {
 	vi.useFakeTimers();
-	const t = convexTest(schema, modules);
+	const t = newTest();
 	const { token } = await makeUser(t);
 	const doomed = await t.mutation(api.collections.create, { name: 'doomed', token });
 	const kept = await t.mutation(api.collections.create, { name: 'kept', token });
@@ -226,8 +245,99 @@ test('deleting a collection drops its memberships without touching members', asy
 	vi.useRealTimers();
 });
 
+test('deleting an item drops it from each of its collections', async () => {
+	vi.useFakeTimers();
+	const t = newTest();
+	const { token } = await makeUser(t);
+	const [a, b] = await Promise.all(
+		['a', 'b'].map((name) => t.mutation(api.collections.create, { name, token }))
+	);
+	const doomed = await t.mutation(api.items.add, {
+		type: 'text',
+		content: 'doomed',
+		collections: [a, b],
+		token
+	});
+	const kept = await t.mutation(api.items.add, {
+		type: 'text',
+		content: 'kept',
+		collections: [a],
+		token
+	});
+
+	await t.mutation(api.items.remove, { id: doomed, token });
+
+	await t.run(async (ctx) => {
+		expect(await ctx.db.get(doomed)).toBeNull();
+		expect((await ctx.db.get(a))?.itemCount).toBe(1);
+		expect((await ctx.db.get(b))?.itemCount).toBe(0);
+		const positions = await ctx.db.query('itemCollectionPositions').collect();
+		expect(positions.map((p) => [p.itemId, p.collectionId])).toEqual([[kept, a]]);
+	});
+	vi.useRealTimers();
+});
+
+test('addManyToCollection adds every item once, and only the caller’s', async () => {
+	vi.useFakeTimers();
+	const t = newTest();
+	const { token } = await makeUser(t);
+	const collectionId = await t.mutation(api.collections.create, { name: 'c', token });
+	const add = (content: string, collections: Id<'collections'>[] = []) =>
+		t.mutation(api.items.add, { type: 'text', content, collections, token });
+	const member = await add('member', [collectionId]);
+	const [x, y] = [await add('x'), await add('y')];
+
+	await t.mutation(api.items.addManyToCollection, {
+		itemIds: [x, member, y],
+		collectionId,
+		token
+	});
+	await t.run(async (ctx) => {
+		expect((await ctx.db.get(collectionId))?.itemCount).toBe(3);
+		for (const id of [x, y, member]) {
+			expect((await ctx.db.get(id))?.collections).toEqual([collectionId]);
+		}
+	});
+	const listed = await t.query(api.items.listByCollection, { collectionId, token });
+	expect(listed.map((i) => i._id)).toEqual([y, x, member]);
+
+	// Another user's item or collection refuses the whole batch
+	const other = await t.run(async (ctx) => {
+		const userId = await ctx.db.insert('users', { username: 'b', passwordHash: 'unused' });
+		await ctx.db.insert('sessions', { userId, tokenHash: await hashToken('b-token') });
+		return userId;
+	});
+	const theirs = await insertUrlItem(t, other, { url: 'https://b.co' });
+	const theirCollection = await t.mutation(api.collections.create, {
+		name: 'theirs',
+		token: 'b-token'
+	});
+	const z = await add('z');
+	await expect(
+		t.mutation(api.items.addManyToCollection, { itemIds: [z, theirs], collectionId, token })
+	).rejects.toThrow('item not found');
+	await expect(
+		t.mutation(api.items.addManyToCollection, {
+			itemIds: [z],
+			collectionId: theirCollection,
+			token
+		})
+	).rejects.toThrow('collection not found');
+	expect((await t.run((ctx) => ctx.db.get(z)))?.collections).toEqual([]);
+	expect((await t.run((ctx) => ctx.db.get(collectionId)))?.itemCount).toBe(3);
+
+	await expect(
+		t.mutation(api.items.addManyToCollection, {
+			itemIds: Array.from({ length: 101 }, () => z),
+			collectionId,
+			token
+		})
+	).rejects.toThrow('too many items at once');
+	vi.useRealTimers();
+});
+
 test('collection items keep manual order, which also breaks sort ties', async () => {
-	const t = convexTest(schema, modules);
+	const t = newTest();
 	const { token } = await makeUser(t);
 	const collectionId = await t.mutation(api.collections.create, { name: 'c', token });
 	const add = (title: string) =>
@@ -260,7 +370,7 @@ test('collection items keep manual order, which also breaks sort ties', async ()
 });
 
 test('backfilled fonts are stored and searchable without touching the image', async () => {
-	const t = convexTest(schema, modules);
+	const t = newTest();
 	const itemId = await t.run(async (ctx) => {
 		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
 		return ctx.db.insert('items', {
@@ -284,7 +394,7 @@ test('backfilled fonts are stored and searchable without touching the image', as
 });
 
 test('findByUrl finds the caller’s saved copies of a page, newest first', async () => {
-	const t = convexTest(schema, modules);
+	const t = newTest();
 	const { userId, token } = await makeUser(t);
 	const other = await t.run((ctx) =>
 		ctx.db.insert('users', { username: 'b', passwordHash: 'unused' })

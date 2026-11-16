@@ -73,9 +73,10 @@ Takes a screenshot of a URL and uploads it to R2.
 ```
 
 `mode` is optional: `"og"` tries the page's og:image first (via a plain fetch,
-then via the browser), falling back to a screenshot; `"screenshot"` (default)
-always captures a viewport screenshot. A stored og:image is returned under an
-`og/` key with its own dimensions instead.
+then via the browser, which skips an og:image the plain fetch already
+rejected), falling back to a screenshot; `"screenshot"` (default) always
+captures a viewport screenshot. A stored og:image is returned under an `og/`
+key with its own dimensions instead.
 
 **Response (success):**
 
@@ -91,8 +92,9 @@ always captures a viewport screenshot. A stored og:image is returned under an
 }
 ```
 
-`fonts` is present only on screenshot captures, where the page is rendered in
-the browser. It lists the most prominent font families on the page, read best
+`fonts` is present whenever the page was rendered in the browser: screenshot
+captures and og:images found by the browser fallback (there only when it
+found any), not the plain-fetch og path. It lists the most prominent font families on the page, read best
 effort (see `reference/design-tokens.md`). `internalName` comes from the font
 file via CDP.
 
@@ -109,6 +111,10 @@ file via CDP.
 - Screenshots are 1440x900 viewport (not full page), rendered in light mode
 - 10 second navigation timeout, then up to 10s waiting for network idle plus a
   forced 5s settle delay before capture
-- og:images narrower than 400px are rejected in favor of a screenshot
+- og:images narrower than 400px, over 20 MB, or not JPEG/PNG/WebP/GIF/AVIF (by
+  their bytes; untyped `application/octet-stream` responses are sniffed) are
+  rejected in favor of a screenshot
+- Tracker and ad hosts (Google Analytics/Tag Manager, DoubleClick, Hotjar,
+  Segment, Mixpanel, …) are blocked by hostname so the network can go idle
 - Blocked URLs: localhost, private/link-local IPs (v4 and v6), .local/.internal domains
 - Only HTTP/HTTPS URLs allowed

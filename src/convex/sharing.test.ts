@@ -1,14 +1,8 @@
 // @vitest-environment edge-runtime
-/// <reference types="vite/client" />
-import { convexTest } from 'convex-test';
 import { describe, expect, test } from 'vitest';
 import { api } from './_generated/api';
-import schema from './schema';
 import { hashToken } from './lib/auth';
-
-const modules = import.meta.glob('./**/*.ts');
-
-type Test = ReturnType<typeof convexTest>;
+import { newTest, type Test } from './testing.helpers';
 
 async function makeUser(t: Test, username: string) {
 	const token = `${username}-token`;
@@ -21,7 +15,7 @@ async function makeUser(t: Test, username: string) {
 
 // Owner with a collection holding one note, which is also in a second, private collection
 async function setup() {
-	const t = convexTest(schema, modules);
+	const t = newTest();
 	const owner = await makeUser(t, 'owner');
 	const other = await makeUser(t, 'other');
 	const collectionId = await t.mutation(api.collections.create, { name: 'refs', token: owner });

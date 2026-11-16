@@ -21,6 +21,15 @@ export function normalizeUsername(username: string) {
 	return username.trim().toLowerCase();
 }
 
+// Ends the username's lockout count, after a success or a new password
+export async function clearLoginAttempts(ctx: MutationCtx, username: string) {
+	const row = await ctx.db
+		.query('loginAttempts')
+		.withIndex('by_username', (q) => q.eq('username', username))
+		.unique();
+	if (row) await ctx.db.delete(row._id);
+}
+
 const PBKDF2_ITERATIONS = 600_000;
 
 async function pbkdf2(password: string, salt: Uint8Array<ArrayBuffer>, iterations: number) {

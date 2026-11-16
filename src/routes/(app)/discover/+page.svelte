@@ -10,6 +10,7 @@
 	import { useAction, useMutation, useQuery } from '#lib/convex.js';
 	import { getCollectionsContext, getItemsContext } from '#lib/context.js';
 	import { getItemUrl } from '#lib/itemDisplay.js';
+	import { dismiss, notify } from '#lib/notice.svelte.js';
 	import { pageTitle } from '#lib/pageTitle.svelte.js';
 	import { useViewPrefs } from '#lib/prefs.svelte.js';
 
@@ -29,9 +30,15 @@
 	let limit = $state(PAGE);
 	const feed = useQuery(api.discovery.feed, () => ({ limit }), { keepPreviousData: true });
 
-	// Added cards leave at once, before the feed query catches up
+	// Added cards leave at once, before the feed query catches up. Once the feed
+	// has dropped one, so does this, so it comes back if deleted from the library
 	const added = new SvelteSet<string>();
 	const cards = $derived((feed.data?.candidates ?? []).filter((c) => !added.has(c._id)));
+	$effect(() => {
+		if (!feed.data) return;
+		const inFeed = new Set<string>(feed.data.candidates.map((c) => c._id));
+		for (const id of added) if (!inFeed.has(id)) added.delete(id);
+	});
 
 	// Where an add can go, the last one used first. '' is the library alone,
 	// in no collection
@@ -70,14 +77,6 @@
 
 	let open = $state<FeedCandidate | null>(null);
 
-	let toast = $state<{ text: string; href?: string } | null>(null);
-	let toastTimer: ReturnType<typeof setTimeout> | undefined;
-	function showToast(next: typeof toast, ms = 5000) {
-		clearTimeout(toastTimer);
-		toast = next;
-		toastTimer = setTimeout(() => (toast = null), ms);
-	}
-
 	async function add(candidate: FeedCandidate, optionId: string) {
 		const option = options.find((o) => o.id === optionId);
 		if (!option) return;
@@ -85,31 +84,38 @@
 		lastAddedTo = option.id;
 		added.add(candidate._id);
 		const where = option.id ? option.name : 'library';
-		showToast({ text: `adding to ${where}...` }, 30_000);
+		const adding = notify(`adding to ${where}...`, { duration: 30_000 });
 		const itemId = await runAction(api.discoveryKeep.keep, {
 			candidateId: candidate._id,
 			collectionId: (option.id || undefined) as Id<'collections'> | undefined
 		});
 		if (!itemId) {
 			added.delete(candidate._id);
-			toast = null;
+			dismiss(adding);
 			return;
 		}
-		showToast({ text: `added to ${where}`, href: getItemUrl(itemId) });
+		notify(`added to ${where}`, {
+			link: { href: getItemUrl(itemId), label: 'open' },
+			replaces: adding
+		});
 	}
 
-	// Infinite scroll: grow the window as the end comes into view
-	function loadMore(node: HTMLElement) {
-		const observer = new IntersectionObserver(
-			([entry]) => {
-				if (entry.isIntersecting && (feed.data?.remaining ?? 0) > 0 && !feed.isLoading) {
-					limit += PAGE;
-				}
-			},
-			{ rootMargin: '1200px' }
-		);
+	// Infinite scroll: grow the window while the end is in view, checked again
+	// each time a page arrives (it may not push the end out of view)
+	let nearEnd = $state(false);
+	$effect(() => {
+		if (nearEnd && !feed.isStale && (feed.data?.remaining ?? 0) > 0) limit += PAGE;
+	});
+
+	function watchEnd(node: HTMLElement) {
+		const observer = new IntersectionObserver(([entry]) => (nearEnd = entry.isIntersecting), {
+			rootMargin: '1200px'
+		});
 		observer.observe(node);
-		return () => observer.disconnect();
+		return () => {
+			observer.disconnect();
+			nearEnd = false;
+		};
 	}
 </script>
 
@@ -141,7 +147,7 @@
 	</p>
 {:else}
 	<DiscoverGrid candidates={cards} columnOffset={prefs.columnOffset} onOpen={(c) => (open = c)} />
-	<div class="end" {@attach loadMore}></div>
+	<div class="end" {@attach watchEnd}></div>
 {/if}
 
 {#if open}
@@ -154,13 +160,6 @@
 	/>
 {/if}
 
-{#if toast}
-	<div class="toast" role="status">
-		<span>{toast.text}</span>
-		{#if toast.href}<a href={toast.href}>open</a>{/if}
-	</div>
-{/if}
-
 <style>
 	.controls {
 		display: flex;
@@ -170,23 +169,5 @@
 
 	.end {
 		height: 2rem;
-	}
-
-	.toast {
-		position: fixed;
-		bottom: 1.5rem;
-		left: 50%;
-		transform: translateX(-50%);
-		display: flex;
-		align-items: center;
-		gap: var(--space-lg);
-		padding: var(--space-md) var(--space-lg);
-		background: var(--bg-2);
-		border: 1px solid var(--border);
-		z-index: 50;
-	}
-
-	.toast a {
-		color: var(--txt-1);
 	}
 </style>

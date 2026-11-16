@@ -102,9 +102,16 @@ export function fontDisplayName(font: SiteFont): string {
 
 const stripAccents = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
+// German umlauts spelled out ("Söhne" -> "Soehne"); the key lowercases anyway
+const spellUmlauts = (s: string) =>
+	s
+		.normalize('NFC')
+		.replace(/[\u00e4\u00c4]/g, 'ae')
+		.replace(/[\u00f6\u00d6]/g, 'oe')
+		.replace(/[\u00fc\u00dc]/g, 'ue');
+
 // One-word key that matches however the name was spaced or cased: "GT America
-// Mono" -> "gtamericamono". German umlauts also get their "oe" spelling, so
-// "Söhne" is findable as söhne, sohne and soehne.
+// Mono" -> "gtamericamono"
 export function fontSearchKey(name: string): string {
 	return stripAccents(name)
 		.toLowerCase()
@@ -128,18 +135,13 @@ export function fontSearchTerms(fonts: SiteFont[] | undefined): string[] {
 		const names = fontNames(font);
 		if (!names.length) continue;
 		add(fontQuery(font));
+		// Each name spaced, accent-free and as a key, plus the key with umlauts
+		// spelled out, so "Söhne" is findable as söhne, sohne and soehne
 		for (const name of names) {
 			add(name);
 			add(stripAccents(name));
 			add(fontSearchKey(name));
-			add(
-				fontSearchKey(
-					name
-						.replace(/\u00e4/g, 'ae')
-						.replace(/\u00f6/g, 'oe')
-						.replace(/\u00fc/g, 'ue')
-				)
-			);
+			add(fontSearchKey(spellUmlauts(name)));
 		}
 	}
 	return [...terms.values()];

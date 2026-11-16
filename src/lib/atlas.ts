@@ -13,7 +13,7 @@ export interface MapPoint {
 	y: number;
 }
 
-export interface Position {
+interface Position {
 	x: number;
 	y: number;
 }
@@ -27,8 +27,11 @@ const countBy = <T>(values: Iterable<T>) => {
 	return counts;
 };
 
-const ranked = <T>(counts: Map<T, number>) =>
-	[...counts].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+// Most counted first, ties by name, so they don't reshuffle as items are added
+const ranked = (counts: Map<string, number>) =>
+	[...counts]
+		.map(([name, count]) => ({ name, count }))
+		.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 
 /* Color */
 
@@ -83,6 +86,26 @@ export function colorStrips(items: DisplayItem[]): { hue: Swatch[]; tone: Swatch
 	};
 }
 
+// A strip is only so many pixels wide, so past this many swatches neighbours
+// share a cell, shown in the middle one's color
+export const MAX_CELLS = 240;
+
+// A run of swatches (indexes, both ends included) drawn as one cell
+export interface Cell {
+	hex: string;
+	from: number;
+	to: number;
+}
+
+export function cellsOf(swatches: Swatch[]): Cell[] {
+	const count = Math.min(swatches.length, MAX_CELLS);
+	return Array.from({ length: count }, (_, i) => {
+		const from = Math.floor((i * swatches.length) / count);
+		const to = Math.floor(((i + 1) * swatches.length) / count) - 1;
+		return { hex: swatches[Math.floor((from + to) / 2)].hex, from, to };
+	});
+}
+
 // The color an item is placed by on the wheel: its first colorful palette
 // entry (palettes run most dominant first), or its first entry when it has none
 export function itemColor(item: DisplayItem): (Hsl & { hex: string; chromatic: boolean }) | null {
@@ -95,8 +118,9 @@ export function itemColor(item: DisplayItem): (Hsl & { hex: string; chromatic: b
 const GOLDEN_ANGLE = 2.399963;
 
 // The items as a color wheel: hue is the angle and colorfulness the distance
-// out, with the neutral items spiralling from the middle, lightest first
-export function colorWheel(items: DisplayItem[]): Map<ItemId, Position> {
+// out, with the neutral items spiralling from the middle, lightest first. Each
+// comes with the color it was placed by.
+export function colorWheel(items: DisplayItem[]): Map<ItemId, Position & { hex: string }> {
 	const colored = items.flatMap((item) => {
 		const color = itemColor(item);
 		return color ? [{ id: item._id, color }] : [];
@@ -104,12 +128,13 @@ export function colorWheel(items: DisplayItem[]): Map<ItemId, Position> {
 	const neutral = colored.filter((c) => !c.color.chromatic).sort((a, b) => b.color.l - a.color.l);
 	const hub = Math.sqrt(neutral.length) + 1;
 
-	const placed = new Map<ItemId, Position>();
-	neutral.forEach(({ id }, i) => {
+	const placed = new Map<ItemId, Position & { hex: string }>();
+	neutral.forEach(({ id, color }, i) => {
 		const radius = Math.sqrt(i + 0.5);
 		placed.set(id, {
 			x: Math.cos(i * GOLDEN_ANGLE) * radius,
-			y: Math.sin(i * GOLDEN_ANGLE) * radius
+			y: Math.sin(i * GOLDEN_ANGLE) * radius,
+			hex: color.hex
 		});
 	});
 	for (const { id, color } of colored) {
@@ -117,7 +142,7 @@ export function colorWheel(items: DisplayItem[]): Map<ItemId, Position> {
 		// red at the top, running clockwise
 		const angle = ((color.h - 90) * Math.PI) / 180;
 		const radius = hub + 1 + chroma(color) * hub * 1.5;
-		placed.set(id, { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
+		placed.set(id, { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius, hex: color.hex });
 	}
 	return placed;
 }
@@ -138,9 +163,7 @@ export interface StylePair {
 }
 
 export const countStyles = (items: DisplayItem[]) =>
-	ranked(countBy(items.flatMap((item) => [...new Set(item.styles ?? [])]))).sort(
-		(a, b) => b.count - a.count || a.name.localeCompare(b.name)
-	);
+	ranked(countBy(items.flatMap((item) => [...new Set(item.styles ?? [])])));
 
 // Styles with the color they tend to come in, and how often each two share an item
 export function styleGraph(items: DisplayItem[]): { styles: StyleCount[]; pairs: StylePair[] } {
@@ -337,7 +360,7 @@ export function litItems(items: DisplayItem[], lenses: Lenses): Set<ItemId> | nu
 }
 
 // Items added per calendar month, from the first item's month to the last's
-export interface Month {
+interface Month {
 	start: number;
 	end: number;
 	label: string;
@@ -382,7 +405,7 @@ const MIN_RECENT = 8;
 export function recentShift(
 	regions: Region[],
 	items: DisplayItem[]
-): { since: number; count: number; shifts: Shift[] } | null {
+): { since: number; count: number; recentIds: Set<ItemId>; shifts: Shift[] } | null {
 	const added = new Map(items.map((item) => [item._id, item.dateAdded]));
 	const newestFirst = regions
 		.flatMap((r) => r.itemIds)
@@ -404,11 +427,12 @@ export function recentShift(
 	return {
 		since: added.get(newestFirst[count - 1]) ?? 0,
 		count,
+		recentIds,
 		shifts: shifts.sort((a, b) => b.share - b.before - (a.share - a.before))
 	};
 }
 
-export interface FontUse {
+interface FontUse {
 	name: string;
 	// The search that finds its items
 	query: string;
@@ -436,17 +460,25 @@ export function fontsByUse(items: DisplayItem[]): FontUse[] {
 	);
 }
 
-// The typefaces that turn up together on more than one site, most often first
+// The typefaces that turn up together on more than one site, most often first.
+// Paired by query, like fontsByUse, each named as it was first seen.
 export function fontPairings(items: DisplayItem[], limit = 8) {
+	const names = new Map<string, string>();
 	const pairs = items.flatMap((item) => {
-		const names = fontsOf(item).map(fontDisplayName).sort();
-		return names.flatMap((a, i) => names.slice(i + 1).map((b) => `${a}\u0000${b}`));
+		const queries = fontsOf(item)
+			.map((font) => {
+				const query = fontQuery(font);
+				if (!names.has(query)) names.set(query, fontDisplayName(font));
+				return query;
+			})
+			.sort();
+		return queries.flatMap((a, i) => queries.slice(i + 1).map((b) => `${a}\u0000${b}`));
 	});
 	return ranked(countBy(pairs))
 		.filter((pair) => pair.count > 1)
 		.slice(0, limit)
 		.map(({ name, count }) => {
-			const [a, b] = name.split('\u0000');
+			const [a, b] = name.split('\u0000').map((query) => names.get(query)!);
 			return { a, b, count };
 		});
 }

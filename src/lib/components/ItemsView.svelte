@@ -18,8 +18,14 @@
 
 	let { items, prefs, empty, loading = 'loading...', onReorder, readonly }: Props = $props();
 
-	// The item modal steps through the list shown here
-	getCurrentItemsContext().list = () => items.data ?? [];
+	// The item modal steps through the list shown here (set during init so the
+	// modal, rendered after the page, sees it at once), until a page without one
+	const currentItems = getCurrentItemsContext();
+	const list = () => items.data ?? [];
+	currentItems.list = list;
+	$effect(() => () => {
+		if (currentItems.list === list) currentItems.list = () => [];
+	});
 </script>
 
 <!-- No data and no error is loading, or a query skipped until its args are known -->

@@ -2,7 +2,7 @@
 	import IconGrid from '~icons/material-symbols-light/view-module-outline-sharp';
 	import IconList from '~icons/material-symbols-light/view-list-outline-sharp';
 
-	export type ViewMode = 'grid' | 'list';
+	type ViewMode = 'grid' | 'list';
 
 	interface Props {
 		value: ViewMode;

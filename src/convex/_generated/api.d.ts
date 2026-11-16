@@ -24,8 +24,10 @@ import type * as lib_discoverySources from "../lib/discoverySources.js";
 import type * as lib_embedder from "../lib/embedder.js";
 import type * as lib_embeddingMap from "../lib/embeddingMap.js";
 import type * as lib_fonts from "../lib/fonts.js";
+import type * as lib_images from "../lib/images.js";
 import type * as lib_searchText from "../lib/searchText.js";
 import type * as lib_tagger from "../lib/tagger.js";
+import type * as lib_taggingModes from "../lib/taggingModes.js";
 import type * as lib_urls from "../lib/urls.js";
 import type * as r2 from "../r2.js";
 import type * as screenshots from "../screenshots.js";
@@ -58,8 +60,10 @@ declare const fullApi: ApiFromModules<{
   "lib/embedder": typeof lib_embedder;
   "lib/embeddingMap": typeof lib_embeddingMap;
   "lib/fonts": typeof lib_fonts;
+  "lib/images": typeof lib_images;
   "lib/searchText": typeof lib_searchText;
   "lib/tagger": typeof lib_tagger;
+  "lib/taggingModes": typeof lib_taggingModes;
   "lib/urls": typeof lib_urls;
   r2: typeof r2;
   screenshots: typeof screenshots;
@@ -100,4 +104,5 @@ export declare const components: {
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
   screenshotPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"screenshotPool">;
   taggingPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"taggingPool">;
+  embeddingPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"embeddingPool">;
 };

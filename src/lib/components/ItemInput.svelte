@@ -2,8 +2,9 @@
 	import { api } from '../../convex/_generated/api.js';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import type { FunctionReturnType } from 'convex/server';
-	import { tick } from 'svelte';
-	import { reportError, useMutation, useQueryOnce } from '#lib/convex.js';
+	import { reportError, useAction, useMutation, useQueryOnce } from '#lib/convex.js';
+	import { notify } from '#lib/notice.svelte.js';
+	import { RASTER_IMAGE_TYPES } from '../../convex/lib/images.js';
 	import { isWebUrl } from '../../convex/lib/urls.js';
 	import DuplicateConfirm from './DuplicateConfirm.svelte';
 	import IconUpload from '~icons/material-symbols-light/upload-sharp';
@@ -15,12 +16,15 @@
 	let { collectionId }: Props = $props();
 
 	const mutate = useMutation();
+	const act = useAction();
 	const queryOnce = useQueryOnce();
 	const collections = $derived(collectionId ? [collectionId] : undefined);
 
-	// Resolves to the uploaded object's key, or undefined once a failure is reported
+	// Resolves to the uploaded object's key, or undefined once a failure is reported.
+	// The URL only takes a PUT of the declared type, and the server checks the
+	// bytes before items.add will accept the key.
 	async function uploadFile(file: File): Promise<string | undefined> {
-		const upload = await mutate(api.r2.generateUploadUrl, {});
+		const upload = await mutate(api.r2.generateUploadUrl, { contentType: file.type });
 		if (!upload) return;
 		try {
 			const res = await fetch(upload.url, {
@@ -29,10 +33,12 @@
 				body: file
 			});
 			if (!res.ok) throw new Error(`Failed to upload file: ${res.status}`);
-			return upload.key;
 		} catch (error) {
 			reportError(error);
+			return;
 		}
+		const verified = await act(api.imageImport.verifyUpload, { key: upload.key });
+		return verified === undefined ? undefined : upload.key;
 	}
 
 	let inputValue = $state('');
@@ -80,7 +86,7 @@
 
 	async function handleSubmit() {
 		const value = inputValue.trim();
-		if (!value) return;
+		if (!value || isAdding) return;
 
 		isAdding = true;
 		if (isWebUrl(value)) {
@@ -117,12 +123,6 @@
 		add(value);
 	}
 
-	async function cancelDuplicate() {
-		duplicate = null;
-		await tick();
-		textareaEl?.focus();
-	}
-
 	async function handleFileUpload(event: Event) {
 		const input = event.target as HTMLInputElement;
 		const file = input.files?.[0];
@@ -134,7 +134,7 @@
 
 	async function handlePaste(event: ClipboardEvent) {
 		const items = event.clipboardData?.items;
-		if (!items) return;
+		if (!items || isAdding) return;
 
 		for (const item of items) {
 			if (item.type.startsWith('image/')) {
@@ -148,6 +148,11 @@
 	}
 
 	async function uploadImage(file: File) {
+		// The server refuses anything else, so don't upload it first
+		if (!RASTER_IMAGE_TYPES.includes(file.type)) {
+			notify('that is not a supported image', { error: true });
+			return;
+		}
 		isAdding = true;
 		const dimensions = await getImageDimensions(file);
 		const key = await uploadFile(file);
@@ -176,19 +181,36 @@
 		isDragging = true;
 	}
 
+	// Moving onto the textarea leaves the container too
 	function handleDragLeave(event: DragEvent) {
-		event.preventDefault();
-		isDragging = false;
+		const container = event.currentTarget as HTMLElement;
+		if (!container.contains(event.relatedTarget as Node | null)) isDragging = false;
 	}
 
+	// An image is added at once; a link or text goes into the input to check first
 	async function handleDrop(event: DragEvent) {
 		event.preventDefault();
 		isDragging = false;
+		const data = event.dataTransfer;
+		if (!data || isAdding) return;
 
-		const file = event.dataTransfer?.files[0];
+		const file = data.files[0];
 		if (file?.type.startsWith('image/')) {
 			await uploadImage(file);
+			return;
 		}
+		// Other files, whose text some browsers give as a file:// path
+		if (file) return;
+		// uri-list holds one link per line, with # comments
+		const link = data
+			.getData('text/uri-list')
+			.split(/\r?\n/)
+			.find((line) => line && !line.startsWith('#'));
+		const text = link ?? data.getData('text/plain');
+		if (!text) return;
+		inputValue = text;
+		textareaEl.focus();
+		autoResize();
 	}
 </script>
 
@@ -197,14 +219,19 @@
 		matches={duplicate.matches}
 		{collectionId}
 		onAdd={addDuplicate}
-		onCancel={cancelDuplicate}
+		onCancel={() => (duplicate = null)}
 		onView={() => (duplicate = null)}
 	/>
 {/if}
 
 <div class="input-wrapper">
 	<label class="icon-filled upload-btn">
-		<input type="file" accept="image/*" onchange={handleFileUpload} disabled={isAdding} />
+		<input
+			type="file"
+			accept={RASTER_IMAGE_TYPES.join(',')}
+			onchange={handleFileUpload}
+			disabled={isAdding}
+		/>
 		<IconUpload />
 	</label>
 	<div
@@ -223,7 +250,7 @@
 			onkeydown={handleKeydown}
 			onpaste={handlePaste}
 			placeholder="paste a url, image, or type text..."
-			disabled={isAdding}
+			readonly={isAdding}
 			rows="1"></textarea>
 	</div>
 </div>
@@ -265,6 +292,11 @@
 		max-height: calc(1.5rem * 8);
 		overflow-y: auto;
 		width: 100%;
+	}
+
+	/* Adding: readonly rather than disabled, which would drop focus */
+	textarea[readonly] {
+		color: var(--txt-3);
 	}
 
 	.upload-btn {

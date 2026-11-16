@@ -3,18 +3,18 @@
 // (hotlinked in the feed, copied into R2 only on keep); nothing is screenshotted.
 // Recipes and caveats per source: reference/discovery-research.md §1b.
 
-export type SourceKind = 'recent' | 'seesaw' | 'rss' | 'arena' | 'typographicposters';
+import { isWebUrl } from './urls';
 
-export interface SourceConfig {
+export type SourceConfig = {
 	key: string;
 	name: string;
-	kind: SourceKind;
-	feed?: string; // recent
-	url?: string; // rss
-	slug?: string; // arena
 	// Sources sharing a group take one feed slot between them (see discovery.feed)
 	group?: string;
-}
+} & (
+	| { kind: 'recent' | 'seesaw' | 'typographicposters' }
+	| { kind: 'rss'; url: string }
+	| { kind: 'arena'; slug: string }
+);
 
 export interface FetchedCandidate {
 	externalId: string;
@@ -23,8 +23,6 @@ export interface FetchedCandidate {
 	url: string;
 	title?: string;
 	description?: string;
-	author?: string;
-	tags?: string[];
 	imageUrl: string;
 	imageWidth?: number;
 	imageHeight?: number;
@@ -47,7 +45,7 @@ const ARENA_GRAPHIC = 'Are.na · graphic & type';
 // turn some off). Edit here and deploy. Are.na channels were scouted and then
 // pruned by eye on 2026-11-14 (reference/discovery-notes/arena-channels.md).
 export const SOURCES: SourceConfig[] = [
-	{ key: 'recent-x', name: 'Recent', kind: 'recent', feed: 'x' },
+	{ key: 'recent-x', name: 'Recent', kind: 'recent' },
 	{ key: 'seesaw', name: 'Seesaw', kind: 'seesaw' },
 	{ key: 'awwwards', name: 'Awwwards', kind: 'rss', url: 'https://www.awwwards.com/feed/' },
 	{ key: 'onepagelove', name: 'One Page Love', kind: 'rss', url: 'https://onepagelove.com/feed' },
@@ -107,11 +105,14 @@ function cleanUrl(value: string): string {
 	}
 }
 
-const decodeEntities = (s: string) =>
+// Past the last code point, fromCodePoint throws: the replacement character instead
+const codePoint = (n: number) => (n <= 0x10ffff ? String.fromCodePoint(n) : '�');
+
+export const decodeEntities = (s: string) =>
 	s
 		.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-		.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
-		.replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+		.replace(/&#(\d+);/g, (_, n) => codePoint(Number(n)))
+		.replace(/&#x([0-9a-f]+);/gi, (_, n) => codePoint(parseInt(n, 16)))
 		.replace(/&quot;/g, '"')
 		.replace(/&#039;|&apos;/g, "'")
 		.replace(/&lt;/g, '<')
@@ -141,20 +142,18 @@ interface RecentItem {
 	title?: string;
 	description?: string | null;
 	source?: { url?: string };
-	creator?: { name?: string; handle?: string };
-	tags?: { name: string }[];
 	cover?: RecentMedia;
 	media?: RecentMedia[];
 	publishedAt?: number;
 	createdAt: number;
 }
 
-async function fetchRecent(source: SourceConfig): Promise<FetchedCandidate[]> {
+async function fetchRecent(): Promise<FetchedCandidate[]> {
 	const response = await get('https://api.recent.design/rpc/items/list', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
-			json: { feed: source.feed, format: 'tweet', sort: 'recent', limit: 40 }
+			json: { feed: 'x', format: 'tweet', sort: 'recent', limit: 40 }
 		})
 	});
 	const { json } = (await response.json()) as { json: { items: RecentItem[] } };
@@ -172,7 +171,6 @@ async function fetchRecent(source: SourceConfig): Promise<FetchedCandidate[]> {
 			? media.poster
 			: { url: media.url, width: media.mediaWidth, height: media.mediaHeight };
 		if (!image?.url) return [];
-		const handle = item.creator?.handle;
 		return [
 			{
 				externalId: item.id,
@@ -181,8 +179,6 @@ async function fetchRecent(source: SourceConfig): Promise<FetchedCandidate[]> {
 				url,
 				title: item.title,
 				description: item.description ?? undefined,
-				author: handle ? `@${handle}` : item.creator?.name,
-				tags: (item.tags ?? []).map((t) => t.name),
 				imageUrl: image.url,
 				imageWidth: image.width ?? undefined,
 				imageHeight: image.height ?? undefined,
@@ -213,8 +209,8 @@ function readJson(text: string, start: number): unknown {
 	throw new Error('unterminated JSON');
 }
 
-async function fetchSeesaw(): Promise<FetchedCandidate[]> {
-	const html = await (await get('https://www.seesaw.website/')).text();
+// The homepage's payload arrives in chunks, one script each
+export function parseSeesaw(html: string): FetchedCandidate[] {
 	const payload = [...html.matchAll(/self\.__next_f\.push\(\[1,("(?:[^"\\]|\\.)*")\]\)/g)]
 		.map((m) => JSON.parse(m[1]) as string)
 		.join('');
@@ -228,21 +224,9 @@ async function fetchSeesaw(): Promise<FetchedCandidate[]> {
 			description?: string;
 			link: string;
 			publishedDate: string;
-			category?: string[];
 			imgId?: string;
 		}[];
 	};
-
-	// Category ids resolve through {id, name} lists elsewhere in the payload
-	const names = new Map<string, string>();
-	for (const m of payload.matchAll(/"categor(?:y|ies)":\[\{/g)) {
-		try {
-			const list = readJson(payload, m.index + m[0].length - 2) as { id?: string; name?: string }[];
-			for (const c of list) if (c.id && c.name) names.set(c.id, c.name);
-		} catch {
-			// Not a lookup list
-		}
-	}
 
 	const cloudinary = 'https://res.cloudinary.com/seesawsite/video/upload';
 	return sites
@@ -255,13 +239,16 @@ async function fetchSeesaw(): Promise<FetchedCandidate[]> {
 			url: cleanUrl(site.link),
 			title: site.title,
 			description: typeof site.description === 'string' ? site.description : undefined,
-			tags: (site.category ?? []).flatMap((id) => names.get(id) ?? []),
 			imageUrl: `${cloudinary}/w_1440/${site.imgId}.jpg`,
 			imageWidth: 1440,
 			imageHeight: 809,
 			videoUrl: `${cloudinary}/w_960,du_6/q_auto:eco/${site.imgId}.mp4`,
 			publishedAt: Date.parse(site.publishedDate)
 		}));
+}
+
+async function fetchSeesaw(): Promise<FetchedCandidate[]> {
+	return parseSeesaw(await (await get('https://www.seesaw.website/')).text());
 }
 
 // ============ RSS (Awwwards, One Page Love, Siteinspire) ============
@@ -282,14 +269,24 @@ export async function resolveOriginal(sourceKey: string, pageUrl: string) {
 	try {
 		const html = await (await get(pageUrl)).text();
 		const href = html.match(pattern)?.[1];
-		return href ? cleanUrl(decodeEntities(href)) : null;
+		if (!href) return null;
+		const original = new URL(decodeEntities(href), pageUrl).href;
+		return isWebUrl(original) ? cleanUrl(original) : null;
 	} catch {
 		return null;
 	}
 }
 
-async function fetchRss(source: SourceConfig): Promise<FetchedCandidate[]> {
-	const xml = await (await get(source.url!)).text();
+// Resolves an image src against its entry's page: relative and protocol-relative ones work
+function absolute(src: string, base: string) {
+	try {
+		return new URL(src, base).href;
+	} catch {
+		return undefined;
+	}
+}
+
+export function parseRss(xml: string): FetchedCandidate[] {
 	return xml
 		.split(/<item>/)
 		.slice(1)
@@ -302,7 +299,7 @@ async function fetchRss(source: SourceConfig): Promise<FetchedCandidate[]> {
 				/<media:content\s+url="([^"]+)"[\s\S]*?width="(\d+)"[\s\S]*?height="(\d+)"/
 			);
 			const img = decodeEntities(body).match(/<img[^>]+src=['"]([^'"]+)['"]/);
-			const imageUrl = media ? decodeEntities(media[1]) : img?.[1];
+			const imageUrl = media ? decodeEntities(media[1]) : img && absolute(img[1], link);
 			if (!link || !imageUrl || Number.isNaN(published)) return [];
 			const description = stripTags(tag(item, 'description') ?? '').replace(/\s*Full Review$/, '');
 			return [
@@ -312,10 +309,6 @@ async function fetchRss(source: SourceConfig): Promise<FetchedCandidate[]> {
 					url: link,
 					title: stripTags(tag(item, 'title') ?? '').replace(/^Website Inspiration:\s*/, ''),
 					description: description && !description.startsWith('Credits:') ? description : undefined,
-					author: stripTags(tag(item, 'dc:creator') ?? '') || undefined,
-					tags: [...item.matchAll(/<category[^>]*>([\s\S]*?)<\/category>/g)]
-						.map((m) => stripTags(m[1]))
-						.filter((t) => t !== 'Inspiration'),
 					imageUrl,
 					imageWidth: media ? Number(media[2]) : undefined,
 					imageHeight: media ? Number(media[3]) : undefined,
@@ -325,9 +318,13 @@ async function fetchRss(source: SourceConfig): Promise<FetchedCandidate[]> {
 		});
 }
 
+async function fetchRss(url: string): Promise<FetchedCandidate[]> {
+	return parseRss(await (await get(url)).text());
+}
+
 // ============ Are.na channels (v3 API) ============
 
-interface ArenaBlock {
+export interface ArenaBlock {
 	id: number;
 	type: string;
 	title?: string | null;
@@ -339,20 +336,20 @@ interface ArenaBlock {
 		large?: { src?: string; url?: string };
 		medium?: { src?: string; url?: string };
 	} | null;
-	user?: { name?: string; slug?: string };
 	connection?: { connected_at?: string };
 	created_at: string;
 }
 
-async function fetchArena(source: SourceConfig): Promise<FetchedCandidate[]> {
-	const response = await fetch(
-		`https://api.are.na/v3/channels/${encodeURIComponent(source.slug!)}/contents?per=100&sort=created_at_desc`,
-		{ headers: arenaHeaders(), signal: AbortSignal.timeout(TIMEOUT_MS) }
+async function fetchArena(slug: string): Promise<FetchedCandidate[]> {
+	const response = await get(
+		`https://api.are.na/v3/channels/${encodeURIComponent(slug)}/contents?per=100&sort=created_at_desc`,
+		{ headers: arenaHeaders() }
 	);
-	if (!response.ok) throw new Error(`are.na ${source.slug}: ${response.status}`);
-	const { data } = (await response.json()) as { data: ArenaBlock[] };
+	return parseArena(((await response.json()) as { data: ArenaBlock[] }).data);
+}
 
-	return data.flatMap((block): FetchedCandidate[] => {
+export function parseArena(blocks: ArenaBlock[]): FetchedCandidate[] {
+	return blocks.flatMap((block): FetchedCandidate[] => {
 		if (block.type !== 'Image' && block.type !== 'Link') return [];
 		const size = block.image?.large ?? block.image?.medium;
 		const imageUrl = size?.src ?? size?.url;
@@ -368,7 +365,6 @@ async function fetchArena(source: SourceConfig): Promise<FetchedCandidate[]> {
 				url: pageUrl ?? `https://www.are.na/block/${block.id}`,
 				title,
 				description: block.description?.plain || undefined,
-				author: block.user?.name,
 				imageUrl,
 				imageWidth: block.image?.width,
 				imageHeight: block.image?.height,
@@ -384,8 +380,6 @@ interface Poster {
 	id: string; // Mongo ObjectId
 	title: string;
 	profileId: string;
-	profileName?: string;
-	tags?: string[];
 	image?: { path: string; width: number; height: number };
 }
 
@@ -409,8 +403,6 @@ async function fetchTypographicPosters(): Promise<FetchedCandidate[]> {
 				kind: 'image',
 				url: `https://www.typographicposters.com/${poster.profileId}/${poster.id}`,
 				title: poster.title,
-				author: poster.profileName,
-				tags: poster.tags,
 				imageUrl: `https://images.typographicposters.com/poster-2x${image.path}`,
 				imageWidth: Math.round(image.width * scale),
 				imageHeight: Math.round(image.height * scale),
@@ -424,13 +416,13 @@ async function fetchTypographicPosters(): Promise<FetchedCandidate[]> {
 export async function fetchSource(source: SourceConfig): Promise<FetchedCandidate[]> {
 	switch (source.kind) {
 		case 'recent':
-			return fetchRecent(source);
+			return fetchRecent();
 		case 'seesaw':
 			return fetchSeesaw();
 		case 'rss':
-			return fetchRss(source);
+			return fetchRss(source.url);
 		case 'arena':
-			return fetchArena(source);
+			return fetchArena(source.slug);
 		case 'typographicposters':
 			return fetchTypographicPosters();
 	}

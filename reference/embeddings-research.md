@@ -76,8 +76,16 @@ each its own commit, so search or the map can be reverted alone:
     screenshot settle and tagging settle. The run skips items that aren't
     ready and inputs it has already embedded (`inputKey`), so over-calling
     is cheap.
-  - Failures are only logged. Use `embeddings:backfill` to fill gaps and
-    after a model change.
+  - Runs go through the `embeddingPool` workpool (5 at a time), so a burst
+    of adds or a backfill can't flood Workers AI. Rate limits, server errors
+    and timeouts get pool retries with backoff (4 attempts, ~2 s, 8 s, 32 s);
+    anything else (a 4xx, an image that won't load) fails at once
+    (`NonRetryableError`). Final failures are only logged. Use
+    `embeddings:backfill` to fill gaps (missing or out-of-date rows, by
+    `inputKey`) and after a model change.
+  - Each attempt re-reads the item first, so one turned off or changed since
+    a failed attempt isn't sent again.
+  - Search's query embedding is a single 5 s try outside the pool.
   - Env: `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` (see `ops.md`).
 - **Hybrid search (`/search`):**
   - `embeddings.search` returns the 64 nearest item ids. Query embedding
@@ -92,18 +100,24 @@ each its own commit, so search or the map can be reverted alone:
   - `embeddingMapActions.refresh` runs UMAP (umap-js; cosine,
     nNeighbors ≤ 15, minDist 0.2, seeded) in a Node action.
   - It Procrustes-aligns the result to the previous layout and caches it in
-    `embeddingMaps`, one doc per user, capped at 8,192 points.
+    `embeddingMapLayouts`, one doc per user, capped at 8,192 points.
   - Only image embeddings are laid out (`vectorPage`): the map shows how
     things look, so notes, content links and failed captures stay off it but
     remain in search.
-  - Opening the atlas calls refresh. Every embedding save or delete bumps
-    the map doc's `version` (`markMapStale`), and refresh records the version
-    it read as `layoutVersion`. When the two match it's a one-document no-op;
-    a change made mid-layout leaves them apart, so the next visit redoes it.
+  - Opening the atlas or patterns calls refresh. Every save or delete of an
+    image embedding (`isImageKey`) bumps `version` in the user's small
+    `embeddingMapStates` doc (`markMapStale`), and refresh records the
+    version it read as `layoutVersion`. When the two match it's a no-op that
+    reads only that doc; a change made mid-layout leaves them apart, so the
+    next visit redoes it, and a slower run that read an older version never
+    overwrites a newer layout. The points doc changes only when a layout is
+    saved, so embedding writes neither rewrite it nor re-run the client's
+    `embeddingMap.get`.
 - **Known gaps / next steps:**
   - There's no "find similar" in the item modal yet.
-  - An item whose image fetch fails is only logged, not retried; a re-capture
-    or `embeddings:backfill` picks it up. (Seen once: a dev/prod item whose
+  - An item whose image fetch fails is logged, not retried (even a transient
+    R2 error counts as final); a re-capture or `embeddings:backfill` picks it
+    up. (Seen once: a dev/prod item whose
     R2 object had been deleted; see the shared-bucket note in `ops.md`.)
   - Shared collections search keyword-only (`items.searchCollection`).
 

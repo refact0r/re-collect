@@ -6,6 +6,7 @@
 
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { page } from '$app/state';
 
 	interface Props {
 		// Escape and a click on the backdrop
@@ -33,8 +34,28 @@
 		else onkeydown?.(event);
 	}
 
+	// A press that starts inside (selecting text, dragging a resize handle) and is
+	// released on the backdrop clicks the backdrop too; only one that began there closes
+	let pressedBackdrop = false;
+
 	function handleBackdropClick(event: MouseEvent) {
-		if (event.target === event.currentTarget) onClose();
+		if (pressedBackdrop && event.target === event.currentTarget) onClose();
+	}
+
+	// Focus moves in (to an autofocus element, else the dialog) and returns on close.
+	// Svelte's own autofocus only fires when nothing else has focus. Not on the way to
+	// another page: it would land on the page being left (or the header search, which
+	// then navigates to /search).
+	function moveFocus(dialog: HTMLElement) {
+		const previous = document.activeElement;
+		const path = page.url.pathname;
+		(dialog.querySelector<HTMLElement>('[autofocus]') ?? dialog).focus({ preventScroll: true });
+		return () => {
+			if (page.url.pathname !== path) return;
+			if (previous instanceof HTMLElement && previous.isConnected) {
+				previous.focus({ preventScroll: true });
+			}
+		};
 	}
 </script>
 
@@ -43,11 +64,13 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
 	class={['backdrop', size]}
+	onpointerdown={(event) => (pressedBackdrop = event.target === event.currentTarget)}
 	onclick={handleBackdropClick}
 	role="dialog"
 	aria-modal="true"
 	aria-labelledby={labelledby}
 	tabindex="-1"
+	{@attach moveFocus}
 >
 	<div class={['modal', size]}>
 		{@render children()}
@@ -64,6 +87,10 @@
 		align-items: center;
 		justify-content: center;
 		z-index: 1000;
+	}
+
+	.backdrop:focus {
+		outline: none;
 	}
 
 	.modal {

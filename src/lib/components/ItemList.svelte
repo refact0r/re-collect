@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { useDeleteItem } from '#lib/convex.js';
 	import { shouldDisplayAsImage, getItemUrl, isBusy } from '#lib/itemDisplay.js';
 	import { isWebUrl } from '../../convex/lib/urls.js';
@@ -21,18 +20,6 @@
 	}
 
 	let { items, readonly = false }: Props = $props();
-
-	function handleDeleteItem(itemId: Id<'items'>, e: MouseEvent) {
-		e.preventDefault();
-		e.stopPropagation();
-		deleteItem(itemId);
-	}
-
-	function handleOpenLink(url: string, e: MouseEvent) {
-		e.preventDefault();
-		e.stopPropagation();
-		window.open(url, '_blank', 'noopener,noreferrer');
-	}
 
 	function getDisplayText(item: DisplayItem): string {
 		if (item.title) return item.title;
@@ -84,16 +71,16 @@
 				{/if}
 			</a>
 			{#if item.url && isWebUrl(item.url)}
-				<button class="icon link" title="Open link" onclick={(e) => handleOpenLink(item.url!, e)}>
+				<button
+					class="icon link"
+					title="Open link"
+					onclick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}
+				>
 					<IconOpenInNew />
 				</button>
 			{/if}
 			{#if !readonly}
-				<button
-					class="icon delete"
-					title="Delete item"
-					onclick={(e) => handleDeleteItem(item._id, e)}
-				>
+				<button class="icon delete" title="Delete item" onclick={() => deleteItem(item._id)}>
 					<IconDelete />
 				</button>
 			{/if}
@@ -210,7 +197,7 @@
 
 	@media (max-width: 768px) {
 		.list {
-			padding-bottom: 4rem;
+			padding-bottom: var(--toolbar-clearance);
 		}
 
 		.item-title {

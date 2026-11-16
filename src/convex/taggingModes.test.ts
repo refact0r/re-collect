@@ -1,22 +1,19 @@
 // @vitest-environment edge-runtime
-/// <reference types="vite/client" />
-import { convexTest } from 'convex-test';
-import workpool from '@convex-dev/workpool/test';
+import { Workpool } from '@convex-dev/workpool';
+import { getFunctionName } from 'convex/server';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { api, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import schema from './schema';
 import { hashToken } from './lib/auth';
 import { buildSearchText } from './lib/searchText';
 import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL, embeddingInput, inputKey } from './lib/embedder';
 import { r2 } from './r2';
+import { newTest, type Test } from './testing.helpers';
 
 // How an item is understood (taggingMode: look / content / off) across every
 // item type, starting state and switch
 
-const modules = import.meta.glob('./**/*.ts');
 type Mode = 'visual' | 'text' | 'none';
-type Test = Awaited<ReturnType<typeof setup>>['t'];
 
 afterEach(() => {
 	vi.useRealTimers();
@@ -25,9 +22,8 @@ afterEach(() => {
 
 async function setup() {
 	vi.useFakeTimers(); // Scheduled tagging, capture and embedding runs never start
-	const t = convexTest(schema, modules);
-	workpool.register(t, 'taggingPool');
-	workpool.register(t, 'screenshotPool');
+	const t = newTest();
+	vi.spyOn(Workpool.prototype, 'enqueueAction');
 	vi.spyOn(r2, 'deleteObject').mockResolvedValue();
 	const token = 'a-token';
 	const userId = await t.run(async (ctx) => {
@@ -39,11 +35,14 @@ async function setup() {
 }
 
 const getItem = (t: Test, id: Id<'items'>) => t.run((ctx) => ctx.db.get(id));
-// Names of the functions scheduled so far (they never run under fake timers)
-const scheduled = (t: Test) =>
-	t.run(async (ctx) =>
+// Names of the functions scheduled or queued on a pool so far (they never run
+// under fake timers)
+const scheduled = async (t: Test) => [
+	...(await t.run(async (ctx) =>
 		(await ctx.db.system.query('_scheduled_functions').collect()).map((fn) => fn.name)
-	);
+	)),
+	...vi.mocked(Workpool.prototype.enqueueAction).mock.calls.map(([, fn]) => getFunctionName(fn))
+];
 const embeddingRows = (t: Test, itemId: Id<'items'>) =>
 	t.run((ctx) =>
 		ctx.db
@@ -81,7 +80,10 @@ describe('adding an item snapshots the mode its type allows', () => {
 		'%s (own image: %s) in a %s collection → %s, tagging queued: %s',
 		async (type, ownImage, collectionMode, stored, queued) => {
 			const { t, token, userId } = await setup();
-			if (ownImage) await t.run((ctx) => ctx.db.insert('uploads', { userId, key: 'up-1' }));
+			if (ownImage)
+				await t.run((ctx) =>
+					ctx.db.insert('uploads', { userId, key: 'up-1', verifiedType: 'image/png' })
+				);
 			const collectionId = await t.mutation(api.collections.create, {
 				name: 'c',
 				...(collectionMode && { taggingMode: collectionMode }),
@@ -104,7 +106,9 @@ describe('adding an item snapshots the mode its type allows', () => {
 
 	test('a home default of off applies to collection-less adds of every type', async () => {
 		const { t, token, userId } = await setup();
-		await t.run((ctx) => ctx.db.insert('uploads', { userId, key: 'up-1' }));
+		await t.run((ctx) =>
+			ctx.db.insert('uploads', { userId, key: 'up-1', verifiedType: 'image/png' })
+		);
 		await t.mutation(api.viewPreferences.set, { key: 'home', taggingMode: 'none', token });
 		const ids = await Promise.all([
 			t.mutation(api.items.add, { type: 'url', url: 'https://example.com', token }),
@@ -299,8 +303,8 @@ describe('switching an item’s mode', () => {
 			layoutVersion: 0
 		});
 		await t.mutation(api.tagging.retagItem, { itemId, mode: 'none', token });
-		const map = await t.query(internal.embeddingMap.getForLayout, { userId });
-		expect(map?.version).not.toBe(map?.layoutVersion);
+		const state = await t.query(internal.embeddingMap.getState, { userId });
+		expect(state?.version).not.toBe(state?.layoutVersion);
 	});
 });
 

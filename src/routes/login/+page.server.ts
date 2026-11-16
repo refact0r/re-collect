@@ -17,35 +17,53 @@ function nextPath(next: unknown, origin: string) {
 	}
 }
 
+// Whether `path` is a collection page a signed-out visitor may view (a shared one);
+// a failed check counts as no
+async function sharedCollection(path: string) {
+	const id = path.match(/^\/collections\/([^/?]+)(\?|$)/)?.[1];
+	if (!id) return false;
+	const collection = await convex()
+		.query(api.collections.get, { id })
+		.catch(() => null);
+	return collection !== null;
+}
+
 // Invite links (/login?invite=...) show the signup form instead. A live session
 // goes straight on; a dead one (signed out elsewhere, which is how the app
-// sends people here) has its cookie cleared.
+// sends people here) has its cookie cleared and, sent from a shared collection,
+// goes back to it as a visitor.
 export const load: PageServerLoad = async ({ url, cookies }) => {
 	const invite = url.searchParams.get('invite');
 	const next = nextPath(url.searchParams.get('next'), url.origin);
 	const token = cookies.get(COOKIE_NAME);
 	if (token) {
-		const live = await convex()
+		const session = await convex()
 			.query(api.users.me, { token })
 			.then(
-				() => true,
-				(error) => {
-					if (error instanceof ConvexError && error.data === 'Unauthorized') {
-						cookies.delete(COOKIE_NAME, { path: '/' });
-					}
-					return false;
-				}
+				() => 'live',
+				(error) =>
+					error instanceof ConvexError && error.data === 'Unauthorized' ? 'dead' : 'unknown'
 			);
-		if (live && !invite) redirect(303, next);
+		if (session === 'dead') cookies.delete(COOKIE_NAME, { path: '/' });
+		const goOn =
+			!invite && (session === 'live' || (session === 'dead' && (await sharedCollection(next))));
+		if (goOn) redirect(303, next);
 	}
 	return { invite, next };
 };
 
+// A new session replaces any the cookie held, which is ended (best effort)
 async function signIn(cookies: Cookies, next: string, session: Promise<string>) {
+	const previous = cookies.get(COOKIE_NAME);
 	try {
 		setSession(cookies, await session);
 	} catch (error) {
 		return fail(400, { message: errorMessage(error) });
+	}
+	if (previous) {
+		await convex()
+			.mutation(api.sessions.logout, { token: previous })
+			.catch(() => {});
 	}
 	redirect(303, next);
 }

@@ -8,10 +8,12 @@ the work.
 
 ## Data model
 
-- **`users`**: `{ username, passwordHash, failedLogins?, lastFailedLogin? }`,
-  indexed `by_username`. Usernames are stored lowercase. Passwords are hashed
-  with PBKDF2-SHA256 (600k iterations, random salt; `hashPassword` in
-  `src/convex/lib/auth.ts`).
+- **`users`**: `{ username, passwordHash }`, indexed `by_username`. Usernames
+  are stored lowercase. Passwords are hashed with PBKDF2-SHA256 (600k
+  iterations, random salt; `hashPassword` in `src/convex/lib/auth.ts`).
+- **`loginAttempts`**: `{ username, count, lastAttempt }`, the lockout count
+  per submitted username, whether or not an account has it (see below).
+  Indexed `by_username` and `by_lastAttempt`.
 - **`sessions`**: `{ userId, tokenHash, extension? }`, one per signed-in
   browser plus at most one for the browser extension. Only the SHA-256 hash of
   each token is stored. Sessions don't expire; they end on logout, on
@@ -65,12 +67,23 @@ Every password check (at login, or the current password when changing it)
 counts toward a lockout _before_ the slow hash runs, in one mutation
 (`sessions.countAttempt`), so parallel guesses can't race past it. After 10
 attempts without a success, that username gets one attempt per 15 minutes; a
-successful login or a password change clears the count. Unknown usernames
-still run a hash so they take as long as real ones, and signup checks the invite
-before hashing. The flip side of a per-username lockout: anyone who knows a
-username can keep it locked for new logins (existing sessions keep working).
-Locking per IP would need a trusted client IP, which a public Convex action
-doesn't have.
+successful login or a new password (`changePassword`, `users:setPassword`)
+clears the count, and a day without attempts forgets it (a daily cron sweeps
+those rows).
+
+The count is keyed by the submitted username, not the account, so login can't
+tell anyone which usernames exist: a made-up name goes through the same
+mutation, runs a hash against a dummy, gets the same "wrong username or
+password", and locks after the same 10 misses. Names longer than 32 characters
+(signup's limit) are refused before counting, so they can't fill the table.
+Signup checks the invite before anything else, so only someone holding a valid
+invite learns that a name is taken.
+
+The flip side of a per-username lockout: anyone who knows a username can keep
+it locked for new logins (existing sessions keep working). Locking per IP would
+need a trusted client IP, which a public Convex action doesn't have. Shared
+collections show their owner's username, so usernames aren't secret anyway;
+the point is only that login doesn't confirm them.
 
 `requireUser` is the one identity seam. Swapping in a real provider later
 (Better Auth, Clerk) means replacing it with `ctx.auth.getUserIdentity()` plus
@@ -150,8 +163,9 @@ extension and copies its token (or shows it if the clipboard is blocked). The
 user pastes it into the extension's token setting, so the extension never sees
 the password. Copying a new token ends the old one. The extension sends that
 token on every call, like the app does. The `imageImport` actions have no
-`ctx.db`, so they check the caller with `ctx.runQuery(api.users.me, { token })`
-before fetching anything.
+`ctx.db`, so they check the caller with
+`ctx.runQuery(internal.users.userForToken, { token })` before fetching anything,
+like every other public action.
 
 ## Why this design
 

@@ -1,16 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import type { Id } from '../convex/_generated/dataModel';
 import {
+	cellsOf,
 	colorStrips,
 	colorWheel,
+	countStyles,
 	findRegions,
 	fontPairings,
 	hostOf,
 	litItems,
+	MAX_CELLS,
 	monthsOf,
 	noLenses,
 	recentShift,
 	fontsByUse,
+	styleGraph,
 	UNCOLLECTED,
 	type MapPoint,
 	type Region
@@ -108,6 +112,30 @@ describe('findRegions', () => {
 		// points without a loaded item don't count
 		expect(findRegions(points, items.slice(0, 7))).toEqual([]);
 	});
+
+	it('makes no more regions than there are places, however many it aims for', () => {
+		const at = (prefix: string, count: number, x: number, y: number) =>
+			Array.from({ length: count }, (_, i) => ({ itemId: id(`${prefix}${i}`), x, y }));
+		const same = at('s', 20, 1, 2);
+		const one = findRegions(
+			same,
+			itemsFor(same, () => ({}))
+		);
+		expect(one).toHaveLength(1);
+		expect(one[0]).toMatchObject({ x: 1, y: 2 });
+		expect(one[0].itemIds).toHaveLength(20);
+
+		// two places, though 20 points aim for three regions
+		const two = [...at('p', 10, 0, 0), ...at('q', 10, 5, 5)];
+		const regions = findRegions(
+			two,
+			itemsFor(two, () => ({}))
+		);
+		expect(regions.map((r) => [r.itemIds.length, r.x, r.y])).toEqual([
+			[10, 0, 0],
+			[10, 5, 5]
+		]);
+	});
 });
 
 describe('litItems', () => {
@@ -169,6 +197,7 @@ describe('recentShift', () => {
 		const shift = recentShift(regions, [...old, ...fresh])!;
 		expect(shift.count).toBe(8);
 		expect(shift.since).toBe(100);
+		expect(shift.recentIds).toEqual(new Set(fresh.map((f) => f._id)));
 		expect(shift.shifts.map((s) => [s.region.id, s.recent, s.share, s.before])).toEqual([
 			[1, 8, 1, 0],
 			[0, 0, 0, 1]
@@ -181,6 +210,14 @@ describe('recentShift', () => {
 		const shift = recentShift(regions, [...old, ...fresh])!;
 		expect(shift.shifts[0]).toMatchObject({ recent: 6, share: 0.75, before: 0.5 });
 		expect(shift.shifts[1]).toMatchObject({ recent: 2, share: 0.25, before: 0.5 });
+	});
+
+	it('counts exactly its recent items when others share the boundary date', () => {
+		const tied = [...old.slice(0, 11), item('o11', { dateAdded: 100 })];
+		const shift = recentShift([region(0, tied), region(1, fresh)], [...tied, ...fresh])!;
+		expect(shift.since).toBe(100);
+		expect(shift.recentIds.size).toBe(8);
+		expect(shift.shifts.reduce((sum, s) => sum + s.recent, 0)).toBe(8);
 	});
 
 	it('says nothing about a small library', () => {
@@ -246,6 +283,35 @@ describe('colorStrips', () => {
 	});
 });
 
+describe('cellsOf', () => {
+	const swatches = (count: number) =>
+		Array.from({ length: count }, (_, i) => ({ hex: `#${i}`, itemId: id(`i${i}`) }));
+
+	it('gives each swatch its own cell under the cap', () => {
+		expect(cellsOf(swatches(3))).toEqual([
+			{ hex: '#0', from: 0, to: 0 },
+			{ hex: '#1', from: 1, to: 1 },
+			{ hex: '#2', from: 2, to: 2 }
+		]);
+		expect(cellsOf(swatches(MAX_CELLS))).toHaveLength(MAX_CELLS);
+		expect(cellsOf([])).toEqual([]);
+	});
+
+	it('shares cells past the cap, covering every swatch once', () => {
+		const strip = swatches(1000);
+		const cells = cellsOf(strip);
+		expect(cells).toHaveLength(MAX_CELLS);
+		expect(cells[0].from).toBe(0);
+		// both ends are included
+		expect(cells.at(-1)!.to).toBe(strip.length - 1);
+		cells.slice(1).forEach((cell, i) => expect(cell.from).toBe(cells[i].to + 1));
+		for (const cell of cells) {
+			expect(cell.to).toBeGreaterThanOrEqual(cell.from);
+			expect(cell.hex).toBe(strip[Math.floor((cell.from + cell.to) / 2)].hex);
+		}
+	});
+});
+
 describe('colorWheel', () => {
 	const items = [
 		item('red', { paletteHex: ['#ff0000'] }),
@@ -271,8 +337,13 @@ describe('colorWheel', () => {
 		expect(blue.y).toBeGreaterThan(0);
 	});
 
+	it('gives each item the color it was placed by', () => {
+		expect(wheel.get(id('blue'))!.hex).toBe('#0000ff');
+		expect(wheel.get(id('gray'))!.hex).toBe('#808080');
+	});
+
 	it('spirals the neutrals in the middle, lightest first', () => {
-		expect(wheel.get(id('white'))).toEqual({ x: Math.sqrt(0.5), y: 0 });
+		expect(wheel.get(id('white'))).toEqual({ x: Math.sqrt(0.5), y: 0, hex: '#ffffff' });
 		expect(radius('white')).toBeLessThan(radius('gray'));
 		expect(radius('gray')).toBeLessThan(radius('red'));
 		expect(radius('gray')).toBeLessThan(radius('blue'));
@@ -312,6 +383,73 @@ describe('fontPairings', () => {
 			{ a: 'Geist', b: 'Geist Mono', count: 2 }
 		]);
 		expect(fontPairings(items, 1)).toHaveLength(1);
+	});
+
+	it('pairs a typeface however its name is spaced or cased, named as first seen', () => {
+		const spelled = [
+			item('a', { fonts: [{ family: 'Inter' }, { family: 'JetBrains Mono' }] }),
+			item('b', { fonts: [{ family: 'Jetbrains Mono' }, { family: 'inter' }] }),
+			item('c', { fonts: [{ family: 'Söhne' }, { family: 'Arial' }] }),
+			item('d', { fonts: [{ family: 'Arial' }, { family: 'Sohne' }] })
+		];
+		// equal counts go by name
+		expect(fontPairings(spelled)).toEqual([
+			{ a: 'Arial', b: 'Söhne', count: 2 },
+			{ a: 'Inter', b: 'JetBrains Mono', count: 2 }
+		]);
+	});
+});
+
+describe('countStyles', () => {
+	it('counts a style once per item, most common first, ties by name', () => {
+		const items = [
+			item('a', { styles: ['bold', 'airy', 'airy'] }),
+			item('b', { styles: ['airy'] }),
+			item('c', { styles: ['calm', 'bold'] }),
+			item('d')
+		];
+		expect(countStyles(items)).toEqual([
+			{ name: 'airy', count: 2 },
+			{ name: 'bold', count: 2 },
+			{ name: 'calm', count: 1 }
+		]);
+	});
+});
+
+describe('styleGraph', () => {
+	it('pairs the styles sharing an item whatever their order, never with themselves', () => {
+		const { pairs } = styleGraph([
+			item('a', { styles: ['y', 'x'] }),
+			item('b', { styles: ['x', 'y', 'x'] }),
+			item('c', { styles: ['z', 'x'] })
+		]);
+		expect(pairs).toEqual([
+			{ a: 'x', b: 'y', count: 2 },
+			{ a: 'x', b: 'z', count: 1 }
+		]);
+	});
+
+	it('averages hues round the circle', () => {
+		// hues of about 350 and 10, which average to red, not cyan
+		const { styles } = styleGraph([
+			item('a', { styles: ['warm'], paletteHex: ['#ff002b'] }),
+			item('b', { styles: ['warm'], paletteHex: ['#ff2b00'] })
+		]);
+		const hue = styles[0].hue!;
+		expect(Math.min(hue, 360 - hue)).toBeLessThan(1);
+	});
+
+	it('gives a mostly neutral style no hue', () => {
+		const { styles } = styleGraph([
+			item('a', { styles: ['mono'], paletteHex: ['#ffffff', '#000000', '#808080'] }),
+			item('b', { styles: ['mostly'], paletteHex: ['#ff0000', ...Array(19).fill('#808080')] }),
+			item('c', { styles: ['vivid'], paletteHex: ['#ff0000', '#808080'] })
+		]);
+		expect(styles.map((s) => [s.name, s.hue])).toEqual([
+			['mono', null],
+			['mostly', null],
+			['vivid', 0]
+		]);
 	});
 });
 

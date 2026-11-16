@@ -12,11 +12,13 @@
 	import { page } from '$app/state';
 	import { afterNavigate, beforeNavigate, goto, snapshot } from '$app/navigation';
 	import { loginHref } from '#lib/login.js';
+	import { settleConfirmation } from '#lib/confirm.svelte.js';
 
 	import Logo from '#lib/assets/logo.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import ItemModal from '#lib/components/ItemModal.svelte';
-	import Sidebar from '#lib/components/Sidebar.svelte';
+	import Notices from '#lib/components/Notices.svelte';
+	import Sidebar, { NAV_LINKS } from '#lib/components/Sidebar.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { api } from '../../convex/_generated/api.js';
 	import IconMenu from '~icons/material-symbols-light/menu-sharp';
@@ -115,8 +117,12 @@
 	let searchInputRef = $state<HTMLInputElement>();
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
-	// A pending search update would drag the user back to /search or close a just-opened item
-	beforeNavigate(() => clearTimeout(debounceTimer));
+	// A pending search update would drag the user back to /search or close a just-opened item,
+	// and a pending confirm would act on the page being left
+	beforeNavigate(() => {
+		clearTimeout(debounceTimer);
+		settleConfirmation(false);
+	});
 
 	// Only the search page's query; a shared collection's ?q= is its own search
 	const searchQuery = $derived(
@@ -189,17 +195,9 @@
 			</button>
 			<div class="nav-links">
 				<div class="logo"><Logo /></div>
-				<a href="/" class="nav-link" class:active={page.url.pathname === '/'}>re-collect</a>
-				<a href="/collections" class="nav-link" class:active={page.url.pathname === '/collections'}
-					>collections</a
-				>
-				<a href="/atlas" class="nav-link" class:active={page.url.pathname === '/atlas'}>atlas</a>
-				<a href="/patterns" class="nav-link" class:active={page.url.pathname === '/patterns'}
-					>patterns</a
-				>
-				<a href="/discover" class="nav-link" class:active={page.url.pathname === '/discover'}
-					>discover</a
-				>
+				{#each NAV_LINKS as { href, label } (href)}
+					<a {href} class="nav-link" class:active={page.url.pathname === href}>{label}</a>
+				{/each}
 			</div>
 			<div class="nav-search">
 				<IconSearch />
@@ -235,6 +233,7 @@
 {/if}
 
 <ConfirmDialog />
+<Notices />
 
 <style>
 	header {
@@ -301,12 +300,6 @@
 		flex: 1;
 		min-height: 0;
 	}
-	.layout :global(aside) {
-		position: sticky;
-		top: 0;
-		height: 100%;
-		overflow-y: auto;
-	}
 	main {
 		/* a full-bleed page (the atlas map) positions itself against it */
 		position: relative;
@@ -366,9 +359,6 @@
 			border: none;
 			padding: 0;
 			cursor: default;
-		}
-		.layout :global(aside) {
-			position: fixed;
 		}
 	}
 </style>

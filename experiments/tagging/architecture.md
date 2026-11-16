@@ -15,7 +15,9 @@ the plan are listed at the bottom.
 All image processing and LLM calls happen in Convex actions. No browser
 preprocessing, no changes to the screenshot worker.
 
-- **`src/convex/taggingActions.ts`** (`"use node"`, 512MB) — every run:
+- **`src/convex/taggingActions.ts`** (`"use node"`, 512MB) — every tagging
+  run, plus `embedItem` (the item's embedding, see
+  `reference/embeddings-research.md`):
   - `tagImageItem` (visual mode): fetches the original from R2
     (`${R2_PUBLIC_URL}/${imageKey}`), decodes once via `sharp` (`rotate()` for
     EXIF, resize to 1024px max edge, raw RGBA), extracts and writes the
@@ -134,15 +136,20 @@ Validation failure → retried (see below) → action throws → `setFailed`.
 
 | Source                     | When                                      | Enqueues                                                     |
 | -------------------------- | ----------------------------------------- | ------------------------------------------------------------ |
-| `items.add`                | `type === 'image'` and `imageKey` present | `tagImageItem` if visual tagging is on, else `repaletteItem` |
-| `items.add`                | URL item with `taggingMode: 'text'`       | `tagTextItem`                                                |
-| `screenshots.setCompleted` | after patching imageKey/dimensions        | `tagImageItem` if visual tagging is on, else `repaletteItem` |
-| `tagging.retagItem`        | public mutation, auth-gated               | `tagImageItem` or `tagTextItem` (per requested mode)         |
+| Source                     | When                                     | Enqueues                                                     |
+| -------------------------- | ---------------------------------------- | ------------------------------------------------------------ |
+| `items.add`                | item arrives with its own `imageKey`     | `tagImageItem` if visual tagging is on, else `repaletteItem` |
+| `items.add`                | URL item with `taggingMode: 'text'`      | `tagTextItem`                                                |
+| `screenshots.setCompleted` | after patching imageKey/dimensions       | `tagImageItem` if visual tagging is on, else `repaletteItem` |
+| `tagging.retagItem`        | public mutation, auth-gated              | `tagImageItem` or `tagTextItem` (per requested mode)         |
 
-Tagging runs go through `taggingPool`; `repaletteItem` is a plain scheduled
-action (it writes no status, so there is nothing to settle). "Visual tagging
-is on" means `taggingMode` is neither `'none'` nor `'text'`; palette
-extraction always runs on a new image. `retagItem` also switches the item's
+"Its own `imageKey`" covers uploaded images and URL items whose image came
+with them (the browser extension's screenshot, a kept discovery card); those
+skip the worker. Tagging runs go through `taggingPool`; `repaletteItem` is a
+plain scheduled action (it writes no status, so there is nothing to settle).
+"Visual tagging is on" means the item's mode (`taggingModeOf`, in
+`lib/taggingModes.ts`, which also holds the modes each item type allows) is
+`'visual'`; palette extraction always runs on a new image. `retagItem` also switches the item's
 `taggingMode` to the mode it ran; to `'none'` (AI off) it runs nothing and
 clears the item's tags and embedding instead.
 
@@ -151,8 +158,9 @@ tagging entirely: `tagTextItem` (no worker/browser involvement) fetches the
 page (body read capped at 4M chars), extracts readable text via Defuddle +
 linkedom, truncates to 8k chars, and produces genre labels → `styles`,
 summary → `subject`, topic tags → `aiTags` (`TEXT_PROMPT_VERSION` stamps
-`taggingModelVersion`). The image still gets palette extraction via
-`repaletteItem`.
+`taggingModelVersion`). A page with no readable article (a video, a JS app)
+is tagged from its `ogDescription` instead, when the capture read one. The
+image still gets palette extraction via `repaletteItem`.
 
 Runs never overlap on one item: `retagItem` refuses while tagging is
 `pending` (and, in visual mode, while the screenshot is `pending`, since the
@@ -176,7 +184,7 @@ successful `setCompleted`.
 Documented in `reference/ops.md`, set via `npx convex env set`:
 
 - `OPENROUTER_API_KEY` (required)
-- `TAGGING_MODEL` (optional, defaults to `DEFAULT_MODEL` in `tagging.ts`)
+- `TAGGING_MODEL` (optional, defaults to `DEFAULT_MODEL` in `lib/tagger.ts`)
 - `R2_PUBLIC_URL` (used by `tagImageItem` / `repaletteItem` to fetch originals)
 
 ## Deltas from the original build plan
@@ -196,7 +204,11 @@ Documented in `reference/ops.md`, set via `npx convex env set`:
   actions cost more complexity than the memory-seconds it saved.
 - Text tagging (`taggingMode: 'text'`) and per-collection ingestion defaults
   were added after the plan.
-- The `/atlas` page (color fingerprint + style constellation) is the first
-  tag-browsing surface, computed client-side from the loaded items.
-- Still unbuilt: `semanticText`/embeddings/vector search, a `/tags` index
-  page, tag-quality eval harness beyond the sandbox scripts here.
+- Tag browsing lives on `/patterns` (styles graph, typefaces, colors,
+  regions of the library map), computed client-side from the loaded items;
+  `/atlas` is the embedding map itself, with color strips for a selection.
+- Embeddings and hybrid vector search shipped separately (one EmbeddingGemma
+  vector per item, `reference/embeddings-research.md`); they follow the same
+  `taggingMode`.
+- Still unbuilt: a `/tags` index page, a tag-quality eval harness beyond the
+  sandbox scripts here.

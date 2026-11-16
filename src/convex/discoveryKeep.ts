@@ -22,32 +22,23 @@ export const keep = action({
 		const candidate = await ctx.runQuery(internal.discovery.getCandidate, { candidateId });
 		if (!candidate) throw new ConvexError('that post is gone');
 
-		const collections = collectionId ? [collectionId] : undefined;
-		const text = { title: candidate.title, ogDescription: candidate.description };
+		let image: { imageKey: string; imageWidth: number; imageHeight: number } | undefined;
 		try {
-			const image = await fetchImage(candidate.imageUrl, candidate.url);
-			const imageKey = await upload(ctx, image, token);
-			return await ctx.runMutation(api.items.add, {
-				type: candidate.kind === 'site' ? 'url' : 'image',
-				url: candidate.url,
-				...text,
-				imageKey,
-				imageWidth: image.width,
-				imageHeight: image.height,
-				collections,
-				token
-			});
+			const fetched = await fetchImage(candidate.imageUrl, candidate.url);
+			const imageKey = await upload(ctx, fetched, token);
+			image = { imageKey, imageWidth: fetched.width, imageHeight: fetched.height };
 		} catch (error) {
-			if (error instanceof ConvexError && error.data === 'Unauthorized') throw error;
 			// Without the source's image, the worker captures the page as usual
 			console.warn(`discovery keep: ${candidate.imageUrl} failed, saving the page:`, error);
-			return await ctx.runMutation(api.items.add, {
-				type: 'url',
-				url: candidate.url,
-				...text,
-				collections,
-				token
-			});
 		}
+		return await ctx.runMutation(api.items.add, {
+			type: image && candidate.kind === 'image' ? 'image' : 'url',
+			url: candidate.url,
+			title: candidate.title,
+			ogDescription: candidate.description,
+			...image,
+			collections: collectionId ? [collectionId] : undefined,
+			token
+		});
 	}
 });

@@ -85,14 +85,19 @@
 		}
 	}
 
+	// The page hands over fresh arrays on every item change, so the layout is
+	// keyed on their content and only runs again when a style or pair changed
+	const input = $derived(JSON.stringify({ styles, pairs }));
+
 	const graph = $derived.by(() => {
+		const { styles, pairs }: { styles: StyleCount[]; pairs: StylePair[] } = JSON.parse(input);
 		let shown = styles.filter((s) => s.count >= MIN_COUNT);
 		if (shown.length < 8) shown = styles;
 		const index = new Map(shown.map((s, i) => [s.name, i]));
 		const nodes: SimNode[] = shown.map((s, i) => {
 			// deterministic golden-angle spiral seeding, big nodes near the center
 			const angle = i * 2.399963;
-			const radius = 40 + 8 * Math.sqrt(i) * 6;
+			const radius = 40 + 48 * Math.sqrt(i);
 			return {
 				name: s.name,
 				count: s.count,
@@ -148,11 +153,11 @@
 
 <svg
 	viewBox="0 0 {W} {H}"
-	role="img"
+	role="group"
 	aria-label="map of styles in the library, connected when they appear on the same item"
 	onmouseleave={() => (hovered = null)}
 >
-	{#each graph.links as link, i (i)}
+	{#each graph.links as link (link)}
 		{@const a = graph.nodes[link.source]}
 		{@const b = graph.nodes[link.target]}
 		<line
@@ -168,14 +173,14 @@
 	{#each graph.nodes as node (node.name)}
 		<a
 			href="/atlas?style={encodeURIComponent(node.name)}"
-			class="node"
-			class:dimmed={isDimmed(node.name)}
+			class={['node', { dimmed: isDimmed(node.name) }]}
+			aria-label="{node.name}, {node.count} items"
 			onmouseenter={() => (hovered = node.name)}
 			onfocus={() => (hovered = node.name)}
 			onblur={() => (hovered = null)}
 		>
 			<circle cx={node.x} cy={node.y} r={node.r} fill={nodeFill(node)} />
-			<text x={node.x} y={node.y + node.r + 13} class:big={node.count >= 8}>
+			<text x={node.x} y={node.y + node.r + 13} class={{ big: node.count >= 8 }}>
 				{node.name}
 			</text>
 		</a>

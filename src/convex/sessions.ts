@@ -1,14 +1,9 @@
 import { ConvexError, v } from 'convex/values';
-import {
-	action,
-	internalMutation,
-	internalQuery,
-	mutation,
-	type ActionCtx
-} from './_generated/server';
+import { action, internalMutation, internalQuery, mutation } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import {
+	clearLoginAttempts,
 	DUMMY_PASSWORD_HASH,
 	hashPassword,
 	hashToken,
@@ -21,6 +16,11 @@ import {
 // After this many attempts without a success, each further one waits out the lockout
 const MAX_FAILED_LOGINS = 10;
 const LOCKOUT_MS = 15 * 60 * 1000;
+// A username's count is forgotten a day after its last attempt
+const FORGET_ATTEMPTS_MS = 24 * 60 * 60 * 1000;
+const SWEEP_BATCH = 500;
+// Signup's limit, so no account has a longer name
+const MAX_USERNAME_LENGTH = 32;
 
 const WRONG_LOGIN = 'wrong username or password';
 const INVALID_INVITE = 'this invite link is invalid or already used';
@@ -29,33 +29,19 @@ function checkNewPassword(password: string) {
 	if (password.length < 8) throw new ConvexError('passwords need 8+ characters');
 }
 
-// Throws unless `password` is the user's. The attempt is counted toward the
-// lockout before the slow hash runs, so parallel guesses can't all slip in
-// under the limit; a successful login or password change clears the count.
-async function checkPassword(
-	ctx: ActionCtx,
-	user: Doc<'users'>,
-	password: string,
-	wrongMessage: string
-) {
-	await ctx.runMutation(internal.sessions.countAttempt, { userId: user._id });
-	if (!(await verifyPassword(password, user.passwordHash))) {
-		throw new ConvexError(wrongMessage);
-	}
-}
-
 // Each returns a new session token for the SvelteKit server to keep in a cookie
 export const login = action({
 	args: { username: v.string(), password: v.string() },
 	handler: async (ctx, args): Promise<string> => {
-		const user = await ctx.runQuery(internal.sessions.getUserByUsername, {
-			username: normalizeUsername(args.username)
+		const username = normalizeUsername(args.username);
+		if (username.length > MAX_USERNAME_LENGTH) throw new ConvexError(WRONG_LOGIN);
+		// The same path for every name: count, then the slow hash (a dummy one
+		// when nobody has the name), so a made-up name looks like a real one
+		const user: Doc<'users'> | null = await ctx.runMutation(internal.sessions.countAttempt, {
+			username
 		});
-		if (!user) {
-			await verifyPassword(args.password, DUMMY_PASSWORD_HASH);
-			throw new ConvexError(WRONG_LOGIN);
-		}
-		await checkPassword(ctx, user, args.password, WRONG_LOGIN);
+		const ok = await verifyPassword(args.password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
+		if (!user || !ok) throw new ConvexError(WRONG_LOGIN);
 
 		const token = randomToken();
 		await ctx.runMutation(internal.sessions.startSession, {
@@ -114,7 +100,10 @@ export const changePassword = action({
 			tokenHash: await hashToken(args.token)
 		});
 		if (!user) throw new ConvexError('Unauthorized');
-		await checkPassword(ctx, user, args.currentPassword, 'current password is wrong');
+		await ctx.runMutation(internal.sessions.countAttempt, { username: user.username });
+		if (!(await verifyPassword(args.currentPassword, user.passwordHash))) {
+			throw new ConvexError('current password is wrong');
+		}
 		await ctx.runMutation(internal.users.setPasswordHash, {
 			username: user.username,
 			passwordHash: await hashPassword(args.newPassword)
@@ -162,16 +151,6 @@ export const getUserBySession = internalQuery({
 	}
 });
 
-export const getUserByUsername = internalQuery({
-	args: { username: v.string() },
-	handler: async (ctx, args) => {
-		return await ctx.db
-			.query('users')
-			.withIndex('by_username', (q) => q.eq('username', args.username))
-			.unique();
-	}
-});
-
 export const inviteExists = internalQuery({
 	args: { inviteHash: v.string() },
 	handler: async (ctx, args) => {
@@ -183,25 +162,56 @@ export const inviteExists = internalQuery({
 	}
 });
 
-// After MAX_FAILED_LOGINS uncleared attempts, allows one per LOCKOUT_MS
+// Counts a password attempt toward the username's lockout, then returns its
+// user (null if nobody has the name). Counting runs before the slow hash and
+// in this one mutation, so parallel guesses can't all slip in under the limit,
+// and it keys on the name rather than the account, so a made-up name locks
+// exactly like a real one. After MAX_FAILED_LOGINS uncleared attempts, allows
+// one per LOCKOUT_MS.
 export const countAttempt = internalMutation({
-	args: { userId: v.id('users') },
-	handler: async (ctx, args) => {
-		const user = await ctx.db.get(args.userId);
-		if (!user) throw new ConvexError(WRONG_LOGIN);
+	args: { username: v.string() },
+	handler: async (ctx, { username }) => {
 		const now = Date.now();
-		const attempts = user.failedLogins ?? 0;
-		if (attempts >= MAX_FAILED_LOGINS && now - (user.lastFailedLogin ?? 0) < LOCKOUT_MS) {
+		const row = await ctx.db
+			.query('loginAttempts')
+			.withIndex('by_username', (q) => q.eq('username', username))
+			.unique();
+		const live = row && now - row.lastAttempt < FORGET_ATTEMPTS_MS ? row : null;
+		if (live && live.count >= MAX_FAILED_LOGINS && now - live.lastAttempt < LOCKOUT_MS) {
 			throw new ConvexError('too many attempts, try again later');
 		}
-		await ctx.db.patch(args.userId, { failedLogins: attempts + 1, lastFailedLogin: now });
+		const count = (live?.count ?? 0) + 1;
+		if (row) await ctx.db.patch(row._id, { count, lastAttempt: now });
+		else await ctx.db.insert('loginAttempts', { username, count, lastAttempt: now });
+
+		return await ctx.db
+			.query('users')
+			.withIndex('by_username', (q) => q.eq('username', username))
+			.unique();
+	}
+});
+
+// Daily (crons.ts): forgets names nobody has tried for FORGET_ATTEMPTS_MS,
+// mostly made-up ones that would otherwise pile up
+export const sweepLoginAttempts = internalMutation({
+	args: {},
+	handler: async (ctx) => {
+		const stale = await ctx.db
+			.query('loginAttempts')
+			.withIndex('by_lastAttempt', (q) => q.lt('lastAttempt', Date.now() - FORGET_ATTEMPTS_MS))
+			.take(SWEEP_BATCH);
+		for (const row of stale) await ctx.db.delete(row._id);
+		if (stale.length === SWEEP_BATCH) {
+			await ctx.scheduler.runAfter(0, internal.sessions.sweepLoginAttempts, {});
+		}
 	}
 });
 
 export const startSession = internalMutation({
 	args: { userId: v.id('users'), tokenHash: v.string() },
 	handler: async (ctx, args) => {
-		await ctx.db.patch(args.userId, { failedLogins: undefined, lastFailedLogin: undefined });
+		const user = await ctx.db.get(args.userId);
+		if (user) await clearLoginAttempts(ctx, user.username);
 		await ctx.db.insert('sessions', args);
 	}
 });

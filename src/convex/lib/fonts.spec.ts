@@ -95,6 +95,12 @@ describe('fontSearchTerms', () => {
 		expect(lowered([font('SOEHNE', 'Söhne')])).toEqual(['fontsohne', 'söhne', 'sohne', 'soehne']);
 	});
 
+	it('spells out umlauts in any case', () => {
+		expect(lowered([font('Österreich Grotesk')])).toContain('oesterreichgrotesk');
+		expect(lowered([font('ÜBER MÄRZ')])).toContain('uebermaerz');
+		expect(lowered([font('So\u0308hne')])).toContain('soehne');
+	});
+
 	it('makes cryptic CSS aliases searchable alongside the real name', () => {
 		expect(lowered([font('areal', 'ABC Areal Superfamily Variable')])).toEqual([
 			'fontabcarealsuperfamily',

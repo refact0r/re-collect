@@ -4,6 +4,7 @@
 	import { useMutation } from '#lib/convex.js';
 	import type { CollectionSortOption } from '#lib/types.js';
 	import Modal from './Modal.svelte';
+	import { SORT_OPTIONS } from './SortDropdown.svelte';
 
 	interface Props {
 		onClose: () => void;
@@ -22,15 +23,6 @@
 	let taggingMode = $state<TaggingMode>('visual');
 	let linkImageMode = $state<'screenshot' | 'og'>('screenshot');
 
-	const sortOptions: { value: CollectionSortOption; label: string }[] = [
-		{ value: 'manual', label: 'manual' },
-		{ value: 'dateAddedNewest', label: 'added (new)' },
-		{ value: 'dateAddedOldest', label: 'added (old)' },
-		{ value: 'dateModifiedNewest', label: 'modified (new)' },
-		{ value: 'dateModifiedOldest', label: 'modified (old)' },
-		{ value: 'titleAsc', label: 'title (a-z)' },
-		{ value: 'titleDesc', label: 'title (z-a)' }
-	];
 	const viewOptions = [
 		{ value: 'grid', label: 'grid' },
 		{ value: 'list', label: 'list' }
@@ -59,11 +51,19 @@
 <Modal {onClose}>
 	<h2>new collection</h2>
 	<div class="form">
-		<input type="text" bind:value={name} placeholder="collection name" disabled={isCreating} />
+		<!-- svelte-ignore a11y_autofocus -->
+		<input
+			type="text"
+			bind:value={name}
+			placeholder="collection name"
+			disabled={isCreating}
+			onkeydown={(event) => event.key === 'Enter' && handleCreate()}
+			autofocus
+		/>
 		<div class="group">
 			<span class="group-label">sort</span>
 			<select bind:value={sortMode} disabled={isCreating}>
-				{#each sortOptions as opt (opt.value)}
+				{#each SORT_OPTIONS as opt (opt.value)}
 					<option value={opt.value}>{opt.label}</option>
 				{/each}
 			</select>

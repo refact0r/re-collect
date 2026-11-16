@@ -4,7 +4,7 @@ The idea: the screenshot worker already loads every saved page in headless Chrom
 
 ## What shipped (fonts v1)
 
-- **Worker** (`workers/screenshot/src/fonts.ts`, `extractFonts.js`): on screenshot captures only, after the screenshot and before the browser closes.
+- **Worker** (`workers/screenshot/src/fonts.ts`, `extractFonts.js`): whenever the page is rendered in the browser, before the browser closes: after the screenshot, or after storing the og:image when og mode fell back to the browser.
   - Reads the first declared `font-family` of every text-owning element in the first three screens, weighted by characters × font size.
   - Keeps up to 5 families with ≥3% share, plus the family of the largest text (usually the display face, even when it's a short headline).
   - Skips bare generic families (`sans-serif`, `serif`, `monospace`: what unstyled text falls back to), framework `Fallback`/`Placeholder` faces and icon fonts. The system-font keywords (`system-ui`, `-apple-system`, `ui-monospace`, …) are kept and shown as "System UI", "UI Monospace" and so on, so sites set in the system font are findable too.
@@ -19,7 +19,7 @@ The idea: the screenshot worker already loads every saved page in headless Chrom
   - `fontSearchTerms` puts each name in `searchText` spaced, accent-free and as a one-word key (`gtamericamono`, `sohne`, `soehne`).
 - **UI:** a "fonts" chip list in the item modal. A chip links to `/search?q=font<key>` (e.g. `fontgtamericamono`). That extra token is also in `searchText`; it matches only items with that font, because Convex prefix-matches the last query term and a bare `inter` would also hit "interface". Prefix matching still applies to the font token itself, so a chip also finds its sub-families: `fontsohne` matches Söhne Mono, and `fontinter` matches Inter Tight.
 - **Not covered at capture time** (the backfill below fills these in):
-  - og-mode items whose og:image comes from the fast path (no browser).
+  - og-mode items whose og:image comes from the fast path (no browser). When og mode falls back to the browser, fonts are read right after the og:image is stored, which is soon after `domcontentloaded`: webfonts that haven't loaded yet get no internal name, and a client-rendered page may have no text yet. The worker then sends no `fonts`, so the item keeps any it had.
   - Images supplied by the extension (no worker run).
 - **Backfill:** `experiments/design-tokens/backfill.mjs [--prod] [--all]` loads every URL item without fonts in local Chrome, runs the worker's own `readFonts`, and writes through the `screenshots:setFonts` internal mutation. It spends no Browser Run quota and leaves images alone, and it covers og and extension items too. Ran on dev and prod on 2026-11-13.
 - Changing font naming only needs a `searchText` rebuild for existing items (`npx convex run items:rebuildSearchText`, `--prod` for production). Re-extraction needs a recapture or `backfill.mjs --all`.

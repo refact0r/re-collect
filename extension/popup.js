@@ -23,15 +23,17 @@ if (!(await getSettings()).convexUrl) {
 } else if (!/^https?:/.test(tab.url ?? '')) {
 	status.textContent = "This page can't be saved";
 } else {
-	saveButton.disabled = false;
-	saveButton.focus();
 	loadCollections();
 	warnIfSaved();
 }
 
 let collections = [];
 let home = null;
+let loaded = false;
 
+// Save is enabled only once the select is filled, so an Enter right after
+// opening can't save to Uncollected (and make that the last collection). If
+// the list can't load, saving still works but leaves the last collection alone.
 async function loadCollections() {
 	try {
 		const last = await getLastCollection();
@@ -39,10 +41,13 @@ async function loadCollections() {
 		select.append(...collections.map((c) => new Option(c.name, c._id)));
 		if (collections.some((c) => c._id === last.id)) select.value = last.id;
 		showDefaults();
+		loaded = true;
 	} catch (error) {
 		status.textContent = `Couldn't load collections: ${error.message}`;
 		status.classList.add('error');
 	}
+	saveButton.disabled = false;
+	saveButton.focus();
 }
 
 // Saving again is allowed; the button says so
@@ -70,7 +75,7 @@ saveButton.onclick = async () => {
 	const collectionId = select.value;
 	const name = collectionId ? select.selectedOptions[0].text : '';
 	const capture = ['visible', 'area'].includes(image.value) ? image.value : 'auto';
-	await setLastCollection({ id: collectionId, name });
+	if (loaded) await setLastCollection({ id: collectionId, name });
 	await chrome.runtime.sendMessage({
 		type: 'savePage',
 		tabId: tab.id,

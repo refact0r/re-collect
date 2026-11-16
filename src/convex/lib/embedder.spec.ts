@@ -1,5 +1,13 @@
-import { describe, it, expect } from 'vitest';
-import { documentText, embeddingInput, inputKey, queryText } from './embedder';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+	EMBEDDING_DIMENSIONS,
+	RetryableError,
+	documentText,
+	embeddingInput,
+	embedText,
+	inputKey,
+	queryText
+} from './embedder';
 
 describe('embeddingInput', () => {
 	it('embeds an image item, or a visual link with its image, as pixels', () => {
@@ -94,5 +102,45 @@ describe('inputKey', () => {
 		expect(a).toMatch(/^text:[0-9a-f]{32}$/);
 		expect(await inputKey({ kind: 'text', text: 'one' })).toBe(a);
 		expect(await inputKey({ kind: 'text', text: 'two' })).not.toBe(a);
+	});
+});
+
+describe('embedText', () => {
+	beforeEach(() => {
+		vi.stubEnv('CLOUDFLARE_ACCOUNT_ID', 'account');
+		vi.stubEnv('CLOUDFLARE_API_TOKEN', 'token');
+	});
+	afterEach(() => {
+		vi.unstubAllEnvs();
+		vi.unstubAllGlobals();
+	});
+
+	const respond = (response: Response) => {
+		const fetch = vi.fn().mockResolvedValue(response);
+		vi.stubGlobal('fetch', fetch);
+		return fetch;
+	};
+
+	it('returns a unit vector', async () => {
+		respond(
+			Response.json({
+				result: { data: [{ embedding: Array.from({ length: EMBEDDING_DIMENSIONS }, () => 1) }] }
+			})
+		);
+		const embedding = await embedText('a');
+		expect(embedding).toHaveLength(EMBEDDING_DIMENSIONS);
+		expect(Math.hypot(...embedding)).toBeCloseTo(1);
+	});
+
+	it('makes one attempt, marking only rate limits and server errors retryable', async () => {
+		for (const status of [429, 503]) {
+			const fetch = respond(new Response('busy', { status }));
+			await expect(embedText('a')).rejects.toBeInstanceOf(RetryableError);
+			expect(fetch).toHaveBeenCalledOnce();
+		}
+		respond(new Response('bad input', { status: 400 }));
+		const error = await embedText('a').catch((e: unknown) => e);
+		expect(error).toBeInstanceOf(Error);
+		expect(error).not.toBeInstanceOf(RetryableError);
 	});
 });

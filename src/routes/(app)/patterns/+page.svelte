@@ -1,8 +1,6 @@
 <script lang="ts">
 	import type { Id } from '../../../convex/_generated/dataModel.js';
 	import {
-		colorStrips,
-		countStyles,
 		findRegions,
 		fontPairings,
 		itemLabel,
@@ -26,7 +24,14 @@
 	const collections = getCollectionsContext();
 	const map = useLibraryMap();
 
-	getCurrentItemsContext().list = () => itemsQuery.data ?? [];
+	// The item modal steps through the whole library (set during init so the
+	// modal, rendered after the page, sees it at once), until a page without one
+	const currentItems = getCurrentItemsContext();
+	const list = () => itemsQuery.data ?? [];
+	currentItems.list = list;
+	$effect(() => () => {
+		if (currentItems.list === list) currentItems.list = () => [];
+	});
 
 	$effect(() => {
 		pageTitle.value = 'patterns';
@@ -36,6 +41,9 @@
 	const items = $derived(itemsQuery.data ?? []);
 	const byId = $derived(new Map(items.map((item) => [item._id, item])));
 	const points = $derived(map.points.filter((p) => byId.has(p.itemId)));
+	// The sections below the totals are about how things look, so they read only
+	// the items on the map, where each of their links lands
+	const mapped = $derived(points.map((p) => byId.get(p.itemId)!));
 	const pointById = $derived(new Map(points.map((p) => [p.itemId, p])));
 	const lookup = (ids: ItemId[]) => ids.flatMap((itemId) => byId.get(itemId) ?? []);
 
@@ -43,31 +51,26 @@
 		items.length ? Math.min(...items.map((item) => item.dateAdded)) : null
 	);
 
-	const stats = $derived.by(() => {
-		const strips = colorStrips(items);
-		return [
-			{ label: 'items', value: items.length },
-			{ label: 'collections', value: collections.data?.length ?? 0 },
-			{ label: 'styles', value: countStyles(items).length },
-			{ label: 'tags', value: new Set(items.flatMap((item) => item.aiTags ?? [])).size },
-			{ label: 'colors', value: strips.hue.length + strips.tone.length }
-		];
-	});
+	const stats = $derived([
+		{ label: 'items', value: items.length },
+		{ label: 'collections', value: collections.data?.length ?? 0 },
+		{ label: 'styles', value: new Set(items.flatMap((item) => item.styles ?? [])).size },
+		{ label: 'tags', value: new Set(items.flatMap((item) => item.aiTags ?? [])).size },
+		{ label: 'colors', value: items.reduce((sum, item) => sum + (item.paletteHex?.length ?? 0), 0) }
+	]);
 
-	const regions = $derived(findRegions(points, items));
-	const shift = $derived(recentShift(regions, items));
+	const regions = $derived(findRegions(points, mapped));
+	const shift = $derived(recentShift(regions, mapped));
+	const graph = $derived(styleGraph(mapped));
 	// How many of a font's sites its row shows; the atlas has the rest
 	const FONT_SITES = 5;
-	const fonts = $derived(fontsByUse(items));
-	const pairings = $derived(fontPairings(items));
-	const graph = $derived(styleGraph(items));
+	const fonts = $derived(fontsByUse(mapped));
+	const pairings = $derived(fontPairings(mapped));
 
-	const rising = $derived(
-		shift?.shifts.filter((s) => s.recent > 0 && s.share > s.before).slice(0, 3) ?? []
-	);
+	const rising = $derived(shift?.shifts.filter((s) => s.share > s.before).slice(0, 3) ?? []);
 	const falling = $derived(
 		shift?.shifts
-			.filter((s) => s.before > 0 && s.share < s.before)
+			.filter((s) => s.share < s.before)
 			.reverse()
 			.slice(0, 2) ?? []
 	);
@@ -105,9 +108,8 @@
 		return region.styles.filter((style) => !named.has(style)).slice(0, 3);
 	}
 
-	function recentIn(s: Shift, since: number) {
-		return lookup(s.region.itemIds)
-			.filter((item) => item.dateAdded >= since)
+	function recentIn(s: Shift, recentIds: Set<ItemId>) {
+		return lookup(s.region.itemIds.filter((id) => recentIds.has(id)))
 			.sort((a, b) => b.dateAdded - a.dateAdded)
 			.slice(0, 6);
 	}
@@ -115,7 +117,7 @@
 
 {#snippet thumb(item: DisplayItem)}
 	{#if shouldDisplayAsImage(item)}
-		<img src={item.imageUrl} alt="" loading="lazy" />
+		<img src={item.imageUrl} alt="" loading="lazy" decoding="async" />
 	{:else}
 		<span class="chip">{itemLabel(item)}</span>
 	{/if}
@@ -198,18 +200,18 @@
 			</section>
 
 			{#if shift && (rising.length > 0 || falling.length > 0)}
-				{@const since = shift.since}
 				<section>
 					<h2>lately</h2>
 					<p class="meta">
-						your last {shift.count} saves, since {shortDate(since)}, against everything before
+						your last {shift.count} saves on the map, since {shortDate(shift.since)}, against
+						everything before
 					</p>
 					<div class="shifts">
 						{#each rising as s (s.region.id)}
-							{@render shiftRow(s, since, false)}
+							{@render shiftRow(s, shift.recentIds, false)}
 						{/each}
 						{#each falling as s (s.region.id)}
-							{@render shiftRow(s, since, true)}
+							{@render shiftRow(s, shift.recentIds, true)}
 						{/each}
 					</div>
 				</section>
@@ -263,7 +265,7 @@
 	{/if}
 </div>
 
-{#snippet shiftRow(s: Shift, since: number, quiet: boolean)}
+{#snippet shiftRow(s: Shift, recentIds: Set<ItemId>, quiet: boolean)}
 	<div class={['shift', { quiet }]}>
 		<div class="shift-info">
 			<a href="/atlas?region={s.region.id}" class="shift-name">{s.region.name}</a>
@@ -274,7 +276,7 @@
 			<span class="meta">{percent(s.share)} of recent · {percent(s.before)} before</span>
 		</div>
 		<div class="thumbs">
-			{#each recentIn(s, since) as item (item._id)}
+			{#each recentIn(s, recentIds) as item (item._id)}
 				{@render thumbLink(item)}
 			{/each}
 		</div>
@@ -440,6 +442,18 @@
 		flex-direction: column;
 		gap: var(--space-2xs);
 		margin-block: var(--space-2xs);
+	}
+
+	.bar {
+		display: block;
+		height: 3px;
+		background: var(--bg-3);
+	}
+
+	.bar > span {
+		display: block;
+		height: 100%;
+		background: var(--txt-3);
 	}
 
 	.compare .bar.recent > span {

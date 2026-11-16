@@ -1,3 +1,14 @@
+<script lang="ts" module>
+	// The app's pages, in the header on desktop and in this sidebar on mobile
+	export const NAV_LINKS = [
+		{ href: '/', label: 're-collect' },
+		{ href: '/collections', label: 'collections' },
+		{ href: '/atlas', label: 'atlas' },
+		{ href: '/patterns', label: 'patterns' },
+		{ href: '/discover', label: 'discover' }
+	];
+</script>
+
 <script lang="ts">
 	import { page } from '$app/state';
 	import IconClose from '~icons/material-symbols-light/close-sharp';
@@ -20,17 +31,9 @@
 		</button>
 	</div>
 	<nav class="main-nav">
-		<a href="/" class="nav-link" class:active={page.url.pathname === '/'}>re-collect</a>
-		<a href="/collections" class="nav-link" class:active={page.url.pathname === '/collections'}
-			>collections</a
-		>
-		<a href="/atlas" class="nav-link" class:active={page.url.pathname === '/atlas'}>atlas</a>
-		<a href="/patterns" class="nav-link" class:active={page.url.pathname === '/patterns'}
-			>patterns</a
-		>
-		<a href="/discover" class="nav-link" class:active={page.url.pathname === '/discover'}
-			>discover</a
-		>
+		{#each NAV_LINKS as { href, label } (href)}
+			<a {href} class="nav-link" class:active={page.url.pathname === href}>{label}</a>
+		{/each}
 		<a href="/account" class="nav-link" class:active={page.url.pathname === '/account'}>account</a>
 	</nav>
 	<nav class="collections">
@@ -91,12 +94,19 @@
 
 <style>
 	aside {
-		position: relative;
+		--toggle-size: 2rem;
+		--toggle-inset: var(--space-md);
+		/* stays put while the page beside it scrolls */
+		position: sticky;
+		top: 0;
+		height: 100%;
+		overflow-y: auto;
 		width: 15rem;
 		min-width: 15rem;
 		border-right: 1px solid var(--border);
 		padding: var(--gutter);
-		padding-bottom: 3.5rem;
+		/* clears the collapse toggle pinned in the corner */
+		padding-bottom: calc(var(--toggle-inset) + var(--toggle-size) + var(--gutter));
 		display: flex;
 		flex-direction: column;
 		transition:
@@ -107,8 +117,7 @@
 	aside.collapsed {
 		width: 3rem;
 		min-width: 3rem;
-		padding: var(--gutter) var(--space-md);
-		padding-bottom: 3.5rem;
+		padding-inline: var(--space-md);
 	}
 
 	.mobile-header {
@@ -191,19 +200,15 @@
 
 	.toggle {
 		position: absolute;
-		bottom: 0.5rem;
-		right: 0.5rem;
+		bottom: var(--toggle-inset);
+		right: var(--toggle-inset);
 		padding: var(--pad-y-sm);
-		width: 2rem;
+		width: var(--toggle-size);
 	}
 
 	.toggle :global(svg) {
 		width: 1.25rem;
 		height: 1.25rem;
-	}
-
-	.collapsed .toggle {
-		margin: 0 auto;
 	}
 
 	ul {
