@@ -40,7 +40,14 @@
 			<a href={getItemUrl(item._id)} class="list-item">
 				<div class="thumbnail">
 					{#if shouldDisplayAsImage(item)}
-						<img src={item.imageUrl} alt="" decoding="async" loading="lazy" />
+						<img
+							src={item.imageUrl}
+							srcset={item.imageSrcset}
+							sizes="2rem"
+							alt=""
+							decoding="async"
+							loading="lazy"
+						/>
 					{:else if item.type === 'url'}
 						{#if isBusy(item.screenshotStatus)}
 							<div class="icon-placeholder loading">

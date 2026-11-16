@@ -181,7 +181,7 @@
 	</div>
 	<div class="mosaic">
 		{#each collection.previews as preview (preview._id)}
-			<img src={preview.imageUrl} alt="" loading="lazy" />
+			<img src={preview.imageUrl} srcset={preview.imageSrcset} sizes="8rem" alt="" loading="lazy" />
 		{/each}
 		{#each Array(Math.max(0, 6 - collection.previews.length)) as _, i (i)}
 			<div></div>

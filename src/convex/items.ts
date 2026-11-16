@@ -2,7 +2,7 @@ import { ConvexError, v, type Infer } from 'convex/values';
 import type { Doc } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { internalMutation } from './_generated/server';
-import { getOwnUpload, r2 } from './r2';
+import { getOwnUpload } from './r2';
 import {
 	addItemToCollection,
 	removeItemFromCollection,
@@ -21,6 +21,8 @@ import { buildSearchText, patchItem } from './lib/searchText';
 import { storedTaggingMode } from './lib/taggingModes';
 import { isWebUrl, normalizeUrl } from './lib/urls';
 import { deleteItemEmbeddings, scheduleEmbedding } from './embeddings';
+import { deleteImageObjects, scheduleImageVariants } from './imageVariants';
+import { imageSrcset } from './lib/imageVariants';
 import { enqueueScreenshot } from './screenshots';
 import { enqueueTagging } from './tagging';
 import { getPreferences } from './viewPreferences';
@@ -48,11 +50,14 @@ const compareItems: Record<
 	titleDesc: (a, b) => sortTitle(b).localeCompare(sortTitle(a))
 };
 
-export function getImageUrl(item: Doc<'items'>): string | null {
-	if (item.imageKey) {
-		return `${process.env.R2_PUBLIC_URL}/${item.imageKey}`;
-	}
-	return null;
+// The item's image URL, and the srcset that lets a small display pick a
+// smaller copy of it (null until it has some)
+export function imageFields(item: Doc<'items'>) {
+	const base = process.env.R2_PUBLIC_URL!;
+	return {
+		imageUrl: item.imageKey ? `${base}/${item.imageKey}` : null,
+		imageSrcset: imageSrcset(base, item)
+	};
 }
 
 // The item fields a visitor to someone else's shared collection gets: what the
@@ -85,16 +90,17 @@ const VISITOR_FIELDS = [
 export type ShownItem = Partial<Doc<'items'>> &
 	Pick<Doc<'items'>, (typeof VISITOR_FIELDS)[number] | 'collections'> & {
 		imageUrl: string | null;
+		imageSrcset: string | null;
 	};
 
 function forViewer(ctx: ViewerQueryCtx, item: Doc<'items'>): ShownItem {
-	const imageUrl = getImageUrl(item);
-	if (item.userId === ctx.viewerId) return { ...item, imageUrl };
+	const image = imageFields(item);
+	if (item.userId === ctx.viewerId) return { ...item, ...image };
 	const shown = Object.fromEntries(VISITOR_FIELDS.map((field) => [field, item[field]]));
 	return {
 		...(shown as Pick<Doc<'items'>, (typeof VISITOR_FIELDS)[number]>),
 		collections: [],
-		imageUrl
+		...image
 	};
 }
 
@@ -208,6 +214,7 @@ export const add = userMutation({
 			await enqueueTagging(ctx, internal.taggingActions.tagTextItem, itemId);
 		}
 
+		if (hasImage) await scheduleImageVariants(ctx, itemId);
 		await scheduleEmbedding(ctx, itemId);
 
 		return itemId;
@@ -257,10 +264,7 @@ export const remove = userMutation({
 		await deleteAllPositionsForItem(ctx, args.id);
 		await deleteItemEmbeddings(ctx, args.id);
 
-		// Delete associated image from R2
-		if (item.imageKey) {
-			await r2.deleteObject(ctx, item.imageKey);
-		}
+		await deleteImageObjects(ctx, item);
 
 		await ctx.db.delete(args.id);
 	}
@@ -336,7 +340,7 @@ export const list = userQuery({
 
 		return items.map((item) => ({
 			...item,
-			imageUrl: getImageUrl(item)
+			...imageFields(item)
 		}));
 	}
 });
@@ -379,7 +383,7 @@ export const search = userQuery({
 
 		return results.map((item) => ({
 			...item,
-			imageUrl: getImageUrl(item)
+			...imageFields(item)
 		}));
 	}
 });

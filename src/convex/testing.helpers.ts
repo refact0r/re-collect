@@ -9,7 +9,8 @@ import schema from './schema';
 // queues work (tagging, captures, embeddings) can run
 export function newTest() {
 	const t = convexTest(schema, import.meta.glob('./**/*.ts'));
-	for (const pool of ['taggingPool', 'screenshotPool', 'embeddingPool']) workpool.register(t, pool);
+	for (const pool of ['taggingPool', 'screenshotPool', 'embeddingPool', 'variantPool'])
+		workpool.register(t, pool);
 	return t;
 }
 

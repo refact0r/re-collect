@@ -99,7 +99,7 @@
 			{@const label = itemLabel(item)}
 			<button class="thumb" title={label} aria-label={label} onclick={() => onselect([item._id])}>
 				{#if item.imageUrl}
-					<img src={item.imageUrl} alt="" loading="lazy" />
+					<img src={item.imageUrl} srcset={item.imageSrcset} sizes="5rem" alt="" loading="lazy" />
 				{:else}
 					<span>{label}</span>
 				{/if}
@@ -145,7 +145,13 @@
 		{#if single}
 			<section>
 				{#if shouldDisplayAsImage(single)}
-					<img class="preview" src={single.imageUrl} alt={heading} />
+					<img
+						class="preview"
+						src={single.imageUrl}
+						srcset={single.imageSrcset}
+						sizes="19rem"
+						alt={heading}
+					/>
 				{:else}
 					<div class="text-block">{single.content || blurb || single.url || heading}</div>
 				{/if}

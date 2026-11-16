@@ -17,6 +17,7 @@ import { linkImageModeValidator, siteFontValidator } from './schema';
 import { parseSiteFonts } from './lib/fonts';
 import { enqueueTagging } from './tagging';
 import { scheduleEmbedding } from './embeddings';
+import { deleteImageObjects, scheduleImageVariants } from './imageVariants';
 
 // Well above the worker's worst case (~2 min: og fast path, browser launch,
 // navigation, network idle, settle delay, og image fetch, R2 put)
@@ -67,9 +68,8 @@ export const setCompleted = internalMutation({
 			return;
 		}
 
-		if (item.imageKey && item.imageKey !== args.imageKey) {
-			await r2.deleteObject(ctx, item.imageKey);
-		}
+		const replaced = item.imageKey !== args.imageKey;
+		if (replaced) await deleteImageObjects(ctx, item);
 
 		// Only fill a title the user hasn't written themselves. og:description
 		// goes to its own machine-owned field (kept if a re-fetch returns none);
@@ -86,6 +86,7 @@ export const setCompleted = internalMutation({
 			imageKey: args.imageKey,
 			imageWidth: args.imageWidth,
 			imageHeight: args.imageHeight,
+			...(replaced && { imageVariants: undefined }),
 			screenshotError: undefined,
 			...(wantsVisualTagging && { taggingStatus: 'pending' as const, taggingError: undefined }),
 			title,
@@ -101,6 +102,7 @@ export const setCompleted = internalMutation({
 				itemId: args.itemId
 			});
 		}
+		await scheduleImageVariants(ctx, args.itemId);
 		await scheduleEmbedding(ctx, args.itemId);
 	}
 });

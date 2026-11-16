@@ -397,7 +397,15 @@
 				onblur={() => (hoveredId = null)}
 			>
 				{#if image && showImages}
-					<img src={p.item.imageUrl} alt="" loading="lazy" decoding="async" draggable="false" />
+					<img
+						src={p.item.imageUrl}
+						srcset={p.item.imageSrcset}
+						sizes="{image.width}px"
+						alt=""
+						loading="lazy"
+						decoding="async"
+						draggable="false"
+					/>
 				{:else if image}
 					<span class="swatch" style:background={p.item.paletteHex?.[0]}></span>
 				{:else}

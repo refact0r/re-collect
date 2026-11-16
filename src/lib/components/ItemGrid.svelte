@@ -447,6 +447,8 @@
 			{#if shouldDisplayAsImage(item)}
 				<img
 					src={item.imageUrl}
+					srcset={item.imageSrcset}
+					sizes="{Math.ceil(columnWidth)}px"
 					alt={item.title ?? item.url ?? 'image'}
 					width={item.imageWidth}
 					height={item.imageHeight}

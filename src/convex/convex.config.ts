@@ -9,5 +9,6 @@ app.use(rateLimiter);
 app.use(workpool, { name: 'screenshotPool' });
 app.use(workpool, { name: 'taggingPool' });
 app.use(workpool, { name: 'embeddingPool' });
+app.use(workpool, { name: 'variantPool' });
 
 export default app;

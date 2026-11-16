@@ -3,7 +3,7 @@ import type { QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { generateKeyBetween } from 'fractional-indexing';
 import { getPositionsByCollection } from './itemCollectionPositions';
-import { getImageUrl } from './items';
+import { imageFields } from './items';
 import {
 	getOwned,
 	getViewable,
@@ -102,18 +102,25 @@ const PREVIEW_LIMIT = 6;
 // Newest memberships scanned for displayable images; bounds the read set per collection.
 const PREVIEW_SCAN = 24;
 
+type Preview = {
+	_id: Id<'items'>;
+	imageUrl: string;
+	imageSrcset: string | null;
+	type: 'image' | 'url';
+};
+
 async function getCollectionPreviews(
 	ctx: QueryCtx,
 	collectionId: Id<'collections'>,
 	limit = PREVIEW_LIMIT
-): Promise<Array<{ _id: Id<'items'>; imageUrl: string; type: 'image' | 'url' }>> {
+): Promise<Preview[]> {
 	const recent = await ctx.db
 		.query('itemCollectionPositions')
 		.withIndex('by_collection_dateAdded', (q) => q.eq('collectionId', collectionId))
 		.order('desc')
 		.take(PREVIEW_SCAN);
 
-	const previews: Array<{ _id: Id<'items'>; imageUrl: string; type: 'image' | 'url' }> = [];
+	const previews: Preview[] = [];
 	for (const position of recent) {
 		if (previews.length >= limit) break;
 		const item = await ctx.db.get(position.itemId);
@@ -122,11 +129,12 @@ async function getCollectionPreviews(
 			(item.type === 'image' && !!item.imageKey) ||
 			(item.type === 'url' && item.screenshotStatus === 'completed');
 		if (!displayable) continue;
-		const imageUrl = getImageUrl(item);
+		const { imageUrl, imageSrcset } = imageFields(item);
 		if (!imageUrl) continue;
 		previews.push({
 			_id: item._id,
 			imageUrl,
+			imageSrcset,
 			type: item.type as 'image' | 'url'
 		});
 	}

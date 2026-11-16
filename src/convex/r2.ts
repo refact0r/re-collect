@@ -61,7 +61,9 @@ const uriEncode = (text: string) =>
 // generateUploadUrl signs no content type.
 export async function signUpload(key: string, contentType: string, now = new Date()) {
 	const { bucket, endpoint, accessKeyId, secretAccessKey } = r2.config;
-	const url = new URL(`${endpoint.replace(/\/$/, '')}/${uriEncode(bucket)}/${uriEncode(key)}`);
+	// Each segment on its own: a key's slashes stay path separators
+	const path = [bucket, ...key.split('/')].map(uriEncode).join('/');
+	const url = new URL(`${endpoint.replace(/\/$/, '')}/${path}`);
 	const amzDate = now.toISOString().replace(/[-:]|\.\d+/g, '');
 	const scope = `${amzDate.slice(0, 8)}/auto/s3/aws4_request`;
 	// In canonical (sorted) order

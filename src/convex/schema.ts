@@ -23,6 +23,9 @@ export const siteFontValidator = v.object({
 	internalName: v.optional(v.string()) // Family name from the font file itself (webfonts only)
 });
 
+// A smaller WebP copy of an item's image (lib/imageVariants.ts)
+export const imageVariantValidator = v.object({ key: v.string(), width: v.number() });
+
 // Sort mode validators, shared by every table/mutation that stores them.
 // Collections additionally support 'manual' (fractional-index ordering).
 const sortModes = [
@@ -102,6 +105,9 @@ export default defineSchema({
 		imageKey: v.optional(v.string()), // R2 object key for uploaded images
 		imageWidth: v.optional(v.number()), // Image dimensions for masonry layout
 		imageHeight: v.optional(v.number()),
+		// Smaller copies of the image, narrowest first; unset until made for the
+		// current image, empty when it's already small or couldn't be read
+		imageVariants: v.optional(v.array(imageVariantValidator)),
 		// Screenshot generation status for URL items
 		screenshotStatus: v.optional(
 			v.union(v.literal('pending'), v.literal('completed'), v.literal('failed'))

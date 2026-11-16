@@ -117,7 +117,14 @@
 
 {#snippet thumb(item: DisplayItem)}
 	{#if shouldDisplayAsImage(item)}
-		<img src={item.imageUrl} alt="" loading="lazy" decoding="async" />
+		<img
+			src={item.imageUrl}
+			srcset={item.imageSrcset}
+			sizes="6rem"
+			alt=""
+			loading="lazy"
+			decoding="async"
+		/>
 	{:else}
 		<span class="chip">{itemLabel(item)}</span>
 	{/if}

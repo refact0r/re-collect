@@ -76,6 +76,12 @@ describe('upload URLs', () => {
 		);
 	});
 
+	test("keep a key's slashes as path separators, as R2 signs the path", async () => {
+		Object.assign(r2.config, { bucket: 'my-bucket' });
+		const url = new URL(await signUpload('variants/a b-256w.webp', 'image/webp'));
+		expect(url.pathname).toBe('/my-bucket/variants/a%20b-256w.webp');
+	});
+
 	test('are only minted for raster image types', async () => {
 		const t = newTest();
 		const token = await makeUser(t, 'a');
