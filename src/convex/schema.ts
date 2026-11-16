@@ -40,11 +40,7 @@ export default defineSchema({
 	// One row per account (see lib/auth.ts, sessions.ts, users.ts)
 	users: defineTable({
 		username: v.string(), // Lowercase, unique
-		passwordHash: v.string(), // PBKDF2, format in lib/auth.ts
-		// Unused (the lockout moved to loginAttempts); kept until users:dropLoginCounters
-		// has unset them on every deployment, so existing rows still validate
-		failedLogins: v.optional(v.number()),
-		lastFailedLogin: v.optional(v.number())
+		passwordHash: v.string() // PBKDF2, format in lib/auth.ts
 	}).index('by_username', ['username']),
 
 	// Password attempts per submitted username, existing or not, since its last
@@ -199,9 +195,6 @@ export default defineSchema({
 		url: v.string(),
 		title: v.optional(v.string()),
 		description: v.optional(v.string()),
-		// No longer written; removed once discovery:dropAuthorAndTags has run on prod
-		author: v.optional(v.string()),
-		tags: v.optional(v.array(v.string())),
 		imageUrl: v.string(), // The source's own media, hotlinked until kept
 		imageWidth: v.optional(v.number()),
 		imageHeight: v.optional(v.number()),

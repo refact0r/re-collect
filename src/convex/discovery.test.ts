@@ -177,19 +177,3 @@ test('expiry drops month-old candidates past their source’s newest 300, and a 
 	expect(await left()).toEqual(expected);
 	vi.useRealTimers();
 });
-
-test('dropAuthorAndTags clears both fields and leaves the rest', async () => {
-	const t = newTest();
-	await store(t, 'seesaw', [1, 2]);
-	await t.run(async (ctx) => {
-		const row = await ctx.db.query('discoveryCandidates').first();
-		await ctx.db.patch(row!._id, { author: 'Ana', tags: ['Portfolio'] });
-	});
-
-	await t.mutation(internal.discovery.dropAuthorAndTags, {});
-	const rows = await t.run((ctx) => ctx.db.query('discoveryCandidates').collect());
-	expect(rows.map(({ author, tags, url }) => ({ author, tags, url }))).toEqual([
-		{ author: undefined, tags: undefined, url: 'https://1.example/' },
-		{ author: undefined, tags: undefined, url: 'https://2.example/' }
-	]);
-});

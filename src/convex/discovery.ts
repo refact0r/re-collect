@@ -45,12 +45,7 @@ const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const KEEP_PER_SOURCE = 300;
 const EXPIRE_BATCH = 500;
 
-const fetchedValidator = schema.tables.discoveryCandidates.validator.omit(
-	'sourceKey',
-	'normUrl',
-	'author',
-	'tags'
-);
+const fetchedValidator = schema.tables.discoveryCandidates.validator.omit('sourceKey', 'normUrl');
 
 // ============ Feed ============
 
@@ -339,27 +334,6 @@ async function sourceAfter(ctx: QueryCtx, after?: string) {
 		.first();
 	return candidate?.sourceKey ?? null;
 }
-
-// Migration: clears the author and tags candidates are no longer stored with,
-// so the schema can drop them. Run: npx convex run discovery:dropAuthorAndTags
-export const dropAuthorAndTags = internalMutation({
-	args: { cursor: v.optional(v.string()) },
-	handler: async (ctx, { cursor }) => {
-		const { page, isDone, continueCursor } = await ctx.db
-			.query('discoveryCandidates')
-			.paginate({ numItems: 200, cursor: cursor ?? null });
-		for (const candidate of page) {
-			if (candidate.author !== undefined || candidate.tags !== undefined) {
-				await ctx.db.patch(candidate._id, { author: undefined, tags: undefined });
-			}
-		}
-		if (!isDone) {
-			await ctx.scheduler.runAfter(0, internal.discovery.dropAuthorAndTags, {
-				cursor: continueCursor
-			});
-		}
-	}
-});
 
 // Dev: forget a source's candidates, then
 // poll it again. Run: npx convex run discovery:resetSource '{"key":"awwwards"}'

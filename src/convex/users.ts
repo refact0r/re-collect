@@ -87,22 +87,6 @@ export const setPasswordHash = internalMutation({
 	}
 });
 
-// One-off: the lockout count moved from users to loginAttempts. Unsets the old
-// fields so the schema can drop them; run once on dev and prod, then delete
-// this and the fields. Run: npx convex run users:dropLoginCounters
-export const dropLoginCounters = internalMutation({
-	args: {},
-	handler: async (ctx) => {
-		let cleared = 0;
-		for await (const user of ctx.db.query('users')) {
-			if (user.failedLogins === undefined && user.lastFailedLogin === undefined) continue;
-			await ctx.db.patch(user._id, { failedLogins: undefined, lastFailedLogin: undefined });
-			cleared++;
-		}
-		return { cleared };
-	}
-});
-
 async function getUser(ctx: MutationCtx, username: string) {
 	const user = await ctx.db
 		.query('users')
