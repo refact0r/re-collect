@@ -79,7 +79,7 @@ their untouched originals.
   made yet for the current image; `[]` = nothing to make, or the image couldn't
   be read.
 - **Making them**: `scheduleImageVariants(ctx, itemId)` queues
-  `imageVariantActions.makeVariants` on `variantPool` (one at a time, retried).
+  `imageVariantActions.makeVariants` on `variantPool` (three at a time, retried).
   Called by `items.add` when the item arrives with an image (uploads, extension
   saves and screenshots, discovery keeps) and by `screenshots.setCompleted`
   (worker captures, re-captures). The run reads the original from the bucket,
@@ -124,14 +124,18 @@ keeps freed memory):
 - The palette run (`taggingActions.repaletteItem`, not retried) also ran big
   AVIFs and a 40 MP GIF out of memory; it now runs sharp the same way.
 
-sharp runs with its cache off and one libvips thread (both modules), and the
-pool runs one image at a time. A second round at these limits (32 MP JPEG,
-WebP, PNG, GIF, animated GIF and tall captures; 8 MP AVIF) made every image's
-copies, but a first attempt can still run out when the image's other jobs
-(palette, tagging, embedding) or a warm process's leftovers share the memory:
-one of eleven did, and passed on the retry. So the guarantee is: alone, any
-image allowed in fits with room to spare, and the pool's three attempts cover
-a collision. A run that fails all three leaves the image without copies,
+sharp runs with its cache off and one libvips thread (both modules). Concurrent
+Node actions don't share memory: probed on dev (2026-11-16), four actions
+started at once each ran in their own instance and together held 1.2 GB
+without failing, so the pool runs three images at a time. Instances are reused
+one call after another, though, so a run can inherit a warm instance's
+leftovers. A second round at these limits (32 MP JPEG, WebP, PNG, GIF, animated
+GIF and tall captures; 8 MP AVIF) made every image's copies, but one first
+attempt of eleven ran out and passed on the retry; the prod remake of 96 images
+(about 5 minutes one at a time, a median of 1.8 s each, mostly fixed overhead
+rather than sharp) had one too. So the guarantee is: alone, any image allowed
+in fits with room to spare, and the pool's three attempts cover a warm
+instance's leftovers. A run that fails all three leaves the image without copies,
 shown as the original. The palette run isn't retried (it isn't on a pool).
 
 ## Quality: why a copy can look worse than the original

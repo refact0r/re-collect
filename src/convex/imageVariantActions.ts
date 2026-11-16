@@ -66,35 +66,29 @@ export const makeVariants = internalAction({
 			}
 		}
 
-		const stored: string[] = [];
-		const put = async (key: string, contentType: string, data: Buffer) => {
-			const upload = await fetch(await signUpload(key, contentType), {
-				method: 'PUT',
-				headers: { 'Content-Type': contentType },
-				body: new Uint8Array(data)
-			});
-			if (!upload.ok) throw new Error(`variant upload failed: ${upload.status}`);
-			stored.push(key);
-		};
-
-		const variants: ImageVariant[] = [];
+		const uploads: { key: string; data: Buffer }[] = [];
 		let original;
-		try {
-			const replacement = processed?.replacement;
-			if (replacement) {
-				const key = replacementKey(itemId);
-				await put(key, 'image/webp', replacement.data);
-				original = { key, width: replacement.width, height: replacement.height };
-			}
-			for (const copy of processed?.copies ?? []) {
-				const key = variantKey(itemId, copy.width);
-				await put(key, 'image/webp', copy.data);
-				variants.push({ key, width: copy.width });
-			}
-		} catch (error) {
+		const replacement = processed?.replacement;
+		if (replacement) {
+			const key = replacementKey(itemId);
+			uploads.push({ key, data: replacement.data });
+			original = { key, width: replacement.width, height: replacement.height };
+		}
+		const variants: ImageVariant[] = (processed?.copies ?? []).map((copy) => {
+			const key = variantKey(itemId, copy.width);
+			uploads.push({ key, data: copy.data });
+			return { key, width: copy.width };
+		});
+
+		const results = await Promise.allSettled(uploads.map(({ key, data }) => put(key, data)));
+		const failed = results.find((result) => result.status === 'rejected');
+		if (failed) {
 			// The pool retries the whole run, so what this one stored is dropped
-			await ctx.runMutation(internal.imageVariants.deleteObjects, { keys: stored });
-			throw error;
+			const stored = uploads.filter((_, i) => results[i].status === 'fulfilled');
+			await ctx.runMutation(internal.imageVariants.deleteObjects, {
+				keys: stored.map(({ key }) => key)
+			});
+			throw failed.reason;
 		}
 
 		await ctx.runMutation(internal.imageVariants.saveVariants, {
@@ -107,6 +101,15 @@ export const makeVariants = internalAction({
 		});
 	}
 });
+
+async function put(key: string, data: Buffer) {
+	const upload = await fetch(await signUpload(key, 'image/webp'), {
+		method: 'PUT',
+		headers: { 'Content-Type': 'image/webp' },
+		body: new Uint8Array(data)
+	});
+	if (!upload.ok) throw new Error(`variant upload failed: ${upload.status}`);
+}
 
 // An image's header, refusing one over its format's pixel limit before
 // anything decodes it

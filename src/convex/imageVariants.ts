@@ -10,10 +10,11 @@ import { imageVariantValidator } from './schema';
 // The database side of image variants (lib/imageVariants.ts); the resizing
 // itself is imageVariantActions.makeVariants (Node, for sharp).
 
-// One at a time, so runs never share a Node action's 512 MB (each holds a
-// decoded original). Retries cover a fetch or upload that fails in passing.
+// Each run is its own Node action with its own 512 MB (measured: concurrent
+// actions don't share memory), so a few run at once. Retries cover a fetch or
+// upload that fails in passing, and a warm instance's leftovers.
 const variantPool = new Workpool(components.variantPool, {
-	maxParallelism: 1,
+	maxParallelism: 3,
 	retryActionsByDefault: true,
 	defaultRetryBehavior: { maxAttempts: 3, initialBackoffMs: 2000, base: 4 }
 });
