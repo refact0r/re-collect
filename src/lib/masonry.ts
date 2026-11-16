@@ -65,9 +65,6 @@ export function nearestColumn(x: number, columnWidth: number, count: number, gap
  * it covers half of it and its gap, the same distance down as up
  */
 export function nearestSlot(fill: Fill, heights: number[], column: number, y: number, gap: number) {
-	let slot = 0;
-	fill.columns.forEach((c, i) => {
-		if (c === column && y > fill.tops[i] + (heights[i] + gap) / 2) slot++;
-	});
-	return slot;
+	const { columns, tops } = fill;
+	return columns.filter((c, i) => c === column && y > tops[i] + (heights[i] + gap) / 2).length;
 }
