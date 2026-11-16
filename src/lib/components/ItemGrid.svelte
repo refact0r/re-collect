@@ -7,7 +7,14 @@
 	import { useDeleteItem, useMutation } from '#lib/convex.js';
 	import { pointerDrag } from '#lib/pointerDrag.js';
 	import { shouldDisplayAsImage, getItemUrl, isBusy } from '#lib/itemDisplay.js';
-	import { GAP, columnCountFor, columnWidthFor, gapOf } from '#lib/masonry.js';
+	import {
+		GAP,
+		columnCountFor,
+		columnWidthFor,
+		fillColumns,
+		gapOf,
+		type Fill
+	} from '#lib/masonry.js';
 	import type { DisplayItem } from '#lib/types.js';
 	import IconSchedule from '~icons/material-symbols-light/schedule-outline-sharp';
 	import IconError from '~icons/material-symbols-light/error-outline-sharp';
@@ -120,90 +127,73 @@
 		return DEFAULT_HEIGHT + chromeY + titleHeight;
 	}
 
-	// ============ MASONRY LAYOUT ============
-	type GridCell = DisplayItem | { _id: 'placeholder'; height: number };
-	type Placeholder = { col: number; slot: number; height: number };
-	type Layout = { columns: GridCell[][]; before: DisplayItem | null; after: DisplayItem | null };
+	// ============ LAYOUT ============
+	// Cards are placed by their measured height (one observer for all of them); a card
+	// not measured yet, as on its first render, is placed by its estimate
+	let measured = $state.raw(new Map<string, number>());
+	let observer: ResizeObserver | undefined;
 
-	/**
-	 * Greedy masonry: each item goes into the currently shortest column. A placeholder
-	 * is inserted where the fill reaches its column + slot (before/after are its flat-order
-	 * neighbors); returns null if the fill never reaches that spot.
-	 */
-	function fillColumns(
-		list: DisplayItem[],
-		heights: number[],
-		placeholder?: Placeholder
-	): Layout | null {
-		if (columnWidth === 0) return null;
-
-		const columns: GridCell[][] = Array.from({ length: columnCount }, () => []);
-		const columnHeights = Array(columnCount).fill(0);
-		const shortest = () => columnHeights.indexOf(Math.min(...columnHeights));
-		let neighbors: Pick<Layout, 'before' | 'after'> | null = null;
-
-		for (let i = 0; i <= list.length; i++) {
-			if (
-				placeholder &&
-				!neighbors &&
-				shortest() === placeholder.col &&
-				columns[placeholder.col].length === placeholder.slot
-			) {
-				columns[placeholder.col].push({ _id: 'placeholder', height: placeholder.height });
-				columnHeights[placeholder.col] += placeholder.height + gap;
-				neighbors = { before: list[i - 1] ?? null, after: list[i] ?? null };
+	function measure(card: HTMLElement) {
+		observer ??= new ResizeObserver((entries) => {
+			const next = new Map(measured);
+			for (const { target, borderBoxSize } of entries) {
+				next.set((target as HTMLElement).dataset.id!, borderBoxSize[0].blockSize);
 			}
-			if (i === list.length) break;
-			const col = shortest();
-			columns[col].push(list[i]);
-			columnHeights[col] += heights[i] + gap;
-		}
-
-		if (placeholder && !neighbors) return null;
-		return { columns, before: null, after: null, ...neighbors };
+			measured = next;
+		});
+		// Border box: toggling titles changes only a card's padding
+		observer.observe(card, { box: 'border-box' });
+		return () => observer?.unobserve(card);
 	}
 
-	const normalColumns = $derived(
-		(fillColumns(items, items.map(estimateHeight))?.columns ?? []) as DisplayItem[][]
+	const heightOf = (item: DisplayItem) => measured.get(item._id) ?? estimateHeight(item);
+
+	type Position = { x: number; y: number };
+	type Layout = { fill: Fill; positions: Map<string, Position> };
+	const PLACEHOLDER = 'placeholder';
+
+	function arrange(ids: string[], heights: number[]): Layout {
+		const fill = fillColumns(heights, columnCount, gap);
+		const positions = new Map(
+			ids.map((id, i) => [id, { x: fill.columns[i] * (columnWidth + gap), y: fill.tops[i] }])
+		);
+		return { fill, positions };
+	}
+
+	const normal = $derived(
+		arrange(
+			items.map((item) => item._id),
+			items.map(heightOf)
+		)
 	);
 
 	// ============ DRAG ============
 	let draggedItem: DisplayItem | null = $state(null);
 	let previewPosition = $state({ x: 0, y: 0 });
 	// The layout with a placeholder at the drop target (null when the target is unreachable)
-	let simulation = $state.raw<Layout | null>(null);
+	let simulation = $state.raw<ReturnType<typeof simulate>>(null);
 	let cancelDrag: (() => void) | null = null;
 
 	// Taken at drag start: the layout doesn't change mid-drag, so heights and slot
 	// boundaries are computed once instead of on every move
 	let drag: {
-		offset: { x: number; y: number }; // pointer position within the card
-		others: DisplayItem[]; // flat order without the dragged item
+		offset: Position; // pointer position within the card
+		others: DisplayItem[]; // item order without the dragged item
 		heights: number[]; // parallel to others
 		height: number; // the dragged item's, for the placeholder
-		slotMidpoints: number[][]; // per column of the original layout
+		fill: Fill; // where others go without the placeholder
+		slotMidpoints: number[][]; // per column, of the cards as shown at drag start
 		target: { col: number; slot: number };
 	} | null = null;
 
-	const displayColumns: GridCell[][] = $derived(simulation?.columns ?? normalColumns);
+	const shown = $derived(simulation ?? normal);
 
 	function getColumnFromCursorX(cursorX: number, containerRect: DOMRect): number {
 		const col = Math.floor((cursorX - containerRect.left) / (columnWidth + gap));
 		return Math.max(0, Math.min(columnCount - 1, col));
 	}
 
-	// Vertical midpoints of each card in a column of the original layout; the cursor
-	// targets the slot of the first card whose midpoint is below it
-	function getSlotMidpoints(column: DisplayItem[]): number[] {
-		let y = 0;
-		return column.map((item) => {
-			const height = estimateHeight(item);
-			const midpoint = y + height / 2;
-			y += height + gap;
-			return midpoint;
-		});
-	}
-
+	// The cursor targets the slot of the first card in its column whose midpoint is below it
 	function getSlotFromCursorY(
 		cursorY: number,
 		containerRect: DOMRect,
@@ -213,8 +203,26 @@
 		return slot === -1 ? midpoints.length : slot;
 	}
 
+	// The placeholder goes in just before the card that would otherwise fill that slot,
+	// or after the last card when the fill ends on that column
 	function simulate(col: number, slot: number) {
-		return drag && fillColumns(drag.others, drag.heights, { col, slot, height: drag.height });
+		if (!drag) return null;
+		const { others, heights, height, fill } = drag;
+		let seen = 0;
+		let index = fill.columns.findIndex((c) => c === col && seen++ === slot);
+		if (index === -1 && seen === slot && fill.next === col) index = others.length;
+		if (index === -1) return null;
+
+		const layout = arrange(
+			others.map((item) => item._id as string).toSpliced(index, 0, PLACEHOLDER),
+			heights.toSpliced(index, 0, height)
+		);
+		return {
+			...layout,
+			placeholder: { ...layout.positions.get(PLACEHOLDER)!, height },
+			before: others[index - 1] ?? null,
+			after: others[index] ?? null
+		};
 	}
 
 	function handlePointerDown(item: DisplayItem, e: PointerEvent) {
@@ -228,15 +236,23 @@
 
 	function handleDragStart(item: DisplayItem, card: HTMLElement, x: number, y: number) {
 		const rect = card.getBoundingClientRect();
-		const col = normalColumns.findIndex((column) => column.some((i) => i._id === item._id));
-		const slot = normalColumns[col]?.findIndex((i) => i._id === item._id) ?? -1;
-		const others = items.filter((i) => i._id !== item._id);
+		const heights = items.map(heightOf);
+		const index = items.findIndex((i) => i._id === item._id);
+		const { columns, tops } = normal.fill;
+
+		const slotMidpoints: number[][] = Array.from({ length: columnCount }, () => []);
+		items.forEach((_, i) => slotMidpoints[columns[i]].push(tops[i] + heights[i] / 2));
+		const col = columns[index];
+		const slot = columns.slice(0, index).filter((c) => c === col).length;
+
+		const othersHeights = heights.toSpliced(index, 1);
 		drag = {
 			offset: { x: x - rect.left, y: y - rect.top },
-			others,
-			heights: others.map(estimateHeight),
-			height: estimateHeight(item),
-			slotMidpoints: normalColumns.map(getSlotMidpoints),
+			others: items.toSpliced(index, 1),
+			heights: othersHeights,
+			height: heights[index],
+			fill: fillColumns(othersHeights, columnCount, gap),
+			slotMidpoints,
 			target: { col, slot }
 		};
 		draggedItem = item;
@@ -249,7 +265,7 @@
 		if (!drag || !containerElement) return;
 		previewPosition = { x: x - drag.offset.x, y: y - drag.offset.y };
 
-		// Slots come from the ORIGINAL layout (with the dragged item), which is what the user sees
+		// Slots come from the layout at drag start (with the dragged item), which is what the user sees
 		const containerRect = containerElement.getBoundingClientRect();
 		const col = getColumnFromCursorX(x, containerRect);
 		const slot = getSlotFromCursorY(y, containerRect, drag.slotMidpoints[col] ?? []);
@@ -283,7 +299,10 @@
 	}
 
 	// Drop the drag's document listeners if the grid unmounts mid-drag
-	onDestroy(() => cancelDrag?.());
+	onDestroy(() => {
+		cancelDrag?.();
+		observer?.disconnect();
+	});
 </script>
 
 <!-- The link wraps the card's content but not its buttons, which can't sit inside a
@@ -352,28 +371,44 @@
 	{/if}
 {/snippet}
 
-<div class="masonry" bind:this={containerElement} bind:clientWidth={containerWidth}>
-	{#each displayColumns as column, colIndex (colIndex)}
-		<div class="column">
-			{#each column as item (item._id)}
-				{#if item._id === 'placeholder'}
-					<div class="placeholder" style:height="{(item as { height: number }).height}px"></div>
-				{:else}
-					{@const realItem = item as DisplayItem}
-					<!-- A mouse or pen drags the whole card; the keyboard reaches its link and buttons -->
-					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div
-						class="clickable card"
-						class:titled={showTitles}
-						class:dragging={draggedItem?._id === realItem._id}
-						onpointerdown={isDraggable ? (e) => handlePointerDown(realItem, e) : undefined}
-					>
-						{@render cardContent(realItem, getItemUrl(realItem._id))}
-					</div>
-				{/if}
-			{/each}
-		</div>
-	{/each}
+<!-- One list in item order, so tab and reading order follow it, each card placed by
+	its transform: a card that changes column moves rather than remounting. Nothing
+	renders until the width is known, which the client has before its first paint. -->
+<div
+	class="masonry"
+	bind:this={containerElement}
+	bind:clientWidth={containerWidth}
+	style:height="{containerWidth && shown.fill.height}px"
+>
+	{#if containerWidth}
+		{#each items as item (item._id)}
+			{@const position = shown.positions.get(item._id)}
+			<!-- A mouse or pen drags the whole card; the keyboard reaches its link and buttons.
+				Mid-drag, the dragged card is hidden, as is one that arrives (it has no place). -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class={[
+					'clickable card',
+					{ titled: showTitles, hidden: !position || draggedItem?._id === item._id }
+				]}
+				data-id={item._id}
+				style:width="{columnWidth}px"
+				style:transform={position && `translate(${position.x}px, ${position.y}px)`}
+				onpointerdown={isDraggable ? (e) => handlePointerDown(item, e) : undefined}
+				{@attach measure}
+			>
+				{@render cardContent(item, getItemUrl(item._id))}
+			</div>
+		{/each}
+		{#if simulation}
+			<div
+				class="placeholder"
+				style:width="{columnWidth}px"
+				style:height="{simulation.placeholder.height}px"
+				style:transform="translate({simulation.placeholder.x}px, {simulation.placeholder.y}px)"
+			></div>
+		{/if}
+	{/if}
 </div>
 
 {#if draggedItem}
@@ -382,26 +417,21 @@
 		style:transform="translate3d({previewPosition.x}px, {previewPosition.y}px, 0) rotate(2deg)"
 		style:width="{columnWidth}px"
 	>
-		<div class="clickable card" class:titled={showTitles}>
+		<div class={['clickable card', { titled: showTitles }]}>
 			{@render cardContent(draggedItem)}
 		</div>
 	</div>
 {/if}
 
 <style>
+	/* The gap is only read (gapOf) for the layout; the height is set inline, and the
+	   padding below it is extra */
 	.masonry {
-		display: flex;
-		gap: var(--gutter);
+		position: relative;
+		box-sizing: content-box;
 		width: 100%;
-		padding-bottom: var(--space-2xl);
-	}
-
-	.column {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
 		gap: var(--gutter);
-		min-width: 0;
+		padding-bottom: var(--space-2xl);
 	}
 
 	.card {
@@ -409,7 +439,14 @@
 		padding: var(--card-pad);
 	}
 
-	.card.dragging {
+	.masonry > .card,
+	.placeholder {
+		position: absolute;
+		top: 0;
+		left: 0;
+	}
+
+	.card.hidden {
 		opacity: 0;
 		pointer-events: none;
 	}

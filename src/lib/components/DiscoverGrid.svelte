@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { FeedCandidate } from '../../convex/discovery';
 	import { isWebUrl } from '../../convex/lib/urls.js';
-	import { GAP, columnCountFor, columnWidthFor, gapOf } from '#lib/masonry.js';
+	import { GAP, columnCountFor, columnWidthFor, fillColumns, gapOf } from '#lib/masonry.js';
 	import DiscoverMedia, { FALLBACK_ASPECT, MAX_ASPECT } from './DiscoverMedia.svelte';
 
 	interface Props {
@@ -26,17 +26,16 @@
 
 	// Each card goes into the shortest column, so the feed reads across in rows
 	const columns = $derived.by(() => {
-		const cols: FeedCandidate[][] = Array.from({ length: columnCount }, () => []);
-		const heights: number[] = Array(columnCount).fill(0);
-		for (const candidate of candidates) {
+		const heights = candidates.map((candidate) => {
 			const aspect =
 				candidate.imageWidth && candidate.imageHeight
 					? candidate.imageHeight / candidate.imageWidth
 					: FALLBACK_ASPECT;
-			const col = heights.indexOf(Math.min(...heights));
-			cols[col].push(candidate);
-			heights[col] += (columnWidth - CHROME_X) * Math.min(aspect, MAX_ASPECT) + CHROME_Y + gap;
-		}
+			return (columnWidth - CHROME_X) * Math.min(aspect, MAX_ASPECT) + CHROME_Y;
+		});
+		const cols: FeedCandidate[][] = Array.from({ length: columnCount }, () => []);
+		const fill = fillColumns(heights, columnCount, gap);
+		candidates.forEach((candidate, i) => cols[fill.columns[i]].push(candidate));
 		return cols;
 	});
 

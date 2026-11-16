@@ -22,3 +22,34 @@ export function columnCountFor(width: number, offset: number, gap = GAP) {
 export function columnWidthFor(width: number, count: number, gap = GAP) {
 	return (width - (count - 1) * gap) / count;
 }
+
+export interface Fill {
+	/** Each card's column, parallel to the heights */
+	columns: number[];
+	/** Each card's top edge */
+	tops: number[];
+	/** The column a further card would go into */
+	next: number;
+	/** The tallest column's height */
+	height: number;
+}
+
+/** Greedy masonry: each card in turn goes into the shortest column, the leftmost on a tie */
+export function fillColumns(heights: number[], count: number, gap: number): Fill {
+	const bottoms: number[] = Array(count).fill(0);
+	const shortest = () => bottoms.indexOf(Math.min(...bottoms));
+	const columns: number[] = [];
+	const tops: number[] = [];
+	for (const height of heights) {
+		const column = shortest();
+		columns.push(column);
+		tops.push(bottoms[column]);
+		bottoms[column] += height + gap;
+	}
+	return {
+		columns,
+		tops,
+		next: shortest(),
+		height: heights.length ? Math.max(...bottoms) - gap : 0
+	};
+}
