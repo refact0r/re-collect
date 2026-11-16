@@ -71,6 +71,16 @@ export default defineSchema({
 		codeHash: v.string()
 	}).index('by_codeHash', ['codeHash']),
 
+	// Emails left on the landing page (waitlist.join), trimmed and lowercased;
+	// invites are sent by hand. waitlistCount holds the one running total, so
+	// the ceiling check doesn't read the whole list.
+	waitlist: defineTable({
+		email: v.string()
+	}).index('by_email', ['email']),
+	waitlistCount: defineTable({
+		count: v.number()
+	}),
+
 	// R2 keys minted by r2.generateUploadUrl and not yet attached to an item, so
 	// items.add only accepts a key its caller uploaded (and only once), once
 	// the object is verified to be a raster image

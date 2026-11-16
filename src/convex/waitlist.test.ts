@@ -1,0 +1,69 @@
+// @vitest-environment edge-runtime
+/// <reference types="vite/client" />
+import rateLimiter from '@convex-dev/rate-limiter/test';
+import { convexTest } from 'convex-test';
+import { expect, test } from 'vitest';
+import { api } from './_generated/api';
+import schema from './schema';
+import { JOIN_BURST, WAITLIST_CEILING } from './waitlist';
+
+const modules = import.meta.glob('./**/*.ts');
+
+function setup() {
+	const t = convexTest(schema, modules);
+	rateLimiter.register(t);
+	return t;
+}
+
+const emails = (t: ReturnType<typeof convexTest>) =>
+	t.run(async (ctx) => (await ctx.db.query('waitlist').collect()).map((row) => row.email));
+
+test('joining stores the normalized email once', async () => {
+	const t = setup();
+	await t.mutation(api.waitlist.join, { email: '  Someone@Example.com ' });
+	await t.mutation(api.waitlist.join, { email: 'someone@example.com' });
+	expect(await emails(t)).toEqual(['someone@example.com']);
+	const counter = await t.run((ctx) => ctx.db.query('waitlistCount').first());
+	expect(counter?.count).toBe(1);
+});
+
+test('an invalid email is rejected', async () => {
+	const t = setup();
+	for (const email of ['', 'nope', 'a@b', 'a b@c.com', `${'a'.repeat(250)}@b.com`]) {
+		await expect(t.mutation(api.waitlist.join, { email })).rejects.toThrow(/email/);
+	}
+	expect(await emails(t)).toEqual([]);
+});
+
+test('a filled honeypot stores nothing', async () => {
+	const t = setup();
+	await t.mutation(api.waitlist.join, { email: 'bot@example.com', website: 'http://spam' });
+	expect(await emails(t)).toEqual([]);
+});
+
+test('a full list takes no new emails', async () => {
+	const t = setup();
+	await t.run(async (ctx) => {
+		await ctx.db.insert('waitlist', { email: 'early@example.com' });
+		await ctx.db.insert('waitlistCount', { count: WAITLIST_CEILING });
+	});
+	await expect(t.mutation(api.waitlist.join, { email: 'late@example.com' })).rejects.toThrow(
+		/full/
+	);
+	// Already on it answers the same, so a full list doesn't reveal who is
+	await expect(t.mutation(api.waitlist.join, { email: 'early@example.com' })).rejects.toThrow(
+		/full/
+	);
+	expect(await emails(t)).toEqual(['early@example.com']);
+});
+
+test('joins past the burst are turned away', async () => {
+	const t = setup();
+	for (let i = 0; i < JOIN_BURST; i++) {
+		await t.mutation(api.waitlist.join, { email: `person${i}@example.com` });
+	}
+	await expect(t.mutation(api.waitlist.join, { email: 'one@more.com' })).rejects.toThrow(
+		/try again/
+	);
+	expect(await emails(t)).toHaveLength(JOIN_BURST);
+});

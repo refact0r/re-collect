@@ -50,6 +50,7 @@
 	"dependencies": {
 		"@chenglou/pretext": "^1.0.0",
 		"@convex-dev/r2": "^0.10.4",
+		"@convex-dev/rate-limiter": "^0.4.3",
 		"@convex-dev/workpool": "^0.4.16",
 		"@fontsource/dm-mono": "^5.3.0",
 		"@fontsource/dm-sans": "^5.3.0",

@@ -14,6 +14,9 @@ importers:
       '@convex-dev/r2':
         specifier: ^0.10.4
         version: 0.10.4(@standard-schema/spec@1.1.0)(convex-svelte@0.15.1(@sveltejs/kit@3.2.0(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.3(@typescript-eslint/types@8.72.2))(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))(svelte@5.57.3(@typescript-eslint/types@8.72.2))(typescript@6.0.3)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)))(convex@1.50.0)(svelte@5.57.3(@typescript-eslint/types@8.72.2)))(convex@1.50.0)(svelte@5.57.3(@typescript-eslint/types@8.72.2))(typescript@6.0.3)
+      '@convex-dev/rate-limiter':
+        specifier: ^0.4.3
+        version: 0.4.3(@standard-schema/spec@1.1.0)(convex@1.50.0)(typescript@6.0.3)
       '@convex-dev/workpool':
         specifier: ^0.4.16
         version: 0.4.16(@standard-schema/spec@1.1.0)(convex-helpers@0.1.131(@standard-schema/spec@1.1.0)(convex@1.50.0)(typescript@6.0.3))(convex@1.50.0)(typescript@6.0.3)
@@ -299,6 +302,11 @@ packages:
     peerDependencies:
       convex: ^1.24.8
 
+  '@convex-dev/batch-worker@0.3.5':
+    resolution: {integrity: sha512-kTxLGy1TXRN6WLcENcoRWWnvPshv1sIZp2EpPqGqCB4FxDI7m8tEHUr+jCLdhGtSZT1UHkWtb1w8YYuEzTxHWQ==}
+    peerDependencies:
+      convex: ^1.43.0
+
   '@convex-dev/batch-worker@0.3.6':
     resolution: {integrity: sha512-tR+9DaHR3jG3oqkIFX0ok/6944h7UHEQgT6HTmiuxU+lERYuYMsxA2IWwFD5yTFbCpO3YJhqXU4QdGY90sgUqQ==}
     peerDependencies:
@@ -326,6 +334,15 @@ packages:
       svelte:
         optional: true
       vue:
+        optional: true
+
+  '@convex-dev/rate-limiter@0.4.3':
+    resolution: {integrity: sha512-IXIEGbZBANC5B23pGmIui7p49kSiltNWyJ7wX7nFmkR396X/Oj9ebgScgxSJMAW7DkhpUtt1NAnQHhjB0v6a/A==}
+    peerDependencies:
+      convex: ^1.43.0
+      react: ^18.2.0 || ^19.0.0
+    peerDependenciesMeta:
+      react:
         optional: true
 
   '@convex-dev/workpool@0.4.16':
@@ -2717,6 +2734,17 @@ snapshots:
     dependencies:
       convex: 1.50.0
 
+  '@convex-dev/batch-worker@0.3.5(@standard-schema/spec@1.1.0)(convex@1.50.0)(typescript@6.0.3)':
+    dependencies:
+      convex: 1.50.0
+      convex-helpers: 0.1.131(@standard-schema/spec@1.1.0)(convex@1.50.0)(typescript@6.0.3)
+    transitivePeerDependencies:
+      - '@standard-schema/spec'
+      - hono
+      - react
+      - typescript
+      - zod
+
   '@convex-dev/batch-worker@0.3.6(@standard-schema/spec@1.1.0)(convex@1.50.0)(typescript@6.0.3)':
     dependencies:
       convex: 1.50.0
@@ -2744,6 +2772,16 @@ snapshots:
       - '@standard-schema/spec'
       - hono
       - supports-color
+      - typescript
+      - zod
+
+  '@convex-dev/rate-limiter@0.4.3(@standard-schema/spec@1.1.0)(convex@1.50.0)(typescript@6.0.3)':
+    dependencies:
+      '@convex-dev/batch-worker': 0.3.5(@standard-schema/spec@1.1.0)(convex@1.50.0)(typescript@6.0.3)
+      convex: 1.50.0
+    transitivePeerDependencies:
+      - '@standard-schema/spec'
+      - hono
       - typescript
       - zod
 

@@ -36,6 +36,7 @@ import type * as tagging from "../tagging.js";
 import type * as taggingActions from "../taggingActions.js";
 import type * as users from "../users.js";
 import type * as viewPreferences from "../viewPreferences.js";
+import type * as waitlist from "../waitlist.js";
 
 import type {
   ApiFromModules,
@@ -72,6 +73,7 @@ declare const fullApi: ApiFromModules<{
   taggingActions: typeof taggingActions;
   users: typeof users;
   viewPreferences: typeof viewPreferences;
+  waitlist: typeof waitlist;
 }>;
 
 /**
@@ -102,6 +104,7 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
   screenshotPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"screenshotPool">;
   taggingPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"taggingPool">;
   embeddingPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"embeddingPool">;

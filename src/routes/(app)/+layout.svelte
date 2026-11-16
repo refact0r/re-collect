@@ -17,6 +17,7 @@
 	import Logo from '#lib/assets/logo.svelte';
 	import ConfirmDialog from '#lib/components/ConfirmDialog.svelte';
 	import ItemModal from '#lib/components/ItemModal.svelte';
+	import Landing from '#lib/components/Landing.svelte';
 	import Notices from '#lib/components/Notices.svelte';
 	import Sidebar, { NAV_LINKS } from '#lib/components/Sidebar.svelte';
 	import type { Id } from '../../convex/_generated/dataModel.js';
@@ -35,6 +36,9 @@
 	const collections = useQuery(api.collections.listWithCounts, () =>
 		data.writeToken ? { token: data.writeToken } : 'skip'
 	);
+
+	// Logged out, home is the landing page and its waitlist
+	const landing = $derived(!data.writeToken && page.route.id === '/(app)');
 
 	const currentItems = $state<CurrentItems>({ list: () => [] });
 
@@ -170,12 +174,18 @@
 		ontouchstart={() => (pendingScroll = null)}
 	>
 		<div {@attach observeContent}>
-			{@render children()}
+			{#if landing}
+				<Landing />
+			{:else}
+				{@render children()}
+			{/if}
 		</div>
 	</main>
 {/snippet}
 
-{#if !data.writeToken}
+{#if landing}
+	{@render content()}
+{:else if !data.writeToken}
 	<header>
 		<nav>
 			<div class="nav-links guest">
