@@ -72,7 +72,7 @@ their untouched originals.
   made yet for the current image; `[]` = nothing to make, or the image couldn't
   be read.
 - **Making them**: `scheduleImageVariants(ctx, itemId)` queues
-  `imageVariantActions.makeVariants` on `variantPool` (3 at a time, retried).
+  `imageVariantActions.makeVariants` on `variantPool` (one at a time, retried).
   Called by `items.add` when the item arrives with an image (uploads, extension
   saves and screenshots, discovery keeps) and by `screenshots.setCompleted`
   (worker captures, re-captures). The run reads the original from the bucket,
@@ -101,11 +101,13 @@ their untouched originals.
   on dev or a local copy of prod's data, capping would delete originals prod
   still points at (`reference/ops.md`, the shared bucket).
 
-Memory: Node actions get 512 MB. The largest real originals peaked at 130-270
-MB through sharp; a synthetic 8000×8000 PNG at ~350 MB with one decode, which
-capping now is (the copies are made from the capped image). A run that runs out
-of memory is retried, then the image is left without copies and shown as the
-original.
+Memory: Node actions get 512 MB. The first prod backfill (2026-11-16) ran
+some of the biggest originals out of memory: the AVIF pipeline peaked at
+260-375 MB locally with sharp's defaults, on top of the runtime's own use. With
+sharp's cache off and one libvips thread it peaks at 217-244 MB, about three
+times slower (up to ~9 s for a 3840×3840 JPEG), and the pool runs one image at
+a time. A run that still runs out of memory is retried, then the image is left
+without copies and shown as the original.
 
 ## Quality: why a copy can look worse than the original
 

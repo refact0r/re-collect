@@ -14,6 +14,14 @@ import {
 } from './lib/imageVariants';
 import { r2, signUpload } from './r2';
 
+// Node actions get 512 MB, which the biggest originals went past on prod:
+// libvips' operation cache and per-thread buffers (AVIF encoding most) took a
+// run to ~375 MB on top of the runtime's own. One thread and no cache keep it
+// under ~250 MB, at about three times the time (still seconds, in the
+// background).
+sharp.cache(false);
+sharp.concurrency(1);
+
 const FETCH_TIMEOUT_MS = 30_000;
 // WebP's limit on either side (and within AVIF's); a very tall image gets a
 // narrower copy

@@ -31,8 +31,8 @@ describe('makeCopies', () => {
 	it('gives a heavy PNG a light copy at its own width', async () => {
 		const noisy = await sharp({
 			create: {
-				width: 1600,
-				height: 1000,
+				width: 900,
+				height: 500,
 				channels: 3,
 				background: '#000',
 				noise: { type: 'gaussian', mean: 128, sigma: 40 }
@@ -41,7 +41,7 @@ describe('makeCopies', () => {
 			.png()
 			.toBuffer();
 		const { copies } = await makeCopies(noisy);
-		expect(widths(copies)).toEqual([512, 1600]);
+		expect(widths(copies)).toEqual([512, 900]);
 		expect(copies[1].data.length).toBeLessThan(noisy.length / 2);
 	});
 
