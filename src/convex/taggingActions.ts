@@ -15,6 +15,12 @@ import { RetryableError, embeddingToMake, embedImage, embedText } from './lib/em
 // Every tagging, palette and embedding job runs here, in the Node runtime: sharp
 // needs it, and its 512MB comfortably fits a decoded image or a parsed 4MB page
 
+// Node actions get 512 MB: without libvips' operation cache and with one
+// thread, decoding the biggest image allowed in fits (palette runs ran out of
+// memory on them otherwise)
+sharp.cache(false);
+sharp.concurrency(1);
+
 const MAX_EDGE_PX = 1024;
 const PALETTE_COLORS = 5;
 // Color Thief's stride; samples every Nth pixel of the raw RGBA buffer.

@@ -10,13 +10,13 @@ const image = (width: number, height: number, format: 'png' | 'jpeg' | 'webp' = 
 const widths = (copies: { width: number }[]) => copies.map((c) => c.width);
 
 describe('makeCopies', () => {
-	it('makes an AVIF copy at each tier well under the original', async () => {
+	it('makes a WebP copy at each tier well under the original', async () => {
 		const { width, height, copies } = await makeCopies(await image(3000, 2000));
 		expect({ width, height }).toEqual({ width: 3000, height: 2000 });
 		expect(widths(copies)).toEqual([512, 2048]);
 		for (const copy of copies) {
 			const meta = await sharp(copy.data).metadata();
-			expect(meta.format).toBe('heif');
+			expect(meta.format).toBe('webp');
 			expect(meta.width).toBe(copy.width);
 			expect(meta.height).toBe(Math.round((copy.width * 2000) / 3000));
 		}
@@ -45,15 +45,6 @@ describe('makeCopies', () => {
 		expect(copies[1].data.length).toBeLessThan(noisy.length / 2);
 	});
 
-	it('makes a copy over 4 megapixels WebP, which takes far less memory to encode', async () => {
-		const { copies } = await makeCopies(await image(2600, 3600));
-		expect(widths(copies)).toEqual([512, 2048]);
-		const formats = await Promise.all(
-			copies.map(async (copy) => (await sharp(copy.data).metadata()).format)
-		);
-		expect(formats).toEqual(['heif', 'webp']);
-	});
-
 	it('turns an EXIF-rotated image upright', async () => {
 		const sideways = await sharp(await image(2000, 1000))
 			.withMetadata({ orientation: 6 })
@@ -75,12 +66,12 @@ describe('makeCopies', () => {
 		expect(meta.icc).toEqual(icc);
 	});
 
-	it('keeps a very tall image within WebP limits', async () => {
-		// The 2048 copy would be 23040 tall, so it comes out narrower
-		const { copies } = await makeCopies(await image(2600, 29250, 'png'));
-		expect(widths(copies)).toEqual([512, 1456]);
+	it('keeps a tall copy within 10 megapixels', async () => {
+		// The 2048 copy would be 2048x9600, so it comes out narrower
+		const { copies } = await makeCopies(await image(2560, 12000, 'png'));
+		expect(widths(copies)).toEqual([512, 1460]);
 		const meta = await sharp(copies[1].data).metadata();
-		expect({ width: meta.width, height: meta.height }).toEqual({ width: 1456, height: 16383 });
+		expect(meta.width! * meta.height!).toBeLessThanOrEqual(10_000_000);
 	});
 
 	it('keeps an animation animated', async () => {
@@ -110,23 +101,47 @@ describe('makeCopies', () => {
 });
 
 describe('processImage', () => {
-	it('caps an oversized original at 3840, in its own format, and copies that', async () => {
-		const { width, height, capped, copies } = await processImage(await image(6000, 4000, 'png'));
-		expect(capped).toMatchObject({
-			contentType: 'image/png',
-			ext: 'png',
-			width: 3840,
-			height: 2560
-		});
-		const meta = await sharp(capped!.data).metadata();
-		expect({ format: meta.format, width: meta.width }).toEqual({ format: 'png', width: 3840 });
+	it('replaces an original wider than 3840 with a WebP 3840 wide, and copies that', async () => {
+		const { width, height, replacement, copies } = await processImage(
+			await image(6000, 4000, 'png')
+		);
+		expect(replacement).toMatchObject({ width: 3840, height: 2560 });
+		const meta = await sharp(replacement!.data).metadata();
+		expect({ format: meta.format, width: meta.width }).toEqual({ format: 'webp', width: 3840 });
 		expect({ width, height }).toEqual({ width: 3840, height: 2560 });
 		expect(widths(copies)).toEqual([512, 2048]);
 	});
 
-	it('leaves an original within the cap alone', async () => {
-		const { capped, width } = await processImage(await image(3840, 2160));
-		expect(capped).toBeNull();
+	it('replaces an original over 10 MB at its own size', { timeout: 30_000 }, async () => {
+		const noisy = await sharp({
+			create: {
+				width: 2400,
+				height: 1800,
+				channels: 3,
+				background: '#000',
+				noise: { type: 'gaussian', mean: 128, sigma: 60 }
+			}
+		})
+			.png({ compressionLevel: 1 })
+			.toBuffer();
+		expect(noisy.length).toBeGreaterThan(10 * 1024 * 1024);
+		const { replacement } = await processImage(noisy);
+		expect(replacement).toMatchObject({ width: 2400, height: 1800 });
+		expect(replacement!.data.length).toBeLessThan(noisy.length / 2);
+	});
+
+	it('leaves an original within the limits alone', async () => {
+		const { replacement, width } = await processImage(await image(3840, 2160));
+		expect(replacement).toBeNull();
 		expect(width).toBe(3840);
+	});
+
+	it('refuses an image over 32 megapixels before decoding it', async () => {
+		await expect(processImage(await image(8000, 6000))).rejects.toThrow(/pixel limit/i);
+	});
+
+	it('keeps a tall replacement within 10 megapixels', async () => {
+		const { replacement } = await processImage(await image(4000, 8000, 'png'));
+		expect(replacement!.width * replacement!.height).toBeLessThanOrEqual(10_000_000);
 	});
 });

@@ -6,6 +6,7 @@ import { action, type ActionCtx } from './_generated/server';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { RASTER_IMAGE_TYPES } from './lib/images';
+import { pixelLimit } from './lib/imageVariants';
 import { isPublicWebUrl, isWebUrl } from './lib/urls';
 import { r2 } from './r2';
 import { taggingModeValidator } from './schema';
@@ -28,6 +29,8 @@ const RASTER_TYPES: Partial<Record<string, string>> = {
 
 const notAnImage = () => new ConvexError('that is not a supported image');
 const tooLarge = () => new ConvexError('the image is over 30 MB');
+const tooManyPixels = (limit: number) =>
+	new ConvexError(`the image is over ${limit / 1_000_000} megapixels`);
 
 // Worth downloading: any declared image type but SVG, or untyped bytes. What
 // gets stored is decided by the bytes.
@@ -48,6 +51,8 @@ async function describeImage(data: Buffer) {
 	const contentType =
 		format === 'heif' ? (compression === 'av1' ? 'image/avif' : undefined) : RASTER_TYPES[format];
 	if (!contentType) throw notAnImage();
+	const limit = pixelLimit(format);
+	if (autoOrient.width * autoOrient.height > limit) throw tooManyPixels(limit);
 	return { data, contentType, width: autoOrient.width, height: autoOrient.height };
 }
 

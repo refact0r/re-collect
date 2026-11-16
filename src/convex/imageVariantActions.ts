@@ -6,69 +6,41 @@ import { internal } from './_generated/api';
 import { internalAction } from './_generated/server';
 import {
 	HEAVY_BYTES_PER_PIXEL,
+	MAX_IMAGE_PIXELS,
+	pixelLimit,
+	MAX_ORIGINAL_BYTES,
 	MAX_ORIGINAL_WIDTH,
-	cappedKey,
+	boundedWidth,
+	replacementKey,
 	variantKey,
 	variantWidthsFor,
 	type ImageVariant
 } from './lib/imageVariants';
 import { r2, signUpload } from './r2';
 
-// Node actions get 512 MB, which the biggest originals went past on prod:
-// libvips' operation cache and per-thread buffers (AVIF encoding most) took a
-// run to ~375 MB on top of the runtime's own. One thread and no cache keep it
-// under ~250 MB, at about three times the time (still seconds, in the
-// background).
+// Node actions get 512 MB, and libvips' operation cache and per-thread
+// buffers add to every run's memory (the first prod runs went past it). One
+// thread and no cache keep the worst image allowed in well under, at some
+// speed (still seconds, in the background).
 sharp.cache(false);
 sharp.concurrency(1);
 
 const FETCH_TIMEOUT_MS = 30_000;
-// WebP's limit on either side (and within AVIF's); a very tall image gets a
-// narrower copy
-const MAX_SIDE = 16383;
-// Animation is kept up to this many pixels across all frames, past which a
-// copy is the first frame only (decoding every frame of a long GIF is costly)
-const MAX_ANIMATED_PIXELS = 50_000_000;
 
-// Copies are AVIF with full-resolution color: smaller than WebP at quality 80
-// and without its half-resolution color, which smears colored text
-// (reference/image-variants.md has the measurements). The AVIF encoder needs
-// ~60 bytes per pixel, so a bigger copy (a portrait image's 2048 one) is WebP
-// at high quality, the runner-up; so is an animation, which sharp can't write
-// as AVIF.
-const MAX_AVIF_PIXELS = 4_000_000;
-const COPY_FORMATS = {
-	avif: {
-		contentType: 'image/avif',
-		ext: 'avif',
-		encode: (s: Sharp) => s.avif({ quality: 60, chromaSubsampling: '4:4:4' })
-	},
-	webp: {
-		contentType: 'image/webp',
-		ext: 'webp',
-		encode: (s: Sharp) => s.webp({ quality: 90, smartSubsample: true })
-	}
-};
+// Copies and replaced originals are WebP at quality 90 with sharp YUV: lossy
+// WebP keeps color at half resolution, which otherwise smears colored text.
+// AVIF measured a little better for fewer bytes, but encodes ~9x slower and
+// needs several times the memory (reference/image-variants.md).
+const encode = (s: Sharp, smartSubsample = true) => s.webp({ quality: 90, smartSubsample });
 
-// How an oversized original is re-encoded: its own format, at high quality.
-// Animations and AVIF are left as they came.
-const CAPPED_FORMATS = {
-	jpeg: {
-		contentType: 'image/jpeg',
-		ext: 'jpg',
-		encode: (s: Sharp) => s.jpeg({ quality: 92, mozjpeg: true })
-	},
-	png: { contentType: 'image/png', ext: 'png', encode: (s: Sharp) => s.png() },
-	webp: {
-		contentType: 'image/webp',
-		ext: 'webp',
-		encode: (s: Sharp) => s.webp({ quality: 92 })
-	}
-};
+// The most pixels a run encodes at once, so that no image allowed in
+// (MAX_IMAGE_PIXELS, 30 MB) takes it past a Node action's 512 MB. A bigger copy
+// or replacement (a very tall image) comes out narrower.
+const MAX_ENCODE_PIXELS = 10_000_000;
 
-// Makes the item's image variants (lib/imageVariants.ts), capping an oversized
-// original on the way, and records them. An image that won't decode, or is
-// gone, gets none: it's shown as it is.
+// Makes the item's image variants (lib/imageVariants.ts), replacing an
+// oversized original on the way, and records them. An image that won't decode,
+// is over the pixel limit, or is gone, gets none: it's shown as it is.
 export const makeVariants = internalAction({
 	args: { itemId: v.id('items') },
 	handler: async (ctx, { itemId }): Promise<void> => {
@@ -90,7 +62,7 @@ export const makeVariants = internalAction({
 			try {
 				processed = await processImage(Buffer.from(await response.arrayBuffer()));
 			} catch (error) {
-				console.warn(`makeVariants ${itemId}: ${imageKey} didn't decode:`, error);
+				console.warn(`makeVariants ${itemId}: ${imageKey} wasn't processed:`, error);
 			}
 		}
 
@@ -108,15 +80,15 @@ export const makeVariants = internalAction({
 		const variants: ImageVariant[] = [];
 		let original;
 		try {
-			const capped = processed?.capped;
-			if (capped) {
-				const key = cappedKey(itemId, capped.ext);
-				await put(key, capped.contentType, capped.data);
-				original = { key, width: capped.width, height: capped.height };
+			const replacement = processed?.replacement;
+			if (replacement) {
+				const key = replacementKey(itemId);
+				await put(key, 'image/webp', replacement.data);
+				original = { key, width: replacement.width, height: replacement.height };
 			}
 			for (const copy of processed?.copies ?? []) {
-				const key = variantKey(itemId, copy.width, copy.ext);
-				await put(key, copy.contentType, copy.data);
+				const key = variantKey(itemId, copy.width);
+				await put(key, 'image/webp', copy.data);
 				variants.push({ key, width: copy.width });
 			}
 		} catch (error) {
@@ -136,66 +108,74 @@ export const makeVariants = internalAction({
 	}
 });
 
-// Shrink-on-load (decoding a JPEG or WebP at a fraction of its size) is
-// faster but can leave moiré in fine patterns
-const fitWidth = (width: number) =>
-	({
-		width,
-		height: MAX_SIDE,
-		fit: 'inside',
-		withoutEnlargement: true,
-		fastShrinkOnLoad: false
-	}) as const;
-
-// The image's upright size, a capped replacement if it's oversized, and its
-// WebP copies (made from the capped one, if any), narrowest first
-export async function processImage(data: Buffer) {
-	const capped = await capOriginal(data);
-	const { width, height, copies } = await makeCopies(capped?.data ?? data);
-	return { width, height, capped, copies };
+// An image's header, refusing one over its format's pixel limit before
+// anything decodes it
+async function header(data: Buffer) {
+	const meta = await sharp(data).metadata();
+	if (meta.width * meta.height > pixelLimit(meta.format)) {
+		throw new Error(`over the pixel limit: ${meta.format} ${meta.width}x${meta.height}`);
+	}
+	return meta;
 }
 
-// An original wider than MAX_ORIGINAL_WIDTH at that width, upright, keeping
-// its color profile (and nothing else of its metadata), or null
-async function capOriginal(data: Buffer) {
-	const meta = await sharp(data).metadata();
-	const format = CAPPED_FORMATS[meta.format as keyof typeof CAPPED_FORMATS];
-	if (!format || (meta.pages ?? 1) > 1 || meta.autoOrient.width <= MAX_ORIGINAL_WIDTH) return null;
-	const { data: out, info } = await format
-		.encode(sharp(data).autoOrient().resize(fitWidth(MAX_ORIGINAL_WIDTH)).keepIccProfile())
-		.toBuffer({ resolveWithObject: true });
-	return { ...format, data: out, width: info.width, height: info.height };
+const read = (data: Buffer, animated = false) =>
+	sharp(data, { animated, limitInputPixels: MAX_IMAGE_PIXELS }).autoOrient();
+
+// Shrink-on-load (decoding a JPEG or WebP at a fraction of its size) is
+// faster but can leave moiré in fine patterns
+const toWidth = (width: number) => ({ width, fastShrinkOnLoad: false });
+
+// The image's upright size, a replacement if it's oversized, and its
+// copies (made from the replacement, if any), narrowest first
+export async function processImage(data: Buffer) {
+	const replacement = await replaceOriginal(data);
+	const { width, height, copies } = await makeCopies(replacement?.data ?? data);
+	return { width, height, replacement, copies };
+}
+
+// A still original wider than MAX_ORIGINAL_WIDTH or heavier than
+// MAX_ORIGINAL_BYTES as a WebP within those (and MAX_ENCODE_PIXELS),
+// upright, keeping its color profile and none of its other metadata; or null
+async function replaceOriginal(data: Buffer) {
+	const meta = await header(data);
+	const { width, height } = meta.autoOrient;
+	const oversized = width > MAX_ORIGINAL_WIDTH || data.length > MAX_ORIGINAL_BYTES;
+	if (!oversized || (meta.pages ?? 1) > 1) return null;
+	const target = boundedWidth(width, height, MAX_ORIGINAL_WIDTH, MAX_ENCODE_PIXELS);
+	const { data: out, info } = await encode(
+		read(data).resize({ width: target }).keepIccProfile(),
+		false
+	).toBuffer({ resolveWithObject: true });
+	if (out.length >= data.length) return null;
+	return { data: out, width: info.width, height: info.height };
 }
 
 // The image's upright size and its copies, narrowest first
 export async function makeCopies(data: Buffer) {
-	const meta = await sharp(data).metadata();
+	const meta = await header(data);
 	const { width, height } = meta.autoOrient;
 	const pages = meta.pages ?? 1;
 	const widths = variantWidthsFor(
 		width,
 		data.length / (width * height * pages) > HEAVY_BYTES_PER_PIXEL
 	);
-	if (widths.length === 0) return { width, height, copies: [] };
-
-	const animated = pages > 1 && width * height * pages <= MAX_ANIMATED_PIXELS;
+	// Animated while every frame together is within the input limit; past it,
+	// a copy is the first frame
+	const animated = pages > 1 && width * height * pages <= MAX_IMAGE_PIXELS;
+	const frames = animated ? pages : 1;
 
 	const copies = [];
 	for (const target of widths) {
-		const pixels = target * Math.min(MAX_SIDE, (target * height) / width);
-		const format = animated || pixels > MAX_AVIF_PIXELS ? COPY_FORMATS.webp : COPY_FORMATS.avif;
-		const { data: out, info } = await format
-			.encode(
-				sharp(data, { animated })
-					.autoOrient()
-					.resize(fitWidth(target))
-					// A P3 image stays P3: converted to sRGB it looks duller on a P3 screen
-					.keepIccProfile()
-			)
-			.toBuffer({ resolveWithObject: true });
-		copies.push({ ...format, data: out, width: info.width });
-		// Held to the height limit: a wider target would come out the same
-		if (info.width < target) break;
+		const copyWidth = boundedWidth(width, height, target, MAX_ENCODE_PIXELS / frames);
+		const { data: out, info } = await encode(
+			read(data, animated)
+				.resize(toWidth(copyWidth))
+				// A P3 image stays P3: converted to sRGB it looks duller on a P3 screen
+				.keepIccProfile()
+		).toBuffer({ resolveWithObject: true });
+		copies.push({ data: out, width: info.width });
+		// Held to a size limit: a wider target would come out the same
+		if (copyWidth < Math.min(target, width)) break;
 	}
 	return { width, height, copies };
 }

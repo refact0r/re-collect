@@ -74,7 +74,7 @@ the component.
 Images are served from a public custom domain on the bucket. URLs are stable:
 `${R2_PUBLIC_URL}/${imageKey}` — built in `imageFields()` in
 `src/convex/items.ts` and in `taggingActions.ts` for fetching originals.
-`imageFields()` also builds the `srcset` over the image's smaller AVIF copies
+`imageFields()` also builds the `srcset` over the image's smaller WebP copies
 (`reference/image-variants.md`), which `imageVariantActions` writes under
 `variants/` with `signUpload` (a key's slashes are signed as path separators).
 Don't switch this to `r2.getUrl()`/presigned GETs: stable URLs are cacheable

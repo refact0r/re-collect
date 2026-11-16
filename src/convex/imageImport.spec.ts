@@ -33,6 +33,15 @@ describe('decodeDataImage', () => {
 		await expect(decodeDataImage('data:image/png,abc')).rejects.toThrow('not a supported image');
 	});
 
+	it('refuses an image over 32 megapixels', async () => {
+		const huge = await sharp({
+			create: { width: 8000, height: 6000, channels: 3, background: '#c33' }
+		})
+			.png()
+			.toBuffer();
+		await expect(decodeDataImage(dataUrl('image/png', huge))).rejects.toThrow('over 32 megapixels');
+	});
+
 	it('refuses anything over the cap before decoding it', async () => {
 		const huge = `data:image/png;base64,${'A'.repeat(41 * 1024 * 1024)}`;
 		await expect(decodeDataImage(huge)).rejects.toThrow('over 30 MB');

@@ -1,6 +1,5 @@
 // Smaller copies of an item's image, so a small display never downloads
-// or decodes the full image. The original stays the widest candidate, capped
-// at MAX_ORIGINAL_WIDTH.
+// or decodes the full image, and limits on the image itself.
 
 export type ImageVariant = { key: string; width: number };
 
@@ -9,9 +8,39 @@ export type ImageVariant = { key: string; width: number };
 // narrower than a tier is shown as itself there.
 export const VARIANT_WIDTHS = [512, 2048];
 
-// Wider originals (huge photos, 5K exports) are replaced by a copy this wide,
-// in their own format at high quality, for the item modal
+// The most pixels an image may have (one frame) to be saved at all: room for
+// a 6900×4600 photo or a 1440×22000 full-page capture. Set by what a variants
+// run can process within a Node action's 512 MB, measured on Convex
+// (reference/image-variants.md). AVIF decodes whole, at several times the
+// memory, so it gets a lower limit.
+export const MAX_IMAGE_PIXELS = 32_000_000;
+export const MAX_AVIF_PIXELS = 8_000_000;
+
+// The limit for an image of this format (sharp's name: AVIF is 'heif')
+export const pixelLimit = (format: string | undefined) =>
+	format === 'heif' ? MAX_AVIF_PIXELS : MAX_IMAGE_PIXELS;
+
+// An original wider than this (huge photos, 5K exports) or heavier than
+// MAX_ORIGINAL_BYTES is replaced by a WebP, at most this wide,
+// for the item modal
 export const MAX_ORIGINAL_WIDTH = 3840;
+export const MAX_ORIGINAL_BYTES = 10 * 1024 * 1024;
+
+// WebP's limit on either side (and within AVIF's)
+export const MAX_SIDE = 16383;
+
+// The width to resize an image to so that it's at most maxWidth wide, at most
+// maxPixels in all, and within MAX_SIDE either way (never wider than it is)
+export function boundedWidth(width: number, height: number, maxWidth: number, maxPixels: number) {
+	const scale = Math.min(
+		1,
+		maxWidth / width,
+		Math.sqrt(maxPixels / (width * height)),
+		MAX_SIDE / width,
+		MAX_SIDE / height
+	);
+	return Math.max(1, Math.floor(width * scale));
+}
 
 // A copy must save at least this much width over the original to be worth one
 const MIN_SHRINK = 1.25;
@@ -33,11 +62,11 @@ export function variantWidthsFor(width: number, heavy = false) {
 	return widths;
 }
 
-export const variantKey = (itemId: string, width: number, ext: string, now = Date.now()) =>
-	`variants/${itemId}-${now}-${width}w.${ext}`;
+export const variantKey = (itemId: string, width: number, now = Date.now()) =>
+	`variants/${itemId}-${now}-${width}w.webp`;
 
-export const cappedKey = (itemId: string, ext: string, now = Date.now()) =>
-	`originals/${itemId}-${now}.${ext}`;
+export const replacementKey = (itemId: string, now = Date.now()) =>
+	`originals/${itemId}-${now}.webp`;
 
 // Each copy is offered as this share of its real width, so the browser only
 // picks one it will shrink by at least a tenth: shown at 94-99% of its width

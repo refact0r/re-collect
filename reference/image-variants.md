@@ -1,7 +1,8 @@
 # Image variants
 
-Every item image gets smaller AVIF copies in two tiers, so a small display
-never downloads or decodes the full image, and an oversized original is capped.
+Every item image gets smaller WebP copies in two tiers, so a small display
+never downloads or decodes the full image; an oversized original is replaced,
+and an image over the pixel limit is refused at upload.
 Built 2026-11-16 as a prototype; the open decisions are at the end.
 
 ## Why
@@ -59,15 +60,21 @@ their untouched originals.
   shows the original. A **heavy** original (over 0.5 bytes per pixel: PNG
   photos and exports, maximum-quality JPEGs; screenshots are ~0.07) narrower
   than 2560 also gets a grid copy at its own width, so the grid gets the same
-  pixels as an AVIF instead of a multi-megabyte PNG.
-- **Capped originals**: a still JPEG, PNG or WebP wider than `3840` is replaced
-  by a 3840-wide copy in its own format (JPEG q92 mozjpeg, lossless PNG, WebP
-  q92), upright, keeping its color profile and dropping the rest of its
-  metadata (EXIF, GPS). It's stored at `originals/{itemId}-{ts}.{ext}` and
-  becomes the item's `imageKey` (and size); the replaced object is deleted an
-  hour later, since tagging, palette and embedding runs queued with the item
-  may still be reading it, and the item is re-embedded. Animations and AVIF are
-  left as they came.
+  pixels as a WebP instead of a multi-megabyte PNG.
+- **Upload limit**: an image over `MAX_IMAGE_PIXELS` (32 MP, one frame; AVIF
+  `MAX_AVIF_PIXELS`, 8 MP) is refused
+  where its bytes are checked (`describeImage` in `imageImport.ts`: app
+  uploads, extension saves, discovery keeps), on top of the 30 MB file limit.
+  It's the size every step below is budgeted for (Memory, below). Images that
+  arrive another way (the worker's og:images) and are over it get no copies.
+- **Replaced originals**: a still original wider than `3840` or over 10 MB
+  (`MAX_ORIGINAL_WIDTH`, `MAX_ORIGINAL_BYTES`) is replaced by a WebP quality 90
+  at most 3840 wide (and 10 MP), upright, keeping its color profile and
+  dropping the rest of its metadata (EXIF, GPS). It's stored at
+  `originals/{itemId}-{ts}.webp` and becomes the item's `imageKey` (and size);
+  the replaced object is deleted an hour later, since tagging, palette and
+  embedding runs queued with the item may still be reading it, and the item is
+  re-embedded. Animations are left as they came.
 - **`items.imageVariants`**: `{ key, width }[]`, narrowest first. Unset = not
   made yet for the current image; `[]` = nothing to make, or the image couldn't
   be read.
@@ -76,16 +83,13 @@ their untouched originals.
   Called by `items.add` when the item arrives with an image (uploads, extension
   saves and screenshots, discovery keeps) and by `screenshots.setCompleted`
   (worker captures, re-captures). The run reads the original from the bucket,
-  caps it if needed, makes the copies from the (capped) image with
-  `signUpload` to `variants/{itemId}-{ts}-{width}w.avif`, and records them with
+  replaces it if needed, makes the copies from the (replaced) image with
+  `signUpload` to `variants/{itemId}-{ts}-{width}w.webp`, and records them with
   `saveVariants`, which drops everything if the image changed meanwhile.
-  Copies are AVIF quality 60 with full-resolution color (4:4:4), upright, keep
+  Copies are WebP quality 90 with smart (sharp YUV) subsampling, upright, keep
   the original's color profile, and skip shrink-on-load (moiré); see Quality
-  below. A copy over 4 megapixels (a portrait image's 2048 copy) and an
-  animation are WebP quality 90 with smart subsampling instead: the AVIF
-  encoder needs ~60 bytes per pixel (a 6 MP copy took ~390 MB, WebP ~190 MB),
-  and sharp can't write animated AVIF.
-  Very tall images are held to 16383px.
+  below. Every encode is held to 10 MP (a very tall image's copy comes out
+  narrower) and WebP's 16383px sides; animations stay animated.
 - **Deleting them**: `deleteImageObjects` deletes the original and its copies;
   `items.remove` and `setCompleted` (on a new image) go through it.
 - **Serving them**: `imageFields(item)` in `items.ts` returns `imageUrl` (the
@@ -104,13 +108,31 @@ their untouched originals.
   on dev or a local copy of prod's data, capping would delete originals prod
   still points at (`reference/ops.md`, the shared bucket).
 
-Memory: Node actions get 512 MB. The first prod backfill (2026-11-16) ran
-some of the biggest originals out of memory: the AVIF pipeline peaked at
-260-375 MB locally with sharp's defaults, on top of the runtime's own use. With
-sharp's cache off and one libvips thread it peaks at 217-244 MB, about three
-times slower (up to ~9 s for a 3840×3840 JPEG), and the pool runs one image at
-a time. A run that still runs out of memory is retried, then the image is left
-without copies and shown as the original.
+Memory: Node actions get 512 MB, and a run must never need more for any image
+allowed in. Measured on the dev deployment (2026-11-16) with worst-case
+uploads, one at a time (local measurements on a Mac overstate it, since macOS
+keeps freed memory):
+
+- With a 16 MP encode budget, JPEG, WebP, PNG and GIF passed at 16-40 MP, but
+  tall images (1440 wide, 16-40 MP) sometimes ran out of memory on the first
+  attempt and only passed on the pool's retry; the full-width WebP encode was
+  the costly step. Hence `MAX_ENCODE_PIXELS` = 10 MP (a 3840×2560 replacement
+  still fits) and a 32 MP upload limit, for margin.
+- AVIF input decodes whole, at several times the memory: it failed every
+  attempt at 25 MP and up and was flaky at 12-20 MP, so AVIF uploads are
+  limited to 8 MP (`MAX_AVIF_PIXELS`).
+- The palette run (`taggingActions.repaletteItem`, not retried) also ran big
+  AVIFs and a 40 MP GIF out of memory; it now runs sharp the same way.
+
+sharp runs with its cache off and one libvips thread (both modules), and the
+pool runs one image at a time. A second round at these limits (32 MP JPEG,
+WebP, PNG, GIF, animated GIF and tall captures; 8 MP AVIF) made every image's
+copies, but a first attempt can still run out when the image's other jobs
+(palette, tagging, embedding) or a warm process's leftovers share the memory:
+one of eleven did, and passed on the retry. So the guarantee is: alone, any
+image allowed in fits with room to spare, and the pool's three attempts cover
+a collision. A run that fails all three leaves the image without copies,
+shown as the original. The palette run isn't retried (it isn't on a pool).
 
 ## Quality: why a copy can look worse than the original
 
@@ -146,7 +168,13 @@ Grid slot (726 device px), averaged over 10 images, against the original:
 | **AVIF q60 4:4:4**         | 34.0 dB | 0.96        | 26.3 KB |
 | lossless WebP              | 35.1 dB | 0.46        | 210 KB  |
 
-AVIF encodes ~9x slower than WebP (~180 ms per 768 copy); the whole dev
+**Chosen: WebP quality 90 with smart subsampling.** AVIF 4:4:4 measured a
+little better for half the bytes, and shipped briefly, but encodes ~9x slower
+(~180 ms per 768 copy), needs ~60 bytes per pixel to encode (it ran prod's
+portrait images out of memory), and is heavier for the browser to decode. At
+these sizes the bytes don't cost anything (R2 serves for free), so WebP q90 is
+the simpler, cheaper choice at nearly the same quality. For the record, the
+AVIF run over the whole dev
 library still took under a minute locally.
 
 ## Gotchas found
@@ -162,9 +190,9 @@ library still took under a minute locally.
 
 ## Open decisions
 
-- **The cap**: 3840 wide, by resolution rather than file size (a size cap would
-  have to re-encode at falling quality until it fits). Uploads are still
-  limited to 30 MB on the way in.
+- **The limits**: originals are replaced past 3840 wide or 10 MB, and uploads
+  are refused past `MAX_IMAGE_PIXELS` and 30 MB. The pixel limit is set by what
+  a Node action can process (Memory, above), not by taste.
 - **1x screens**: a grid column under 512px gets the 512 copy (1-1.6x the
   column). Telling the browser the grid is ~1.5x wider (`sizes`) would give 1x
   screens the grid tier too, at more bytes.
@@ -172,7 +200,3 @@ library still took under a minute locally.
   to 1024px themselves (`taggingActions.fetchAndDecode`). They could read the
   2048 copy, but they run alongside the copies being made, so they'd need to
   wait for them or fall back.
-- **AVIF decode cost**: AVIF is heavier for the browser to decode than WebP.
-  The atlas (up to ~400 small copies) looked fine, but wasn't profiled; WebP
-  quality 90 with `smartSubsample` is the fallback, at ~57% more bytes than
-  WebP q80 (~2x AVIF).
