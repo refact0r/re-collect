@@ -53,3 +53,21 @@ export function fillColumns(heights: number[], count: number, gap: number): Fill
 		height: heights.length ? Math.max(...bottoms) - gap : 0
 	};
 }
+
+/** The column whose left edge is nearest x */
+export function nearestColumn(x: number, columnWidth: number, count: number, gap: number) {
+	return Math.max(0, Math.min(count - 1, Math.round(x / (columnWidth + gap))));
+}
+
+/**
+ * The slot in a column (the index among its cards, or their count for its end) whose top
+ * is nearest y: a card dropped with its top edge at y passes a card of the column once
+ * it covers half of it and its gap, the same distance down as up
+ */
+export function nearestSlot(fill: Fill, heights: number[], column: number, y: number, gap: number) {
+	let slot = 0;
+	fill.columns.forEach((c, i) => {
+		if (c === column && y > fill.tops[i] + (heights[i] + gap) / 2) slot++;
+	});
+	return slot;
+}

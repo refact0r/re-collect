@@ -12,6 +12,8 @@
 		columnCountFor,
 		columnWidthFor,
 		fillColumns,
+		nearestColumn,
+		nearestSlot,
 		gapOf,
 		type Fill
 	} from '#lib/masonry.js';
@@ -182,26 +184,10 @@
 		heights: number[]; // parallel to others
 		height: number; // the dragged item's, for the placeholder
 		fill: Fill; // where others go without the placeholder
-		slotMidpoints: number[][]; // per column, of the cards as shown at drag start
 		target: { col: number; slot: number };
 	} | null = null;
 
 	const shown = $derived(simulation ?? normal);
-
-	function getColumnFromCursorX(cursorX: number, containerRect: DOMRect): number {
-		const col = Math.floor((cursorX - containerRect.left) / (columnWidth + gap));
-		return Math.max(0, Math.min(columnCount - 1, col));
-	}
-
-	// The cursor targets the slot of the first card in its column whose midpoint is below it
-	function getSlotFromCursorY(
-		cursorY: number,
-		containerRect: DOMRect,
-		midpoints: number[]
-	): number {
-		const slot = midpoints.findIndex((midpoint) => cursorY - containerRect.top < midpoint);
-		return slot === -1 ? midpoints.length : slot;
-	}
 
 	// The placeholder goes in just before the card that would otherwise fill that slot,
 	// or after the last card when the fill ends on that column
@@ -238,10 +224,7 @@
 		const rect = card.getBoundingClientRect();
 		const heights = items.map(heightOf);
 		const index = items.findIndex((i) => i._id === item._id);
-		const { columns, tops } = normal.fill;
-
-		const slotMidpoints: number[][] = Array.from({ length: columnCount }, () => []);
-		items.forEach((_, i) => slotMidpoints[columns[i]].push(tops[i] + heights[i] / 2));
+		const { columns } = normal.fill;
 		const col = columns[index];
 		const slot = columns.slice(0, index).filter((c) => c === col).length;
 
@@ -252,7 +235,6 @@
 			heights: othersHeights,
 			height: heights[index],
 			fill: fillColumns(othersHeights, columnCount, gap),
-			slotMidpoints,
 			target: { col, slot }
 		};
 		draggedItem = item;
@@ -265,10 +247,11 @@
 		if (!drag || !containerElement) return;
 		previewPosition = { x: x - drag.offset.x, y: y - drag.offset.y };
 
-		// Slots come from the layout at drag start (with the dragged item), which is what the user sees
-		const containerRect = containerElement.getBoundingClientRect();
-		const col = getColumnFromCursorX(x, containerRect);
-		const slot = getSlotFromCursorY(y, containerRect, drag.slotMidpoints[col] ?? []);
+		// The target follows the dragged card, wherever it was grabbed: the slot nearest its
+		// top edge, in the column nearest its left edge
+		const container = containerElement.getBoundingClientRect();
+		const col = nearestColumn(previewPosition.x - container.left, columnWidth, columnCount, gap);
+		const slot = nearestSlot(drag.fill, drag.heights, col, previewPosition.y - container.top, gap);
 
 		// Most moves stay over the same slot; only re-run the layout when the target changes
 		if (col === drag.target.col && slot === drag.target.slot) return;
