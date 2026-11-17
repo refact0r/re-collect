@@ -20,12 +20,9 @@ type SearchFields = Pick<
 	| 'fonts'
 >;
 
-// Build the combined full-text-search string for an item: user-entered fields
-// (title/description/url, a text note's content), the captured og:description,
-// AI-tagging output (subject/styles/aiTags), palette-derived color names, and
-// the page's font names. Pass the whole item as it will be stored, e.g.
-// `buildSearchText({ ...item, ...patch })`. paletteHex is intentionally omitted:
-// hex codes aren't useful as search tokens, but paletteNames is.
+// An item's full-text search string. Pass the whole item as it will be stored,
+// e.g. `buildSearchText({ ...item, ...patch })`. paletteHex is left out: hex
+// codes aren't useful search tokens, its paletteNames are.
 export function buildSearchText(fields: Partial<SearchFields>): string {
 	return [
 		fields.title,

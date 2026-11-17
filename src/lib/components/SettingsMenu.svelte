@@ -1,7 +1,12 @@
 <script lang="ts">
-	import { TAGGING_MODE_LABEL, taggingModeOptions, type TaggingMode } from '#lib/taggingModes.js';
+	import {
+		TAGGING_MODE_LABEL,
+		linkImageModeOptions,
+		taggingModeOptions,
+		type TaggingMode
+	} from '#lib/taggingModes.js';
 	import { api } from '../../convex/_generated/api.js';
-	import type { Doc, Id } from '../../convex/_generated/dataModel.js';
+	import type { Id } from '../../convex/_generated/dataModel.js';
 	import { useMutation, useQuery } from '#lib/convex.js';
 	import { getCollectionsContext } from '#lib/context.js';
 	import Dropdown from './Dropdown.svelte';
@@ -26,9 +31,7 @@
 	);
 
 	const collection = $derived(
-		collectionId
-			? (collections.data?.find((c: Doc<'collections'>) => c._id === collectionId) ?? null)
-			: null
+		collectionId ? (collections.data?.find((c) => c._id === collectionId) ?? null) : null
 	);
 	const source = $derived(collectionId ? collection : homePrefs.data);
 	const taggingMode = $derived(source?.taggingMode ?? 'visual');
@@ -38,10 +41,6 @@
 	const titleOptions = [
 		{ value: false, label: 'hidden' },
 		{ value: true, label: 'shown' }
-	] as const;
-	const linkImageOptions = [
-		{ value: 'screenshot', label: 'screenshot' },
-		{ value: 'og', label: 'og image' }
 	] as const;
 
 	function setShared(value: boolean) {
@@ -128,7 +127,7 @@
 					<div class="group">
 						<span class="group-label">link image default</span>
 						<div class="mode-options">
-							{#each linkImageOptions as opt (opt.value)}
+							{#each linkImageModeOptions as opt (opt.value)}
 								<button
 									class:active={linkImageMode === opt.value}
 									onclick={() => setDefaults({ linkImageMode: opt.value })}

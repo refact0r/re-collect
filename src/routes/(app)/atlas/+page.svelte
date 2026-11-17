@@ -17,13 +17,14 @@
 		litItems,
 		noLenses,
 		fontsByUse,
+		toggled,
 		UNCOLLECTED,
-		type Lenses,
-		type Region
+		type Lenses
 	} from '#lib/atlas.js';
-	import { getCollectionsContext, getCurrentItemsContext, getItemsContext } from '#lib/context.js';
+	import { getCollectionsContext, getItemsContext } from '#lib/context.js';
+	import { useCurrentItems } from '#lib/currentItems.svelte.js';
 	import { useLibraryMap } from '#lib/libraryMap.svelte.js';
-	import { pageTitle } from '#lib/pageTitle.svelte.js';
+	import { usePageTitle } from '#lib/pageTitle.svelte.js';
 	import LensPanel from '#lib/components/atlas/LensPanel.svelte';
 	import MapCanvas, { type Placed } from '#lib/components/atlas/MapCanvas.svelte';
 	import SelectionPanel from '#lib/components/atlas/SelectionPanel.svelte';
@@ -34,24 +35,16 @@
 	const collections = getCollectionsContext();
 	const map = useLibraryMap();
 
-	$effect(() => {
-		pageTitle.value = 'atlas';
-		return () => (pageTitle.value = null);
-	});
+	usePageTitle(() => 'atlas');
 
 	const items = $derived(itemsQuery.data ?? []);
 	const byId = $derived(new Map(items.map((item) => [item._id, item])));
 	// The map's points whose item still exists, and those items
 	const points = $derived(map.points.filter((p) => byId.has(p.itemId)));
 	const mapped = $derived(points.map((p) => byId.get(p.itemId)!));
-	// The item modal steps through the items on the map (set during init so the
-	// modal, rendered after the page, sees it at once), until a page without one
-	const currentItems = getCurrentItemsContext();
-	const list = () => mapped;
-	currentItems.list = list;
-	$effect(() => () => {
-		if (currentItems.list === list) currentItems.list = () => [];
-	});
+	const mappedById = $derived(new Map(mapped.map((item) => [item._id, item])));
+	// The item modal steps through the items on the map
+	useCurrentItems(() => mapped);
 
 	/* Arrangement: where each item sits */
 
@@ -103,9 +96,7 @@
 	});
 
 	function toggleStyle(style: string) {
-		const styles = new Set(lenses.styles);
-		if (!styles.delete(style)) styles.add(style);
-		lenses = { ...lenses, styles };
+		lenses = { ...lenses, styles: toggled(lenses.styles, style) };
 	}
 
 	// The time-lapse: the library growing in the order it was saved
@@ -147,16 +138,24 @@
 	/* Selection: what takes the panel over from the filters */
 
 	let selectedIds = $state.raw<ItemId[]>([]);
-	// The region a selection came from, while it's still that selection
-	let selectedRegion = $state.raw<Region>();
-	const selected = $derived(selectedIds.flatMap((id) => byId.get(id) ?? []));
+	let fromRegion = $state(false);
+	const selected = $derived(selectedIds.flatMap((id) => mappedById.get(id) ?? []));
 	const selectedSet = $derived(new Set(selected.map((item) => item._id)));
+	// The region a selection came from, found by its items since a recompute reassigns ids
+	const selectedRegion = $derived(
+		fromRegion
+			? regions.find(
+					(r) =>
+						r.itemIds.length === selected.length && r.itemIds.every((id) => selectedSet.has(id))
+				)
+			: undefined
+	);
 
-	function select(ids: ItemId[], region?: Region) {
+	function select(ids: ItemId[], region = false) {
 		// the panel opening for a selection, or closing with it, resizes the map
 		if (!panelOpen && ids.length > 0 !== selected.length > 0) canvas?.glide();
 		selectedIds = ids;
-		selectedRegion = region;
+		fromRegion = region;
 	}
 
 	// The items closest to one on the map by look, whatever the arrangement
@@ -188,11 +187,9 @@
 	function selectRegion(id: number) {
 		const region = regions.find((r) => r.id === id);
 		if (!region) return;
-		select(region.itemIds, region);
+		select(region.itemIds, true);
 		canvas?.fit(region.itemIds);
 	}
-
-	/* View */
 
 	let canvas = $state<MapCanvas>();
 	const sizes = [32, 48, 72, 104, 152, 220, 320];
@@ -200,8 +197,6 @@
 	const resize = (step: number) => (thumb = sizes[sizes.indexOf(thumb) + step] ?? thumb);
 	let boxMode = $state(false);
 
-	let innerWidth = $state(1024);
-	const narrow = $derived(innerWidth <= 768);
 	// The panel beside the map: the filters, or the selection while there is one
 	let panelOpen = $state(true);
 	const panelShown = $derived(mapped.length > 0 && (panelOpen || selected.length > 0));
@@ -221,7 +216,7 @@
 		untrack(() => {
 			const params = page.url.searchParams;
 			// a phone has no room for the panel, region names or big thumbnails
-			if (narrow) {
+			if (window.matchMedia('(max-width: 768px)').matches) {
 				panelOpen = false;
 				showLabels = false;
 				thumb = 48;
@@ -231,16 +226,15 @@
 			// against every item, as the patterns page lists them; the ones off the map just don't light
 			const font = fontsByUse(items).find((f) => f.query === params.get('font'));
 			if (font) {
-				lenses = { ...noLenses(), found: { query: font.name, itemIds: new Set(font.itemIds) } };
+				const found = { query: font.name, words: false, hits: new Set(font.itemIds) };
+				lenses = { ...noLenses(), found };
 			}
 			if (params.has('region')) selectRegion(Number(params.get('region')));
 			const item = params.get('focus') as ItemId | null;
-			if (item && byId.has(item)) focus(item);
+			if (item && mappedById.has(item)) focus(item);
 		});
 	});
 </script>
-
-<svelte:window bind:innerWidth />
 
 <div class="atlas">
 	<div class="stage">
@@ -254,7 +248,7 @@
 			{thumb}
 			{rings}
 			{boxMode}
-			inset={{ top: 0, right: 0, bottom: 56, left: 0 }}
+			inset={56}
 			onpick={pick}
 			onbox={(ids) => ids.length > 0 && select(ids)}
 			onlabel={selectRegion}
@@ -394,8 +388,7 @@
 					lit={lit?.size ?? null}
 					{playing}
 					onplay={play}
-					onselect={() =>
-						lit && select(mapped.filter((item) => lit.has(item._id)).map((i) => i._id))}
+					onselect={() => lit && select([...lit])}
 				/>
 			</div>
 			{#if selected.length > 0}
@@ -406,7 +399,7 @@
 						{neighbours}
 						collections={collections.data ?? []}
 						activeStyles={lenses.styles}
-						onselect={(ids) => (ids.length === 1 ? focus(ids[0]) : select(ids))}
+						onpick={focus}
 						onstyle={toggleStyle}
 						onclose={() => select([])}
 					/>

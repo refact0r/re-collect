@@ -11,7 +11,7 @@
 	import { getCollectionsContext, getItemsContext } from '#lib/context.js';
 	import { getItemUrl } from '#lib/itemDisplay.js';
 	import { dismiss, notify } from '#lib/notice.svelte.js';
-	import { pageTitle } from '#lib/pageTitle.svelte.js';
+	import { usePageTitle } from '#lib/pageTitle.svelte.js';
 	import { useViewPrefs } from '#lib/prefs.svelte.js';
 
 	const PAGE = 30;
@@ -22,10 +22,7 @@
 	const collections = getCollectionsContext();
 	const prefs = useViewPrefs('discover');
 
-	$effect(() => {
-		pageTitle.value = 'discover';
-		return () => (pageTitle.value = null);
-	});
+	usePageTitle(() => 'discover');
 
 	let limit = $state(PAGE);
 	const feed = useQuery(api.discovery.feed, () => ({ limit }), { keepPreviousData: true });
@@ -104,7 +101,7 @@
 	// each time a page arrives (it may not push the end out of view)
 	let nearEnd = $state(false);
 	$effect(() => {
-		if (nearEnd && !feed.isStale && (feed.data?.remaining ?? 0) > 0) limit += PAGE;
+		if (nearEnd && !feed.isStale && feed.data?.more) limit += PAGE;
 	});
 
 	function watchEnd(node: HTMLElement) {

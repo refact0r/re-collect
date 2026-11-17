@@ -4,16 +4,16 @@ import { getFunctionName } from 'convex/server';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { api, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import { hashToken } from './lib/auth';
 import { buildSearchText } from './lib/searchText';
-import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL, embeddingInput, inputKey } from './lib/embedder';
+import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL, inputKey } from './lib/embedder';
 import { r2 } from './r2';
-import { newTest, type Test } from './testing.helpers';
+import { makeUser, newTest, type Test } from './testing.helpers';
 
 // How an item is understood (taggingMode: look / content / off) across every
 // item type, starting state and switch
 
 type Mode = 'visual' | 'text' | 'none';
+const VECTOR = Array.from({ length: EMBEDDING_DIMENSIONS }, () => 0.1);
 
 afterEach(() => {
 	vi.useRealTimers();
@@ -25,13 +25,7 @@ async function setup() {
 	const t = newTest();
 	vi.spyOn(Workpool.prototype, 'enqueueAction');
 	vi.spyOn(r2, 'deleteObject').mockResolvedValue();
-	const token = 'a-token';
-	const userId = await t.run(async (ctx) => {
-		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
-		await ctx.db.insert('sessions', { userId, tokenHash: await hashToken(token) });
-		return userId;
-	});
-	return { t, token, userId };
+	return { t, ...(await makeUser(t)) };
 }
 
 const getItem = (t: Test, id: Id<'items'>) => t.run((ctx) => ctx.db.get(id));
@@ -93,7 +87,7 @@ describe('adding an item snapshots the mode its type allows', () => {
 				type,
 				...(type === 'url' && { url: 'https://example.com' }),
 				...(type === 'text' && { content: 'a note' }),
-				...(ownImage && { imageKey: 'up-1', imageWidth: 10, imageHeight: 10 }),
+				...(ownImage && { imageKey: 'up-1' }),
 				collections: [collectionId],
 				token
 			});
@@ -112,13 +106,7 @@ describe('adding an item snapshots the mode its type allows', () => {
 		await t.mutation(api.viewPreferences.set, { key: 'home', taggingMode: 'none', token });
 		const ids = await Promise.all([
 			t.mutation(api.items.add, { type: 'url', url: 'https://example.com', token }),
-			t.mutation(api.items.add, {
-				type: 'image',
-				imageKey: 'up-1',
-				imageWidth: 1,
-				imageHeight: 1,
-				token
-			}),
+			t.mutation(api.items.add, { type: 'image', imageKey: 'up-1', token }),
 			t.mutation(api.items.add, { type: 'text', content: 'n', token })
 		]);
 		for (const id of ids) {
@@ -140,7 +128,6 @@ describe('switching an item’s mode', () => {
 				url: 'https://example.com',
 				...TAGS,
 				taggingStatus: 'completed' as const,
-				taggingModelVersion: 'some-model',
 				paletteHex: ['#ff0000'],
 				fonts: [{ family: 'Inter' }],
 				collections: [],
@@ -154,7 +141,7 @@ describe('switching an item’s mode', () => {
 				userId,
 				model: EMBEDDING_MODEL,
 				inputKey: base.imageKey ? `image:${base.imageKey}` : 'text:x',
-				embedding: Array.from({ length: EMBEDDING_DIMENSIONS }, () => 0.1)
+				embedding: VECTOR
 			});
 			return itemId;
 		});
@@ -176,8 +163,7 @@ describe('switching an item’s mode', () => {
 		subject: undefined,
 		styles: undefined,
 		aiTags: undefined,
-		taggingStatus: undefined,
-		taggingModelVersion: undefined
+		taggingStatus: undefined
 	};
 
 	type Outcome = 'tags' | 'off' | 'content' | string; // a string is the error
@@ -259,8 +245,7 @@ describe('switching an item’s mode', () => {
 				'styles',
 				'aiTags',
 				'taggingStatus',
-				'taggingError',
-				'taggingModelVersion'
+				'taggingError'
 			] as const) {
 				expect(item?.[field]).toBeUndefined();
 			}
@@ -370,18 +355,17 @@ describe('an off item stays away from AI', () => {
 			imageKey: 'a.webp',
 			screenshotStatus: 'completed'
 		});
-		const before = await t.query(internal.embeddings.getItemForEmbedding, { itemId });
-		expect(before && embeddingInput(before.item)).toEqual({ kind: 'image', imageKey: 'a.webp' });
+		const job = () => t.query(internal.embeddings.embeddingJob, { itemId });
+		expect((await job())?.input).toEqual({ kind: 'image', imageKey: 'a.webp' });
 
 		// A run reads the item, then it's turned off before the run saves
 		await t.mutation(api.tagging.retagItem, { itemId, mode: 'none', token });
-		const after = await t.query(internal.embeddings.getItemForEmbedding, { itemId });
-		expect(after && embeddingInput(after.item)).toBeNull();
+		expect(await job()).toBeNull();
 
 		await t.mutation(internal.embeddings.saveEmbedding, {
 			itemId,
 			inputKey: await inputKey({ kind: 'image', imageKey: 'a.webp' }),
-			embedding: Array.from({ length: EMBEDDING_DIMENSIONS }, () => 0.1)
+			embedding: VECTOR
 		});
 		expect(await embeddingRows(t, itemId)).toHaveLength(0);
 	});
@@ -395,7 +379,7 @@ describe('an off item stays away from AI', () => {
 				userId,
 				model: EMBEDDING_MODEL,
 				inputKey: 'image:a.webp',
-				embedding: Array.from({ length: EMBEDDING_DIMENSIONS }, () => 0.1)
+				embedding: VECTOR
 			})
 		);
 		await t.mutation(internal.embeddings.backfill, {});
@@ -420,7 +404,7 @@ test('the library map lays out only items embedded as images', async () => {
 				userId,
 				model: EMBEDDING_MODEL,
 				inputKey: key,
-				embedding: Array.from({ length: EMBEDDING_DIMENSIONS }, () => 0.1)
+				embedding: VECTOR
 			});
 			ids.push(itemId);
 		}

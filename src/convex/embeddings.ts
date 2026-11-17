@@ -20,22 +20,19 @@ import {
 } from './lib/embedder';
 
 // The database side of item embeddings; the embedding run itself is
-// taggingActions.embedItem (Node, for sharp). One row per item in
-// itemEmbeddings, written once its image or text is final.
+// taggingActions.embedItem (Node, for sharp).
 
 // Bounds the Workers AI calls a burst of adds or a backfill makes at once, and
 // retries the ones that may pass later (rate limits, server errors, timeouts)
-// with backoff; embedItem marks every other failure final. A retry re-reads the
-// item, so one turned off or changed meanwhile isn't sent again.
+// with backoff; embedItem marks every other failure final.
 const embeddingPool = new Workpool(components.embeddingPool, {
 	maxParallelism: 5,
 	retryActionsByDefault: true,
 	defaultRetryBehavior: { maxAttempts: 4, initialBackoffMs: 2000, base: 4 }
 });
 
-// Asks for an item's embedding to be brought up to date. Cheap to over-call:
-// the run skips items that aren't ready and inputs it has already embedded, so
-// every write that could change what an item embeds as just calls this.
+// Brings an item's embedding up to date. Cheap to over-call: the run skips items
+// that aren't ready and inputs it has already embedded.
 export async function scheduleEmbedding(ctx: MutationCtx, itemId: Id<'items'>) {
 	await embeddingPool.enqueueAction(ctx, internal.taggingActions.embedItem, { itemId });
 }
@@ -61,11 +58,12 @@ async function embeddedKey(ctx: QueryCtx, itemId: Id<'items'>) {
 	return row?.model === EMBEDDING_MODEL ? row.inputKey : null;
 }
 
-export const getItemForEmbedding = internalQuery({
+// What embedItem is to embed for the item now, or null (deleted, not ready, or done)
+export const embeddingJob = internalQuery({
 	args: { itemId: v.id('items') },
 	handler: async (ctx, { itemId }) => {
 		const item = await ctx.db.get(itemId);
-		return item && { item, embeddedKey: await embeddedKey(ctx, itemId) };
+		return item && embeddingToMake(item, await embeddedKey(ctx, itemId));
 	}
 });
 

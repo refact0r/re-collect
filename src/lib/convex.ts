@@ -39,14 +39,17 @@ function requireToken(getToken: () => string | null) {
 export const isUnauthorized = (error: unknown) =>
 	error instanceof ConvexError && error.data === 'Unauthorized';
 
+// A ConvexError's string data is written for the user; anything else gets the fallback
+export const errorMessage = (error: unknown, fallback: string) =>
+	error instanceof ConvexError && typeof error.data === 'string' ? error.data : fallback;
+
 // onError replaces telling the user (the failure is still logged)
 interface CallOptions {
 	onError?: (message: string) => void;
 }
 
 // An ended session goes to /login (which clears the dead cookie), set to come
-// back here. Anything else is logged and reported: a ConvexError's string data
-// is written for the user.
+// back here. Anything else is logged and reported.
 export function reportError(
 	error: unknown,
 	{ onError = (m) => notify(m, { error: true }) }: CallOptions = {}
@@ -56,11 +59,7 @@ export function reportError(
 		return;
 	}
 	console.error(error);
-	onError(
-		error instanceof ConvexError && typeof error.data === 'string'
-			? error.data
-			: 'Something went wrong'
-	);
+	onError(errorMessage(error, 'Something went wrong'));
 }
 
 // Resolves to the result (null for functions that return nothing), or to
@@ -74,7 +73,6 @@ async function run<T>(call: () => Promise<T>, options?: CallOptions): Promise<T 
 	}
 }
 
-// A logged-out visitor's queries go without a token
 export function useQuery<Q extends PublicFunction<'query'>>(
 	query: Q,
 	args: () => UserArgs<Q> | 'skip',

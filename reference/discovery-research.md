@@ -164,8 +164,9 @@ section, in full in `discovery-notes/user-sources-cost.md`.
   per-user source toggles, the cross-source dedupe, the http(s) check on
   ingest and expiry; `src/convex/lib/discoverySources.spec.ts` covers the parsers on
   inline fixtures.
-- **Still prototype shortcuts:**
-  - Every poll runs all sources at once (fine at ~10 sources).
+- **Polling:** each source polls in its own action (the Are.na channels share
+  one); a gallery with more detail pages than fit in 5 minutes ingests what it
+  has and picks up the rest next poll.
 - **Dev:** `npx convex run discovery:pollAll`, or
   `discovery:resetSource '{"key":"awwwards"}'` to re-fetch one source.
 

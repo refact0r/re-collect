@@ -20,22 +20,12 @@
 	}
 
 	let { items, readonly = false }: Props = $props();
-
-	function getDisplayText(item: DisplayItem): string {
-		if (item.title) return item.title;
-		if (item.url) return item.url;
-		return 'untitled';
-	}
-
-	// Secondary line: AI summary, else captured og:description; text items
-	// show their own content
-	function getSecondaryText(item: DisplayItem): string | undefined {
-		return item.subject ?? item.ogDescription ?? (item.type === 'text' ? item.content : undefined);
-	}
 </script>
 
 <div class="list">
 	{#each items as item (item._id)}
+		{@const secondary =
+			item.subject ?? item.ogDescription ?? (item.type === 'text' ? item.content : undefined)}
 		<div class="list-item-wrapper">
 			<a href={getItemUrl(item._id)} class="list-item">
 				<div class="thumbnail">
@@ -72,9 +62,9 @@
 						</div>
 					{/if}
 				</div>
-				<span class="item-title">{getDisplayText(item)}</span>
-				{#if getSecondaryText(item)}
-					<span class="item-description">{getSecondaryText(item)}</span>
+				<span class="item-title">{item.title || item.url || 'untitled'}</span>
+				{#if secondary}
+					<span class="item-description">{secondary}</span>
 				{/if}
 			</a>
 			{#if item.url && isWebUrl(item.url)}

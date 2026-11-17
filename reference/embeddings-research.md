@@ -544,7 +544,7 @@ itemEmbeddings: defineTable({
 	itemId: v.id('items'),
 	userId: v.id('users'), // copied from the item, immutable
 	source: v.union(v.literal('image'), v.literal('text')),
-	model: v.string(), // e.g. 'google/embeddinggemma-2@768', like taggingModelVersion
+	model: v.string(), // e.g. 'google/embeddinggemma-2@768'
 	embedding: v.array(v.float64())
 })
 	.index('by_item', ['itemId'])

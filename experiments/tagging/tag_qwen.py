@@ -2,11 +2,11 @@
 """
 Sandbox for the shipped image-tagging pipeline (src/convex/tagging.ts).
 
-`tag_image()` mirrors the production Convex action `tagging.callOpenRouter`:
+`tag_image()` mirrors production's `requestImageTags` (src/convex/lib/tagger.ts):
 take image bytes + content-type, return a validated tag dict (or raise). The
 PROMPT string, model params, and normalization/validation logic here are the
 canonical source — production is a byte-for-byte port. Iterate here first,
-then port changes to tagging.ts and bump PROMPT_VERSION there.
+then port changes to lib/tagger.ts.
 
 Everything outside `tag_image()` is experiment harness. Preprocessing differs
 from production (sips→JPEG here vs sharp→JPEG q85 in taggingActions.ts) but
@@ -38,7 +38,7 @@ API_KEY = os.environ.get("OPENROUTER_API_KEY")
 if not API_KEY:
     sys.exit("set OPENROUTER_API_KEY")
 
-# Keep in sync with DEFAULT_MODEL / PROMPT_VERSION in src/convex/tagging.ts.
+# Keep DEFAULT_MODEL in sync with src/convex/lib/tagger.ts.
 DEFAULT_MODEL = "openai/gpt-6-luna"
 PROMPT_VERSION = "v5"
 MAX_EDGE_PX = 1024  # downscale long edge to this before sending

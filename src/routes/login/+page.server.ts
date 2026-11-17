@@ -1,7 +1,7 @@
 import { fail, redirect, type Cookies } from '@sveltejs/kit';
 import { ConvexError } from 'convex/values';
 import { api } from '../../convex/_generated/api.js';
-import { COOKIE_NAME, convex, errorMessage, setSession } from '#lib/server/auth.js';
+import { COOKIE_NAME, convex, setSession } from '#lib/server/auth.js';
 import type { Actions, PageServerLoad } from './$types';
 
 // Where to go after signing in: `?next=` when it resolves to this site (a
@@ -58,7 +58,8 @@ async function signIn(cookies: Cookies, next: string, session: Promise<string>) 
 	try {
 		setSession(cookies, await session);
 	} catch (error) {
-		return fail(400, { message: errorMessage(error) });
+		const message = error instanceof ConvexError ? String(error.data) : 'something went wrong';
+		return fail(400, { message });
 	}
 	if (previous) {
 		await convex()

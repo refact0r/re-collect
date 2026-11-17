@@ -1,8 +1,8 @@
 // Pointer drag for reorderable grids. A mouse or pen drags the whole card once it
 // moves a few pixels, so a plain click still opens it; touch never drags, so swipes
-// scroll and long presses keep the browser's own menu. While
-// dragging, the nearest scroll container auto-scrolls near its edges, Escape
-// cancels, and the click that ends the drag is swallowed.
+// scroll and long presses keep the browser's own menu. While dragging, the nearest
+// scroll container auto-scrolls near its edges, Escape cancels, and the click that
+// ends the drag is swallowed.
 
 const MOVE_THRESHOLD = 5;
 const EDGE = 64;
@@ -40,12 +40,15 @@ export function pointerDrag(e: PointerEvent, { start, move, end }: DragCallbacks
 	let dragging = false;
 	let autoScrollArmed = false;
 	let frame = 0;
-	const scroller = scrollParent(e.currentTarget as Element);
+	// currentTarget is only set while the pointerdown dispatches
+	const handle = e.currentTarget as Element;
+	let scroller: Element;
 	const listeners = new AbortController();
 	const { signal } = listeners;
 
 	function begin() {
 		dragging = true;
+		scroller = scrollParent(handle);
 		document.body.style.cursor = 'grabbing';
 		document.body.style.userSelect = 'none';
 		// Scroll events don't bubble; capturing on document sees the scroller's

@@ -2,7 +2,7 @@
 // message in the Notices stack the (app) layout renders once. A notice never takes
 // focus, and goes after a few seconds or on a click.
 
-export interface Notice {
+interface Notice {
 	id: number;
 	text: string;
 	error: boolean;

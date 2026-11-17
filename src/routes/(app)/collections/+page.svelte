@@ -8,12 +8,15 @@
 	import { useMutation } from '#lib/convex.js';
 	import { pointerDrag } from '#lib/pointerDrag.js';
 	import { getCollectionsContext, type CollectionsData } from '#lib/context.js';
+	import { usePageTitle } from '#lib/pageTitle.svelte.js';
 	import IconDelete from '~icons/material-symbols-light/delete-outline-sharp';
 
 	type CollectionCard = CollectionsData[number];
 
 	const mutate = useMutation();
 	const collections = getCollectionsContext();
+
+	usePageTitle(() => 'collections');
 
 	let showCreateModal = $state(false);
 
@@ -27,7 +30,6 @@
 		if (ok) mutate(api.collections.remove, { id });
 	}
 
-	// ============ DRAG REORDERING ============
 	const serverCollections = $derived(collections.data ?? []);
 
 	let listElement: HTMLElement | undefined = $state();
@@ -226,9 +228,6 @@
 		justify-content: space-between;
 		align-items: flex-start;
 		gap: var(--gutter);
-	}
-	.collection-info h3 {
-		margin: 0;
 	}
 	.count {
 		font-size: var(--text-sm);

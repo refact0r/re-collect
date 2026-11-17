@@ -18,19 +18,18 @@ import {
 } from './lib/imageVariants';
 import { r2, signUpload } from './r2';
 
-// Node actions get 512 MB, and libvips' operation cache and per-thread
-// buffers add to every run's memory (the first prod runs went past it). One
-// thread and no cache keep the worst image allowed in well under, at some
-// speed (still seconds, in the background).
+// Node actions get 512 MB, and libvips' operation cache and per-thread buffers
+// add to every run's memory: one thread and no cache keep the worst image
+// allowed in well under, at some speed (still seconds, in the background).
 sharp.cache(false);
 sharp.concurrency(1);
 
 const FETCH_TIMEOUT_MS = 30_000;
 
-// Copies and replaced originals are WebP at quality 90 with sharp YUV: lossy
-// WebP keeps color at half resolution, which otherwise smears colored text.
-// AVIF measured a little better for fewer bytes, but encodes ~9x slower and
-// needs several times the memory (reference/image-variants.md).
+// Copies and replaced originals are WebP at quality 90, copies with sharp YUV:
+// lossy WebP keeps color at half resolution, which otherwise smears colored
+// text. AVIF measured a little better for fewer bytes, but encodes ~9x slower
+// and needs several times the memory (reference/image-variants.md).
 const encode = (s: Sharp, smartSubsample = true) => s.webp({ quality: 90, smartSubsample });
 
 // The most pixels a run encodes at once, so that no image allowed in
@@ -44,9 +43,8 @@ const MAX_ENCODE_PIXELS = 10_000_000;
 export const makeVariants = internalAction({
 	args: { itemId: v.id('items') },
 	handler: async (ctx, { itemId }): Promise<void> => {
-		const job = await ctx.runQuery(internal.imageVariants.variantJob, { itemId });
-		if (!job) return;
-		const { imageKey } = job;
+		const imageKey = await ctx.runQuery(internal.imageVariants.variantJob, { itemId });
+		if (!imageKey) return;
 
 		// From the bucket, not the public domain, whose edge cache would then hold it
 		const response = await fetch(await r2.getUrl(imageKey), {
@@ -138,7 +136,9 @@ export async function processImage(data: Buffer) {
 
 // A still original wider than MAX_ORIGINAL_WIDTH or heavier than
 // MAX_ORIGINAL_BYTES as a WebP within those (and MAX_ENCODE_PIXELS),
-// upright, keeping its color profile and none of its other metadata; or null
+// upright, keeping its color profile and none of its other metadata; or null.
+// Unlike the copies it decodes with shrink-on-load and skips sharp YUV: this is
+// the run's biggest decode and encode, and both keep it well inside 512 MB
 async function replaceOriginal(data: Buffer) {
 	const meta = await header(data);
 	const { width, height } = meta.autoOrient;

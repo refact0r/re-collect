@@ -109,11 +109,11 @@ export const generateUploadUrl = userMutation({
 });
 
 export const markVerified = internalMutation({
-	args: { key: v.string(), contentType: v.string() },
-	handler: async (ctx, { key, contentType }) => {
+	args: { key: v.string(), contentType: v.string(), width: v.number(), height: v.number() },
+	handler: async (ctx, { key, contentType, width, height }) => {
 		const upload = await uploadByKey(ctx, key);
 		if (!upload) throw new ConvexError('upload not found');
-		await ctx.db.patch(upload._id, { verifiedType: contentType });
+		await ctx.db.patch(upload._id, { verifiedType: contentType, width, height });
 	}
 });
 

@@ -83,8 +83,7 @@ which adds variance.
   round-1 finding that reasoning hurts this task.
 
 To trial without a code change: `npx convex env set TAGGING_MODEL
-openai/gpt-5.6-luna`, retag a few items, compare
-(`taggingModelVersion` records the model per item). Adopted alongside
+openai/gpt-5.6-luna`, retag a few items, compare their tags. Adopted alongside
 prompt bumps to `v5`/`text-v3` (tag word caps, author rule, truncation
 clarification) — the results in this directory were produced with
 `v4`/`text-v2`.

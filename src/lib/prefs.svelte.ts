@@ -5,6 +5,7 @@ import { useMutation, useQuery } from './convex.js';
 import { getCollectionsContext } from './context.js';
 import type { CollectionSortOption } from './types.js';
 
+type PrefsKey = FunctionArgs<typeof api.viewPreferences.set>['key'];
 type HomeFields = Omit<FunctionArgs<typeof api.viewPreferences.set>, 'key' | 'token'>;
 type ViewFields = Pick<
 	FunctionArgs<typeof api.collections.update>,
@@ -60,7 +61,7 @@ function viewPrefs<Saved extends ViewFields, Fields>(
 }
 
 // Home, search and discover keep theirs in a viewPreferences row
-export function useViewPrefs(key: 'home' | 'search' | 'discover') {
+export function useViewPrefs(key: PrefsKey) {
 	const mutate = useMutation();
 	const saved = useQuery(api.viewPreferences.get, () => ({ key }));
 	return viewPrefs(

@@ -2,12 +2,9 @@
 // and parsing + validating its output into normalized tags. Holds no Convex
 // functions, so the Node actions and plain specs can both import it.
 
-const PROMPT_VERSION = 'v5';
-const TEXT_PROMPT_VERSION = 'text-v3';
-// Luna adopted 2026-08-28 after the round-2 bake-off (experiments/tagging/
-// model-comparison-2026-08-round2.md): GPT-5.6 Luna beat qwen3.7-flash on
-// style accuracy and OCR in both tagging modes. Moved to GPT-6 Luna on
-// 2026-10-30, at about half the price.
+// Luna won the round-2 bake-off on style accuracy and OCR in both modes
+// (experiments/tagging/model-comparison-2026-08-round2.md); GPT-6 Luna costs
+// about half of the GPT-5.6 Luna tested there
 const DEFAULT_MODEL = 'openai/gpt-6-luna';
 const TEMPERATURE = 0.3;
 const MAX_TOKENS = 600;
@@ -112,14 +109,12 @@ export function normalizeTag(s: string): string {
 	) {
 		words.pop();
 	}
-	if (words.length > 0) {
-		const last = words[words.length - 1];
-		for (const suffix of SUFFIX_NOISE) {
-			const ending = `-${suffix}`;
-			if (last.endsWith(ending) && last.length > ending.length) {
-				words[words.length - 1] = last.slice(0, -ending.length);
-				break;
-			}
+	const last = words[words.length - 1];
+	for (const suffix of SUFFIX_NOISE) {
+		const ending = `-${suffix}`;
+		if (last.endsWith(ending) && last.length > ending.length) {
+			words[words.length - 1] = last.slice(0, -ending.length);
+			break;
 		}
 	}
 	// Singularize only the head noun. Interior plural words are usually part
@@ -130,28 +125,15 @@ export function normalizeTag(s: string): string {
 }
 
 export function dedupePreserveOrder(items: string[]): string[] {
-	const seen = new Set<string>();
-	const out: string[] = [];
-	for (const x of items) {
-		if (x && !seen.has(x)) {
-			seen.add(x);
-			out.push(x);
-		}
-	}
-	return out;
+	return [...new Set(items.filter(Boolean))];
 }
 
+// The outermost braces, so markdown fences and prose around the object are skipped
 export function parseJsonLenient(s: string): unknown {
-	let str = s.trim();
-	if (str.startsWith('```')) {
-		str = str.replace(/^`+/, '');
-		if (str.startsWith('json')) str = str.slice(4);
-		str = str.replace(/`+$/, '').trim();
-	}
-	const i = str.indexOf('{');
-	const j = str.lastIndexOf('}');
+	const i = s.indexOf('{');
+	const j = s.lastIndexOf('}');
 	if (i === -1 || j === -1) throw new Error('no JSON object found in response');
-	return JSON.parse(str.slice(i, j + 1));
+	return JSON.parse(s.slice(i, j + 1));
 }
 
 export type Tags = { styles: string[]; subject: string; aiTags: string[] };
@@ -163,7 +145,7 @@ function tagList(value: unknown, field: string, min: number): string[] {
 	if (!value.every((s) => typeof s === 'string' && s.trim())) {
 		throw new Error(`${field} entries must be non-empty strings`);
 	}
-	return dedupePreserveOrder(value.map((s: string) => normalizeTag(s)));
+	return dedupePreserveOrder(value.map(normalizeTag));
 }
 
 // Schema check + normalization; remaps the model's `tags` to `aiTags`, minus
@@ -237,20 +219,18 @@ async function openRouterChat(
 	return reply;
 }
 
-export type TagResult = Tags & { modelVersion: string };
-
-export function requestImageTags(jpegBase64: string, logLabel: string): Promise<TagResult> {
+export function requestImageTags(jpegBase64: string, logLabel: string): Promise<Tags> {
 	const content = [
 		{ type: 'text', text: PROMPT },
 		{ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${jpegBase64}` } }
 	];
-	return requestTags(content, PROMPT_VERSION, 8, logLabel);
+	return requestTags(content, 8, logLabel);
 }
 
 export function requestArticleTags(
 	article: { title?: string; url: string; text: string },
 	logLabel: string
-): Promise<TagResult> {
+): Promise<Tags> {
 	const input = [
 		article.title ? `Title: ${article.title}` : null,
 		`URL: ${article.url}`,
@@ -259,19 +239,14 @@ export function requestArticleTags(
 	]
 		.filter((line) => line !== null)
 		.join('\n');
-	return requestTags(`${TEXT_PROMPT}\n\n${input}`, TEXT_PROMPT_VERSION, 4, logLabel);
+	return requestTags(`${TEXT_PROMPT}\n\n${input}`, 4, logLabel);
 }
 
 // One call + parse + validate, retried on transport, parse, and schema
 // failures alike — temperature > 0 means a re-roll can succeed, and provider
 // blips (429/502) are common enough that a single attempt fails items
 // needlessly.
-async function requestTags(
-	content: unknown,
-	promptVersion: string,
-	maxStyles: number,
-	logLabel: string
-): Promise<TagResult> {
+async function requestTags(content: unknown, maxStyles: number, logLabel: string): Promise<Tags> {
 	const apiKey = process.env.OPENROUTER_API_KEY;
 	if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
 	const model = process.env.TAGGING_MODEL ?? DEFAULT_MODEL;
@@ -283,8 +258,7 @@ async function requestTags(
 		}
 		try {
 			const raw = await openRouterChat(apiKey, model, content, logLabel);
-			const tags = validateTags(parseJsonLenient(raw), maxStyles);
-			return { ...tags, modelVersion: `${model}:${promptVersion}` };
+			return validateTags(parseJsonLenient(raw), maxStyles);
 		} catch (error) {
 			lastError = error;
 			console.warn(`tagging attempt ${attempt + 1} failed for ${logLabel}:`, error);

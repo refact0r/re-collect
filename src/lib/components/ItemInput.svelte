@@ -47,34 +47,15 @@
 	let textareaEl: HTMLTextAreaElement;
 	let resizeFrame: number | null = null;
 
+	// One resize per frame, however fast the input comes
 	function autoResize() {
-		if (!textareaEl) return;
-
-		// Cancel any pending resize
 		if (resizeFrame) cancelAnimationFrame(resizeFrame);
-
-		// Batch DOM operations in a single animation frame to avoid layout thrashing
 		resizeFrame = requestAnimationFrame(() => {
 			if (!textareaEl) return;
-			// Reset height first so scrollHeight recalculates
+			// From 'auto', so scrollHeight can shrink too
 			textareaEl.style.height = 'auto';
 			textareaEl.style.height = textareaEl.scrollHeight + 'px';
 			resizeFrame = null;
-		});
-	}
-
-	function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
-		return new Promise((resolve) => {
-			const img = new Image();
-			img.onload = () => {
-				resolve({ width: img.naturalWidth, height: img.naturalHeight });
-				URL.revokeObjectURL(img.src);
-			};
-			img.onerror = () => {
-				resolve({ width: 0, height: 0 });
-				URL.revokeObjectURL(img.src);
-			};
-			img.src = URL.createObjectURL(file);
 		});
 	}
 
@@ -154,14 +135,11 @@
 			return;
 		}
 		isAdding = true;
-		const dimensions = await getImageDimensions(file);
 		const key = await uploadFile(file);
 		if (key) {
 			await mutate(api.items.add, {
 				type: 'image',
 				imageKey: key,
-				imageWidth: dimensions.width || undefined,
-				imageHeight: dimensions.height || undefined,
 				title: file.name || 'Pasted image',
 				collections
 			});
@@ -170,7 +148,7 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Enter' && !event.shiftKey) {
+		if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
 			event.preventDefault();
 			handleSubmit();
 		}

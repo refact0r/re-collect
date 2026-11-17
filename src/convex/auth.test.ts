@@ -1,8 +1,7 @@
 // @vitest-environment edge-runtime
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { api, internal } from './_generated/api';
-import { hashToken } from './lib/auth';
-import { newTest, type Test } from './testing.helpers';
+import { makeUser, newTest, type Test } from './testing.helpers';
 
 // For tests that add items: their scheduled tagging and embedding runs never start
 function itemTest() {
@@ -13,17 +12,6 @@ function itemTest() {
 afterEach(() => {
 	vi.useRealTimers();
 });
-
-// A user with one session, skipping the slow password hash
-async function makeUser(t: Test, username: string) {
-	const token = `${username}-token`;
-	const userId = await t.run(async (ctx) => {
-		const userId = await ctx.db.insert('users', { username, passwordHash: 'unused' });
-		await ctx.db.insert('sessions', { userId, tokenHash: await hashToken(token) });
-		return userId;
-	});
-	return { userId, token };
-}
 
 async function invite(t: Test) {
 	const { code } = await t.action(internal.users.invite, {});

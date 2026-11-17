@@ -47,7 +47,7 @@
 		<a href={getItemUrl(latest._id)} onclick={onView}>{latest.title || latest.url}</a>
 	</p>
 	<p class="meta">{summary}</p>
-	<div class="actions">
+	<div class="dialog-actions">
 		<!-- The Enter that submitted the link, repeated, mustn't add the duplicate -->
 		<!-- svelte-ignore a11y_autofocus -->
 		<button onclick={onCancel} autofocus>cancel</button>
@@ -62,15 +62,5 @@
 
 	a {
 		overflow-wrap: anywhere;
-	}
-
-	.actions {
-		display: flex;
-		gap: var(--gap);
-		margin-top: var(--space-xl);
-	}
-
-	.actions button {
-		flex: 1;
 	}
 </style>

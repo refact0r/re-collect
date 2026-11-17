@@ -1,6 +1,6 @@
 // Minimal client for Convex's HTTP API (POST /api/{query,mutation,action}).
-// Every call carries the extension's session token, from "copy extension token"
-// on the app's account page; the backend resolves it to the signed-in user.
+// Every call carries the extension's session token, from "create token" on the
+// app's account page; the backend resolves it to the signed-in user.
 
 export async function getSettings() {
 	const { convexUrl = '', token = '' } = await chrome.storage.local.get(['convexUrl', 'token']);

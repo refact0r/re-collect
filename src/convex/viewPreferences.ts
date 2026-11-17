@@ -18,7 +18,8 @@ export const get = userQuery({
 
 export const set = userMutation({
 	args: {
-		key: v.string(),
+		// The pages that keep a row (collections keep theirs on the collection doc)
+		key: v.union(v.literal('home'), v.literal('search'), v.literal('discover')),
 		sortMode: v.optional(sortModeValidator),
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
 		columnOffset: v.optional(v.number()),

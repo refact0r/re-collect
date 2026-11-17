@@ -57,8 +57,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 // A page or link already in the library is saved again only once the user OKs
 // it in the page. Where scripting isn't allowed it just saves; once the question
-// is up, a failure (the page went away) doesn't. (The popup shows its own warning
-// before you click save.)
+// is up, a failure (the page went away) cancels. The popup warns on its own.
 async function confirmIfSaved(tab, url) {
 	const note = await savedNote(url);
 	if (!note) return true;
@@ -174,64 +173,62 @@ function showToast(ok, message) {
 	setTimeout(() => host.remove(), 2800);
 }
 
-// Resolves true on "Save again"; false on Cancel (focused first), Escape or the
-// page going away
+// A modal <dialog>, whose top layer escapes the page's stacking and transforms,
+// with Escape, focus trapping and focus return built in. Resolves true on "Save
+// again"; false on Cancel (focused first), Escape, the page going away or a newer confirm.
 function confirmInPage(message) {
-	document.getElementById('re-collect-confirm')?.remove();
+	// Injected functions share the extension's isolated world, out of the page's reach
+	globalThis.reCollectCancelConfirm?.();
 	return new Promise((resolve) => {
-		const host = document.createElement('div');
-		host.id = 're-collect-confirm';
+		// The dialog still inherits from (and hides with) its host: keep page rules off it
+		const host = document.createElement('re-collect-confirm');
+		host.style.cssText = 'all: initial !important';
 		const shadow = host.attachShadow({ mode: 'closed' });
-		const dialog = document.createElement('div');
+		// A constructed sheet, since the page's CSP may block a <style> element
+		const sheet = new CSSStyleSheet();
+		sheet.replaceSync(`
+			dialog { margin: 16px auto auto; max-width: 320px; padding: 12px; font: 14px/1.4 system-ui, sans-serif;
+				color: #e6e6e6; background: #1f1f1f; border: 1px solid #333; box-shadow: 0 4px 16px rgb(0 0 0 / 0.3); }
+			dialog::backdrop { background: none; }
+			p { margin: 0 0 12px; }
+			div { display: flex; gap: 8px; justify-content: flex-end; }
+			button { padding: 4px 12px; font: inherit; color: inherit; cursor: pointer;
+				background: #2a2a2a; border: 1px solid #444; outline-offset: 2px; }
+		`);
+		shadow.adoptedStyleSheets = [sheet];
+
+		const dialog = document.createElement('dialog');
 		dialog.setAttribute('role', 'alertdialog');
 		dialog.setAttribute('aria-labelledby', 'message');
-		dialog.style.cssText = `
-			position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 2147483647;
-			display: flex; flex-direction: column; gap: 12px; max-width: 320px; padding: 12px;
-			font: 14px/1.4 system-ui, sans-serif; color: #e6e6e6;
-			background: #1f1f1f; border: 1px solid #333; box-shadow: 0 4px 16px rgb(0 0 0 / 0.3);
-		`;
 		const text = document.createElement('p');
 		text.id = 'message';
-		text.style.margin = '0';
 		text.textContent = message;
 		const buttons = document.createElement('div');
-		buttons.style.cssText = 'display: flex; gap: 8px; justify-content: flex-end;';
-		const button = (label, ok) => {
+		const button = (label, value) => {
 			const el = document.createElement('button');
 			el.textContent = label;
-			el.style.cssText = `padding: 4px 12px; font: inherit; color: inherit; cursor: pointer;
-				background: #2a2a2a; border: 1px solid #444; outline-offset: 2px;`;
-			el.onclick = () => finish(ok);
+			el.onclick = () => dialog.close(value);
 			buttons.append(el);
 			return el;
 		};
-		const cancel = button('Cancel', false);
-		button('Save again', true);
+		button('Cancel', '').autofocus = true;
+		button('Save again', 'ok');
 		dialog.append(text, buttons);
 		shadow.append(dialog);
 		document.documentElement.append(host);
-		const previous = document.activeElement;
-		cancel.focus();
 
-		const onKey = (e) => {
-			if (e.key !== 'Escape') return;
-			e.preventDefault();
-			e.stopPropagation();
-			finish(false);
-		};
-		const onHide = () => finish(false, true);
-		function finish(ok, now = false) {
+		const settle = (ok, now) => {
 			host.remove();
-			removeEventListener('keydown', onKey, true);
-			removeEventListener('pagehide', onHide);
-			previous?.focus?.({ preventScroll: true });
+			removeEventListener('pagehide', cancel);
 			// A screenshot save captures the tab next: let the dialog paint away first
 			if (now) resolve(ok);
 			else requestAnimationFrame(() => requestAnimationFrame(() => resolve(ok)));
-		}
-		addEventListener('keydown', onKey, true);
-		addEventListener('pagehide', onHide);
+		};
+		const cancel = () => settle(false, true);
+		globalThis.reCollectCancelConfirm = cancel;
+		addEventListener('pagehide', cancel);
+		dialog.onclose = () => settle(dialog.returnValue === 'ok');
+		dialog.showModal();
 	});
 }
 

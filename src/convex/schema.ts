@@ -2,14 +2,10 @@ import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 import { EMBEDDING_DIMENSIONS } from './lib/embedder';
 
-// Ingestion mode validators, shared by every table/mutation that stores them.
-// undefined always means the default: 'visual' / 'screenshot'.
-// taggingMode is how the app understands an item, shown as "look" / "content" /
-// "off": tagging and embedding follow it (an image's pixels or a link's words),
-// only items embedded as images go on the atlas map, and 'none' keeps the item
-// away from every AI service (no tags, no embedding). Images can't be read as
-// content and notes can't be looked at, so they only switch between their one
-// mode and off.
+// Ingestion modes, shared by every table and mutation that stores them.
+// undefined means the default: the item type's own taggingMode (taggingModeOf
+// in lib/taggingModes.ts, which also has the modes each type allows) and
+// 'screenshot'.
 export const taggingModeValidator = v.union(
 	v.literal('visual'),
 	v.literal('text'),
@@ -26,8 +22,7 @@ export const siteFontValidator = v.object({
 // A smaller WebP copy of an item's image (lib/imageVariants.ts)
 export const imageVariantValidator = v.object({ key: v.string(), width: v.number() });
 
-// Sort mode validators, shared by every table/mutation that stores them.
-// Collections additionally support 'manual' (fractional-index ordering).
+// Collections also sort 'manual' (fractional-index ordering)
 const sortModes = [
 	v.literal('dateAddedNewest'),
 	v.literal('dateAddedOldest'),
@@ -88,7 +83,10 @@ export default defineSchema({
 		key: v.string(),
 		// The raster type the object's bytes were checked to be (it is served as
 		// one too); unset until then, as on rows minted before the check existed
-		verifiedType: v.optional(v.string())
+		verifiedType: v.optional(v.string()),
+		// The upright size those bytes decoded to, which items.add stores
+		width: v.optional(v.number()),
+		height: v.optional(v.number())
 	}).index('by_key', ['key']),
 
 	items: defineTable({
@@ -125,14 +123,13 @@ export default defineSchema({
 		// Fonts the page uses, most prominent first (URL items, screenshot captures
 		// only); name variants go into searchText
 		fonts: v.optional(v.array(siteFontValidator)),
-		// Tagging status tracking
 		taggingStatus: v.optional(
 			v.union(v.literal('pending'), v.literal('completed'), v.literal('failed'))
 		),
 		taggingError: v.optional(v.string()),
+		// Deprecated: no longer written, pending removal once items:dropTaggingModelVersion has run
 		taggingModelVersion: v.optional(v.string()),
-		// Ingestion prefs snapshotted from the first collection at add time, then
-		// set per item (taggingMode on notes is only ever 'none')
+		// Snapshotted at add time, then set per item; on notes only ever 'none'
 		taggingMode: v.optional(taggingModeValidator),
 		linkImageMode: v.optional(linkImageModeValidator), // URL items only
 		searchText: v.optional(v.string()), // Derived full-text search field, see lib/searchText.ts
@@ -151,7 +148,8 @@ export default defineSchema({
 	collections: defineTable({
 		userId: v.id('users'),
 		name: v.string(),
-		dateCreated: v.number(),
+		// Deprecated: no longer written, pending removal once collections:dropDateCreated has run
+		dateCreated: v.optional(v.number()),
 		position: v.optional(v.string()), // Lexicographical fractional index for manual ordering
 		itemCount: v.optional(v.number()), // Denormalized count of itemCollectionPositions rows
 		sortMode: v.optional(collectionSortModeValidator), // Defaults to 'manual'
@@ -165,10 +163,10 @@ export default defineSchema({
 		linkImageMode: v.optional(linkImageModeValidator)
 	}).index('by_user_position', ['userId', 'position']),
 
-	// View preferences for non-collection pages (home, search)
+	// View preferences for non-collection pages
 	viewPreferences: defineTable({
 		userId: v.id('users'),
-		key: v.string(), // "home", "search"
+		key: v.string(), // The page: "home", "search" or "discover"
 		sortMode: v.optional(sortModeValidator),
 		viewMode: v.optional(v.union(v.literal('grid'), v.literal('list'))),
 		columnOffset: v.optional(v.number()),

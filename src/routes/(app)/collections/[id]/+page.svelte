@@ -7,7 +7,7 @@
 	import TopControls from '#lib/components/TopControls.svelte';
 	import { useMutation, useQuery } from '#lib/convex.js';
 	import { getCollectionsContext } from '#lib/context.js';
-	import { pageTitle } from '#lib/pageTitle.svelte.js';
+	import { usePageTitle } from '#lib/pageTitle.svelte.js';
 	import { useCollectionPrefs, useLocalPrefs } from '#lib/prefs.svelte.js';
 
 	let { data } = $props();
@@ -30,10 +30,7 @@
 	const isLoading = $derived(ownCollections.isLoading || other.isLoading);
 	const error = $derived(ownCollections.error ?? other.error);
 
-	$effect(() => {
-		pageTitle.value = collection?.name ?? null;
-		return () => (pageTitle.value = null);
-	});
+	usePageTitle(() => collection?.name);
 
 	// Everyone starts from the owner's saved view settings; the owner's changes
 	// save to the collection, anyone else's stay on this page
@@ -82,7 +79,7 @@
 		}, 300);
 	}
 
-	// Reorder handler for drag-drop; optimistic so the grid doesn't snap back before the server responds
+	// Optimistic, so the grid doesn't snap back before the server responds
 	function handleReorder(itemId: Id<'items'>, newPosition: string) {
 		mutate(
 			api.itemCollectionPositions.reorderItem,
@@ -206,7 +203,6 @@
 <style>
 	h1 {
 		margin: 0 0 var(--gutter) 0;
-		padding: 0;
 	}
 
 	.byline {

@@ -71,9 +71,8 @@ export const setCompleted = internalMutation({
 		const replaced = item.imageKey !== args.imageKey;
 		if (replaced) await deleteImageObjects(ctx, item);
 
-		// Only fill a title the user hasn't written themselves. og:description
-		// goes to its own machine-owned field (kept if a re-fetch returns none);
-		// description stays purely user notes.
+		// Only fill a title the user hasn't written; a re-fetch that finds no
+		// og:description keeps the old one
 		const title = item.title || args.title || undefined;
 		const ogDescription = args.description ?? item.ogDescription;
 		const fonts = args.fonts ?? item.fonts;
@@ -94,7 +93,6 @@ export const setCompleted = internalMutation({
 			fonts
 		});
 
-		// Palette runs on every new image; the LLM tagger only when visual tagging is on
 		if (wantsVisualTagging) {
 			await enqueueTagging(ctx, internal.taggingActions.tagImageItem, args.itemId);
 		} else {
@@ -128,8 +126,7 @@ export const setFailed = internalMutation({
 	},
 	handler: async (ctx, args) => {
 		const item = await ctx.db.get(args.itemId);
-		if (!item) return;
-		await settleFailed(ctx, item, args.error);
+		if (item) await settleFailed(ctx, item, args.error);
 	}
 });
 
@@ -219,8 +216,7 @@ export const generateScreenshotInternal = internalAction({
 			if ((error as Error | undefined)?.name === 'TimeoutError') {
 				throw new NonRetryableError('Screenshot service timed out');
 			}
-			// Worker unreachable - throw so the workpool retries; onScreenshotComplete
-			// records the failure if retries run out
+			// Worker unreachable: throw so the workpool retries
 			throw new Error(
 				`Screenshot service unreachable: ${error instanceof Error ? error.message : 'Unknown error'}`,
 				{ cause: error }
@@ -228,15 +224,12 @@ export const generateScreenshotInternal = internalAction({
 		}
 
 		// Browser Rendering rate limit - throw so the workpool retries with backoff
-		if (response.status === 429) {
-			throw new Error(`Screenshot service rate limited: ${await response.text()}`);
-		}
+		if (response.status === 429) throw new Error(await workerError(response));
 
 		if (!response.ok) {
-			const errorText = await response.text();
 			await ctx.runMutation(internal.screenshots.setFailed, {
 				itemId: args.itemId,
-				error: `Screenshot service error: ${response.status} - ${errorText}`
+				error: await workerError(response)
 			});
 			return;
 		}
@@ -261,6 +254,13 @@ export const generateScreenshotInternal = internalAction({
 		});
 	}
 });
+
+// The worker's own message for a failed capture (its `{ error }` body), else the status
+async function workerError(response: Response): Promise<string> {
+	const body = (await response.json().catch(() => null)) as { error?: unknown } | null;
+	const error = body?.error;
+	return typeof error === 'string' ? error : `Screenshot service returned ${response.status}`;
+}
 
 // Runs after a pool job fails or is canceled (success is recorded by the
 // action itself), so an item whose retries ran out never stays pending

@@ -92,6 +92,11 @@ async function get(url: string, init: RequestInit = {}) {
 	return response;
 }
 
+const getText = async (url: string) => (await get(url)).text();
+
+const getJson = async <T>(url: string, init?: RequestInit) =>
+	(await (await get(url, init)).json()) as T;
+
 // Drops tracking params from a link we store
 function cleanUrl(value: string): string {
 	try {
@@ -149,14 +154,14 @@ interface RecentItem {
 }
 
 async function fetchRecent(): Promise<FetchedCandidate[]> {
-	const response = await get('https://api.recent.design/rpc/items/list', {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({
-			json: { feed: 'x', format: 'tweet', sort: 'recent', limit: 40 }
-		})
-	});
-	const { json } = (await response.json()) as { json: { items: RecentItem[] } };
+	const { json } = await getJson<{ json: { items: RecentItem[] } }>(
+		'https://api.recent.design/rpc/items/list',
+		{
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ json: { feed: 'x', format: 'tweet', sort: 'recent', limit: 40 } })
+		}
+	);
 
 	return json.items.flatMap((item): FetchedCandidate[] => {
 		const media = item.cover ?? item.media?.[0];
@@ -231,8 +236,6 @@ export function parseSeesaw(html: string): FetchedCandidate[] {
 	const cloudinary = 'https://res.cloudinary.com/seesawsite/video/upload';
 	return sites
 		.filter((site) => site.imgId && site.link)
-		.sort((a, b) => b.publishedDate.localeCompare(a.publishedDate))
-		.slice(0, 120)
 		.map((site) => ({
 			externalId: site.id,
 			kind: 'site',
@@ -245,10 +248,6 @@ export function parseSeesaw(html: string): FetchedCandidate[] {
 			videoUrl: `${cloudinary}/w_960,du_6/q_auto:eco/${site.imgId}.mp4`,
 			publishedAt: Date.parse(site.publishedDate)
 		}));
-}
-
-async function fetchSeesaw(): Promise<FetchedCandidate[]> {
-	return parseSeesaw(await (await get('https://www.seesaw.website/')).text());
 }
 
 // ============ RSS (Awwwards, One Page Love, Siteinspire) ============
@@ -267,8 +266,7 @@ export async function resolveOriginal(sourceKey: string, pageUrl: string) {
 	const pattern = ORIGINAL_LINK[sourceKey];
 	if (!pattern) return null;
 	try {
-		const html = await (await get(pageUrl)).text();
-		const href = html.match(pattern)?.[1];
+		const href = (await getText(pageUrl)).match(pattern)?.[1];
 		if (!href) return null;
 		const original = new URL(decodeEntities(href), pageUrl).href;
 		return isWebUrl(original) ? cleanUrl(original) : null;
@@ -318,10 +316,6 @@ export function parseRss(xml: string): FetchedCandidate[] {
 		});
 }
 
-async function fetchRss(url: string): Promise<FetchedCandidate[]> {
-	return parseRss(await (await get(url)).text());
-}
-
 // ============ Are.na channels (v3 API) ============
 
 export interface ArenaBlock {
@@ -341,11 +335,11 @@ export interface ArenaBlock {
 }
 
 async function fetchArena(slug: string): Promise<FetchedCandidate[]> {
-	const response = await get(
+	const { data } = await getJson<{ data: ArenaBlock[] }>(
 		`https://api.are.na/v3/channels/${encodeURIComponent(slug)}/contents?per=100&sort=created_at_desc`,
 		{ headers: arenaHeaders() }
 	);
-	return parseArena(((await response.json()) as { data: ArenaBlock[] }).data);
+	return parseArena(data);
 }
 
 export function parseArena(blocks: ArenaBlock[]): FetchedCandidate[] {
@@ -386,14 +380,14 @@ interface Poster {
 async function fetchTypographicPosters(): Promise<FetchedCandidate[]> {
 	// Not date-sorted; the newest few are spread over the first pages
 	const pages = await Promise.all(
-		[0, 1].map(async (page) => {
-			const response = await get(
+		[0, 1].map((page) =>
+			getJson<{ hits: Poster[] }>(
 				`https://www.typographicposters.com/api/tg/posters-recent?page=${page}&itemsPerPage=40`
-			);
-			return ((await response.json()) as { hits: Poster[] }).hits;
-		})
+			)
+		)
 	);
-	return pages.flat().flatMap((poster): FetchedCandidate[] => {
+	const posters = pages.flatMap((page) => page.hits);
+	return posters.flatMap((poster): FetchedCandidate[] => {
 		const { image } = poster;
 		if (!image?.path) return [];
 		const scale = Math.min(1, 1132 / image.width);
@@ -418,9 +412,9 @@ export async function fetchSource(source: SourceConfig): Promise<FetchedCandidat
 		case 'recent':
 			return fetchRecent();
 		case 'seesaw':
-			return fetchSeesaw();
+			return parseSeesaw(await getText('https://www.seesaw.website/'));
 		case 'rss':
-			return fetchRss(source.url);
+			return parseRss(await getText(source.url));
 		case 'arena':
 			return fetchArena(source.slug);
 		case 'typographicposters':

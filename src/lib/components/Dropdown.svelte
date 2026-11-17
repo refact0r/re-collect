@@ -18,15 +18,11 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && open) {
-			open = false;
-		}
+		if (e.key === 'Escape') close();
 	}
 
 	function handleClickOutside(e: MouseEvent) {
-		if (open && containerEl && !containerEl.contains(e.target as Node)) {
-			open = false;
-		}
+		if (!containerEl.contains(e.target as Node)) close();
 	}
 </script>
 
@@ -72,5 +68,20 @@
 		z-index: 50;
 		display: flex;
 		flex-direction: column;
+	}
+
+	/* Checkbox rows, as in the collection and source filters */
+	.dropdown :global(label.option) {
+		display: flex;
+		align-items: center;
+		gap: var(--gap);
+		padding: var(--pad-y) var(--pad-x);
+		cursor: pointer;
+		white-space: nowrap;
+	}
+
+	.dropdown :global(label.option:hover) {
+		background: var(--bg-3);
+		color: var(--txt-1);
 	}
 </style>

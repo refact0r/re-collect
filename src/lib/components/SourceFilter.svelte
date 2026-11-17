@@ -55,18 +55,4 @@
 		font-size: var(--text-sm);
 		color: var(--txt-3);
 	}
-
-	.option {
-		display: flex;
-		align-items: center;
-		gap: var(--gap);
-		padding: var(--pad-y) var(--pad-x);
-		cursor: pointer;
-		white-space: nowrap;
-	}
-
-	.option:hover {
-		background: var(--bg-3);
-		color: var(--txt-1);
-	}
 </style>

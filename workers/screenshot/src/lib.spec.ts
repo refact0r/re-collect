@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	blocksRequest,
 	classifyError,
 	collapseWhitespace,
 	decodeEntities,
@@ -89,6 +90,22 @@ describe('isTrackerRequest', () => {
 		expect(isTrackerRequest('https://segment.studio.com/hero.webp')).toBe(false);
 		expect(isTrackerRequest('https://www.facebook.com/travel')).toBe(false);
 		expect(isTrackerRequest('not a url')).toBe(false);
+	});
+});
+
+describe('blocksRequest', () => {
+	const tracker = 'https://www.googletagmanager.com/ns.html';
+
+	it('blocks trackers, beacons and sockets, iframe documents included', () => {
+		expect(blocksRequest(tracker, 'document', false)).toBe(true);
+		expect(blocksRequest(tracker, 'script', false)).toBe(true);
+		expect(blocksRequest('https://studio.com/beacon', 'ping', false)).toBe(true);
+		expect(blocksRequest('wss://studio.com/live', 'websocket', false)).toBe(true);
+		expect(blocksRequest('https://studio.com/hero.webp', 'image', false)).toBe(false);
+	});
+
+	it("never blocks the page's own navigation", () => {
+		expect(blocksRequest('https://segment.com/', 'document', true)).toBe(false);
 	});
 });
 

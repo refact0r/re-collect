@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { SvelteSet } from 'svelte/reactivity';
 	import IconClose from '~icons/material-symbols-light/close-sharp';
 	import { api } from '../../../convex/_generated/api.js';
 	import type { Id } from '../../../convex/_generated/dataModel.js';
@@ -16,21 +17,13 @@
 		neighbours: DisplayItem[];
 		collections: { _id: Id<'collections'>; name: string }[];
 		activeStyles: Set<string>;
-		onselect: (ids: Id<'items'>[]) => void;
+		onpick: (id: Id<'items'>) => void;
 		onstyle: (style: string) => void;
 		onclose: () => void;
 	}
 
-	let {
-		selected,
-		region,
-		neighbours,
-		collections,
-		activeStyles,
-		onselect,
-		onstyle,
-		onclose
-	}: Props = $props();
+	let { selected, region, neighbours, collections, activeStyles, onpick, onstyle, onclose }: Props =
+		$props();
 
 	const mutate = useMutation();
 
@@ -40,6 +33,7 @@
 	);
 	const blurb = $derived(single && (single.subject ?? single.ogDescription));
 	const link = $derived(single?.url && isWebUrl(single.url) ? single.url : null);
+	const host = $derived(hostOf(single?.url));
 	const groupStyles = $derived.by(() => {
 		if (single) return [];
 		if (region?.styles.length) return region.styles.slice(0, 6);
@@ -49,12 +43,10 @@
 	});
 	const groupColors = $derived(single ? null : colorStrips(selected));
 
-	/* add to collection */
-
 	// The most items addManyToCollection takes in one call
 	const ADD_BATCH = 100;
 
-	let adding = $state<Id<'collections'> | null>(null);
+	const adding = new SvelteSet<Id<'collections'>>();
 	let newName = $state('');
 	let creating = $state(false);
 
@@ -70,13 +62,13 @@
 		const missing = selected
 			.filter((item) => !item.collections.includes(collectionId))
 			.map((item) => item._id);
-		adding = collectionId;
+		adding.add(collectionId);
 		for (let i = 0; i < missing.length; i += ADD_BATCH) {
 			const itemIds = missing.slice(i, i + ADD_BATCH);
 			const added = await mutate(api.items.addManyToCollection, { itemIds, collectionId });
 			if (added === undefined) break;
 		}
-		adding = null;
+		adding.delete(collectionId);
 	}
 
 	async function create(e: SubmitEvent) {
@@ -97,7 +89,7 @@
 	<div class="thumbs">
 		{#each items as item (item._id)}
 			{@const label = itemLabel(item)}
-			<button class="thumb" title={label} aria-label={label} onclick={() => onselect([item._id])}>
+			<button class="thumb" title={label} aria-label={label} onclick={() => onpick(item._id)}>
 				{#if item.imageUrl}
 					<img src={item.imageUrl} srcset={item.imageSrcset} sizes="5rem" alt="" loading="lazy" />
 				{:else}
@@ -149,14 +141,14 @@
 						class="preview"
 						src={single.imageUrl}
 						srcset={single.imageSrcset}
-						sizes="19rem"
+						sizes="(max-width: 768px) 100vw, 19rem"
 						alt={heading}
 					/>
 				{:else}
 					<div class="text-block">{single.content || blurb || single.url || heading}</div>
 				{/if}
-				{#if hostOf(single.url)}
-					<span class="quiet">{hostOf(single.url)}</span>
+				{#if host}
+					<span class="quiet">{host}</span>
 				{/if}
 				{#if blurb}
 					<p class="blurb">{blurb}</p>
@@ -218,11 +210,11 @@
 						{@const count = inCollection(collection._id)}
 						<button
 							class="row"
-							disabled={adding === collection._id || count === selected.length}
+							disabled={adding.has(collection._id) || count === selected.length}
 							onclick={() => addTo(collection._id)}
 						>
 							<span class="name">{collection.name}</span>
-							<span class="num">{adding === collection._id ? 'adding...' : inLabel(count)}</span>
+							<span class="num">{adding.has(collection._id) ? 'adding...' : inLabel(count)}</span>
 						</button>
 					{/each}
 				</div>
@@ -438,7 +430,6 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		background: var(--bg-2);
 	}
 
 	.thumb span {

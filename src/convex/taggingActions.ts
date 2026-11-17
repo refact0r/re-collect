@@ -9,18 +9,18 @@ import { extractPalette, validateOptions, MmcqQuantizer } from 'colorthief/inter
 import { internalAction, type ActionCtx } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import { requestArticleTags, requestImageTags, type TagResult } from './lib/tagger';
-import { RetryableError, embeddingToMake, embedImage, embedText } from './lib/embedder';
+import { requestArticleTags, requestImageTags, type Tags } from './lib/tagger';
+import { RetryableError, embedImage, embedText, isRetryableStatus } from './lib/embedder';
 
-// Every tagging, palette and embedding job runs here, in the Node runtime: sharp
-// needs it, and its 512MB comfortably fits a decoded image or a parsed 4MB page
-
-// Node actions get 512 MB: without libvips' operation cache and with one
-// thread, decoding the biggest image allowed in fits (palette runs ran out of
-// memory on them otherwise)
+// Every tagging, palette and embedding job runs here, in the Node runtime for
+// sharp. Its 512 MB fits the biggest image allowed in only without libvips'
+// operation cache and with one thread (palette runs ran out of memory otherwise)
 sharp.cache(false);
 sharp.concurrency(1);
 
+const FETCH_TIMEOUT_MS = 15_000;
+// The upload limit (imageImport.ts); a bigger object didn't come in through it
+const MAX_IMAGE_BYTES = 30 * 1024 * 1024;
 const MAX_EDGE_PX = 1024;
 const PALETTE_COLORS = 5;
 // Color Thief's stride; samples every Nth pixel of the raw RGBA buffer.
@@ -28,11 +28,8 @@ const PALETTE_SAMPLE_STRIDE = 10;
 
 const mmcqQuantizer = new MmcqQuantizer();
 
-// Pick K dominant colors via Color Thief's MMCQ (recursive RGB median-cut
-// with a two-phase priority queue). Captures distinct color clusters well —
-// small accents survive Phase 2's count×volume splitting — at the cost of
-// occasionally producing phantom swatches in empty regions of color space
-// on images with widely-separated clusters.
+// K dominant colors via Color Thief's MMCQ (RGB median cut): small accents
+// survive, at the cost of the odd phantom swatch between far-apart clusters
 function extractPalettePeaks(data: Buffer, width: number, height: number, k: number): string[] {
 	const opts = validateOptions({
 		colorCount: k,
@@ -54,11 +51,24 @@ async function fetchAndDecode(imageKey: string): Promise<{
 	const publicBase = process.env.R2_PUBLIC_URL;
 	if (!publicBase) throw new Error('R2_PUBLIC_URL not configured');
 
-	const response = await fetch(`${publicBase}/${imageKey}`);
+	// Only embedItem's pool retries; the tagging and palette runs treat any error alike
+	const networkFailure = (error: unknown): never => {
+		throw new RetryableError(`R2 fetch failed: ${error}`);
+	};
+	// The timeout covers the body too, which then rejects in networkFailure
+	const response = await fetch(`${publicBase}/${imageKey}`, {
+		signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
+	}).catch(networkFailure);
 	if (!response.ok) {
-		throw new Error(`R2 fetch failed: ${response.status}`);
+		const message = `R2 fetch failed: ${response.status}`;
+		throw isRetryableStatus(response.status) ? new RetryableError(message) : new Error(message);
 	}
-	const buf = Buffer.from(await response.arrayBuffer());
+	const checkSize = (bytes: number) => {
+		if (bytes > MAX_IMAGE_BYTES) throw new Error(`R2 image over the size limit: ${bytes} bytes`);
+	};
+	checkSize(Number(response.headers.get('content-length')));
+	const buf = Buffer.from(await response.arrayBuffer().catch(networkFailure));
+	checkSize(buf.length);
 
 	const { data, info } = await sharp(buf)
 		.rotate()
@@ -80,8 +90,6 @@ async function toJpegBase64(data: Buffer, width: number, height: number): Promis
 	return jpeg.toString('base64');
 }
 
-// Article extraction limits
-const FETCH_TIMEOUT_MS = 15_000;
 const MAX_HTML_CHARS = 4_000_000; // parser input cap for pathological pages
 const MAX_ARTICLE_CHARS = 8_000; // ~2k tokens sent to the LLM
 const MIN_ARTICLE_CHARS = 200; // below this, extraction is considered failed
@@ -147,7 +155,7 @@ function getItem(ctx: ActionCtx, itemId: Id<'items'>): Promise<Doc<'items'> | nu
 async function runTagging(
 	ctx: ActionCtx,
 	itemId: Id<'items'>,
-	tag: (item: Doc<'items'>) => Promise<TagResult>
+	tag: (item: Doc<'items'>) => Promise<Tags>
 ): Promise<void> {
 	const item = await getItem(ctx, itemId);
 	if (!item) return;
@@ -185,7 +193,7 @@ export const tagImageItem = internalAction({
 	args: { itemId: v.id('items') },
 	handler: async (ctx, { itemId }): Promise<void> => {
 		await runTagging(ctx, itemId, async (item) => {
-			if (item.type === 'text' || !item.imageKey) throw new Error('Item has no image to tag');
+			if (!item.imageKey) throw new Error('Item has no image to tag');
 			const { data, width, height } = await fetchAndDecode(item.imageKey);
 
 			// Written before the LLM call, so swatches land even if tagging fails
@@ -217,9 +225,10 @@ export const tagTextItem = internalAction({
 	}
 });
 
-// Only Workers AI's rate limits, server errors and timeouts are left for the
-// embedding pool to retry; anything else (a bad request, an image that won't
-// load) would fail the same way again
+// Only a RetryableError (a rate limit, server error, timeout or network failure,
+// from Workers AI or the image download) is left for the embedding pool to
+// retry; anything else (a bad request, a missing or undecodable image) would
+// fail the same way again
 function finalUnlessRetryable(error: unknown): never {
 	if (error instanceof RetryableError) throw error;
 	throw new NonRetryableError(error instanceof Error ? error.message : String(error), {
@@ -227,18 +236,12 @@ function finalUnlessRetryable(error: unknown): never {
 	});
 }
 
-// Embeds an item's image (or, for notes and text-mode links, its words) into
-// itemEmbeddings. Runs on the embedding pool (embeddings.scheduleEmbedding), and
-// each attempt starts by re-reading the item, so one turned off or changed since
-// an earlier attempt isn't sent. Skips items still waiting on their input and
-// inputs already embedded.
+// Runs on the embedding pool. Each attempt starts by re-reading the item, so one
+// turned off or changed since an earlier attempt isn't sent.
 export const embedItem = internalAction({
 	args: { itemId: v.id('items') },
 	handler: async (ctx, { itemId }): Promise<void> => {
-		const toMake = async () => {
-			const found = await ctx.runQuery(internal.embeddings.getItemForEmbedding, { itemId });
-			return found && embeddingToMake(found.item, found.embeddedKey);
-		};
+		const toMake = () => ctx.runQuery(internal.embeddings.embeddingJob, { itemId });
 		const first = await toMake();
 		if (!first) return;
 		const { input, key } = first;

@@ -11,6 +11,7 @@
 	import { getCollectionsContext } from '#lib/context.js';
 	import {
 		TAGGING_MODE_LABEL,
+		linkImageModeOptions,
 		taggingModeOf,
 		taggingModesFor,
 		type TaggingMode
@@ -92,17 +93,25 @@
 	const canSetMode = (mode: TaggingMode) =>
 		!tagBusy && (mode !== 'visual' || (!imageBusy && !!item.imageKey));
 
-	// Clicking a mode re-fetches in that mode, so the active button doubles as refresh
+	// Clicking a mode (link image or tagging) re-runs it in that mode, so the active
+	// button doubles as refresh. Until the server marks the item busy, a second
+	// click would start a second run
+	let rerunning = false;
+
 	async function reimage(mode: 'screenshot' | 'og') {
+		if (rerunning) return;
+		rerunning = true;
 		// Persist the draft first so the capture uses the url as edited
-		if (!(await save())) return;
-		mutate(api.screenshots.reimageItem, { itemId, mode });
+		if (await save()) await mutate(api.screenshots.reimageItem, { itemId, mode });
+		rerunning = false;
 	}
 
 	async function retag(mode: TaggingMode) {
+		if (rerunning) return;
+		rerunning = true;
 		// Persist the draft first so content tagging reads the url as edited
-		if (!(await save())) return;
-		mutate(api.tagging.retagItem, { itemId, mode });
+		if (await save()) await mutate(api.tagging.retagItem, { itemId, mode });
+		rerunning = false;
 	}
 
 	function toggleCollection(collectionId: Id<'collections'>) {
@@ -114,7 +123,6 @@
 </script>
 
 <div class="editor-layout">
-	<!-- Content Preview -->
 	<div class="content-preview">
 		{#if item.type === 'image' && item.imageUrl}
 			<img src={item.imageUrl} alt={item.title ?? 'image'} />
@@ -133,7 +141,6 @@
 				{readonly}></textarea>
 		{/if}
 	</div>
-	<!-- Properties & Controls -->
 	<div class="form">
 		<div class="fields">
 			<label>
@@ -202,7 +209,7 @@
 				</div>
 			{/if}
 
-			{#if item.paletteHex && item.paletteHex.length > 0}
+			{#if item.paletteHex?.length}
 				<div class="tag-field">
 					<div class="field-label">palette</div>
 					<div class="palette-strip">
@@ -213,7 +220,7 @@
 				</div>
 			{/if}
 
-			{#if item.fonts && item.fonts.length > 0}
+			{#if item.fonts?.length}
 				<div class="tag-field">
 					<div class="field-label">fonts</div>
 					<div class="chip-list">
@@ -226,7 +233,7 @@
 				</div>
 			{/if}
 
-			{#if item.styles && item.styles.length > 0}
+			{#if item.styles?.length}
 				<div class="tag-field">
 					<div class="field-label">styles</div>
 					<div class="chip-list">
@@ -244,7 +251,7 @@
 				</div>
 			{/if}
 
-			{#if item.aiTags && item.aiTags.length > 0}
+			{#if item.aiTags?.length}
 				<div class="tag-field">
 					<div class="field-label">search tags</div>
 					<div class="chip-list">
@@ -259,20 +266,15 @@
 				<div class="tag-field">
 					<div class="field-label">link image</div>
 					<div class="mode-options">
-						<button
-							class={{ active: (item.linkImageMode ?? 'screenshot') === 'screenshot' }}
-							disabled={imageBusy || tagBusy}
-							onclick={() => reimage('screenshot')}
-						>
-							screenshot
-						</button>
-						<button
-							class={{ active: item.linkImageMode === 'og' }}
-							disabled={imageBusy || tagBusy}
-							onclick={() => reimage('og')}
-						>
-							og image
-						</button>
+						{#each linkImageModeOptions as opt (opt.value)}
+							<button
+								class={{ active: (item.linkImageMode ?? 'screenshot') === opt.value }}
+								disabled={imageBusy || tagBusy}
+								onclick={() => reimage(opt.value)}
+							>
+								{opt.label}
+							</button>
+						{/each}
 					</div>
 					{#if imageBusy}
 						<p class="status-text">fetching image...</p>
@@ -286,7 +288,6 @@
 			{#if !readonly}
 				<div class="tag-field">
 					<div class="field-label">{TAGGING_MODE_LABEL}</div>
-					<!-- Clicking a mode re-tags in that mode, so the active button doubles as refresh -->
 					<div class="mode-options">
 						{#each taggingModesFor(item.type) as opt (opt.value)}
 							<button
@@ -398,7 +399,6 @@
 	.text-content {
 		width: 100%;
 		height: 100%;
-		flex: 1;
 		resize: vertical;
 		font-family: var(--font);
 		font-size: var(--text-base);
@@ -480,8 +480,6 @@
 	}
 
 	.actions {
-		display: flex;
-		gap: var(--gap);
 		align-items: center;
 	}
 

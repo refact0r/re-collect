@@ -22,13 +22,6 @@
 		y: number;
 	}
 
-	interface Inset {
-		top: number;
-		right: number;
-		bottom: number;
-		left: number;
-	}
-
 	interface Props {
 		points: Placed[];
 		// The items the lenses leave lit; null lights everything
@@ -44,8 +37,8 @@
 		rings?: Map<ItemId, string> | null;
 		// Dragging draws a selection box instead of panning (shift does it too)
 		boxMode?: boolean;
-		// Room the page's controls take from each edge, kept clear by a fitted view
-		inset?: Inset;
+		// Room the page's controls take at the bottom, kept clear by a fitted view
+		inset?: number;
 		onpick: (id: ItemId, toggle: boolean) => void;
 		onbox: (ids: ItemId[]) => void;
 		onlabel: (id: number) => void;
@@ -62,7 +55,7 @@
 		thumb,
 		rings = null,
 		boxMode = false,
-		inset = { top: 0, right: 0, bottom: 0, left: 0 },
+		inset = 0,
 		onpick,
 		onbox,
 		onlabel,
@@ -103,10 +96,8 @@
 	function fitTo(framed: Placed[]): View {
 		if (framed.length === 0 || width === 0) return { k: 1, x: 0, y: 0 };
 		const margin = 12 + thumb / 2;
-		const left = inset.left + margin;
-		const top = inset.top + margin;
-		const w = Math.max(width - inset.right - margin - left, 40);
-		const h = Math.max(height - inset.bottom - margin - top, 40);
+		const w = Math.max(width - 2 * margin, 40);
+		const h = Math.max(height - inset - 2 * margin, 40);
 		const xs = framed.map((p) => p.x);
 		const ys = framed.map((p) => p.y);
 		const [minX, maxX, minY, maxY] = [
@@ -118,8 +109,8 @@
 		const k = Math.min(w / Math.max(maxX - minX, 0.5), h / Math.max(maxY - minY, 0.5));
 		return {
 			k,
-			x: left + w / 2 - (k * (minX + maxX)) / 2,
-			y: top + h / 2 - (k * (minY + maxY)) / 2
+			x: margin + w / 2 - (k * (minX + maxX)) / 2,
+			y: margin + h / 2 - (k * (minY + maxY)) / 2
 		};
 	}
 
@@ -134,12 +125,14 @@
 		const view = fitTo(framed);
 		const k = Math.min(view.k, whole.k * MAX_FIT_ZOOM);
 		// zoom about the middle of the clear area the fit centred the frame in
-		const cx = (width + inset.left - inset.right) / 2;
-		const cy = (height + inset.top - inset.bottom) / 2;
+		const cx = width / 2;
+		const cy = (height - inset) / 2;
 		return { k, x: cx - ((cx - view.x) * k) / view.k, y: cy - ((cy - view.y) * k) / view.k };
 	});
 	let moved = $state<View | null>(null);
 	const view = $derived(moved ?? fitted);
+	// Cards read only the scale, so a pan (which keeps it) doesn't update each one
+	const scale = $derived(view.k);
 
 	// Programmatic moves glide; the user's own pans and zooms don't
 	let gliding = $state(false);
@@ -382,7 +375,7 @@
 						hovered: hoveredId === id
 					}
 				]}
-				style:transform="translate(calc({p.x * view.k}px - 50%), calc({p.y * view.k}px - 50%))"
+				style:transform="translate(calc({p.x * scale}px - 50%), calc({p.y * scale}px - 50%))"
 				style:width={image ? `${image.width}px` : undefined}
 				style:height={image ? `${image.height}px` : undefined}
 				style:--ring={rings?.get(id)}
@@ -417,8 +410,7 @@
 		{#each labels as label (label.id)}
 			<button
 				class="label"
-				style:transform="translate(calc({label.x * view.k}px - 50%), calc({label.y * view.k}px -
-				50%))"
+				style:transform="translate(calc({label.x * scale}px - 50%), calc({label.y * scale}px - 50%))"
 				onclick={() => onlabel(label.id)}
 			>
 				{label.text}
@@ -427,8 +419,8 @@
 		{/each}
 
 		{#if hovered}
-			{@const x = hovered.x * view.k}
-			{@const y = hovered.y * view.k - (imageBox(hovered.item)?.height ?? 24) / 2 - 6}
+			{@const x = hovered.x * scale}
+			{@const y = hovered.y * scale - (imageBox(hovered.item)?.height ?? 24) / 2 - 6}
 			<div class="tooltip" style:transform="translate(calc({x}px - 50%), calc({y}px - 100%))">
 				{itemLabel(hovered.item)}
 			</div>

@@ -1,7 +1,7 @@
 // The app's stand-in for window.confirm: `await confirmAction(...)` opens the
 // ConfirmDialog the (app) layout renders and resolves true once confirmed.
 
-export interface ConfirmRequest {
+interface ConfirmRequest {
 	title: string;
 	message?: string;
 	// The confirm button's label, e.g. 'delete'

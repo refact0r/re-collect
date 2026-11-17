@@ -1,25 +1,13 @@
-// Map palette hex codes to named-color search tokens.
+// Maps palette hex codes to named-color search tokens.
 //
-// Each palette hex is converted to OKLCh and compared against a curated anchor
-// table using a chord-ΔH distance (ΔL² + ΔC² + ΔH_chord²). OKLCh's better hue
-// linearity (vs CIE Lab) keeps blue/purple-region matches sane — cerulean's
-// nearest neighbors are cyan-family colors instead of purples. Every anchor
-// within DISTANCE_THRESHOLD contributes its name, so a single hex can produce
-// several synonyms (e.g. navy → "navy", "indigo"). Achromatic palette colors
-// are gated against achromatic anchors only so a near-grey doesn't pick up a
-// hue name by chance.
-//
-// Anchors are single-word names only: compound xkcd names like "navy blue" are
-// excluded since they tokenize to ["navy", "blue"] in full-text search and
-// produce false-positives (e.g. "olive green" surfacing for "green" queries).
-// Matching runs in two passes per palette hex: (1) a strict pass against the
-// full anchor table at DISTANCE_THRESHOLD finds specific names (lavender,
-// lilac, periwinkle); (2) a permissive pass against just the basic-color
-// anchors at BASIC_DISTANCE_THRESHOLD finds the coarse-color memberships
-// (purple, blue) directly from the hex. The basic pass replaces an older
-// parent-inheritance map, which drifted when a marginal specific match
-// dragged in unrelated parents (e.g. an orange-gray matching khaki, whose
-// parents included green).
+// Each hex is compared in OKLCh (whose hue is more even than Lab's, so
+// cerulean's neighbours are cyans, not purples) against single-word anchor
+// names, since full-text search would match a compound like "olive green" on
+// every "green" query. A strict pass over every anchor finds
+// specific names (lavender, periwinkle; a hex can match several), then a looser
+// pass over the basic colors finds the coarse one (purple) from the hex itself.
+// Achromatic hexes only match achromatic anchors, so a near-grey can't pick up
+// a hue name by chance.
 
 const DISTANCE_THRESHOLD = 0.15;
 const BASIC_DISTANCE_THRESHOLD = 0.25;
@@ -30,11 +18,8 @@ const CHROMA_THRESHOLD = 0.04;
 // purples). Weighting hue separates the families without a hard angular cap.
 const HUE_WEIGHT = 2.5;
 
-// 45 single-word names from the bottom 100 of xkcd.com/color/rgb.txt
-// (most-popular survey results), plus 17 manual additions: white, gray
-// (American spelling alias for grey), cream, coral, silver, charcoal,
-// crimson, amber, emerald, scarlet, azure, sienna, umber, viridian,
-// carmine, fuchsia, auburn.
+// The single-word names among the 100 most popular of xkcd.com/color/rgb.txt
+// (the bottom of the file), from ochre to red, plus common names it lacks
 const ANCHOR_HEX: Record<string, string> = {
 	ochre: '#bf9005',
 	cerulean: '#0485d1',
@@ -100,9 +85,6 @@ const ANCHOR_HEX: Record<string, string> = {
 	auburn: '#9a3001'
 };
 
-// Basic-color names run as a second pass at BASIC_DISTANCE_THRESHOLD, so the
-// coarse-color tag for a hex is derived directly from its position in OKLCh
-// rather than inherited from whatever specific anchors happened to match.
 const BASIC_NAMES = new Set([
 	'red',
 	'orange',
@@ -175,19 +157,12 @@ const ANCHORS: Anchor[] = Object.entries(ANCHOR_HEX).map(([name, hex]) => ({
 const BASIC_ANCHORS: Anchor[] = ANCHORS.filter((a) => BASIC_NAMES.has(a.name));
 
 export function colorNamesForPalette(paletteHex: string[]): string[] {
-	const seen = new Set<string>();
-	const out: string[] = [];
-	const add = (name: string) => {
-		if (!seen.has(name)) {
-			seen.add(name);
-			out.push(name);
-		}
-	};
+	const names = new Set<string>();
 	const matchPass = (lch: Oklch, achromatic: boolean, anchors: Anchor[], threshold: number) => {
 		for (const anchor of anchors) {
 			const anchorAchromatic = anchor.lch.C < CHROMA_THRESHOLD;
 			if (achromatic !== anchorAchromatic) continue;
-			if (oklchDistance(lch, anchor.lch) < threshold) add(anchor.name);
+			if (oklchDistance(lch, anchor.lch) < threshold) names.add(anchor.name);
 		}
 	};
 	for (const hex of paletteHex) {
@@ -197,5 +172,5 @@ export function colorNamesForPalette(paletteHex: string[]): string[] {
 		matchPass(lch, achromatic, ANCHORS, DISTANCE_THRESHOLD);
 		matchPass(lch, achromatic, BASIC_ANCHORS, BASIC_DISTANCE_THRESHOLD);
 	}
-	return out;
+	return [...names];
 }

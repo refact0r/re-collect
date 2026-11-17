@@ -23,6 +23,6 @@ the first place).
 
 To trial on a live deployment without a code change:
 `npx convex env set TAGGING_MODEL qwen/qwen3.7-flash`, retag a few items,
-compare (`taggingModelVersion` records the model per item). To adopt: flip
+compare their tags. To adopt: flip
 `DEFAULT_MODEL` here and in `src/convex/tagging.ts`. `PROMPT_VERSION` stays
 `v4` — the prompt is unchanged.

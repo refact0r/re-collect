@@ -1,8 +1,6 @@
 import type { Doc } from '../convex/_generated/dataModel.js';
 import { TAGGING_MODES, type TaggingMode } from '../convex/lib/taggingModes.js';
 
-// taggingMode as the UI names it: how the app understands an item, which its
-// tagging, embedding and place on the atlas map follow (see schema.ts)
 export { taggingModeOf, type TaggingMode } from '../convex/lib/taggingModes.js';
 
 export const TAGGING_MODE_LABEL = 'understood by';
@@ -12,6 +10,11 @@ export const taggingModeOptions = [
 	{ value: 'text', label: 'content' },
 	{ value: 'none', label: 'off' }
 ] as const satisfies readonly { value: TaggingMode; label: string }[];
+
+export const linkImageModeOptions = [
+	{ value: 'screenshot', label: 'screenshot' },
+	{ value: 'og', label: 'og image' }
+] as const satisfies readonly { value: Doc<'items'>['linkImageMode']; label: string }[];
 
 // The modes an item can switch between
 export const taggingModesFor = (type: Doc<'items'>['type']) =>

@@ -10,7 +10,7 @@ export interface QueryState<T> {
 	readonly isLoading: boolean;
 }
 
-export type ItemsData = FunctionReturnType<typeof api.items.list>;
+type ItemsData = FunctionReturnType<typeof api.items.list>;
 export type CollectionsData = FunctionReturnType<typeof api.collections.listWithCounts>;
 
 // Typed wrappers around the app layout's contexts, so setter and consumers

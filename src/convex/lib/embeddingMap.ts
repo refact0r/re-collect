@@ -5,7 +5,7 @@ import { UMAP } from 'umap-js';
 // no Convex functions, so the map action and plain specs can both import it.
 
 export type Point = [number, number];
-export interface MapPoint<Id extends string = string> {
+interface MapPoint<Id extends string = string> {
 	itemId: Id;
 	x: number;
 	y: number;

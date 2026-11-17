@@ -12,10 +12,11 @@
 		type Shift
 	} from '#lib/atlas.js';
 	import StyleConstellation from '#lib/components/atlas/StyleConstellation.svelte';
-	import { getCollectionsContext, getCurrentItemsContext, getItemsContext } from '#lib/context.js';
+	import { getCollectionsContext, getItemsContext } from '#lib/context.js';
+	import { useCurrentItems } from '#lib/currentItems.svelte.js';
 	import { getItemUrl, shouldDisplayAsImage } from '#lib/itemDisplay.js';
 	import { useLibraryMap } from '#lib/libraryMap.svelte.js';
-	import { pageTitle } from '#lib/pageTitle.svelte.js';
+	import { usePageTitle } from '#lib/pageTitle.svelte.js';
 	import type { DisplayItem } from '#lib/types.js';
 
 	type ItemId = Id<'items'>;
@@ -24,19 +25,10 @@
 	const collections = getCollectionsContext();
 	const map = useLibraryMap();
 
-	// The item modal steps through the whole library (set during init so the
-	// modal, rendered after the page, sees it at once), until a page without one
-	const currentItems = getCurrentItemsContext();
-	const list = () => itemsQuery.data ?? [];
-	currentItems.list = list;
-	$effect(() => () => {
-		if (currentItems.list === list) currentItems.list = () => [];
-	});
+	// The item modal steps through the whole library
+	useCurrentItems(() => itemsQuery.data ?? []);
 
-	$effect(() => {
-		pageTitle.value = 'patterns';
-		return () => (pageTitle.value = null);
-	});
+	usePageTitle(() => 'patterns');
 
 	const items = $derived(itemsQuery.data ?? []);
 	const byId = $derived(new Map(items.map((item) => [item._id, item])));

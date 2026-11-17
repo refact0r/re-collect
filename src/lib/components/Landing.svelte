@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { useConvexClient } from 'convex-svelte';
-	import { ConvexError } from 'convex/values';
 	import { api } from '../../convex/_generated/api.js';
+	import { errorMessage } from '#lib/convex.js';
 	import Logo from '#lib/assets/logo.svelte';
 	import IconCheck from '~icons/material-symbols-light/check-sharp';
 	import IconProgress from '~icons/material-symbols-light/progress-activity-sharp';
@@ -22,10 +22,7 @@
 			status = 'joined';
 		} catch (e) {
 			status = 'idle';
-			error =
-				e instanceof ConvexError && typeof e.data === 'string'
-					? e.data
-					: 'something went wrong, try again';
+			error = errorMessage(e, 'something went wrong, try again');
 		}
 	}
 </script>

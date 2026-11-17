@@ -33,9 +33,6 @@ describe('parseRss', () => {
 					<link>https://gallery.example/sites/cafe</link>
 					<guid>cafe-1</guid>
 					${pubDate}
-					<dc:creator><![CDATA[Ana]]></dc:creator>
-					<category><![CDATA[Inspiration]]></category>
-					<category><![CDATA[Food &amp; Drink]]></category>
 					<media:content url="https://cdn.example/a.jpg?w=1&amp;h=2" medium="image" width="1600" height="1000" />
 					<description><![CDATA[<p>A <b>bold</b> site <img src="https://cdn.example/other.jpg"></p> Full Review]]></description>
 				`)
@@ -103,10 +100,10 @@ describe('parseSeesaw', () => {
 
 		const entries = parseSeesaw(html);
 		expect(entries.map((e) => [e.externalId, e.url, e.title])).toEqual([
-			['s2', 'https://two.example/', 'Two "quoted"'],
-			['s1', 'https://one.example/', 'One']
+			['s1', 'https://one.example/', 'One'],
+			['s2', 'https://two.example/', 'Two "quoted"']
 		]);
-		expect(entries[0]).toMatchObject({
+		expect(entries[1]).toMatchObject({
 			kind: 'site',
 			description: 'Hi',
 			imageUrl: 'https://res.cloudinary.com/seesawsite/video/upload/w_1440/def.jpg',

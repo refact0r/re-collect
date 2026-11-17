@@ -39,19 +39,18 @@ export async function deleteImageObjects(
 	for (const { key } of item.imageVariants ?? []) await r2.deleteObject(ctx, key);
 }
 
-// The image a run should make variants for, or null if there's nothing to do
+// The image key a run should make variants for, or null if there's nothing to do
 export const variantJob = internalQuery({
 	args: { itemId: v.id('items') },
 	handler: async (ctx, { itemId }) => {
 		const item = await ctx.db.get(itemId);
-		if (!item?.imageKey || item.imageVariants) return null;
-		return { imageKey: item.imageKey };
+		return item?.imageKey && !item.imageVariants ? item.imageKey : null;
 	}
 });
 
-// Records a run's variants, and the capped image that replaces an oversized
-// original, unless the image changed (or another run finished first)
-// meanwhile, in which case the new objects belong to no one
+// Records a run's variants, and the image that replaces an oversized original,
+// unless the image changed (or another run finished first) meanwhile, in which
+// case the new objects belong to no one
 export const saveVariants = internalMutation({
 	args: {
 		itemId: v.id('items'),
@@ -90,8 +89,8 @@ export const saveVariants = internalMutation({
 	}
 });
 
-// Deletes R2 objects no item points at: what a failed run stored, or an
-// original a capped copy replaced
+// Deletes R2 objects no item points at: what a failed run stored, or a
+// replaced original
 export const deleteObjects = internalMutation({
 	args: { keys: v.array(v.string()) },
 	handler: async (ctx, { keys }) => {
@@ -100,10 +99,10 @@ export const deleteObjects = internalMutation({
 });
 
 // Queues every image without variants. With `remake`, every image's variants
-// are deleted and made again (after VARIANT_WIDTHS or the encoding changes),
-// capping oversized originals on the way.
-// Run with `npx convex run imageVariants:backfill` (add --prod for production;
-// '{"remake": true}' to remake)
+// are deleted and made again (after VARIANT_WIDTHS or the encoding changes).
+// Run on prod only: dev's items point at prod's objects in the shared bucket, so
+// replacing an original there deletes the one prod shows (reference/ops.md).
+// `npx convex run --prod imageVariants:backfill` ('{"remake": true}' to remake)
 export const backfill = internalMutation({
 	args: {
 		remake: v.optional(v.boolean()),

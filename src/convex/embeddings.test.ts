@@ -1,11 +1,11 @@
 // @vitest-environment edge-runtime
 import { afterEach, expect, test, vi } from 'vitest';
+import sharp from 'sharp';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { hashToken } from './lib/auth';
 import { r2 } from './r2';
 import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL, documentText, inputKey } from './lib/embedder';
-import { newTest, type Test } from './testing.helpers';
+import { makeUser, newTest, type Test } from './testing.helpers';
 
 const vector = (x: number) => Array.from({ length: EMBEDDING_DIMENSIONS }, () => x);
 const NOTE = { title: 'note', content: 'risograph' };
@@ -22,20 +22,17 @@ afterEach(() => {
 async function setup() {
 	vi.useFakeTimers(); // Queued embedding runs start only when a test drains them
 	const t = newTest();
-	const token = 'a-token';
-	const { userId, itemId } = await t.run(async (ctx) => {
-		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
-		await ctx.db.insert('sessions', { userId, tokenHash: await hashToken(token) });
-		const itemId = await ctx.db.insert('items', {
+	const { userId, token } = await makeUser(t);
+	const itemId = await t.run((ctx) =>
+		ctx.db.insert('items', {
 			userId,
 			type: 'text',
 			...NOTE,
 			collections: [],
 			dateAdded: 0,
 			dateModified: 0
-		});
-		return { userId, itemId };
-	});
+		})
+	);
 	const rows = (id: Id<'items'> = itemId) =>
 		t.run((ctx) =>
 			ctx.db
@@ -103,8 +100,8 @@ test('saving an embedding replaces the item’s previous one', async () => {
 	expect(saved[0]).toMatchObject({ userId, model: EMBEDDING_MODEL, inputKey: key });
 	expect(saved[0].embedding[0]).toBe(0.2);
 
-	const found = await t.query(internal.embeddings.getItemForEmbedding, { itemId });
-	expect(found?.embeddedKey).toBe(key);
+	// Embedded as it stands: nothing left to make
+	expect(await t.query(internal.embeddings.embeddingJob, { itemId })).toBeNull();
 });
 
 test('a run that read an older version of the item doesn’t save', async () => {
@@ -136,17 +133,18 @@ test('deleting an item deletes its embedding, and a late save is dropped', async
 
 test('a stale model’s row doesn’t count as embedded', async () => {
 	const { t, userId, itemId } = await setup();
+	// The note's own input, so only the model differs
+	const key = await noteKey();
 	await t.run((ctx) =>
 		ctx.db.insert('itemEmbeddings', {
 			itemId,
 			userId,
 			model: 'some/older-model',
-			inputKey: 'text:a',
+			inputKey: key,
 			embedding: vector(0.1)
 		})
 	);
-	const found = await t.query(internal.embeddings.getItemForEmbedding, { itemId });
-	expect(found?.embeddedKey).toBeNull();
+	expect(await t.query(internal.embeddings.embeddingJob, { itemId })).toMatchObject({ key });
 });
 
 test('a queued run retries a rate limit and embeds', async () => {
@@ -165,6 +163,59 @@ test('a queued run gives up on a rejected request without retrying', async () =>
 	await t.finishAllScheduledFunctions(vi.runAllTimers);
 	expect(fetch).toHaveBeenCalledOnce();
 	expect(await rows()).toHaveLength(0);
+});
+
+test('a queued image run retries a failed download, but not a missing image', async () => {
+	const { t, userId, rows } = await setup();
+	const found = await imageItem(t, userId, 'found.png');
+	const missing = await imageItem(t, userId, 'missing.png');
+	const png = await sharp({ create: { width: 1, height: 1, channels: 3, background: '#000' } })
+		.png()
+		.toBuffer();
+	const workersAi = stubWorkersAi();
+	vi.stubEnv('R2_PUBLIC_URL', 'https://r2.test');
+	const downloads: Record<string, number> = {};
+	vi.stubGlobal('fetch', async (url: string) => {
+		if (!url.startsWith('https://r2.test/')) return workersAi();
+		const key = url.slice('https://r2.test/'.length);
+		const attempt = (downloads[key] = (downloads[key] ?? 0) + 1);
+		if (key === 'missing.png') return new Response('gone', { status: 404 });
+		if (attempt === 1) throw new TypeError('fetch failed');
+		return attempt === 2 ? new Response('busy', { status: 503 }) : new Response(png);
+	});
+	await t.mutation(internal.embeddings.backfill, {});
+	await t.finishAllScheduledFunctions(vi.runAllTimers);
+	expect(downloads).toEqual({ 'found.png': 3, 'missing.png': 1 });
+	expect(await rows(found)).toHaveLength(1);
+	expect(await rows(missing)).toHaveLength(0);
+});
+
+test('a queued image run retries a timed-out download, but not an oversized one', async () => {
+	const { t, userId, rows } = await setup();
+	const slow = await imageItem(t, userId, 'slow.png');
+	const huge = await imageItem(t, userId, 'huge.png');
+	const png = await sharp({ create: { width: 1, height: 1, channels: 3, background: '#000' } })
+		.png()
+		.toBuffer();
+	const workersAi = stubWorkersAi();
+	vi.stubEnv('R2_PUBLIC_URL', 'https://r2.test');
+	const downloads: Record<string, number> = {};
+	vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
+		if (!url.startsWith('https://r2.test/')) return workersAi();
+		expect(init?.signal).toBeInstanceOf(AbortSignal);
+		const key = url.slice('https://r2.test/'.length);
+		const attempt = (downloads[key] = (downloads[key] ?? 0) + 1);
+		if (key === 'huge.png') {
+			return new Response(png, { headers: { 'content-length': String(31 * 1024 * 1024) } });
+		}
+		if (attempt === 1) throw new DOMException('The operation timed out', 'TimeoutError');
+		return new Response(png);
+	});
+	await t.mutation(internal.embeddings.backfill, {});
+	await t.finishAllScheduledFunctions(vi.runAllTimers);
+	expect(downloads).toEqual({ 'slow.png': 2, 'huge.png': 1 });
+	expect(await rows(slow)).toHaveLength(1);
+	expect(await rows(huge)).toHaveLength(0);
 });
 
 test('a retry doesn’t send an item turned off since the failed attempt', async () => {

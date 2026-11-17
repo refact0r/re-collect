@@ -3,7 +3,7 @@
 Every item image gets smaller WebP copies in two tiers, so a small display
 never downloads or decodes the full image; an oversized original is replaced,
 and an image over the pixel limit is refused at upload.
-Built 2026-11-16 as a prototype; the open decisions are at the end.
+Built 2026-11-16; the open decisions are at the end.
 
 ## Why
 
@@ -14,7 +14,8 @@ extension captures at 2x (2880 wide), og:images, and uploads of up to 30 MB
 decoded full-size images to show them tiny. That was behind the atlas repaint
 stalls (`f2144f6`).
 
-Measured on the dev library (95 images, 2026-11-16, current scheme):
+Measured on the dev library (95 images, 2026-11-16) with AVIF copies; the WebP
+q90 copies are about twice their bytes (Quality, below):
 
 | what the page loads                                  | total    |
 | ---------------------------------------------------- | -------- |
@@ -45,22 +46,22 @@ their untouched originals.
   (`imageImport`, `taggingActions`), every way in ends in an item with an
   `imageKey`, so one hook covers them all. Costs: Node action compute is 20
   GB-hours/month free on Starter, 250 on Pro, then ~$0.30/GB-hour
-  ([pricing](https://www.convex.dev/pricing)). A run is ~0.2-0.7s of sharp per
-  image at the 512 MB Node action size, so ~0.0001 GB-hours: the free tier
-  covers tens of thousands of images a month. R2 adds 1-3 PUTs per image and
-  ~6% storage, both negligible; reading the original from the bucket is free
-  egress.
+  ([pricing](https://www.convex.dev/pricing)). A run takes a median of ~1.8 s
+  per image at the 512 MB Node action size (Memory, below), so ~0.00025
+  GB-hours: the free tier covers tens of thousands of images a month. R2 adds
+  1-3 PUTs per image and ~10% storage, both negligible; reading the original
+  from the bucket is free egress.
 
 ## How it works
 
 - **Tiers** (`lib/imageVariants.ts`): `512` for thumbnails, collection mosaics
   and atlas cards (mostly 32-160px, so 2-3x headroom at 2x), `2048` for grid
-  columns (~320-540px). A tier is made only when it's at least 25% narrower than
-  the original, so most 1440 screenshots get just the 512 copy and the grid
-  shows the original. A **heavy** original (over 0.5 bytes per pixel: PNG
+  columns (~320-540px). A tier is made only when the original is at least 25%
+  wider, so most 1440 screenshots get just the 512 copy and the grid shows the
+  original. A **heavy** original (over 0.5 bytes per pixel: PNG
   photos and exports, maximum-quality JPEGs; screenshots are ~0.07) narrower
-  than 2560 also gets a grid copy at its own width, so the grid gets the same
-  pixels as a WebP instead of a multi-megabyte PNG.
+  than 2560 also gets a grid copy at its own width (at most 2048), so the grid
+  gets the same pixels as a WebP instead of a multi-megabyte PNG.
 - **Upload limit**: an image over `MAX_IMAGE_PIXELS` (32 MP, one frame; AVIF
   `MAX_AVIF_PIXELS`, 8 MP) is refused
   where its bytes are checked (`describeImage` in `imageImport.ts`: app
@@ -101,7 +102,7 @@ their untouched originals.
   screen's density: grid `columnWidth`, atlas card width, patterns `6rem`,
   mosaics `8rem`, the atlas panel `5rem` / `19rem`, list `2rem`. The item modal
   shows the original. On a 2x screen the grid needs ~730px, so it gets the 2048
-  copy or the original; on a 1x screen a column under 512px gets the 512 copy.
+  copy or the original; on a 1x screen a column up to 460px gets the 512 copy.
 - **Backfill**: `npx convex run imageVariants:backfill` queues every image
   without copies; `'{"remake": true}'` deletes every image's copies and makes
   them again (after changing the tiers or the encoding). Run it on prod only:
@@ -122,7 +123,7 @@ keeps freed memory):
   attempt at 25 MP and up and was flaky at 12-20 MP, so AVIF uploads are
   limited to 8 MP (`MAX_AVIF_PIXELS`).
 - The palette run (`taggingActions.repaletteItem`, not retried) also ran big
-  AVIFs and a 40 MP GIF out of memory; it now runs sharp the same way.
+  AVIFs and a 40 MP GIF out of memory, so it runs sharp the same way.
 
 sharp runs with its cache off and one libvips thread (both modules). Concurrent
 Node actions don't share memory: probed on dev (2026-11-16), four actions
@@ -173,19 +174,15 @@ Grid slot (726 device px), averaged over 10 images, against the original:
 | lossless WebP              | 35.1 dB | 0.46        | 210 KB  |
 
 **Chosen: WebP quality 90 with smart subsampling.** AVIF 4:4:4 measured a
-little better for half the bytes, and shipped briefly, but encodes ~9x slower
-(~180 ms per 768 copy), needs ~60 bytes per pixel to encode (it ran prod's
+little better for half the bytes, but encodes ~9x slower (~180 ms per 768 copy), needs ~60 bytes per pixel to encode (it ran prod's
 portrait images out of memory), and is heavier for the browser to decode. At
 these sizes the bytes don't cost anything (R2 serves for free), so WebP q90 is
-the simpler, cheaper choice at nearly the same quality. For the record, the
-AVIF run over the whole dev
-library still took under a minute locally.
+the simpler, cheaper choice at nearly the same quality.
 
 ## Gotchas found
 
-- `signUpload` used to percent-encode a key's `/`, which R2 rejects (403) for
-  any key with a prefix. It now encodes per segment. Uploads were unaffected
-  (their keys are bare UUIDs).
+- `signUpload` encodes a key per path segment: R2 rejects (403) a signed path
+  with a percent-encoded `/`.
 - Local deployments: `new R2(components.r2)` reads its config when the module
   loads, and the local Node executor keeps modules loaded across `env set`
   ([convex-backend#639](https://github.com/convex/convex-backend/issues/639)).
@@ -197,7 +194,7 @@ library still took under a minute locally.
 - **The limits**: originals are replaced past 3840 wide or 10 MB, and uploads
   are refused past `MAX_IMAGE_PIXELS` and 30 MB. The pixel limit is set by what
   a Node action can process (Memory, above), not by taste.
-- **1x screens**: a grid column under 512px gets the 512 copy (1-1.6x the
+- **1x screens**: a grid column up to 460px gets the 512 copy (1.1-1.6x the
   column). Telling the browser the grid is ~1.5x wider (`sizes`) would give 1x
   screens the grid tier too, at more bytes.
 - **Tagging, palette and embedding** still download the original and shrink it

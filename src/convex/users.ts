@@ -13,6 +13,7 @@ import {
 	normalizeUsername,
 	randomToken,
 	requireUser,
+	userByUsername,
 	userQuery
 } from './lib/auth';
 
@@ -88,10 +89,7 @@ export const setPasswordHash = internalMutation({
 });
 
 async function getUser(ctx: MutationCtx, username: string) {
-	const user = await ctx.db
-		.query('users')
-		.withIndex('by_username', (q) => q.eq('username', username))
-		.unique();
+	const user = await userByUsername(ctx, username);
 	if (!user) throw new ConvexError(`no user named ${username}`);
 	return user;
 }

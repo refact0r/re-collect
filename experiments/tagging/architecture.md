@@ -3,9 +3,8 @@
 Describes the shipped tagging pipeline. Companion to `design.md` (product
 framing) and `tag_qwen.py` (canonical source of the visual prompt, model
 params, and validation logic — production in `src/convex/lib/tagger.ts` is a
-byte-for-byte port; iterate in the sandbox first, then port and bump
-`PROMPT_VERSION`). The text-tagging prompt has no sandbox copy; it lives only
-in `lib/tagger.ts`.
+byte-for-byte port; iterate in the sandbox first, then port). The
+text-tagging prompt has no sandbox copy; it lives only in `lib/tagger.ts`.
 
 Originally this file was the build plan. The feature has shipped; deltas from
 the plan are listed at the bottom.
@@ -77,7 +76,6 @@ paletteHex: v.optional(v.array(v.string())),  // ["#rrggbb", ...], population-or
 paletteNames: v.optional(v.array(v.string())),
 taggingStatus: v.optional(v.union('pending' | 'completed' | 'failed')),
 taggingError: v.optional(v.string()),
-taggingModelVersion: v.optional(v.string()),  // `${model}:${PROMPT_VERSION}`, e.g. "openai/gpt-6-luna:v5"
 ```
 
 `searchText` **does** include tagging output: `buildSearchText()` in
@@ -95,9 +93,8 @@ constants live at the top of `src/convex/lib/tagger.ts`.
 - Model: `openai/gpt-6-luna` by default (moved from GPT-5.6 Luna on
   2026-10-30; that was adopted 2026-08-28 after the round-2 bake-off in
   `model-comparison-2026-08-round2.md`); `TAGGING_MODEL` env var overrides
-  without a code change (useful for A/B trials — `taggingModelVersion` records
-  which model tagged each item).
-- `PROMPT_VERSION`: `v5` (visual), `text-v3` (text). Bump on any prompt change.
+  without a code change (useful for A/B trials; items don't record which
+  model tagged them).
 - Temperature 0.3, `max_tokens` 600, `response_format: { type: 'json_object' }`.
 - `reasoning: { enabled: false }` — a matrix sweep (4 images × 6 treatments ×
   3 trials) showed reasoning drifts the model away from specific
@@ -157,8 +154,7 @@ Text items are never tagged. URL items with `taggingMode: 'text'` skip visual
 tagging entirely: `tagTextItem` (no worker/browser involvement) fetches the
 page (body read capped at 4M chars), extracts readable text via Defuddle +
 linkedom, truncates to 8k chars, and produces genre labels → `styles`,
-summary → `subject`, topic tags → `aiTags` (`TEXT_PROMPT_VERSION` stamps
-`taggingModelVersion`). A page with no readable article (a video, a JS app)
+summary → `subject`, topic tags → `aiTags`. A page with no readable article (a video, a JS app)
 is tagged from its `ogDescription` instead, when the capture read one. The
 image still gets palette extraction via `repaletteItem`.
 

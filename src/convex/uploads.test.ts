@@ -2,9 +2,8 @@
 import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { api } from './_generated/api';
-import { hashToken } from './lib/auth';
 import { r2, signUpload } from './r2';
-import { newTest, type Test } from './testing.helpers';
+import { makeUser, newTest, stubR2, type Test } from './testing.helpers';
 
 // Runs in node, not edge-runtime: imageImport's actions decode images with sharp
 
@@ -16,18 +15,11 @@ const png = await sharp({
 const svg = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>';
 const html = '<!doctype html><script>alert(1)</script>';
 
-let deleted: ReturnType<typeof vi.spyOn>;
+let deleted: ReturnType<typeof stubR2>;
 
 beforeEach(() => {
 	vi.useFakeTimers(); // Scheduled tagging and embedding never start
-	Object.assign(r2.config, {
-		bucket: 'images',
-		endpoint: 'https://account.r2.cloudflarestorage.com',
-		accessKeyId: 'AKIDEXAMPLE',
-		secretAccessKey: 'wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY'
-	});
-	vi.spyOn(r2, 'getUrl').mockImplementation(async (key) => `https://bucket.example/${key}`);
-	deleted = vi.spyOn(r2, 'deleteObject').mockResolvedValue();
+	deleted = stubR2();
 });
 
 afterEach(() => {
@@ -35,15 +27,6 @@ afterEach(() => {
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
 });
-
-async function makeUser(t: Test, username: string) {
-	const token = `${username}-token`;
-	await t.run(async (ctx) => {
-		const userId = await ctx.db.insert('users', { username, passwordHash: 'unused' });
-		await ctx.db.insert('sessions', { userId, tokenHash: await hashToken(token) });
-	});
-	return token;
-}
 
 // The bucket, as reached by verifyUpload's read and the server-side PUTs
 function serve(body: BodyInit, contentType: string) {
@@ -78,13 +61,13 @@ describe('upload URLs', () => {
 
 	test("keep a key's slashes as path separators, as R2 signs the path", async () => {
 		Object.assign(r2.config, { bucket: 'my-bucket' });
-		const url = new URL(await signUpload('variants/a b-256w.webp', 'image/webp'));
-		expect(url.pathname).toBe('/my-bucket/variants/a%20b-256w.webp');
+		const url = new URL(await signUpload('variants/a b-512w.webp', 'image/webp'));
+		expect(url.pathname).toBe('/my-bucket/variants/a%20b-512w.webp');
 	});
 
 	test('are only minted for raster image types', async () => {
 		const t = newTest();
-		const token = await makeUser(t, 'a');
+		const { token } = await makeUser(t);
 		for (const contentType of ['image/svg+xml', 'text/html', 'application/octet-stream', '']) {
 			await expect(t.mutation(api.r2.generateUploadUrl, { contentType, token })).rejects.toThrow(
 				'that is not a supported image'
@@ -107,15 +90,21 @@ describe('direct uploads', () => {
 		return key;
 	}
 
-	test('a verified raster image can be attached, once', async () => {
+	test('a verified raster image can be attached, once, at its decoded size', async () => {
 		const t = newTest();
-		const token = await makeUser(t, 'a');
+		const { token } = await makeUser(t);
 		const key = await pending(t, token);
 		serve(new Uint8Array(png), 'image/png');
 
 		await t.action(api.imageImport.verifyUpload, { key, token });
-		expect(await uploads(t)).toMatchObject([{ key, verifiedType: 'image/png' }]);
-		await t.mutation(api.items.add, { type: 'image', imageKey: key, token });
+		expect(await uploads(t)).toMatchObject([
+			{ key, verifiedType: 'image/png', width: 3, height: 2 }
+		]);
+		const itemId = await t.mutation(api.items.add, { type: 'image', imageKey: key, token });
+		expect(await t.run((ctx) => ctx.db.get(itemId))).toMatchObject({
+			imageWidth: 3,
+			imageHeight: 2
+		});
 		await expect(
 			t.mutation(api.items.add, { type: 'image', imageKey: key, token })
 		).rejects.toThrow('upload not found');
@@ -130,7 +119,7 @@ describe('direct uploads', () => {
 		['an untyped object', new Uint8Array(png), 'application/octet-stream']
 	])('%s is refused, deleted and never attachable', async (_, body, contentType) => {
 		const t = newTest();
-		const token = await makeUser(t, 'a');
+		const { token } = await makeUser(t);
 		const key = await pending(t, token);
 		serve(body, contentType);
 
@@ -146,7 +135,7 @@ describe('direct uploads', () => {
 
 	test('an unverified upload is refused by items.add', async () => {
 		const t = newTest();
-		const token = await makeUser(t, 'a');
+		const { token } = await makeUser(t);
 		const key = await pending(t, token);
 		for (const type of ['image', 'url'] as const) {
 			await expect(
@@ -157,8 +146,8 @@ describe('direct uploads', () => {
 
 	test("another user's upload can be neither verified nor attached", async () => {
 		const t = newTest();
-		const a = await makeUser(t, 'a');
-		const b = await makeUser(t, 'b');
+		const { token: a } = await makeUser(t, 'a');
+		const { token: b } = await makeUser(t, 'b');
 		const key = await pending(t, a);
 		const fetch = serve(new Uint8Array(png), 'image/png');
 
@@ -178,7 +167,7 @@ describe('server-side imports', () => {
 
 	test('attach the image they checked and uploaded', async () => {
 		const t = newTest();
-		const token = await makeUser(t, 'a');
+		const { token } = await makeUser(t);
 		const fetch = serve('', 'text/plain');
 
 		const { type } = await t.action(api.imageImport.addFromUrl, { imageUrl: dataUrl, token });
@@ -197,9 +186,9 @@ describe('server-side imports', () => {
 			expect(init?.headers).toEqual({ 'Content-Type': 'image/png' });
 		}
 		const items = await t.run((ctx) => ctx.db.query('items').collect());
-		expect(items.map((item) => [item.type, item.imageWidth])).toEqual([
-			['image', 3],
-			['url', 3]
+		expect(items.map((item) => [item.type, item.imageWidth, item.imageHeight])).toEqual([
+			['image', 3, 2],
+			['url', 3, 2]
 		]);
 		expect(await uploads(t)).toEqual([]);
 	});

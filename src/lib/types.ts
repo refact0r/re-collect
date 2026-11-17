@@ -1,7 +1,7 @@
 import type { ShownItem } from '../convex/items';
 
 // Mirrors sortModeValidator / collectionSortModeValidator in convex/schema.ts
-export type SortOption =
+type SortOption =
 	| 'dateAddedNewest'
 	| 'dateAddedOldest'
 	| 'dateModifiedNewest'

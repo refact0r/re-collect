@@ -22,34 +22,25 @@
 	const ownItem = $derived(ownItems.data?.find((i) => i._id === itemId));
 	const item = $derived(ownItem ?? currentItems.find((i) => i._id === itemId));
 
-	// The editor saves its own edits when it unmounts, so navigating only swaps the URL
-	async function navigateToItem(newItemId: Id<'items'>) {
-		await goto(getItemUrl(newItemId), { replace: true, reset: false });
-	}
-
-	// Arrow key navigation (skip when typing in input fields)
-	async function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-			const target = event.target as HTMLElement;
-			if (
-				target instanceof HTMLInputElement ||
-				target instanceof HTMLTextAreaElement ||
-				target.isContentEditable
-			) {
-				return;
-			}
-
-			const currentIndex = currentItems.findIndex((item) => item._id === itemId);
-			if (currentIndex === -1) return;
-
-			const direction = event.key === 'ArrowLeft' ? -1 : 1;
-			const newIndex = (currentIndex + direction + currentItems.length) % currentItems.length;
-			const newItem = currentItems[newIndex];
-			if (newItem) {
-				event.preventDefault();
-				await navigateToItem(newItem._id);
-			}
+	// Left/right step through the page's items, except while typing. The editor saves
+	// its own edits when it unmounts, so stepping only swaps the URL.
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+		const target = event.target as HTMLElement;
+		if (
+			target instanceof HTMLInputElement ||
+			target instanceof HTMLTextAreaElement ||
+			target.isContentEditable
+		) {
+			return;
 		}
+
+		const index = currentItems.findIndex((i) => i._id === itemId);
+		if (index === -1) return;
+		const step = event.key === 'ArrowLeft' ? -1 : 1;
+		const next = currentItems[(index + step + currentItems.length) % currentItems.length];
+		event.preventDefault();
+		goto(getItemUrl(next._id), { replace: true, reset: false });
 	}
 </script>
 

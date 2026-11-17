@@ -8,6 +8,9 @@
 	let password = $state('');
 	let error = $state('');
 	let isSubmitting = $state(false);
+
+	const idleLabel = $derived(signup ? 'create account' : 'login');
+	const busyLabel = $derived(signup ? 'creating account...' : 'logging in...');
 </script>
 
 <div class="login-container">
@@ -55,14 +58,7 @@
 				required
 			/>
 			<button type="submit" disabled={isSubmitting} class:error={!!error}>
-				{error ||
-					(signup
-						? isSubmitting
-							? 'creating account...'
-							: 'create account'
-						: isSubmitting
-							? 'logging in...'
-							: 'login')}
+				{error || (isSubmitting ? busyLabel : idleLabel)}
 			</button>
 		</form>
 	</div>
@@ -73,7 +69,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		min-height: 100vh;
+		min-height: 100dvh;
 		padding: var(--gutter);
 		background: var(--bg-1);
 	}

@@ -13,6 +13,10 @@ const tagging = document.getElementById('tagging');
 const saveButton = document.getElementById('save');
 const status = document.getElementById('status');
 
+let collections = [];
+let home = null;
+let loaded = false;
+
 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 document.getElementById('title').textContent = tab.title;
 document.getElementById('url').textContent = tab.url;
@@ -26,10 +30,6 @@ if (!(await getSettings()).convexUrl) {
 	loadCollections();
 	warnIfSaved();
 }
-
-let collections = [];
-let home = null;
-let loaded = false;
 
 // Save is enabled only once the select is filled, so an Enter right after
 // opening can't save to Uncollected (and make that the last collection). If

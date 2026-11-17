@@ -28,8 +28,7 @@
 	let { children, data } = $props();
 	setupConvex(PUBLIC_CONVEX_URL);
 
-	// The signed-in user's items and collections (real-time). A logged-out
-	// visitor, who can only be on a shared collection, has none.
+	// The signed-in user's items and collections; a logged-out visitor has none
 	const items = useQuery(api.items.list, () =>
 		data.writeToken ? { token: data.writeToken } : 'skip'
 	);
@@ -42,11 +41,10 @@
 
 	const currentItems = $state<CurrentItems>({ list: () => [] });
 
-	// Make available to all child routes via context
 	setItemsContext(items);
 	setCollectionsContext(collections);
 	setCurrentItemsContext(currentItems);
-	// Pass the token as a reactive getter so consumers always get the current value
+	// A getter, so consumers see the token change on login and logout
 	setWriteTokenContext(() => data.writeToken);
 
 	// An ended session (signed out elsewhere, users:signOut) fails every query
@@ -157,14 +155,6 @@
 	}
 
 	let mobileMenuOpen = $state(false);
-
-	function toggleMobileMenu() {
-		mobileMenuOpen = !mobileMenuOpen;
-	}
-
-	function closeMobileMenu() {
-		mobileMenuOpen = false;
-	}
 </script>
 
 {#snippet content()}
@@ -200,7 +190,11 @@
 {:else}
 	<header>
 		<nav>
-			<button class="icon menu-btn" onclick={toggleMobileMenu} aria-label="toggle menu">
+			<button
+				class="icon menu-btn"
+				onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
+				aria-label="toggle menu"
+			>
 				<IconMenu />
 			</button>
 			<div class="nav-links">
@@ -229,7 +223,8 @@
 	</header>
 
 	{#if mobileMenuOpen}
-		<button class="mobile-backdrop" onclick={closeMobileMenu} aria-label="close menu"></button>
+		<button class="mobile-backdrop" onclick={() => (mobileMenuOpen = false)} aria-label="close menu"
+		></button>
 	{/if}
 
 	<div class="layout">
@@ -343,7 +338,6 @@
 		.nav-search {
 			flex: 1;
 			padding: var(--pad-y-sm) var(--space-xs) var(--pad-y-sm) var(--pad-x);
-			gap: var(--gap);
 		}
 		.nav-search :global(svg) {
 			width: 1.375rem;

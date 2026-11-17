@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Id } from '../../convex/_generated/dataModel.js';
-	import { getCurrentItemsContext, type QueryState } from '#lib/context.js';
+	import type { QueryState } from '#lib/context.js';
+	import { useCurrentItems } from '#lib/currentItems.svelte.js';
 	import type { ViewPrefs } from '#lib/prefs.svelte.js';
 	import type { DisplayItem } from '#lib/types.js';
 	import ItemGrid from './ItemGrid.svelte';
@@ -18,14 +19,8 @@
 
 	let { items, prefs, empty, loading = 'loading...', onReorder, readonly }: Props = $props();
 
-	// The item modal steps through the list shown here (set during init so the
-	// modal, rendered after the page, sees it at once), until a page without one
-	const currentItems = getCurrentItemsContext();
-	const list = () => items.data ?? [];
-	currentItems.list = list;
-	$effect(() => () => {
-		if (currentItems.list === list) currentItems.list = () => [];
-	});
+	// The item modal steps through the list shown here
+	useCurrentItems(() => items.data ?? []);
 </script>
 
 <!-- No data and no error is loading, or a query skipped until its args are known -->

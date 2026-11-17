@@ -1,8 +1,7 @@
 import type { Doc } from '../_generated/dataModel';
 
 // Which taggingModes each item type has, shared by the backend and the UI
-// (src/lib/taggingModes.ts). Links can be looked at or read, images only
-// looked at, notes only read; any item can have AI off.
+// (src/lib/taggingModes.ts)
 
 export type TaggingMode = NonNullable<Doc<'items'>['taggingMode']>;
 type ItemType = Doc<'items'>['type'];

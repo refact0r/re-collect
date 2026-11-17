@@ -2,18 +2,14 @@
 import type { FunctionArgs } from 'convex/server';
 import { expect, test, vi } from 'vitest';
 import { api, internal } from './_generated/api';
-import { hashToken } from './lib/auth';
+import { SOURCES } from './lib/discoverySources';
 import { normalizeUrl } from './lib/urls';
-import { newTest, type Test } from './testing.helpers';
+import { makeUser, newTest, type Test } from './testing.helpers';
 
 async function setup() {
 	const t = newTest();
-	const tokens = { a: 'a-token', b: 'b-token' };
+	const tokens = { a: (await makeUser(t, 'a')).token, b: (await makeUser(t, 'b')).token };
 	await t.run(async (ctx) => {
-		for (const [username, token] of Object.entries(tokens)) {
-			const userId = await ctx.db.insert('users', { username, passwordHash: 'unused' });
-			await ctx.db.insert('sessions', { userId, tokenHash: await hashToken(token) });
-		}
 		for (const [sourceKey, url, publishedAt] of [
 			['awwwards', 'https://saved.example/?ref=awwwards', 3],
 			['awwwards', 'https://fresh.example/', 2],
@@ -145,6 +141,33 @@ const store = (t: Test, sourceKey: string, published: number[]) =>
 const range = (from: number, to: number) =>
 	Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
+test('each page is the start of the whole deal, reading deeper when saved links use up the first read', async () => {
+	const t = newTest();
+	const { token } = await makeUser(t, 'a');
+	await store(t, 'awwwards', range(101, 110));
+	await store(t, 'seesaw', range(1, 10));
+	// Two channels of one Are.na group share its slot
+	await store(t, 'arena:websites-skgmukjoccg', range(51, 55));
+	await store(t, 'arena:interesting-web-design-and-ux', [60]);
+	for (const n of range(105, 110))
+		await t.mutation(api.items.add, {
+			type: 'text',
+			content: 'saved',
+			url: `https://${n}.example`,
+			token
+		});
+
+	// Round by round: Awwwards, then the Are.na group, then Seesaw
+	const whole = [60, 10, 55, 9, 54, 8, 53, 7, 52, 6, 51, 5, 104, 4, 103, 3, 102, 2, 101, 1];
+	for (const limit of range(1, whole.length + 1)) {
+		const page = await t.query(api.discovery.feed, { limit, token });
+		expect(page.candidates.map((c) => c.url)).toEqual(
+			whole.slice(0, limit).map((n) => `https://${n}.example/`)
+		);
+		expect(page.more).toBe(limit < whole.length);
+	}
+});
+
 test('expiry drops month-old candidates past their source’s newest 300, and a removed source’s', async () => {
 	vi.useFakeTimers();
 	const t = newTest();
@@ -175,5 +198,66 @@ test('expiry drops month-old candidates past their source’s newest 300, and a 
 
 	await expire();
 	expect(await left()).toEqual(expected);
+	vi.useRealTimers();
+});
+
+const rss = (ids: string[], host: string) =>
+	`<rss><channel>${ids
+		.map(
+			(id, i) =>
+				`<item><title>${id}</title><link>https://${host}/sites/${id}</link><guid>${id}</guid>` +
+				`<pubDate>${new Date(Date.UTC(2026, 10, 1, 0, 0, ids.length - i)).toUTCString()}</pubDate>` +
+				`<description><![CDATA[<img src="https://img.example/${id}.jpg">]]></description></item>`
+		)
+		.join('')}</channel></rss>`;
+
+test('a poll keeps going past a failing source, and a gallery out of time picks up where it left off', async () => {
+	vi.useFakeTimers();
+	const t = newTest();
+	// Awwwards' detail pages take two minutes each, so a poll gets through three;
+	// One Page Love is down, and so is everything else but Siteinspire
+	vi.stubGlobal(
+		'fetch',
+		vi.fn(async (url: string) => {
+			if (url === 'https://www.awwwards.com/feed/')
+				return new Response(rss(['a1', 'a2', 'a3', 'a4', 'a5'], 'www.awwwards.com'));
+			if (url === 'https://www.siteinspire.com/websites/feed')
+				return new Response(rss(['s1'], 'www.siteinspire.com'));
+			const detail = url.match(/^https:\/\/www\.awwwards\.com\/sites\/(\w+)$/);
+			if (!detail) return new Response(null, { status: 500 });
+			vi.setSystemTime(Date.now() + 2 * 60 * 1000);
+			return new Response(`<a class="toolbar-bts__item" href="https://${detail[1]}.example/">`);
+		})
+	);
+	const poll = async () => {
+		await t.mutation(internal.discovery.pollAll, {});
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+		return t.run(async (ctx) => ({
+			urls: (await ctx.db.query('discoveryCandidates').collect()).map((c) => c.url).sort(),
+			errors: Object.fromEntries(
+				(await ctx.db.query('discoverySources').collect()).map((s) => [s.key, s.lastError ?? null])
+			)
+		}));
+	};
+
+	const first = await poll();
+	expect(first.urls).toEqual([
+		'https://a1.example/',
+		'https://a2.example/',
+		'https://a3.example/',
+		'https://www.siteinspire.com/sites/s1'
+	]);
+	expect(Object.keys(first.errors).sort()).toEqual(SOURCES.map((s) => s.key).sort());
+	expect(first.errors.awwwards).toBe('out of time, 2 entries left for the next poll');
+	expect(first.errors.onepagelove).toMatch(/500/);
+	expect(first.errors.siteinspire).toBeNull();
+
+	const second = await poll();
+	expect(second.urls).toEqual([
+		...['a1', 'a2', 'a3', 'a4', 'a5'].map((id) => `https://${id}.example/`),
+		'https://www.siteinspire.com/sites/s1'
+	]);
+	expect(second.errors.awwwards).toBeNull();
+	vi.unstubAllGlobals();
 	vi.useRealTimers();
 });

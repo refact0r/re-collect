@@ -96,7 +96,7 @@
 	aside {
 		--toggle-size: 2rem;
 		--toggle-inset: var(--space-md);
-		/* stays put while the page beside it scrolls */
+		/* the containing block of the collapse toggle (<main> scrolls, not the page) */
 		position: sticky;
 		top: 0;
 		height: 100%;
@@ -138,9 +138,7 @@
 			transform: translateX(-100%);
 			transition: transform 0.2s ease;
 			background: var(--bg-1);
-			border-right: 1px solid var(--border);
 			padding: 0;
-			overflow-y: auto;
 		}
 
 		.close-mobile {

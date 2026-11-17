@@ -125,6 +125,14 @@ export function isTrackerRequest(url: string): boolean {
 	return TRACKER_DOMAINS.some((domain) => host === domain || host.endsWith(`.${domain}`));
 }
 
+// Trackers, beacons ('ping') and sockets keep the network from going idle. The
+// page's own navigation is never blocked (e.g. capturing an analytics vendor's
+// site), but an iframe's is, so ad and tracker iframes stay out.
+export function blocksRequest(url: string, resourceType: string, isPage: boolean): boolean {
+	if (isPage) return false;
+	return resourceType === 'ping' || resourceType === 'websocket' || isTrackerRequest(url);
+}
+
 // Status and message for a failed capture. Navigation errors carry the page
 // URL, so they're matched first, and only errors thrown while acquiring the
 // browser count as Browser Rendering limits (launch rate, concurrency, daily

@@ -161,24 +161,45 @@ describe('litItems', () => {
 		expect(
 			lit({
 				styles: new Set(['bold']),
-				found: { query: 'x', itemIds: new Set([id('a'), id('b')]) }
+				found: { query: 'x', words: false, hits: new Set([id('a'), id('b')]) }
 			})
 		).toEqual(new Set(['a']));
 	});
 
+	it('finds by every word of the query, plus the fetched hits', () => {
+		const texts = [
+			item('a', { searchText: 'blue poster grid' }),
+			item('b', { searchText: 'red poster' }),
+			item('c', { title: 'Blue Grid' })
+		];
+		const found = (query: string, hits: string[] = [], words = true) =>
+			litItems(texts, { ...noLenses(), found: { query, words, hits: new Set(hits.map(id)) } });
+		expect(found('Poster')).toEqual(new Set(['a', 'b']));
+		expect(found('blue grid')).toEqual(new Set(['a', 'c']));
+		expect(found('red', ['c'])).toEqual(new Set(['b', 'c']));
+		// a font's sites light by the hits alone
+		expect(found('grid', ['b'], false)).toEqual(new Set(['b']));
+	});
+
 	it('lights the items behind a brushed stretch of either color strip', () => {
-		const brush = (...names: string[]) => ({
-			range: [0, 1] as [number, number],
-			itemIds: new Set(names.map(id))
-		});
-		expect(lit({ hue: brush('b') })).toEqual(new Set(['b']));
-		expect(lit({ tone: brush('a', 'b', 'c'), styles: new Set(['bold']) })).toEqual(
-			new Set(['a', 'c'])
-		);
-		expect(lit({ hue: brush('a', 'b'), tone: brush('b', 'c') })).toEqual(new Set(['b']));
-		expect(lit({ hue: brush('b'), added: [0, 15] })).toEqual(new Set());
+		// hues: a's red, b's green, c's blue; tones: c's white, a's black
+		const colored = [
+			item('a', { paletteHex: ['#ff0000', '#000000'] }),
+			item('b', { paletteHex: ['#00ff00'] }),
+			item('c', { paletteHex: ['#0000ff', '#ffffff'] })
+		];
+		const lit = (lenses: Partial<ReturnType<typeof noLenses>>) =>
+			litItems(colored, { ...noLenses(), ...lenses });
+		expect(lit({ hue: [1, 1] })).toEqual(new Set(['b']));
+		expect(lit({ hue: [1, 2], tone: [0, 0] })).toEqual(new Set(['c']));
+		// the range is read against the strip as it is now, so a new color shifts what it covers
+		const yellow = item('d', { paletteHex: ['#ffff00'] });
+		expect(litItems([...colored, yellow], { ...noLenses(), hue: [1, 1] })).toEqual(new Set(['d']));
+		// a range past the end of the strip lights nothing
+		expect(lit({ hue: [3, 4] })).toEqual(new Set());
 	});
 });
+
 describe('recentShift', () => {
 	const old = Array.from({ length: 12 }, (_, i) => item(`o${i}`, { dateAdded: i + 1 }));
 	const fresh = Array.from({ length: 8 }, (_, i) => item(`r${i}`, { dateAdded: 100 + i }));

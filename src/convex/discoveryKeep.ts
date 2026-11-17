@@ -22,21 +22,19 @@ export const keep = action({
 		const candidate = await ctx.runQuery(internal.discovery.getCandidate, { candidateId });
 		if (!candidate) throw new ConvexError('that post is gone');
 
-		let image: { imageKey: string; imageWidth: number; imageHeight: number } | undefined;
+		let imageKey: string | undefined;
 		try {
-			const fetched = await fetchImage(candidate.imageUrl, candidate.url);
-			const imageKey = await upload(ctx, fetched, token);
-			image = { imageKey, imageWidth: fetched.width, imageHeight: fetched.height };
+			imageKey = await upload(ctx, await fetchImage(candidate.imageUrl, candidate.url), token);
 		} catch (error) {
 			// Without the source's image, the worker captures the page as usual
 			console.warn(`discovery keep: ${candidate.imageUrl} failed, saving the page:`, error);
 		}
 		return await ctx.runMutation(api.items.add, {
-			type: image && candidate.kind === 'image' ? 'image' : 'url',
+			type: imageKey && candidate.kind === 'image' ? 'image' : 'url',
 			url: candidate.url,
 			title: candidate.title,
 			ogDescription: candidate.description,
-			...image,
+			imageKey,
 			collections: collectionId ? [collectionId] : undefined,
 			token
 		});

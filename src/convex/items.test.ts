@@ -3,20 +3,16 @@ import { generateKeyBetween } from 'fractional-indexing';
 import { expect, test, vi } from 'vitest';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { hashToken } from './lib/auth';
 import { normalizeUrl } from './lib/urls';
-import { newTest, type Test } from './testing.helpers';
+import { makeUser, newTest, type Test } from './testing.helpers';
 
 test('per-save overrides replace the collection’s ingestion defaults', async () => {
 	vi.useFakeTimers(); // Keep the scheduled tagging actions from running
 	const t = newTest();
-	const token = 'a-token';
-	const userId = await t.run(async (ctx) => {
-		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
-		await ctx.db.insert('sessions', { userId, tokenHash: await hashToken(token) });
+	const { userId, token } = await makeUser(t);
+	await t.run(async (ctx) => {
 		await ctx.db.insert('uploads', { userId, key: 'key-1', verifiedType: 'image/png' });
 		await ctx.db.insert('uploads', { userId, key: 'key-2', verifiedType: 'image/png' });
-		return userId;
 	});
 	const collectionId = await t.mutation(api.collections.create, {
 		name: 'untagged',
@@ -75,17 +71,6 @@ test('captured fonts are stored, searchable, and kept when a capture brings none
 	expect(item?.searchText?.toLowerCase()).toContain('soehne');
 	vi.useRealTimers();
 });
-
-// A user with one session, skipping the slow password hash
-async function makeUser(t: Test) {
-	const token = 'a-token';
-	const userId = await t.run(async (ctx) => {
-		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
-		await ctx.db.insert('sessions', { userId, tokenHash: await hashToken(token) });
-		return userId;
-	});
-	return { userId, token };
-}
 
 // Inserted directly: items.add would enqueue a screenshot on the workpool component
 function insertUrlItem(
@@ -196,6 +181,90 @@ test('text items are searchable by their content', async () => {
 	expect(await search('letterpress')).toEqual([itemId]);
 });
 
+test('an owner’s listings leave out the fields no page reads', async () => {
+	vi.stubEnv('R2_PUBLIC_URL', 'https://img.test');
+	const t = newTest();
+	const { userId, token } = await makeUser(t);
+	const collectionId = await t.mutation(api.collections.create, { name: 'c', token });
+	const itemId = await t.run((ctx) =>
+		ctx.db.insert('items', {
+			userId,
+			type: 'url',
+			url: 'https://a.co',
+			normUrl: normalizeUrl('https://a.co'),
+			imageKey: 'a.png',
+			imageWidth: 3000,
+			imageVariants: [{ key: 'variants/a-512w.webp', width: 512 }],
+			paletteNames: ['red'],
+			searchText: 'poster https://a.co',
+			collections: [],
+			dateAdded: 0,
+			dateModified: 0
+		})
+	);
+	await t.mutation(api.items.addToCollection, { itemId, collectionId, token });
+
+	const listings = [
+		await t.query(api.items.list, { token }),
+		await t.query(api.items.search, { query: 'poster', token }),
+		await t.query(api.items.listByCollection, { collectionId, token }),
+		await t.query(api.items.searchCollection, { collectionId, query: 'poster', token })
+	];
+	for (const [item] of listings) {
+		expect(item).toMatchObject({
+			searchText: 'poster https://a.co',
+			collections: [collectionId],
+			imageUrl: 'https://img.test/a.png',
+			imageSrcset: expect.stringContaining('variants/a-512w.webp')
+		});
+		for (const field of ['userId', 'normUrl', 'imageVariants', 'paletteNames']) {
+			expect(item).not.toHaveProperty(field);
+		}
+	}
+	vi.unstubAllEnvs();
+});
+
+test('an image gets the size its verified upload decoded to', async () => {
+	vi.useFakeTimers(); // Keep the scheduled palette/variant actions from running
+	const t = newTest();
+	const { userId, token } = await makeUser(t);
+	await t.run((ctx) =>
+		ctx.db.insert('uploads', {
+			userId,
+			key: 'sized',
+			verifiedType: 'image/png',
+			width: 30,
+			height: 20
+		})
+	);
+	const itemId = await t.mutation(api.items.add, { type: 'image', imageKey: 'sized', token });
+
+	expect(await t.run((ctx) => ctx.db.get(itemId))).toMatchObject({
+		imageWidth: 30,
+		imageHeight: 20
+	});
+	vi.useRealTimers();
+});
+
+test('view preferences only keep the rows the pages use', async () => {
+	const t = newTest();
+	const { token } = await makeUser(t);
+	for (const key of ['home', 'search', 'discover'] as const) {
+		await t.mutation(api.viewPreferences.set, { key, viewMode: 'list', token });
+		expect(await t.query(api.viewPreferences.get, { key, token })).toMatchObject({
+			key,
+			viewMode: 'list'
+		});
+	}
+	for (const key of ['collection', 'home2', '']) {
+		await expect(
+			// @ts-expect-error: not a page's key
+			t.mutation(api.viewPreferences.set, { key, viewMode: 'list', token })
+		).rejects.toThrow();
+	}
+	expect(await t.run((ctx) => ctx.db.query('viewPreferences').collect())).toHaveLength(3);
+});
+
 test('rebuildSearchText recomputes searchText from current fields', async () => {
 	const t = newTest();
 	const itemId = await t.run(async (ctx) => {
@@ -213,6 +282,68 @@ test('rebuildSearchText recomputes searchText from current fields', async () => 
 	await t.mutation(internal.items.rebuildSearchText, {});
 	const item = await t.run((ctx) => ctx.db.get(itemId));
 	expect(item).toMatchObject({ searchText: 'risograph paper supplier', dateModified: 0 });
+});
+
+test('dropTaggingModelVersion clears the field on every page and leaves the rest', async () => {
+	vi.useFakeTimers();
+	const t = newTest();
+	// More than one page, every other item tagged by a recorded model
+	await t.run(async (ctx) => {
+		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
+		for (let i = 0; i < 150; i++) {
+			await ctx.db.insert('items', {
+				userId,
+				type: 'text',
+				content: `note ${i}`,
+				searchText: `note ${i}`,
+				...(i % 2 ? { taggingModelVersion: 'openai/gpt-6-luna:v5' } : {}),
+				collections: [],
+				dateAdded: i,
+				dateModified: i
+			});
+		}
+	});
+	const items = () => t.run((ctx) => ctx.db.query('items').collect());
+	const drop = async () => {
+		await t.mutation(internal.items.dropTaggingModelVersion, {});
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+	};
+
+	const before = await items();
+	await drop();
+	const after = await items();
+	expect(after).toEqual(before.map(({ taggingModelVersion: _, ...item }) => item));
+
+	await drop();
+	expect(await items()).toEqual(after);
+	vi.useRealTimers();
+});
+
+test('dropDateCreated clears the field and leaves the rest', async () => {
+	const t = newTest();
+	const { token } = await makeUser(t);
+	await t.mutation(api.collections.create, { name: 'new', token });
+	await t.run(async (ctx) => {
+		const collection = await ctx.db.query('collections').first();
+		for (const name of ['old', 'older']) {
+			await ctx.db.insert('collections', {
+				userId: collection!.userId,
+				name,
+				dateCreated: 1,
+				position: collection!.position
+			});
+		}
+	});
+	const collections = () => t.run((ctx) => ctx.db.query('collections').collect());
+
+	const before = await collections();
+	await t.mutation(internal.collections.dropDateCreated, {});
+	const after = await collections();
+	expect(after).toEqual(before.map(({ dateCreated: _, ...collection }) => collection));
+	expect(after.map(({ name }) => name)).toEqual(['new', 'old', 'older']);
+
+	await t.mutation(internal.collections.dropDateCreated, {});
+	expect(await collections()).toEqual(after);
 });
 
 test('deleting a collection drops its memberships without touching members', async () => {
@@ -302,15 +433,11 @@ test('addManyToCollection adds every item once, and only the caller’s', async 
 	expect(listed.map((i) => i._id)).toEqual([y, x, member]);
 
 	// Another user's item or collection refuses the whole batch
-	const other = await t.run(async (ctx) => {
-		const userId = await ctx.db.insert('users', { username: 'b', passwordHash: 'unused' });
-		await ctx.db.insert('sessions', { userId, tokenHash: await hashToken('b-token') });
-		return userId;
-	});
-	const theirs = await insertUrlItem(t, other, { url: 'https://b.co' });
+	const other = await makeUser(t, 'b');
+	const theirs = await insertUrlItem(t, other.userId, { url: 'https://b.co' });
 	const theirCollection = await t.mutation(api.collections.create, {
 		name: 'theirs',
-		token: 'b-token'
+		token: other.token
 	});
 	const z = await add('z');
 	await expect(

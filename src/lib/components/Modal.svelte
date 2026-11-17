@@ -13,7 +13,7 @@
 		onClose: () => void;
 		// Any other key, e.g. the item modal's arrow navigation
 		onkeydown?: (event: KeyboardEvent) => void;
-		// 'wide' is the full-size panel the item editor fills
+		// 'wide' is the near-full-screen panel of the item editor and discover
 		size?: 'narrow' | 'default' | 'wide';
 		labelledby?: string;
 		children: Snippet;
@@ -28,10 +28,34 @@
 		return () => void open.splice(open.indexOf(self), 1);
 	});
 
+	let dialog: HTMLElement;
+
 	function handleKeydown(event: KeyboardEvent) {
-		if (open.at(-1) !== self) return;
+		if (open.at(-1) !== self || event.isComposing) return;
 		if (event.key === 'Escape') onClose();
+		else if (event.key === 'Tab') trapTab(event);
 		else onkeydown?.(event);
+	}
+
+	// aria-modal keeps nothing in by itself: Tab would walk out to the page behind,
+	// where focusing the header search navigates to /search
+	function trapTab(event: KeyboardEvent) {
+		const tabbable = [
+			...dialog.querySelectorAll<HTMLElement>(
+				'a[href], button, input, textarea, select, [tabindex]'
+			)
+		].filter(
+			(el) =>
+				el.tabIndex >= 0 &&
+				!el.matches(':disabled') &&
+				el.checkVisibility({ visibilityProperty: true })
+		);
+		const active = document.activeElement;
+		const inside = active !== dialog && dialog.contains(active);
+		const edge = event.shiftKey ? tabbable[0] : tabbable.at(-1);
+		if (inside && edge && active !== edge) return;
+		event.preventDefault();
+		(event.shiftKey ? tabbable.at(-1) : tabbable[0])?.focus();
 	}
 
 	// A press that starts inside (selecting text, dragging a resize handle) and is
@@ -70,6 +94,7 @@
 	aria-modal="true"
 	aria-labelledby={labelledby}
 	tabindex="-1"
+	bind:this={dialog}
 	{@attach moveFocus}
 >
 	<div class={['modal', size]}>

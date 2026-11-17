@@ -108,7 +108,7 @@ export function cellsOf(swatches: Swatch[]): Cell[] {
 
 // The color an item is placed by on the wheel: its first colorful palette
 // entry (palettes run most dominant first), or its first entry when it has none
-export function itemColor(item: DisplayItem): (Hsl & { hex: string; chromatic: boolean }) | null {
+function itemColor(item: DisplayItem): (Hsl & { hex: string; chromatic: boolean }) | null {
 	const colors = (item.paletteHex ?? []).map((hex) => ({ hex, ...hexToHsl(hex) }));
 	if (colors.length === 0) return null;
 	const colorful = colors.find(isChromatic);
@@ -309,24 +309,20 @@ export function findRegions(points: MapPoint[], items: DisplayItem[]): Region[] 
 
 export const UNCOLLECTED = 'uncollected';
 
-// A brushed stretch of a color strip (indexes into it, both ends included)
-// and the items its swatches come from
-export interface Brush {
-	range: [number, number];
-	itemIds: Set<ItemId>;
-}
-
+// The brushes and the search keep what was asked, not what it matched, so
+// what they light follows the library as it changes
 export interface Lenses {
 	// Collection ids, plus UNCOLLECTED for items in none
 	collections: Set<string>;
 	styles: Set<string>;
-	// Brushed stretches of the two color strips
-	hue: Brush | null;
-	tone: Brush | null;
+	// Brushed stretches of the two color strips (cell indexes, both ends included)
+	hue: [number, number] | null;
+	tone: [number, number] | null;
 	// dateAdded range, both ends included
 	added: [number, number] | null;
-	// What a search on the map found
-	found: { query: string; itemIds: Set<ItemId> } | null;
+	// A search on the map: the items its words match, unless it's a font's
+	// sites, plus the hits fetched for it
+	found: { query: string; words: boolean; hits: Set<ItemId> } | null;
 }
 
 export const noLenses = (): Lenses => ({
@@ -337,6 +333,26 @@ export const noLenses = (): Lenses => ({
 	added: null,
 	found: null
 });
+
+// A copy of the set with the value added, or removed if it was there
+export function toggled<T>(set: Set<T>, value: T): Set<T> {
+	const next = new Set(set);
+	if (!next.delete(value)) next.add(value);
+	return next;
+}
+
+// Whether an item is behind a brushed run of a strip's cells
+function inBrush(swatches: Swatch[], [first, last]: [number, number]) {
+	const cells = cellsOf(swatches);
+	const behind = swatches.slice(cells[first]?.from ?? 0, (cells[last]?.to ?? -1) + 1);
+	const ids = new Set(behind.map((s) => s.itemId));
+	return (item: DisplayItem) => ids.has(item._id);
+}
+
+const hasWords = (item: DisplayItem, words: string[]) => {
+	const text = (item.searchText || itemLabel(item)).toLowerCase();
+	return words.every((word) => text.includes(word));
+};
 
 // The items every active lens agrees on, or null when no lens is active (so
 // everything is lit). Within a lens any of its picks is enough.
@@ -351,10 +367,14 @@ export function litItems(items: DisplayItem[], lenses: Lenses): Set<ItemId> | nu
 		);
 	}
 	if (styles.size > 0) tests.push((item) => (item.styles ?? []).some((s) => styles.has(s)));
-	if (hue) tests.push((item) => hue.itemIds.has(item._id));
-	if (tone) tests.push((item) => tone.itemIds.has(item._id));
+	const strips = hue || tone ? colorStrips(items) : null;
+	if (hue) tests.push(inBrush(strips!.hue, hue));
+	if (tone) tests.push(inBrush(strips!.tone, tone));
 	if (added) tests.push((item) => item.dateAdded >= added[0] && item.dateAdded <= added[1]);
-	if (found) tests.push((item) => found.itemIds.has(item._id));
+	if (found) {
+		const words = found.query.toLowerCase().split(/\s+/);
+		tests.push((item) => found.hits.has(item._id) || (found.words && hasWords(item, words)));
+	}
 	if (tests.length === 0) return null;
 	return new Set(items.filter((item) => tests.every((test) => test(item))).map((item) => item._id));
 }

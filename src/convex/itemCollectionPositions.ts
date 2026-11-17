@@ -1,6 +1,6 @@
 import { ConvexError, v } from 'convex/values';
 import type { MutationCtx, QueryCtx } from './_generated/server';
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { generateKeyBetween } from 'fractional-indexing';
 import { getOwned, userMutation } from './lib/auth';
 
@@ -28,11 +28,10 @@ export async function getPositionsByCollection(ctx: QueryCtx, collectionId: Id<'
 	return await positionsOf(ctx, collectionId).collect();
 }
 
-// Add item to collection: creates the position record at the top, updates the
-// item's denormalized collections array, and bumps the collection's itemCount.
-// All membership changes must go through this or removeItemFromCollection
-// (except collections.remove, which drops a whole collection's memberships at once).
-// Item and collection must share an owner, so membership never crosses users.
+// Puts the item at the top of the collection, keeping the item's collections
+// array and the collection's itemCount in step. Every membership change goes
+// through this or removeItemFromCollection (collections.remove drops a whole
+// collection's at once). Both must share an owner, so membership never crosses users.
 export async function addItemToCollection(
 	ctx: MutationCtx,
 	itemId: Id<'items'>,
@@ -64,23 +63,13 @@ export async function addItemToCollection(
 	}
 }
 
-// Remove item from collection: deletes the position record, updates the item's
-// collections array, and decrements the collection's itemCount.
 export async function removeItemFromCollection(
 	ctx: MutationCtx,
 	itemId: Id<'items'>,
 	collectionId: Id<'collections'>
 ) {
 	const record = await getPositionRecord(ctx, itemId, collectionId);
-	if (record) {
-		await ctx.db.delete(record._id);
-		const collection = await ctx.db.get(collectionId);
-		if (collection) {
-			await ctx.db.patch(collectionId, {
-				itemCount: Math.max(0, (collection.itemCount ?? 0) - 1)
-			});
-		}
-	}
+	if (record) await deletePosition(ctx, record);
 
 	const item = await ctx.db.get(itemId);
 	if (item && item.collections.includes(collectionId)) {
@@ -91,21 +80,23 @@ export async function removeItemFromCollection(
 	}
 }
 
-// Delete all position records for an item (used when deleting the item itself)
+// Drops an item's position rows, leaving its collections array: for deleting the item
 export async function deleteAllPositionsForItem(ctx: MutationCtx, itemId: Id<'items'>) {
 	const records = await ctx.db
 		.query('itemCollectionPositions')
 		.withIndex('by_item_and_collection', (q) => q.eq('itemId', itemId))
 		.collect();
+	for (const record of records) await deletePosition(ctx, record);
+}
 
-	for (const record of records) {
-		await ctx.db.delete(record._id);
-		const collection = await ctx.db.get(record.collectionId);
-		if (collection) {
-			await ctx.db.patch(collection._id, {
-				itemCount: Math.max(0, (collection.itemCount ?? 0) - 1)
-			});
-		}
+// Deletes a position row and counts it off its collection
+async function deletePosition(ctx: MutationCtx, record: Doc<'itemCollectionPositions'>) {
+	await ctx.db.delete(record._id);
+	const collection = await ctx.db.get(record.collectionId);
+	if (collection) {
+		await ctx.db.patch(collection._id, {
+			itemCount: Math.max(0, (collection.itemCount ?? 0) - 1)
+		});
 	}
 }
 

@@ -29,6 +29,9 @@ import schema from './schema';
 // its slot, so needs fewer
 const PER_SOURCE = 100;
 const PER_GROUPED_SOURCE = 40;
+// The feed first deals this many cards per card on the page, as saved links and
+// repeats drop out after dealing; it reads deeper only if those run out
+const DEAL_AHEAD = 1.5;
 // Library lookups run in parallel batches of at most this many
 const LOOKUP_BATCH = 100;
 const PREFS_KEY = 'discover'; // The viewPreferences row holding hiddenSources
@@ -68,6 +71,49 @@ const toCard = ({ candidate: c, source }: Dealt) => ({
 });
 export type FeedCandidate = ReturnType<typeof toCard>;
 
+// Deals the user's sources about `reach` cards deep, reading each source only
+// as deep as that many rounds go (a group's channels split its rounds). `sure`
+// is how many cards lead the full window's deal unchanged: a group cut short
+// could still put a card into the round after its last. `cut`: some source holds more.
+async function deal(ctx: QueryCtx, sources: SourceConfig[], reach: number) {
+	const groupOf = (source: SourceConfig) => source.group ?? source.key;
+	const sizes = new Map<string, number>();
+	for (const source of sources) sizes.set(groupOf(source), (sizes.get(groupOf(source)) ?? 0) + 1);
+	const rounds = Math.ceil(reach / sizes.size);
+	const lists = await Promise.all(
+		sources.map(async (source) => {
+			const depth = Math.ceil(rounds / sizes.get(groupOf(source))!);
+			// One row past `depth` tells whether the source holds more
+			const rows = await ctx.db
+				.query('discoveryCandidates')
+				.withIndex('by_source_published', (q) => q.eq('sourceKey', source.key))
+				.order('desc')
+				.take(Math.min(depth + 1, source.group ? PER_GROUPED_SOURCE : PER_SOURCE));
+			return { rows: rows.slice(0, depth), cut: rows.length > depth };
+		})
+	);
+
+	// Within a group (a set of Are.na channels), its sources are dealt into
+	// one list first, so the group takes a single slot per round
+	const groups = new Map<string, { cards: Dealt[]; cut: boolean }>();
+	sources.forEach((source, i) => {
+		const group = groups.get(groupOf(source)) ?? { cards: [], cut: false };
+		lists[i].rows.forEach((candidate, round) => group.cards.push({ candidate, source, round }));
+		group.cut ||= lists[i].cut;
+		groups.set(groupOf(source), group);
+	});
+	const cutGroups = [...groups.values()].filter((group) => group.cut);
+	const sureRounds = Math.min(...cutGroups.map((group) => group.cards.length));
+	const cards = [...groups.values()]
+		.flatMap(({ cards }) => cards.sort(byRound).map((card, round) => ({ ...card, round })))
+		.sort(byRound);
+	return {
+		cards,
+		sure: cards.filter((card) => card.round < sureRounds).length,
+		cut: cutGroups.length > 0
+	};
+}
+
 // A plain round-robin over the user's sources: each source's newest-first list
 // is dealt out one card per source (or source group) per round, newest first
 // within a round. A link several sources carry shows once, as its first card,
@@ -79,36 +125,24 @@ export const feed = userQuery({
 		const prefs = await getPreferences(ctx, PREFS_KEY);
 		const hidden = new Set(prefs?.hiddenSources ?? []);
 		const sources = SOURCES.filter((source) => !hidden.has(source.key));
-		const lists = await Promise.all(
-			sources.map((source) =>
-				ctx.db
-					.query('discoveryCandidates')
-					.withIndex('by_source_published', (q) => q.eq('sourceKey', source.key))
-					.order('desc')
-					.take(source.group ? PER_GROUPED_SOURCE : PER_SOURCE)
-			)
-		);
-
-		// Within a group (a set of Are.na channels), its sources are dealt into
-		// one list first, so the group takes a single slot per round
-		const groups = new Map<string, Dealt[]>();
-		sources.forEach((source, i) => {
-			const group = groups.get(source.group ?? source.key) ?? [];
-			lists[i].forEach((candidate, round) => group.push({ candidate, source, round }));
-			groups.set(source.group ?? source.key, group);
-		});
-		const dealt = [...groups.values()]
-			.flatMap((group) => group.sort(byRound).map((card, round) => ({ ...card, round })))
-			.sort(byRound);
+		let reach = Math.ceil(limit * DEAL_AHEAD);
+		let dealt = await deal(ctx, sources, reach);
 
 		// Checked only as far as the page reaches. Each batch holds no more cards
-		// than the page still needs, so none past its end is looked up
+		// than the page still needs, so none past its end is looked up; past the
+		// sure ones, the sources are read twice as deep
 		const shown: FeedCandidate[] = [];
 		const seen = new Set<string>();
 		let next = 0;
-		while (next < dealt.length && shown.length < limit) {
-			const batch = dealt.slice(next, next + Math.min(limit - shown.length, LOOKUP_BATCH));
-			next += batch.length;
+		while (shown.length < limit) {
+			if (next >= dealt.sure) {
+				if (!dealt.cut) break;
+				dealt = await deal(ctx, sources, (reach *= 2));
+				continue;
+			}
+			const end = Math.min(dealt.sure, next + Math.min(limit - shown.length, LOOKUP_BATCH));
+			const batch = dealt.cards.slice(next, end);
+			next = end;
 			const firsts = batch.filter(({ candidate }) => {
 				if (seen.has(candidate.normUrl)) return false;
 				seen.add(candidate.normUrl);
@@ -129,7 +163,7 @@ export const feed = userQuery({
 
 		return {
 			candidates: shown,
-			remaining: dealt.length - next,
+			more: dealt.cut || next < dealt.cards.length,
 			sources: SOURCES.map((source) => ({
 				key: source.key,
 				name: source.name,
@@ -163,33 +197,33 @@ export const getCandidate = internalQuery({
 
 // ============ Polling (cron, crons.ts) ============
 
-export const pollAll = internalAction({
+// Each source polls in its own action, so a slow one can't run the others out
+// of time. Are.na channels share one, polled one at a time: they share one rate limit
+export const pollAll = internalMutation({
 	args: {},
 	handler: async (ctx) => {
-		// Are.na channels go one at a time: they share one rate limit
 		const arenaKeys = SOURCES.filter((s) => s.kind === 'arena').map((s) => s.key);
-		const otherKeys = SOURCES.filter((s) => s.kind !== 'arena').map((s) => s.key);
-		const added: Record<string, number> = {};
-		await Promise.all([
-			...otherKeys.map(async (key) => (added[key] = await pollOne(ctx, key))),
-			(async () => {
-				for (const key of arenaKeys) added[key] = await pollOne(ctx, key);
-			})()
-		]);
-		console.log('discovery poll:', added);
+		const others = SOURCES.filter((s) => s.kind !== 'arena').map((s) => [s.key]);
+		for (const keys of [...others, arenaKeys])
+			await ctx.scheduler.runAfter(0, internal.discovery.pollSources, { keys });
 	}
 });
 
-export const pollSource = internalAction({
-	args: { key: v.string() },
-	handler: async (ctx, { key }) => {
-		console.log(`discovery poll ${key}:`, await pollOne(ctx, key));
+export const pollSources = internalAction({
+	args: { keys: v.array(v.string()) },
+	handler: async (ctx, { keys }) => {
+		for (const key of keys) console.log(`discovery poll ${key}:`, await pollOne(ctx, key));
 	}
 });
+
+// Detail pages fetched past this wait for the next poll, keeping a poll well
+// inside Convex's 10-minute action limit (each fetch can take its 20 s timeout)
+const DETAIL_BUDGET_MS = 5 * 60 * 1000;
 
 async function pollOne(ctx: ActionCtx, key: string): Promise<number> {
 	const source = SOURCES.find((s) => s.key === key);
 	if (!source) throw new Error(`unknown discovery source ${key}`);
+	const deadline = Date.now() + DETAIL_BUDGET_MS;
 	try {
 		let fetched: FetchedCandidate[] = (await fetchSource(source))
 			.sort((a, b) => b.publishedAt - a.publishedAt)
@@ -202,9 +236,15 @@ async function pollOne(ctx: ActionCtx, key: string): Promise<number> {
 			})
 		);
 		fetched = fetched.filter((c) => fresh.has(c.externalId));
-		// One at a time: a burst of detail-page fetches gets refused
+		// One at a time: a burst of detail-page fetches gets refused. The ones
+		// not reached stay out of this poll, so they're still unseen next time
+		let left = 0;
 		if (source.kind === 'rss') {
-			for (const candidate of fetched) {
+			for (const [i, candidate] of fetched.entries()) {
+				if (Date.now() > deadline) {
+					left = fetched.splice(i).length;
+					break;
+				}
 				candidate.url = (await resolveOriginal(key, candidate.url)) ?? candidate.url;
 			}
 		}
@@ -215,7 +255,10 @@ async function pollOne(ctx: ActionCtx, key: string): Promise<number> {
 				candidates: fetched.slice(i, i + 50).map(toValidated)
 			});
 		}
-		await ctx.runMutation(internal.discovery.recordPoll, { key });
+		await ctx.runMutation(internal.discovery.recordPoll, {
+			key,
+			error: left ? `out of time, ${left} entries left for the next poll` : undefined
+		});
 		return added;
 	} catch (error) {
 		console.error(`discovery poll ${key}:`, error);
@@ -224,12 +267,10 @@ async function pollOne(ctx: ActionCtx, key: string): Promise<number> {
 	}
 }
 
-// Drops null, undefined and empty fields the validator would refuse or store
+// Drops null, undefined and empty-string fields the validator would refuse or store
 function toValidated(c: FetchedCandidate): Infer<typeof fetchedValidator> {
 	return Object.fromEntries(
-		Object.entries(c).filter(
-			([, value]) => value != null && value !== '' && !(Array.isArray(value) && !value.length)
-		)
+		Object.entries(c).filter(([, value]) => value != null && value !== '')
 	) as Infer<typeof fetchedValidator>;
 }
 
@@ -335,8 +376,8 @@ async function sourceAfter(ctx: QueryCtx, after?: string) {
 	return candidate?.sourceKey ?? null;
 }
 
-// Dev: forget a source's candidates, then
-// poll it again. Run: npx convex run discovery:resetSource '{"key":"awwwards"}'
+// Dev: forget a source's candidates, then poll it again.
+// Run: npx convex run discovery:resetSource '{"key":"awwwards"}'
 export const resetSource = internalMutation({
 	args: { key: v.string() },
 	handler: async (ctx, { key }) => {
@@ -345,7 +386,7 @@ export const resetSource = internalMutation({
 			.withIndex('by_source_published', (q) => q.eq('sourceKey', key))
 			.collect();
 		for (const candidate of candidates) await ctx.db.delete(candidate._id);
-		await ctx.scheduler.runAfter(0, internal.discovery.pollSource, { key });
+		await ctx.scheduler.runAfter(0, internal.discovery.pollSources, { keys: [key] });
 		return candidates.length;
 	}
 });

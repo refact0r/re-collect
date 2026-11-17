@@ -1,23 +1,13 @@
 // @vitest-environment edge-runtime
 import { describe, expect, test } from 'vitest';
 import { api } from './_generated/api';
-import { hashToken } from './lib/auth';
-import { newTest, type Test } from './testing.helpers';
-
-async function makeUser(t: Test, username: string) {
-	const token = `${username}-token`;
-	await t.run(async (ctx) => {
-		const userId = await ctx.db.insert('users', { username, passwordHash: 'unused' });
-		await ctx.db.insert('sessions', { userId, tokenHash: await hashToken(token) });
-	});
-	return token;
-}
+import { makeUser, newTest } from './testing.helpers';
 
 // Owner with a collection holding one note, which is also in a second, private collection
 async function setup() {
 	const t = newTest();
-	const owner = await makeUser(t, 'owner');
-	const other = await makeUser(t, 'other');
+	const { token: owner } = await makeUser(t, 'owner');
+	const { token: other } = await makeUser(t, 'other');
 	const collectionId = await t.mutation(api.collections.create, { name: 'refs', token: owner });
 	const privateId = await t.mutation(api.collections.create, { name: 'secret', token: owner });
 	const itemId = await t.mutation(api.items.add, {
@@ -62,7 +52,7 @@ describe('shared collections', () => {
 			const [item] = await t.query(api.items.listByCollection, { collectionId, token });
 			expect(item).toMatchObject({ title: 'poster note', collections: [] });
 			expect(item.searchText).toBeUndefined();
-			expect(item.userId).toBeUndefined();
+			expect(item).not.toHaveProperty('userId');
 
 			const found = await t.query(api.items.searchCollection, {
 				collectionId,

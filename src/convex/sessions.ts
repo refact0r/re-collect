@@ -1,5 +1,11 @@
 import { ConvexError, v } from 'convex/values';
-import { action, internalMutation, internalQuery, mutation } from './_generated/server';
+import {
+	action,
+	internalMutation,
+	internalQuery,
+	mutation,
+	type QueryCtx
+} from './_generated/server';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import {
@@ -10,6 +16,8 @@ import {
 	normalizeUsername,
 	randomToken,
 	requireUser,
+	sessionByTokenHash,
+	userByUsername,
 	verifyPassword
 } from './lib/auth';
 
@@ -27,6 +35,13 @@ const INVALID_INVITE = 'this invite link is invalid or already used';
 
 function checkNewPassword(password: string) {
 	if (password.length < 8) throw new ConvexError('passwords need 8+ characters');
+}
+
+async function inviteByHash(ctx: QueryCtx, codeHash: string) {
+	return await ctx.db
+		.query('invites')
+		.withIndex('by_codeHash', (q) => q.eq('codeHash', codeHash))
+		.unique();
 }
 
 // Each returns a new session token for the SvelteKit server to keep in a cookie
@@ -115,11 +130,7 @@ export const changePassword = action({
 export const logout = mutation({
 	args: { token: v.string() },
 	handler: async (ctx, args) => {
-		const tokenHash = await hashToken(args.token);
-		const session = await ctx.db
-			.query('sessions')
-			.withIndex('by_tokenHash', (q) => q.eq('tokenHash', tokenHash))
-			.unique();
+		const session = await sessionByTokenHash(ctx, await hashToken(args.token));
 		if (session) await ctx.db.delete(session._id);
 	}
 });
@@ -143,31 +154,20 @@ export const signOutOthers = mutation({
 export const getUserBySession = internalQuery({
 	args: { tokenHash: v.string() },
 	handler: async (ctx, args) => {
-		const session = await ctx.db
-			.query('sessions')
-			.withIndex('by_tokenHash', (q) => q.eq('tokenHash', args.tokenHash))
-			.unique();
+		const session = await sessionByTokenHash(ctx, args.tokenHash);
 		return session && (await ctx.db.get(session.userId));
 	}
 });
 
 export const inviteExists = internalQuery({
 	args: { inviteHash: v.string() },
-	handler: async (ctx, args) => {
-		const invite = await ctx.db
-			.query('invites')
-			.withIndex('by_codeHash', (q) => q.eq('codeHash', args.inviteHash))
-			.unique();
-		return invite !== null;
-	}
+	handler: async (ctx, args) => (await inviteByHash(ctx, args.inviteHash)) !== null
 });
 
 // Counts a password attempt toward the username's lockout, then returns its
-// user (null if nobody has the name). Counting runs before the slow hash and
-// in this one mutation, so parallel guesses can't all slip in under the limit,
-// and it keys on the name rather than the account, so a made-up name locks
-// exactly like a real one. After MAX_FAILED_LOGINS uncleared attempts, allows
-// one per LOCKOUT_MS.
+// user (null if nobody has the name). Counting in this one mutation, before the
+// slow hash, keeps parallel guesses from all slipping in under the limit, and
+// keying on the name makes a made-up one lock exactly like a real one.
 export const countAttempt = internalMutation({
 	args: { username: v.string() },
 	handler: async (ctx, { username }) => {
@@ -183,11 +183,7 @@ export const countAttempt = internalMutation({
 		const count = (live?.count ?? 0) + 1;
 		if (row) await ctx.db.patch(row._id, { count, lastAttempt: now });
 		else await ctx.db.insert('loginAttempts', { username, count, lastAttempt: now });
-
-		return await ctx.db
-			.query('users')
-			.withIndex('by_username', (q) => q.eq('username', username))
-			.unique();
+		return await userByUsername(ctx, username);
 	}
 });
 
@@ -219,10 +215,7 @@ export const startSession = internalMutation({
 export const startExtensionSession = internalMutation({
 	args: { callerTokenHash: v.string(), tokenHash: v.string() },
 	handler: async (ctx, args) => {
-		const caller = await ctx.db
-			.query('sessions')
-			.withIndex('by_tokenHash', (q) => q.eq('tokenHash', args.callerTokenHash))
-			.unique();
+		const caller = await sessionByTokenHash(ctx, args.callerTokenHash);
 		if (!caller) throw new ConvexError('Unauthorized');
 		const sessions = await ctx.db
 			.query('sessions')
@@ -247,16 +240,9 @@ export const createAccount = internalMutation({
 		tokenHash: v.string()
 	},
 	handler: async (ctx, args) => {
-		const invite = await ctx.db
-			.query('invites')
-			.withIndex('by_codeHash', (q) => q.eq('codeHash', args.inviteHash))
-			.unique();
+		const invite = await inviteByHash(ctx, args.inviteHash);
 		if (!invite) throw new ConvexError(INVALID_INVITE);
-		const taken = await ctx.db
-			.query('users')
-			.withIndex('by_username', (q) => q.eq('username', args.username))
-			.unique();
-		if (taken) throw new ConvexError('that username is taken');
+		if (await userByUsername(ctx, args.username)) throw new ConvexError('that username is taken');
 
 		await ctx.db.delete(invite._id);
 		const userId = await ctx.db.insert('users', {

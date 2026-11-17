@@ -177,7 +177,6 @@ input[type='checkbox'] {
 select {
 	padding: calc(var(--pad-y) + 1.5px) var(--pad-x);
 	cursor: pointer;
-	color: var(--txt-2);
 
 	&:hover {
 		background-color: var(--bg-3);
@@ -238,9 +237,6 @@ button.icon {
 	background: transparent;
 	border: 1px solid transparent;
 	padding: var(--pad-y);
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
 	aspect-ratio: 1;
 }
 
@@ -252,11 +248,6 @@ button.icon svg {
 button.icon:hover {
 	background: var(--bg-2);
 	color: var(--txt-1);
-}
-
-button.icon:focus-visible {
-	outline: 1px solid var(--txt-3);
-	outline-offset: 1px;
 }
 
 button.icon:disabled {
@@ -334,12 +325,6 @@ button.danger {
 
 button.danger:hover {
 	background: var(--danger-border);
-}
-
-button.danger:disabled {
-	background: var(--danger-bg);
-	border-color: var(--danger-border);
-	color: var(--txt-3);
 }
 
 /* A submit button showing its form's error in place of its label */
@@ -465,6 +450,17 @@ button.error {
 	gap: var(--gap);
 }
 
+/* A confirm dialog's row of equal-width buttons */
+.dialog-actions {
+	display: flex;
+	gap: var(--gap);
+	margin-top: var(--space-xl);
+
+	& button {
+		flex: 1;
+	}
+}
+
 /* Status Messages */
 
 .status-text,
@@ -482,11 +478,7 @@ button.error {
 	margin-bottom: var(--gutter);
 }
 
-.page-header h1 {
-	margin: 0;
-}
-
-/* A centered column of spaced sections (atlas, account) */
+/* A centered column of spaced sections (patterns, account) */
 .page-column {
 	display: flex;
 	flex-direction: column;

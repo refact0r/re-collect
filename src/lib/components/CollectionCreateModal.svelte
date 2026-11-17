@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { TAGGING_MODE_LABEL, taggingModeOptions, type TaggingMode } from '#lib/taggingModes.js';
+	import {
+		TAGGING_MODE_LABEL,
+		linkImageModeOptions,
+		taggingModeOptions,
+		type TaggingMode
+	} from '#lib/taggingModes.js';
 	import { api } from '../../convex/_generated/api.js';
 	import { useMutation } from '#lib/convex.js';
 	import type { CollectionSortOption } from '#lib/types.js';
@@ -27,10 +32,6 @@
 		{ value: 'grid', label: 'grid' },
 		{ value: 'list', label: 'list' }
 	] as const;
-	const linkImageOptions = [
-		{ value: 'screenshot', label: 'screenshot' },
-		{ value: 'og', label: 'og image' }
-	] as const;
 
 	async function handleCreate() {
 		if (!name.trim()) return;
@@ -57,7 +58,7 @@
 			bind:value={name}
 			placeholder="collection name"
 			disabled={isCreating}
-			onkeydown={(event) => event.key === 'Enter' && handleCreate()}
+			onkeydown={(event) => event.key === 'Enter' && !event.isComposing && handleCreate()}
 			autofocus
 		/>
 		<div class="group">
@@ -99,7 +100,7 @@
 		<div class="group">
 			<span class="group-label">link image</span>
 			<div class="mode-options">
-				{#each linkImageOptions as opt (opt.value)}
+				{#each linkImageModeOptions as opt (opt.value)}
 					<button
 						class:active={linkImageMode === opt.value}
 						onclick={() => (linkImageMode = opt.value)}
@@ -123,8 +124,6 @@
 	}
 
 	.form {
-		display: flex;
-		flex-direction: column;
 		gap: var(--space-lg);
 	}
 
@@ -140,9 +139,6 @@
 	}
 
 	.actions {
-		display: flex;
-		gap: var(--gap);
-		width: 100%;
 		margin-top: var(--space-lg);
 	}
 

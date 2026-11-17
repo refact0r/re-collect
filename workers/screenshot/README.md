@@ -39,7 +39,7 @@ Cloudflare Worker that captures website screenshots using Browser Rendering API.
 
 ## Development
 
-Run locally:
+Run locally (from this directory):
 
 ```bash
 pnpm run dev

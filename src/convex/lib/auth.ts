@@ -21,6 +21,20 @@ export function normalizeUsername(username: string) {
 	return username.trim().toLowerCase();
 }
 
+export async function userByUsername(ctx: QueryCtx, username: string) {
+	return await ctx.db
+		.query('users')
+		.withIndex('by_username', (q) => q.eq('username', username))
+		.unique();
+}
+
+export async function sessionByTokenHash(ctx: QueryCtx, tokenHash: string) {
+	return await ctx.db
+		.query('sessions')
+		.withIndex('by_tokenHash', (q) => q.eq('tokenHash', tokenHash))
+		.unique();
+}
+
 // Ends the username's lockout count, after a success or a new password
 export async function clearLoginAttempts(ctx: MutationCtx, username: string) {
 	const row = await ctx.db
@@ -70,15 +84,10 @@ export async function verifyPassword(password: string, stored: string) {
 	return (await pbkdf2(password, fromHex(salt), Number(iterations))) === hash;
 }
 
-// The one identity seam: resolves the caller's session token (the `token` arg,
-// sent by the SvelteKit client and the browser extension) to their user. A
-// real auth provider would replace this with `ctx.auth.getUserIdentity()`.
+// The one identity seam: the caller's session token (the `token` arg) to their
+// user. A real auth provider would replace this with `ctx.auth.getUserIdentity()`.
 async function findUser(ctx: QueryCtx, token: string) {
-	const tokenHash = await hashToken(token);
-	const session = await ctx.db
-		.query('sessions')
-		.withIndex('by_tokenHash', (q) => q.eq('tokenHash', tokenHash))
-		.unique();
+	const session = await sessionByTokenHash(ctx, await hashToken(token));
 	return session?.userId ?? null;
 }
 

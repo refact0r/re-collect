@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { generateKeyBetween } from 'fractional-indexing';
-	import { prepare, layout, type PreparedText } from '@chenglou/pretext';
 	import { onDestroy, tick, untrack } from 'svelte';
 	import { prefersReducedMotion } from 'svelte/motion';
 	import { fade } from 'svelte/transition';
@@ -44,97 +43,40 @@
 		readonly = false
 	}: Props = $props();
 
-	const isDraggable = $derived(!!onReorder);
-
 	let containerElement: HTMLDivElement | undefined = $state();
 	let containerWidth = $state(0);
-
-	// Layout constants. The card chrome mirrors the CSS and must match it: .card padding is
-	// --card-pad (8px) on each side, --space-xs (4px) at the bottom when titled, plus a 1px
-	// border; TEXT_CARD_PADDING is .text-card's --card-pad on both sides
-	const CARD_BORDER = 2; // 1px * 2
-	const CARD_CHROME_X = 16 + CARD_BORDER; // 8px * 2 + border = 18px
-	const CARD_CHROME_Y_TITLED = 12 + CARD_BORDER; // 8px + 4px + border = 14px
-	const CARD_CHROME_Y = 16 + CARD_BORDER; // 8px * 2 + border = 18px
-	const TITLE_HEIGHT = 25;
-	const IMAGE_FALLBACK_ASPECT = 0.75;
-	const TEXT_CARD_PADDING = 16;
-	const TEXT_LINE_HEIGHT = 24;
-	const TEXT_MAX_LINES = 10;
-	const DEFAULT_HEIGHT = 100;
-	const TEXT_FONT = '16px DM Sans';
-
-	// Pretext cache: prepared text measurements keyed by `${itemId}:${text}`
-	const preparedTexts = new Map<string, PreparedText>();
-
-	function getPreparedText(item: DisplayItem): PreparedText | null {
-		const text = getItemText(item);
-		if (!text) return null;
-
-		const cacheKey = `${item._id}:${text}`;
-		const cached = preparedTexts.get(cacheKey);
-		if (cached) return cached;
-
-		const prepared = prepare(text, TEXT_FONT, { whiteSpace: 'pre-wrap' });
-		preparedTexts.set(cacheKey, prepared);
-		return prepared;
-	}
-
-	function getItemText(item: DisplayItem): string | null {
-		if (item.type === 'text') return item.content ?? null;
-		if (
-			item.type === 'url' &&
-			!shouldDisplayAsImage(item) &&
-			!(item.screenshotStatus && item.screenshotStatus !== 'completed')
-		) {
-			return item.url ?? null;
-		}
-		return null;
-	}
 
 	// Read again whenever the width changes, which it does when the gap does
 	const gap = $derived(containerElement && containerWidth ? gapOf(containerElement) : GAP);
 	const columnCount = $derived(columnCountFor(containerWidth, columnOffset, gap));
 	const columnWidth = $derived(columnWidthFor(containerWidth, columnCount, gap));
 
-	const chromeY = $derived(showTitles ? CARD_CHROME_Y_TITLED : CARD_CHROME_Y);
+	// Card chrome, mirroring the CSS: .card has --card-pad (8px) padding, --space-xs (4px)
+	// at the bottom when titled, and a 1px border
+	const CHROME_X = 18;
+	const chromeY = $derived(showTitles ? 14 : 18);
+	const TITLE_HEIGHT = 25;
+	const TEXT_HEIGHT = 100; // a note or bare link, whose text decides its height
+	const SCREENSHOT_ASPECT = 900 / 1440; // a pending or failed screenshot's placeholder
+	const FALLBACK_ASPECT = 0.75;
 
+	// A card's height until it is measured. Usually that's within the frame, but the guess
+	// also sets the grid's height when a Back restores the scroll position, where cards
+	// arriving together glide from, and the heights a drag snapshots, so it stays close.
 	function estimateHeight(item: DisplayItem): number {
-		const titleHeight = showTitles && item.title ? TITLE_HEIGHT : 0;
-		const innerWidth = columnWidth - CARD_CHROME_X;
-
+		const chrome = chromeY + (showTitles && item.title ? TITLE_HEIGHT : 0);
+		const width = columnWidth - CHROME_X;
 		if (shouldDisplayAsImage(item)) {
-			if (item.imageWidth && item.imageHeight) {
-				const imageHeight = innerWidth * (item.imageHeight / item.imageWidth);
-				return imageHeight + chromeY + titleHeight;
-			}
-			return innerWidth * IMAGE_FALLBACK_ASPECT + chromeY + titleHeight;
+			const { imageWidth: w, imageHeight: h } = item;
+			return width * (w && h ? h / w : FALLBACK_ASPECT) + chrome;
 		}
-
-		if (item.type === 'url' && item.screenshotStatus && item.screenshotStatus !== 'completed') {
-			const screenshotHeight = innerWidth * (900 / 1440);
-			return screenshotHeight + chromeY + titleHeight;
-		}
-
-		if (item.type === 'url' || item.type === 'text') {
-			const prepared = getPreparedText(item);
-			if (prepared) {
-				const textWidth = innerWidth - TEXT_CARD_PADDING;
-				const result = layout(prepared, textWidth, TEXT_LINE_HEIGHT);
-				// CSS max-height is calc(1.5rem * 10 - 0.125rem) = 238px
-				const maxTextHeight = TEXT_MAX_LINES * TEXT_LINE_HEIGHT - 2;
-				const clampedHeight = Math.min(result.height, maxTextHeight);
-				return clampedHeight + TEXT_CARD_PADDING + chromeY + titleHeight;
-			}
-			return DEFAULT_HEIGHT + chromeY + titleHeight;
-		}
-
-		return DEFAULT_HEIGHT + chromeY + titleHeight;
+		const status = item.type === 'url' && item.screenshotStatus;
+		const pending = status && status !== 'completed';
+		return (pending ? width * SCREENSHOT_ASPECT : TEXT_HEIGHT) + chrome;
 	}
 
-	// ============ LAYOUT ============
-	// Cards are placed by their measured height (one observer for all of them); a card
-	// not measured yet, as on its first render, is placed by its estimate
+	// Cards are placed by their measured height (one observer for all of them), or their
+	// estimate until the first measurement
 	let measured = $state.raw(new Map<string, number>());
 	let observer: ResizeObserver | undefined;
 
@@ -172,15 +114,13 @@
 		)
 	);
 
-	// ============ DRAG ============
 	let draggedItem: DisplayItem | null = $state(null);
 	let previewPosition = $state({ x: 0, y: 0 });
-	// The layout with a placeholder at the drop target (null when the target is unreachable)
+	// The layout with a placeholder at the drop target (null when not dragging)
 	let simulation = $state.raw<ReturnType<typeof simulate>>(null);
 	let cancelDrag: (() => void) | null = null;
 
-	// Taken at drag start: the layout doesn't change mid-drag, so heights and slot
-	// boundaries are computed once instead of on every move
+	// Taken at drag start, as the layout doesn't change mid-drag
 	let drag: {
 		offset: Position; // pointer position within the card
 		others: DisplayItem[]; // item order without the dragged item
@@ -192,15 +132,12 @@
 
 	const shown = $derived(simulation ?? normal);
 
-	// ============ MOTION ============
-	// Cards glide to new places and fade in and out; the dragged card lifts, swings with
-	// the pointer's sideways speed and glides into its slot. Nothing moves when the
-	// system asks for reduced motion.
-	const GLIDE = { duration: 210, easing: 'cubic-bezier(0.2, 0, 0, 1)' }; // also .placeholder's
+	const GLIDE = { duration: 210, easing: 'cubic-bezier(0.2, 0, 0, 1)' };
 	const SWING = spring(900, 39); // the tilt's transition, settling with a little overshoot
-	const LIFT_SCALE = 1.04; // .lifted's scale
+	const LIFT_SCALE = 1.04;
 	const TILT = 2; // degrees, at rest
 
+	// Reduced motion: nothing moves
 	const calm = $derived(prefersReducedMotion.current);
 
 	// Cards take their places without moving until the grid has painted, and while its
@@ -215,10 +152,9 @@
 		return () => cancelAnimationFrame(frame);
 	});
 
-	// Each card glides from where it was shown to where it's now placed: an animation
-	// rather than a CSS transition, which a reorder (moving card nodes) would drop. One
-	// already gliding sets off again from where it has got to, or stops there and jumps
-	// when the grid holds still.
+	// Each card glides from where it was to where it's now placed: an animation rather
+	// than a CSS transition, which a reorder (moving card nodes) would drop. One already
+	// gliding sets off from where it has got to, or jumps while the grid holds still.
 	let placed = new Map<string, string>();
 	$effect(() => {
 		void shown;
@@ -278,11 +214,12 @@
 	let landing = $state<string | null>(null);
 
 	async function land(id: string, from: Keyframe) {
+		if (calm) return;
 		landing = id;
 		await tick();
 		const card = containerElement?.querySelector<HTMLElement>(`.card[data-id="${id}"]`);
-		if (!card || calm) {
-			requestAnimationFrame(() => requestAnimationFrame(() => landing === id && (landing = null)));
+		if (!card) {
+			landing = null;
 			return;
 		}
 		const to = {
@@ -365,17 +302,17 @@
 		const col = nearestColumn(previewPosition.x - container.left, columnWidth, columnCount, gap);
 		const slot = nearestSlot(drag.fill, drag.heights, col, previewPosition.y - container.top, gap);
 
-		// Most moves stay over the same slot; only re-run the layout when the target changes
+		// Most moves stay over the same slot
 		if (col === drag.target.col && slot === drag.target.slot) return;
 		drag.target = { col, slot };
-		simulation = simulate(col, slot);
+		// An unreachable slot keeps the last reachable one
+		simulation = simulate(col, slot) ?? simulation;
 	}
 
 	function handleDragEnd(commit: boolean) {
 		const dragged = draggedItem;
 		const drop = simulation;
 		if (dragged && containerElement) {
-			// Where the preview is, in the grid's coordinates
 			const grid = containerElement.getBoundingClientRect();
 			land(dragged._id, {
 				translate: `${previewPosition.x - grid.left}px ${previewPosition.y - grid.top}px`,
@@ -407,14 +344,12 @@
 	// Drop the drag's document listeners if the grid unmounts mid-drag
 	onDestroy(() => {
 		cancelDrag?.();
-		clearTimeout(rightTimer);
 		observer?.disconnect();
 	});
 </script>
 
-<!-- The link wraps the card's content but not its buttons, which can't sit inside a
-	link: its ::after (.card-link in app.css) stretches it over the whole card, and
-	the buttons sit above that. The drag preview passes no href, so has no link. -->
+<!-- The link wraps the content but not the buttons (see .card-link in app.css); the
+	drag preview passes no href, so has no link -->
 {#snippet cardContent(item: DisplayItem, href?: string)}
 	{#if item.type === 'url' && !shouldDisplayAsImage(item) && item.screenshotStatus === 'failed'}
 		<div class="url-card url-failed">
@@ -480,9 +415,9 @@
 	{/if}
 {/snippet}
 
-<!-- One list in item order, so tab and reading order follow it, each card placed by
-	its translate: a card that changes column moves rather than remounting. Nothing
-	renders until the width is known, which the client has before its first paint. -->
+<!-- One list in item order, so tab and reading order follow it, each card placed by its
+	translate: a card that changes column moves rather than remounting. Nothing renders
+	until the width is known, which the client has before its first paint. -->
 <div
 	class="masonry"
 	bind:this={containerElement}
@@ -493,9 +428,9 @@
 		{#each items as item (item._id)}
 			{@const position = shown.positions.get(item._id)}
 			{@const place = position ?? normal.positions.get(item._id)!}
-			<!-- A mouse or pen drags the whole card; the keyboard reaches its link and buttons.
-				Mid-drag, the dragged card is hidden, as is one that arrives (it has no place),
-				each kept where it is outside the drag so it doesn't glide in from elsewhere. -->
+			<!-- Mid-drag, the dragged card is hidden, as is one that arrives (it has no place),
+				each kept at its own place so it doesn't glide in from elsewhere. A mouse or pen
+				drags the whole card; the keyboard reaches its link and buttons. -->
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
 				class={[
@@ -509,7 +444,7 @@
 				data-id={item._id}
 				style:width="{columnWidth}px"
 				style:translate="{place.x}px {place.y}px"
-				onpointerdown={isDraggable ? (e) => handlePointerDown(item, e) : undefined}
+				onpointerdown={onReorder ? (e) => handlePointerDown(item, e) : undefined}
 				{@attach measure}
 				{@attach enter}
 				out:fade={{ duration: still || calm ? 0 : 130 }}
@@ -523,6 +458,7 @@
 				style:width="{columnWidth}px"
 				style:height="{simulation.placeholder.height}px"
 				style:translate="{simulation.placeholder.x}px {simulation.placeholder.y}px"
+				style:transition={calm ? undefined : `translate ${GLIDE.duration}ms ${GLIDE.easing}`}
 			></div>
 		{/if}
 	{/if}
@@ -531,12 +467,14 @@
 {#if draggedItem}
 	<div
 		class="drag-preview"
+		aria-hidden="true"
 		style:translate="{previewPosition.x}px {previewPosition.y}px"
 		style:width="{columnWidth}px"
 	>
 		<div
 			class={['clickable card', { titled: showTitles, lifted: !calm }]}
 			style:rotate="{TILT + tilt}deg"
+			style:scale={calm ? undefined : LIFT_SCALE}
 			style:transform-origin={calm ? undefined : grabPoint}
 			style:--swing="{SWING.duration}ms {SWING.easing}"
 			{@attach pickUp}
@@ -547,8 +485,7 @@
 {/if}
 
 <style>
-	/* The gap is only read (gapOf) for the layout; the height is set inline, and the
-	   padding below it is extra */
+	/* The gap lays nothing out, gapOf reads it; the height is set inline */
 	.masonry {
 		position: relative;
 		box-sizing: content-box;
@@ -605,7 +542,6 @@
 		color: var(--txt-3);
 	}
 
-	/* Loading state for URL items */
 	.url-loading {
 		display: flex;
 		flex-direction: column;
@@ -636,7 +572,6 @@
 		height: 100%;
 	}
 
-	/* Failed state for URL items */
 	.url-failed {
 		display: flex;
 		flex-direction: column;
@@ -685,13 +620,6 @@
 		border: 2px dashed var(--border);
 		background: var(--bg-2);
 		opacity: 0.5;
-		transition: translate 210ms cubic-bezier(0.2, 0, 0, 1);
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.placeholder {
-			transition: none;
-		}
 	}
 
 	.drag-preview {
@@ -710,7 +638,6 @@
 	}
 
 	.drag-preview .card.lifted {
-		scale: 1.04;
 		box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
 		transition: rotate var(--swing);
 	}

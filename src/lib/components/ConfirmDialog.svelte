@@ -10,7 +10,7 @@
 		{#if message}
 			<p class="meta">{message}</p>
 		{/if}
-		<div class="actions">
+		<div class="dialog-actions">
 			<button onclick={() => settleConfirmation(false)}>cancel</button>
 			<!-- svelte-ignore a11y_autofocus -->
 			<button class={{ danger }} onclick={() => settleConfirmation(true)} autofocus>
@@ -27,15 +27,5 @@
 
 	p {
 		margin: var(--space-lg) 0 0 0;
-	}
-
-	.actions {
-		display: flex;
-		gap: var(--gap);
-		margin-top: var(--space-xl);
-	}
-
-	.actions button {
-		flex: 1;
 	}
 </style>

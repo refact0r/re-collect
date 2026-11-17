@@ -17,8 +17,7 @@ type Image = Awaited<ReturnType<typeof describeImage>>;
 const FETCH_TIMEOUT_MS = 15_000;
 const MAX_IMAGE_BYTES = 30 * 1024 * 1024;
 const MAX_REDIRECTS = 3;
-// Raster only, by what the bytes are: images are served from the public image
-// domain, where an SVG would run its scripts. sharp's format names; AVIF is
+// sharp's format names for the RASTER_IMAGE_TYPES (lib/images.ts). AVIF is
 // HEIF with AV1 compression (HEIC, the other kind, doesn't show in browsers).
 const RASTER_TYPES: Partial<Record<string, string>> = {
 	jpeg: 'image/jpeg',
@@ -113,6 +112,9 @@ export async function decodeDataImage(dataUrl: string) {
 	return await describeImage(Buffer.from(encoded, 'base64'));
 }
 
+const markVerified = (ctx: ActionCtx, key: string, { contentType, width, height }: Image) =>
+	ctx.runMutation(internal.r2.markVerified, { key, contentType, width, height });
+
 // Same path as the app's uploads, so the key gets the caller's `uploads` row
 // that items.add requires; these bytes were checked already, so it's verified
 export async function upload(ctx: ActionCtx, image: Image, token: string) {
@@ -124,7 +126,7 @@ export async function upload(ctx: ActionCtx, image: Image, token: string) {
 		body: new Uint8Array(image.data)
 	});
 	if (!response.ok) throw new Error(`Image upload failed: ${response.status}`);
-	await ctx.runMutation(internal.r2.markVerified, { key, contentType });
+	await markVerified(ctx, key, image);
 	return key;
 }
 
@@ -145,7 +147,7 @@ export const verifyUpload = action({
 				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
 			});
 			const image = await readImage(response, (served) => RASTER_IMAGE_TYPES.includes(served));
-			await ctx.runMutation(internal.r2.markVerified, { key, contentType: image.contentType });
+			await markVerified(ctx, key, image);
 		} catch (error) {
 			await ctx.runMutation(internal.r2.discardUpload, { key });
 			throw error;
@@ -197,8 +199,6 @@ export const addFromUrl = action({
 			type: 'image',
 			url: pageUrl,
 			imageKey,
-			imageWidth: image.width,
-			imageHeight: image.height,
 			collections,
 			token
 		});
@@ -225,14 +225,7 @@ export const addPageWithImage = action({
 		// Checked before the upload, which items.add would otherwise leave behind
 		if (!isWebUrl(args.url)) throw new ConvexError('links must start with http:// or https://');
 
-		const image = await decodeDataImage(imageUrl);
-		const imageKey = await upload(ctx, image, args.token);
-		return await ctx.runMutation(api.items.add, {
-			type: 'url',
-			...rest,
-			imageKey,
-			imageWidth: image.width,
-			imageHeight: image.height
-		});
+		const imageKey = await upload(ctx, await decodeDataImage(imageUrl), args.token);
+		return await ctx.runMutation(api.items.add, { type: 'url', ...rest, imageKey });
 	}
 });

@@ -94,16 +94,11 @@ export async function embeddingToMake(item: EmbeddingFields, embeddedKey: string
 	return key === embeddedKey ? null : { input, key };
 }
 
-type ContentPart =
-	{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
-
-interface EmbeddingResponse {
-	data?: { embedding: number[] }[];
-}
-
-// Rate limits, server errors and timeouts are worth another try (embedItem's
-// pool retries them); a bad request isn't
+// Rate limits, server errors, timeouts and network failures are worth another
+// try (embedItem's pool retries them); a bad request isn't
 export class RetryableError extends Error {}
+
+export const isRetryableStatus = (status: number) => status === 429 || status >= 500;
 
 async function run(body: object, timeoutMs: number): Promise<number[]> {
 	const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -126,12 +121,10 @@ async function run(body: object, timeoutMs: number): Promise<number[]> {
 	}
 	if (!response.ok) {
 		const message = `Workers AI ${response.status}: ${(await response.text()).slice(0, 300)}`;
-		throw response.status === 429 || response.status >= 500
-			? new RetryableError(message)
-			: new Error(message);
+		throw isRetryableStatus(response.status) ? new RetryableError(message) : new Error(message);
 	}
 	// The REST API wraps the model's output in { result, success }
-	const json = (await response.json()) as { result?: EmbeddingResponse };
+	const json = (await response.json()) as { result?: { data?: { embedding: number[] }[] } };
 	const embedding = json.result?.data?.[0]?.embedding;
 	if (embedding?.length !== EMBEDDING_DIMENSIONS) {
 		throw new Error(`Workers AI returned no ${EMBEDDING_DIMENSIONS}-d embedding`);
@@ -145,16 +138,11 @@ function normalize(vector: number[]): number[] {
 	return vector.map((x) => x / norm);
 }
 
-const conversation = (content: ContentPart[]) => ({ messages: [[{ role: 'user', content }]] });
-
 // A JPEG, base64-encoded. Images take no task prefix.
-export const embedImage = (jpegBase64: string) =>
-	run(
-		conversation([
-			{ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${jpegBase64}` } }
-		]),
-		TIMEOUT_MS
-	);
+export const embedImage = (jpegBase64: string) => {
+	const image = { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${jpegBase64}` } };
+	return run({ messages: [[{ role: 'user', content: [image] }]] }, TIMEOUT_MS);
+};
 
 export const embedText = (text: string) => run({ input: [text] }, TIMEOUT_MS);
 

@@ -5,14 +5,11 @@
 		cellsOf,
 		colorStrips,
 		countStyles,
-		itemLabel,
 		monthsOf,
 		noLenses,
+		toggled,
 		UNCOLLECTED,
-		type Brush,
-		type Cell,
-		type Lenses,
-		type Swatch
+		type Lenses
 	} from '#lib/atlas.js';
 	import { useAction } from '#lib/convex.js';
 	import type { DisplayItem } from '#lib/types.js';
@@ -39,8 +36,6 @@
 
 	const emit = (patch: Partial<Lenses>) => onchange({ ...lenses, ...patch });
 
-	/* find */
-
 	let findText = $state('');
 	// The query last sent up, so a change from outside can be told apart
 	let sentQuery = '';
@@ -65,21 +60,14 @@
 			emit({ found: null });
 			return;
 		}
-		const terms = query.toLowerCase().split(/\s+/);
-		const keyword = items
-			.filter((item) => {
-				const haystack = (item.searchText || itemLabel(item)).toLowerCase();
-				return terms.every((term) => haystack.includes(term));
-			})
-			.map((item) => item._id);
-		emit({ found: { query, itemIds: new Set(keyword) } });
+		emit({ found: { query, words: true, hits: new Set() } });
 
+		// fetched once per query, so an item that arrives later lights only by its words
 		runAction(api.embeddings.search, { query }, { onError: () => {} }).then((ids) => {
 			if (run !== findRun || lenses.found?.query !== query || !ids) return;
 			const onMap = new Set(items.map((item) => item._id));
 			const nearest = ids.filter((id) => onMap.has(id)).slice(0, SEMANTIC_HITS);
-			if (nearest.length === 0) return;
-			emit({ found: { query, itemIds: new Set([...keyword, ...nearest]) } });
+			if (nearest.length > 0) emit({ found: { query, words: true, hits: new Set(nearest) } });
 		});
 	}
 
@@ -97,8 +85,6 @@
 	}
 
 	$effect(() => () => clearTimeout(findTimer));
-
-	/* collections */
 
 	const collectionCounts = $derived.by(() => {
 		const counts = new Map<string, number>();
@@ -118,19 +104,11 @@
 		].filter((row) => collectionCounts.has(row.id) || lenses.collections.has(row.id))
 	);
 
-	function toggleIn<T>(set: Set<T>, value: T) {
-		const next = new Set(set);
-		if (!next.delete(value)) next.add(value);
-		return next;
-	}
-
-	/* color */
-
 	const strips = $derived(colorStrips(items));
 	const colorStripRows = $derived(
 		(['hue', 'tone'] as const)
-			.map((lens) => ({ lens, swatches: strips[lens], cells: cellsOf(strips[lens]) }))
-			.filter((row) => row.swatches.length > 0)
+			.map((lens) => ({ lens, cells: cellsOf(strips[lens]) }))
+			.filter((row) => row.cells.length > 0)
 	);
 
 	// A brush is cell indexes, so one that no longer fits its rebuilt strip goes
@@ -138,26 +116,10 @@
 		const patch: Partial<Lenses> = {};
 		for (const lens of ['hue', 'tone'] as const) {
 			const cells = colorStripRows.find((row) => row.lens === lens)?.cells.length ?? 0;
-			if ((lenses[lens]?.range[1] ?? -1) >= cells) patch[lens] = null;
+			if ((lenses[lens]?.[1] ?? -1) >= cells) patch[lens] = null;
 		}
 		if (Object.keys(patch).length > 0) emit(patch);
 	});
-
-	function brushColor(
-		lens: 'hue' | 'tone',
-		{ swatches, cells }: { swatches: Swatch[]; cells: Cell[] },
-		range: [number, number] | null
-	) {
-		const brush: Brush | null = range && {
-			range,
-			itemIds: new Set(
-				swatches.slice(cells[range[0]].from, cells[range[1]].to + 1).map((s) => s.itemId)
-			)
-		};
-		emit(lens === 'hue' ? { hue: brush } : { tone: brush });
-	}
-
-	/* styles */
 
 	const styleCounts = $derived(countStyles(items));
 	let styleFilter = $state('');
@@ -170,8 +132,6 @@
 		);
 		return [...checked, ...rest];
 	});
-
-	/* added */
 
 	const months = $derived(monthsOf(items));
 	const busiestMonth = $derived(Math.max(1, ...months.map((m) => m.count)));
@@ -232,8 +192,8 @@
 					<RangeStrip
 						--strip-height="1.75rem"
 						count={row.cells.length}
-						range={lenses[row.lens]?.range ?? null}
-						onchange={(range) => brushColor(row.lens, row, range)}
+						range={lenses[row.lens]}
+						onchange={(range) => emit(row.lens === 'hue' ? { hue: range } : { tone: range })}
 						clickSpan={Math.round(row.cells.length * 0.03)}
 						label={row.lens === 'hue' ? 'hue' : 'light to dark'}
 					>
@@ -282,7 +242,7 @@
 						<input
 							type="checkbox"
 							{checked}
-							onchange={() => emit({ collections: toggleIn(lenses.collections, row.id) })}
+							onchange={() => emit({ collections: toggled(lenses.collections, row.id) })}
 						/>
 						<span class="name">{row.name}</span>
 						<span class="num">{collectionCounts.get(row.id) ?? 0}</span>
@@ -312,7 +272,7 @@
 						<input
 							type="checkbox"
 							{checked}
-							onchange={() => emit({ styles: toggleIn(lenses.styles, style.name) })}
+							onchange={() => emit({ styles: toggled(lenses.styles, style.name) })}
 						/>
 						<span class="name">{style.name}</span>
 						<span class="num">{style.count}</span>

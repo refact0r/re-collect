@@ -2,6 +2,9 @@
 	import { tick } from 'svelte';
 	import { api } from '../../../convex/_generated/api.js';
 	import { useAction, useMutation, useQuery } from '#lib/convex.js';
+	import { usePageTitle } from '#lib/pageTitle.svelte.js';
+
+	usePageTitle(() => 'account');
 
 	const mutate = useMutation();
 	const act = useAction();
@@ -14,9 +17,12 @@
 	let extensionToken = $state<string | null>(null);
 	let tokenField = $state<HTMLInputElement>();
 	let tokenCopied = $state(false);
+	let creatingToken = $state(false);
 
 	async function createExtensionToken() {
+		creatingToken = true;
 		const token = await act(api.sessions.createExtensionToken, {});
+		creatingToken = false;
 		if (token === undefined) return;
 		extensionToken = token;
 		tokenCopied = false;
@@ -84,7 +90,9 @@
 			paste a token into the extension's settings. it survives password changes, and making a new
 			one revokes the old one.
 		</p>
-		<button onclick={createExtensionToken}>{extensionToken ? 'new token' : 'create token'}</button>
+		<button onclick={createExtensionToken} disabled={creatingToken}
+			>{extensionToken ? 'new token' : 'create token'}</button
+		>
 		{#if extensionToken}
 			<div class="token">
 				<input

@@ -1,21 +1,17 @@
 // @vitest-environment edge-runtime
-/// <reference types="vite/client" />
 import rateLimiter from '@convex-dev/rate-limiter/test';
-import { convexTest } from 'convex-test';
 import { expect, test } from 'vitest';
 import { api } from './_generated/api';
-import schema from './schema';
+import { newTest, type Test } from './testing.helpers';
 import { JOIN_BURST, WAITLIST_CEILING } from './waitlist';
 
-const modules = import.meta.glob('./**/*.ts');
-
 function setup() {
-	const t = convexTest(schema, modules);
+	const t = newTest();
 	rateLimiter.register(t);
 	return t;
 }
 
-const emails = (t: ReturnType<typeof convexTest>) =>
+const emails = (t: Test) =>
 	t.run(async (ctx) => (await ctx.db.query('waitlist').collect()).map((row) => row.email));
 
 test('joining stores the normalized email once', async () => {

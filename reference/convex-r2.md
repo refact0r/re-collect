@@ -14,9 +14,9 @@ upstream examples lean on presigned GET URLs, which this app deliberately does
 ## Uploads
 
 Only raster images (JPEG, PNG, WebP, GIF, AVIF: `RASTER_IMAGE_TYPES` in
-`r2.ts`) ever become an item's image: everything in the bucket is served from
-the public image domain, same site as the app, where an SVG or HTML file would
-run its scripts. Client-side flow in `ItemInput.svelte`:
+`lib/images.ts`) ever become an item's image: everything in the bucket is served
+from the public image domain, same site as the app, where an SVG or HTML file
+would run its scripts. Client-side flow in `ItemInput.svelte`:
 
 1. `api.r2.generateUploadUrl({ contentType })` (`src/convex/r2.ts`) refuses
    anything but a raster type, records the key in `uploads` against the caller

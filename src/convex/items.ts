@@ -60,6 +60,13 @@ export function imageFields(item: Doc<'items'>) {
 	};
 }
 
+// An owner's item as a listing ships it: without the fields no page reads (it
+// shows imageUrl / imageSrcset, not the copies' keys)
+function forOwner(item: Doc<'items'>) {
+	const { userId, normUrl, imageVariants, paletteNames, ...shown } = item;
+	return { ...shown, ...imageFields(item) };
+}
+
 // The item fields a visitor to someone else's shared collection gets: what the
 // page shows. Anything else (the owner's other collections, user id, errors,
 // search fields, fields added later) stays with the owner.
@@ -85,22 +92,21 @@ const VISITOR_FIELDS = [
 	'dateModified'
 ] as const satisfies readonly (keyof Doc<'items'>)[];
 
-// An item as a listing returns it: the whole doc for its owner, the visitor
-// fields (and an empty `collections`) for anyone else
-export type ShownItem = Partial<Doc<'items'>> &
+// An item as a listing returns it: forOwner for its owner, the visitor fields
+// (and an empty `collections`) for anyone else
+export type ShownItem = Partial<ReturnType<typeof forOwner>> &
 	Pick<Doc<'items'>, (typeof VISITOR_FIELDS)[number] | 'collections'> & {
 		imageUrl: string | null;
 		imageSrcset: string | null;
 	};
 
 function forViewer(ctx: ViewerQueryCtx, item: Doc<'items'>): ShownItem {
-	const image = imageFields(item);
-	if (item.userId === ctx.viewerId) return { ...item, ...image };
+	if (item.userId === ctx.viewerId) return forOwner(item);
 	const shown = Object.fromEntries(VISITOR_FIELDS.map((field) => [field, item[field]]));
 	return {
 		...(shown as Pick<Doc<'items'>, (typeof VISITOR_FIELDS)[number]>),
 		collections: [],
-		...image
+		...imageFields(item)
 	};
 }
 
@@ -115,10 +121,8 @@ export const add = userMutation({
 		url: v.optional(v.string()),
 		content: v.optional(v.string()),
 		imageKey: v.optional(v.string()),
-		imageWidth: v.optional(v.number()),
-		imageHeight: v.optional(v.number()),
 		collections: v.optional(v.array(v.id('collections'))),
-		// Per-save overrides of the ingestion defaults below
+		// Per-save overrides of the ingestion defaults
 		taggingMode: v.optional(taggingModeValidator),
 		linkImageMode: v.optional(linkImageModeValidator)
 	},
@@ -134,12 +138,15 @@ export const add = userMutation({
 
 		// Deleting an item deletes its R2 object, so a key must be the caller's own
 		// fresh upload; consuming it ties the object to exactly this item. Only a
-		// verified raster image is served as an item's image.
+		// verified raster image is served as an item's image, at the size its bytes
+		// decoded to.
+		let imageSize: Pick<Doc<'items'>, 'imageWidth' | 'imageHeight'> = {};
 		if (args.imageKey) {
 			const upload = args.type !== 'text' ? await getOwnUpload(ctx, args.imageKey) : null;
 			if (!upload) throw new ConvexError('upload not found');
 			if (!upload.verifiedType) throw new ConvexError('that is not a supported image');
 			await ctx.db.delete(upload._id);
+			imageSize = { imageWidth: upload.width, imageHeight: upload.height };
 		}
 
 		// Ingestion prefs come from the caller's overrides, else the first
@@ -178,8 +185,7 @@ export const add = userMutation({
 			normUrl: args.url ? normalizeUrl(args.url) : undefined,
 			content: args.content,
 			imageKey: args.imageKey,
-			imageWidth: args.imageWidth,
-			imageHeight: args.imageHeight,
+			...imageSize,
 			...screenshotFields,
 			...taggingFields,
 			taggingMode,
@@ -190,26 +196,22 @@ export const add = userMutation({
 			dateModified: now
 		});
 
-		// Membership bookkeeping (positions, collections array, counts) lives in the helper
 		for (const collectionId of collections) {
 			await addItemToCollection(ctx, itemId, collectionId);
 		}
 
-		// Trigger screenshot/og image generation for URL items without an image
-		// (`args.url` is always set for a URL item by now; it narrows the type)
+		// `args.url` is always set for a URL item by now; checking it narrows the type
 		if (args.type === 'url' && args.url && !hasImage) {
 			await enqueueScreenshot(ctx, { itemId, url: args.url, mode: linkImageMode });
 		}
 
-		// Trigger tagging off the item's image (palette always runs, even untagged).
-		// URL items still waiting on the worker are tagged once their image lands.
+		// The palette runs off an image even when it isn't tagged. URL items still
+		// waiting on the worker are tagged once their image lands.
 		if (wantsVisualTagging) {
 			await enqueueTagging(ctx, internal.taggingActions.tagImageItem, itemId);
 		} else if (hasImage) {
 			await ctx.scheduler.runAfter(0, internal.taggingActions.repaletteItem, { itemId });
 		}
-
-		// Text-mode tagging runs off the article content, independent of the image
 		if (wantsTextTagging) {
 			await enqueueTagging(ctx, internal.taggingActions.tagTextItem, itemId);
 		}
@@ -259,13 +261,9 @@ export const remove = userMutation({
 	handler: async (ctx, args) => {
 		const item = await getOwned(ctx, args.id);
 		if (!item) throw new ConvexError('item not found');
-
-		// Delete all position records for this item
 		await deleteAllPositionsForItem(ctx, args.id);
 		await deleteItemEmbeddings(ctx, args.id);
-
 		await deleteImageObjects(ctx, item);
-
 		await ctx.db.delete(args.id);
 	}
 });
@@ -338,10 +336,7 @@ export const list = userQuery({
 			);
 		}
 
-		return items.map((item) => ({
-			...item,
-			...imageFields(item)
-		}));
+		return items.map(forOwner);
 	}
 });
 
@@ -371,20 +366,14 @@ export const listByCollection = viewerQuery({
 export const search = userQuery({
 	args: { query: v.string() },
 	handler: async (ctx, args) => {
-		if (!args.query.trim()) {
-			return [];
-		}
+		if (!args.query.trim()) return [];
 		const results = await ctx.db
 			.query('items')
 			.withSearchIndex('search_items', (q) =>
 				q.search('searchText', args.query).eq('userId', ctx.userId)
 			)
 			.take(50);
-
-		return results.map((item) => ({
-			...item,
-			...imageFields(item)
-		}));
+		return results.map(forOwner);
 	}
 });
 
@@ -454,6 +443,27 @@ export const rebuildSearchText = internalMutation({
 		}
 		if (!isDone) {
 			await ctx.scheduler.runAfter(0, internal.items.rebuildSearchText, {
+				cursor: continueCursor
+			});
+		}
+	}
+});
+
+// One-off: items no longer record which model tagged them. Unsets the old
+// field so the schema can drop it; run once on dev and prod, then delete this
+// and the field. Run: npx convex run items:dropTaggingModelVersion
+export const dropTaggingModelVersion = internalMutation({
+	args: { cursor: v.optional(v.string()) },
+	handler: async (ctx, args) => {
+		const { page, isDone, continueCursor } = await ctx.db
+			.query('items')
+			.paginate({ numItems: 100, cursor: args.cursor ?? null });
+		for (const item of page) {
+			if (item.taggingModelVersion === undefined) continue;
+			await ctx.db.patch(item._id, { taggingModelVersion: undefined });
+		}
+		if (!isDone) {
+			await ctx.scheduler.runAfter(0, internal.items.dropTaggingModelVersion, {
 				cursor: continueCursor
 			});
 		}

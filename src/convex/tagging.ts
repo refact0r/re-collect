@@ -3,7 +3,7 @@ import type { FunctionReference } from 'convex/server';
 import { Workpool, vOnCompleteArgs } from '@convex-dev/workpool';
 import { internalMutation, internalQuery, type MutationCtx } from './_generated/server';
 import { internal, components } from './_generated/api';
-import type { Doc, Id } from './_generated/dataModel';
+import type { Id } from './_generated/dataModel';
 import { getOwned, userMutation } from './lib/auth';
 import { patchItem } from './lib/searchText';
 import { colorNamesForPalette } from './lib/colorNames';
@@ -41,23 +41,25 @@ export const onTaggingComplete = internalMutation({
 	handler: async (ctx, args) => {
 		const item = await ctx.db.get(args.context.itemId);
 		if (item?.taggingStatus !== 'pending') return;
-
-		await ctx.db.patch(args.context.itemId, {
-			taggingStatus: 'failed',
-			taggingError:
-				args.result.kind === 'failed'
-					? args.result.error.slice(0, MAX_ERROR_CHARS)
-					: 'Tagging was canceled'
-		});
-		await scheduleEmbedding(ctx, args.context.itemId);
+		await markFailed(
+			ctx,
+			item._id,
+			args.result.kind === 'failed' ? args.result.error : 'Tagging was canceled'
+		);
 	}
 });
 
+async function markFailed(ctx: MutationCtx, itemId: Id<'items'>, error: string) {
+	await ctx.db.patch(itemId, {
+		taggingStatus: 'failed',
+		taggingError: error.slice(0, MAX_ERROR_CHARS)
+	});
+	await scheduleEmbedding(ctx, itemId);
+}
+
 export const getItemForTagging = internalQuery({
 	args: { itemId: v.id('items') },
-	handler: async (ctx, args): Promise<Doc<'items'> | null> => {
-		return await ctx.db.get(args.itemId);
-	}
+	handler: (ctx, { itemId }) => ctx.db.get(itemId)
 });
 
 export const setCompleted = internalMutation({
@@ -65,36 +67,26 @@ export const setCompleted = internalMutation({
 		itemId: v.id('items'),
 		styles: v.array(v.string()),
 		subject: v.string(),
-		aiTags: v.array(v.string()),
-		modelVersion: v.string()
+		aiTags: v.array(v.string())
 	},
-	handler: async (ctx, { itemId, modelVersion, ...tags }) => {
+	handler: async (ctx, { itemId, ...tags }) => {
 		const item = await ctx.db.get(itemId);
 		if (!item) return;
 		await patchItem(ctx, item, {
 			...tags,
 			taggingStatus: 'completed',
-			taggingModelVersion: modelVersion,
 			taggingError: undefined
 		});
-		// Text-mode items embed their tags; a mode change swaps image for text
+		// Text-mode items embed their tags, and a retag that switched modes
+		// switches what the item embeds as
 		await scheduleEmbedding(ctx, itemId);
 	}
 });
 
 export const setFailed = internalMutation({
-	args: {
-		itemId: v.id('items'),
-		error: v.string()
-	},
-	handler: async (ctx, args) => {
-		const item = await ctx.db.get(args.itemId);
-		if (!item) return;
-		await ctx.db.patch(args.itemId, {
-			taggingStatus: 'failed',
-			taggingError: args.error.slice(0, MAX_ERROR_CHARS)
-		});
-		await scheduleEmbedding(ctx, args.itemId);
+	args: { itemId: v.id('items'), error: v.string() },
+	handler: async (ctx, { itemId, error }) => {
+		if (await ctx.db.get(itemId)) await markFailed(ctx, itemId, error);
 	}
 });
 
@@ -140,7 +132,6 @@ export const retagItem = userMutation({
 				taggingMode: 'none',
 				taggingStatus: undefined,
 				taggingError: undefined,
-				taggingModelVersion: undefined,
 				subject: undefined,
 				styles: undefined,
 				aiTags: undefined

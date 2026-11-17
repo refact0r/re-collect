@@ -8,6 +8,7 @@
 	import SettingsMenu from '#lib/components/SettingsMenu.svelte';
 	import { useAction, useQuery } from '#lib/convex.js';
 	import { getItemsContext } from '#lib/context.js';
+	import { usePageTitle } from '#lib/pageTitle.svelte.js';
 	import { useViewPrefs } from '#lib/prefs.svelte.js';
 	import { mergeSearch, type MergedSearch } from '#lib/searchMerge.js';
 	import type { DisplayItem } from '#lib/types.js';
@@ -17,6 +18,8 @@
 	const query = $derived(searchQuery.trim());
 	const allItems = getItemsContext();
 	const runAction = useAction();
+
+	usePageTitle(() => 'search');
 
 	// The keyword half of a hybrid search (full-text over searchText)
 	const keyword = useQuery(api.items.search, () => (query ? { query } : 'skip'), {
@@ -54,12 +57,12 @@
 	});
 </script>
 
-{#if !searchQuery.trim()}
+{#if !query}
 	<p class="status-text">type to search across your items</p>
 {:else}
 	{#if merged && results.data?.length}
 		<div class="results-header">
-			<p class="status-text result-count">
+			<p class="status-text">
 				{#if merged.matches.length}
 					{merged.matches.length}
 					{merged.matches.length === 1 ? 'result' : 'results'}
@@ -105,9 +108,5 @@
 	.view-controls {
 		display: flex;
 		gap: var(--gap);
-	}
-
-	.result-count {
-		margin: 0;
 	}
 </style>

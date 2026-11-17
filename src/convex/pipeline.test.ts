@@ -3,10 +3,9 @@ import type { WorkId } from '@convex-dev/workpool';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { api, internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
-import { hashToken } from './lib/auth';
 import { MAX_ERROR_CHARS } from './lib/tagger';
 import { r2 } from './r2';
-import { newTest, type Test } from './testing.helpers';
+import { makeUser, newTest, type Test } from './testing.helpers';
 
 function setup() {
 	vi.useFakeTimers(); // Scheduled work runs only when a test drains it
@@ -22,11 +21,9 @@ afterEach(() => {
 });
 
 async function makeItem(t: Test, fields: Partial<Doc<'items'>> = {}) {
-	const token = 'a-token';
-	const itemId = await t.run(async (ctx) => {
-		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
-		await ctx.db.insert('sessions', { userId, tokenHash: await hashToken(token) });
-		return ctx.db.insert('items', {
+	const { userId, token } = await makeUser(t);
+	const itemId = await t.run((ctx) =>
+		ctx.db.insert('items', {
 			userId,
 			type: 'url',
 			url: 'https://example.com',
@@ -34,8 +31,8 @@ async function makeItem(t: Test, fields: Partial<Doc<'items'>> = {}) {
 			dateAdded: 0,
 			dateModified: 0,
 			...fields
-		});
-	});
+		})
+	);
 	return { itemId, token };
 }
 
@@ -135,6 +132,28 @@ describe('screenshots', () => {
 			url: 'https://example.com'
 		});
 		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	test('a failed capture keeps the worker’s message, or its status without one', async () => {
+		const { t } = setup();
+		vi.stubEnv('CLOUDFLARE_SCREENSHOT_URL', 'https://worker.invalid');
+		vi.stubEnv('CLOUDFLARE_SCREENSHOT_KEY', 'key');
+		const { itemId } = await makeItem(t, { screenshotStatus: 'pending' });
+		const capture = async (response: Response) => {
+			vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(response);
+			await t.action(internal.screenshots.generateScreenshotInternal, {
+				itemId,
+				url: 'https://example.com'
+			});
+			return (await getItem(t, itemId))?.screenshotError;
+		};
+
+		expect(await capture(Response.json({ error: 'Page load timeout' }, { status: 504 }))).toBe(
+			'Page load timeout'
+		);
+		expect(await capture(new Response('<html>Bad gateway</html>', { status: 502 }))).toBe(
+			'Screenshot service returned 502'
+		);
 	});
 
 	test('a job that fails before claiming its item still settles it', async () => {

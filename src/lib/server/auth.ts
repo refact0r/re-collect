@@ -1,6 +1,5 @@
 import type { Cookies } from '@sveltejs/kit';
 import { ConvexHttpClient } from 'convex/browser';
-import { ConvexError } from 'convex/values';
 import { dev } from '$app/env';
 import { PUBLIC_CONVEX_URL } from '$app/env/public';
 
@@ -8,11 +7,6 @@ import { PUBLIC_CONVEX_URL } from '$app/env/public';
 export const COOKIE_NAME = 'session';
 
 export const convex = () => new ConvexHttpClient(PUBLIC_CONVEX_URL);
-
-// The user-facing message of a ConvexError thrown by sessions.login/signup
-export function errorMessage(error: unknown) {
-	return error instanceof ConvexError ? String(error.data) : 'something went wrong';
-}
 
 export function setSession(cookies: Cookies, token: string) {
 	cookies.set(COOKIE_NAME, token, {

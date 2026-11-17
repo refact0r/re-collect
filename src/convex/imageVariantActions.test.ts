@@ -1,9 +1,8 @@
 // @vitest-environment node
 import sharp from 'sharp';
-import { afterEach, beforeEach, expect, test, vi, type MockInstance } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { internal } from './_generated/api';
-import { r2 } from './r2';
-import { newTest, type Test } from './testing.helpers';
+import { newTest, stubR2, type Test } from './testing.helpers';
 
 // Runs in node, not edge-runtime: makeVariants decodes with sharp
 
@@ -13,18 +12,11 @@ const png = await sharp({
 	.png()
 	.toBuffer();
 
-let deleted: MockInstance<typeof r2.deleteObject>;
+let deleted: ReturnType<typeof stubR2>;
 
 beforeEach(() => {
 	vi.useFakeTimers(); // Scheduled work never starts
-	Object.assign(r2.config, {
-		bucket: 'images',
-		endpoint: 'https://account.r2.cloudflarestorage.com',
-		accessKeyId: 'AKIDEXAMPLE',
-		secretAccessKey: 'wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY'
-	});
-	vi.spyOn(r2, 'getUrl').mockImplementation(async (key) => `https://bucket.example/${key}`);
-	deleted = vi.spyOn(r2, 'deleteObject').mockResolvedValue();
+	deleted = stubR2();
 });
 
 afterEach(() => {
