@@ -127,8 +127,6 @@ export default defineSchema({
 			v.union(v.literal('pending'), v.literal('completed'), v.literal('failed'))
 		),
 		taggingError: v.optional(v.string()),
-		// Deprecated: no longer written, pending removal once items:dropTaggingModelVersion has run
-		taggingModelVersion: v.optional(v.string()),
 		// Snapshotted at add time, then set per item; on notes only ever 'none'
 		taggingMode: v.optional(taggingModeValidator),
 		linkImageMode: v.optional(linkImageModeValidator), // URL items only
@@ -148,8 +146,6 @@ export default defineSchema({
 	collections: defineTable({
 		userId: v.id('users'),
 		name: v.string(),
-		// Deprecated: no longer written, pending removal once collections:dropDateCreated has run
-		dateCreated: v.optional(v.number()),
 		position: v.optional(v.string()), // Lexicographical fractional index for manual ordering
 		itemCount: v.optional(v.number()), // Denormalized count of itemCollectionPositions rows
 		sortMode: v.optional(collectionSortModeValidator), // Defaults to 'manual'

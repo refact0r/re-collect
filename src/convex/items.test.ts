@@ -284,68 +284,6 @@ test('rebuildSearchText recomputes searchText from current fields', async () => 
 	expect(item).toMatchObject({ searchText: 'risograph paper supplier', dateModified: 0 });
 });
 
-test('dropTaggingModelVersion clears the field on every page and leaves the rest', async () => {
-	vi.useFakeTimers();
-	const t = newTest();
-	// More than one page, every other item tagged by a recorded model
-	await t.run(async (ctx) => {
-		const userId = await ctx.db.insert('users', { username: 'a', passwordHash: 'unused' });
-		for (let i = 0; i < 150; i++) {
-			await ctx.db.insert('items', {
-				userId,
-				type: 'text',
-				content: `note ${i}`,
-				searchText: `note ${i}`,
-				...(i % 2 ? { taggingModelVersion: 'openai/gpt-6-luna:v5' } : {}),
-				collections: [],
-				dateAdded: i,
-				dateModified: i
-			});
-		}
-	});
-	const items = () => t.run((ctx) => ctx.db.query('items').collect());
-	const drop = async () => {
-		await t.mutation(internal.items.dropTaggingModelVersion, {});
-		await t.finishAllScheduledFunctions(vi.runAllTimers);
-	};
-
-	const before = await items();
-	await drop();
-	const after = await items();
-	expect(after).toEqual(before.map(({ taggingModelVersion: _, ...item }) => item));
-
-	await drop();
-	expect(await items()).toEqual(after);
-	vi.useRealTimers();
-});
-
-test('dropDateCreated clears the field and leaves the rest', async () => {
-	const t = newTest();
-	const { token } = await makeUser(t);
-	await t.mutation(api.collections.create, { name: 'new', token });
-	await t.run(async (ctx) => {
-		const collection = await ctx.db.query('collections').first();
-		for (const name of ['old', 'older']) {
-			await ctx.db.insert('collections', {
-				userId: collection!.userId,
-				name,
-				dateCreated: 1,
-				position: collection!.position
-			});
-		}
-	});
-	const collections = () => t.run((ctx) => ctx.db.query('collections').collect());
-
-	const before = await collections();
-	await t.mutation(internal.collections.dropDateCreated, {});
-	const after = await collections();
-	expect(after).toEqual(before.map(({ dateCreated: _, ...collection }) => collection));
-	expect(after.map(({ name }) => name)).toEqual(['new', 'old', 'older']);
-
-	await t.mutation(internal.collections.dropDateCreated, {});
-	expect(await collections()).toEqual(after);
-});
-
 test('deleting a collection drops its memberships without touching members', async () => {
 	vi.useFakeTimers();
 	const t = newTest();

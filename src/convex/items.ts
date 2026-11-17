@@ -448,24 +448,3 @@ export const rebuildSearchText = internalMutation({
 		}
 	}
 });
-
-// One-off: items no longer record which model tagged them. Unsets the old
-// field so the schema can drop it; run once on dev and prod, then delete this
-// and the field. Run: npx convex run items:dropTaggingModelVersion
-export const dropTaggingModelVersion = internalMutation({
-	args: { cursor: v.optional(v.string()) },
-	handler: async (ctx, args) => {
-		const { page, isDone, continueCursor } = await ctx.db
-			.query('items')
-			.paginate({ numItems: 100, cursor: args.cursor ?? null });
-		for (const item of page) {
-			if (item.taggingModelVersion === undefined) continue;
-			await ctx.db.patch(item._id, { taggingModelVersion: undefined });
-		}
-		if (!isDone) {
-			await ctx.scheduler.runAfter(0, internal.items.dropTaggingModelVersion, {
-				cursor: continueCursor
-			});
-		}
-	}
-});

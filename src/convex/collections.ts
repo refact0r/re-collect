@@ -1,6 +1,5 @@
 import { ConvexError, v } from 'convex/values';
-import { internalMutation, type QueryCtx } from './_generated/server';
-import { internal } from './_generated/api';
+import type { QueryCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { generateKeyBetween } from 'fractional-indexing';
 import { getPositionsByCollection } from './itemCollectionPositions';
@@ -194,26 +193,5 @@ export const get = viewerQuery({
 			isOwner: collection.userId === ctx.viewerId,
 			coverUrl: cover?.imageUrl ?? null
 		};
-	}
-});
-
-// One-off: collections no longer record when they were made (`_creationTime`
-// has it). Unsets the old field so the schema can drop it; run once on dev and
-// prod, then delete this and the field. Run: npx convex run collections:dropDateCreated
-export const dropDateCreated = internalMutation({
-	args: { cursor: v.optional(v.string()) },
-	handler: async (ctx, args) => {
-		const { page, isDone, continueCursor } = await ctx.db
-			.query('collections')
-			.paginate({ numItems: 200, cursor: args.cursor ?? null });
-		for (const collection of page) {
-			if (collection.dateCreated === undefined) continue;
-			await ctx.db.patch(collection._id, { dateCreated: undefined });
-		}
-		if (!isDone) {
-			await ctx.scheduler.runAfter(0, internal.collections.dropDateCreated, {
-				cursor: continueCursor
-			});
-		}
 	}
 });
