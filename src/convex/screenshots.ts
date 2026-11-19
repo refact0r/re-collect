@@ -9,6 +9,7 @@ import { internal, components } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { NonRetryableError, Workpool, vOnCompleteArgs } from '@convex-dev/workpool';
 import { getOwned, userMutation } from './lib/auth';
+import { limitUser } from './lib/rateLimits';
 import { r2 } from './r2';
 import { patchItem } from './lib/searchText';
 import { MAX_ERROR_CHARS } from './lib/tagger';
@@ -149,6 +150,8 @@ export const reimageItem = userMutation({
 		mode: v.optional(linkImageModeValidator)
 	},
 	handler: async (ctx, args) => {
+		// A new capture costs what saving the link did
+		await limitUser(ctx, 'save', ctx.userId);
 		const item = await getOwned(ctx, args.itemId);
 		if (!item) throw new ConvexError('item not found');
 		if (item.type !== 'url' || !item.url) throw new ConvexError('item is not a URL item');

@@ -212,6 +212,37 @@ token on every call, like the app does. The `imageImport` actions have no
 `ctx.runQuery(internal.users.userForToken, { token })` before fetching anything,
 like every other public action.
 
+## Per-user limits
+
+Tagging (OpenRouter), captures (Cloudflare Browser Rendering), embeddings
+(Workers AI) and R2 storage are shared, and the job queues are shared workpools,
+so one user, or a script holding a session token, could run up the bill or keep
+everyone else's saves waiting. `src/convex/lib/rateLimits.ts` holds one
+`@convex-dev/rate-limiter` with the limits, each a token bucket keyed by
+`userId`:
+
+| Limit    | Counts                                                                                                                                                | Refill    | Burst |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----- |
+| `save`   | `items.add` (links, images, notes, the extension's saves), `screenshots.reimageItem`                                                                  | 200 a day | 50    |
+| `retag`  | `tagging.retagItem`, except turning AI off                                                                                                            | 300 a day | 50    |
+| `upload` | `r2.generateUploadUrl`, and the actions that fetch or store an image server-side: `imageImport.addFromUrl` / `addPageWithImage`, `discoveryKeep.keep` | 200 a day | 50    |
+| `search` | `embeddings.search`                                                                                                                                   | 60 a min  | 20    |
+
+Each function spends a token (`limitUser`) before any other work, so a refused
+call costs nothing; in a mutation a later throw gives the token back. An image
+for a new item counts once as an upload and once as a save: the upload step
+(`limitImageUpload`) only checks that a save is left, so it's refused before any
+bytes move when the item couldn't be saved, and `items.add` spends the save.
+The server-side imports mint their key with `r2.mintServerUpload`, which counts
+nothing, so they aren't counted twice. `imageImport.verifyUpload` isn't counted:
+it runs at most once per minted key.
+
+A refusal is a `ConvexError` like "you’ve saved a lot today, try again in about
+7 minutes" (from the limiter's `retryAfter`), which the app shows as an error
+toast and the extension as its failure toast. The search page and the atlas
+lens call `embeddings.search` with a silent `onError`, so a refused search just
+shows the keyword results.
+
 ## Why this design
 
 The goals were a login that feels normal to non-technical friends, no added
@@ -238,10 +269,6 @@ to Better Auth through the seam above.
   Keys are unguessable, but anyone holding a URL can view the image. Real
   privacy needs presigned URLs or an auth-checking proxy, both of which break
   the 1-year edge cache (see `ops.md`).
-- **Per-user AI cost limits.** Tagging (OpenRouter) and screenshots (Cloudflare
-  Browser Rendering) are shared and unmetered. Add a per-user quota (e.g.
-  `@convex-dev/rate-limiter` keyed by `userId` in `items.add` / `retagItem`)
-  before inviting anyone heavy.
 - **Profiles and discovery.** Shared collections are reachable only by link;
   there's no `/u/<username>` page listing them.
 - **Saving someone else's item.** Deleting an item deletes its R2 object, so a

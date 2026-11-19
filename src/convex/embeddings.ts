@@ -18,6 +18,7 @@ import {
 	inputKey,
 	isImageKey
 } from './lib/embedder';
+import { limitUser } from './lib/rateLimits';
 
 // The database side of item embeddings; the embedding run itself is
 // taggingActions.embedItem (Node, for sharp).
@@ -145,6 +146,7 @@ export const search = action({
 	handler: async (ctx, { token, query }): Promise<Id<'items'>[]> => {
 		const userId = await ctx.runQuery(internal.users.userForToken, { token });
 		if (!query.trim()) return [];
+		await limitUser(ctx, 'search', userId);
 		const hits = await ctx.vectorSearch('embeddingVectors', 'by_embedding', {
 			vector: await embedQuery(query),
 			limit: SEARCH_CANDIDATES,

@@ -1,9 +1,16 @@
 import { R2 } from '@convex-dev/r2';
 import { ConvexError, v } from 'convex/values';
 import { components, internal } from './_generated/api';
-import { internalMutation, internalQuery, type QueryCtx } from './_generated/server';
+import type { Id } from './_generated/dataModel';
+import {
+	internalMutation,
+	internalQuery,
+	type MutationCtx,
+	type QueryCtx
+} from './_generated/server';
 import { requireUser, userMutation, type UserQueryCtx } from './lib/auth';
 import { RASTER_IMAGE_TYPES } from './lib/images';
+import { limitImageUpload } from './lib/rateLimits';
 
 export const r2 = new R2(components.r2);
 
@@ -93,19 +100,31 @@ export async function signUpload(key: string, contentType: string, now = new Dat
 	return `${url.origin}${url.pathname}?${query}&X-Amz-Signature=${toHex(await hmac(signingKey, toSign))}`;
 }
 
-// A key for the caller to PUT one raster image of `contentType` to. It can't
+// A key for the user to PUT one raster image of `contentType` to. It can't
 // become an item's image until it's verified: by imageImport.verifyUpload for
 // the client's PUT, or by a server-side upload that checked its own bytes.
+async function mintUpload(ctx: MutationCtx, userId: Id<'users'>, contentType: string) {
+	if (!RASTER_IMAGE_TYPES.includes(contentType)) {
+		throw new ConvexError('that is not a supported image');
+	}
+	const key = crypto.randomUUID();
+	await ctx.db.insert('uploads', { userId, key });
+	return { key, url: await signUpload(key, contentType) };
+}
+
 export const generateUploadUrl = userMutation({
 	args: { contentType: v.string() },
 	handler: async (ctx, { contentType }) => {
-		if (!RASTER_IMAGE_TYPES.includes(contentType)) {
-			throw new ConvexError('that is not a supported image');
-		}
-		const key = crypto.randomUUID();
-		await ctx.db.insert('uploads', { userId: ctx.userId, key });
-		return { key, url: await signUpload(key, contentType) };
+		await limitImageUpload(ctx, ctx.userId);
+		return await mintUpload(ctx, ctx.userId, contentType);
 	}
+});
+
+// For an action that stores an image it fetched itself, and has counted the
+// upload already (limitImageUpload)
+export const mintServerUpload = internalMutation({
+	args: { userId: v.id('users'), contentType: v.string() },
+	handler: (ctx, { userId, contentType }) => mintUpload(ctx, userId, contentType)
 });
 
 export const markVerified = internalMutation({

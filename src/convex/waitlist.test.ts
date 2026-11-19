@@ -1,21 +1,15 @@
 // @vitest-environment edge-runtime
-import rateLimiter from '@convex-dev/rate-limiter/test';
 import { expect, test } from 'vitest';
 import { api } from './_generated/api';
 import { newTest, type Test } from './testing.helpers';
-import { JOIN_BURST, WAITLIST_CEILING } from './waitlist';
-
-function setup() {
-	const t = newTest();
-	rateLimiter.register(t);
-	return t;
-}
+import { JOIN_BURST } from './lib/rateLimits';
+import { WAITLIST_CEILING } from './waitlist';
 
 const emails = (t: Test) =>
 	t.run(async (ctx) => (await ctx.db.query('waitlist').collect()).map((row) => row.email));
 
 test('joining stores the normalized email once', async () => {
-	const t = setup();
+	const t = newTest();
 	await t.mutation(api.waitlist.join, { email: '  Someone@Example.com ' });
 	await t.mutation(api.waitlist.join, { email: 'someone@example.com' });
 	expect(await emails(t)).toEqual(['someone@example.com']);
@@ -24,7 +18,7 @@ test('joining stores the normalized email once', async () => {
 });
 
 test('an invalid email is rejected', async () => {
-	const t = setup();
+	const t = newTest();
 	for (const email of ['', 'nope', 'a@b', 'a b@c.com', `${'a'.repeat(250)}@b.com`]) {
 		await expect(t.mutation(api.waitlist.join, { email })).rejects.toThrow(/email/);
 	}
@@ -32,13 +26,13 @@ test('an invalid email is rejected', async () => {
 });
 
 test('a filled honeypot stores nothing', async () => {
-	const t = setup();
+	const t = newTest();
 	await t.mutation(api.waitlist.join, { email: 'bot@example.com', website: 'http://spam' });
 	expect(await emails(t)).toEqual([]);
 });
 
 test('a full list takes no new emails', async () => {
-	const t = setup();
+	const t = newTest();
 	await t.run(async (ctx) => {
 		await ctx.db.insert('waitlist', { email: 'early@example.com' });
 		await ctx.db.insert('waitlistCount', { count: WAITLIST_CEILING });
@@ -54,7 +48,7 @@ test('a full list takes no new emails', async () => {
 });
 
 test('joins past the burst are turned away', async () => {
-	const t = setup();
+	const t = newTest();
 	for (let i = 0; i < JOIN_BURST; i++) {
 		await t.mutation(api.waitlist.join, { email: `person${i}@example.com` });
 	}

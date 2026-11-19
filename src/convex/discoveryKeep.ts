@@ -5,6 +5,7 @@ import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { action } from './_generated/server';
 import { fetchImage, upload } from './imageImport';
+import { limitImageUpload } from './lib/rateLimits';
 
 // Keeps a discovery candidate: its media is copied into R2 (it was only
 // hotlinked until now) and it becomes an ordinary library item. A site keeps as
@@ -18,13 +19,14 @@ export const keep = action({
 	},
 	returns: v.id('items'),
 	handler: async (ctx, { candidateId, collectionId, token }): Promise<Id<'items'>> => {
-		await ctx.runQuery(internal.users.userForToken, { token });
+		const userId = await ctx.runQuery(internal.users.userForToken, { token });
+		await limitImageUpload(ctx, userId);
 		const candidate = await ctx.runQuery(internal.discovery.getCandidate, { candidateId });
 		if (!candidate) throw new ConvexError('that post is gone');
 
 		let imageKey: string | undefined;
 		try {
-			imageKey = await upload(ctx, await fetchImage(candidate.imageUrl, candidate.url), token);
+			imageKey = await upload(ctx, await fetchImage(candidate.imageUrl, candidate.url), userId);
 		} catch (error) {
 			// Without the source's image, the worker captures the page as usual
 			console.warn(`discovery keep: ${candidate.imageUrl} failed, saving the page:`, error);

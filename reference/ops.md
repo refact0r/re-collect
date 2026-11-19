@@ -11,8 +11,12 @@ Notes on external configuration that isn't visible from the codebase.
 ## Waitlist
 
 - Logged-out visitors at `/` see the landing page, which adds emails to the `waitlist` table (`waitlist.join`). Read it with `npx convex data waitlist --prod` (or the dashboard); invite someone with `npx convex run users:invite --prod` and email them the link by hand.
-- It stops taking new emails at `WAITLIST_CEILING` (in `waitlist.ts`); the running total is the one `waitlistCount` row. Joins are also rate limited across everyone (`@convex-dev/rate-limiter`, a 60-join burst refilling at 30 a minute).
+- It stops taking new emails at `WAITLIST_CEILING` (in `waitlist.ts`); the running total is the one `waitlistCount` row. Joins are also rate limited across everyone (the `join` limit in `lib/rateLimits.ts`, a 60-join burst refilling at 30 a minute).
 - These are other people's email addresses: don't export or import them into dev, or paste them anywhere else.
+
+## Rate limits
+
+- Per-user limits on saves, retags, uploads and searches live in `src/convex/lib/rateLimits.ts` (`reference/multi-user.md`, "Per-user limits"); change them there and deploy. The buckets are rows in the `rateLimiter` component's tables, so a deploy keeps each user's current state.
 
 ## Convex env vars
 

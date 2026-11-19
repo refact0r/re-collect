@@ -5,6 +5,7 @@ import { internalMutation, internalQuery, type MutationCtx } from './_generated/
 import { internal, components } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { getOwned, userMutation } from './lib/auth';
+import { limitUser } from './lib/rateLimits';
 import { patchItem } from './lib/searchText';
 import { colorNamesForPalette } from './lib/colorNames';
 import { MAX_ERROR_CHARS } from './lib/tagger';
@@ -112,6 +113,8 @@ export const retagItem = userMutation({
 		mode: v.optional(taggingModeValidator)
 	},
 	handler: async (ctx, args) => {
+		// Turning AI off runs nothing, so it's never refused
+		if (args.mode !== 'none') await limitUser(ctx, 'retag', ctx.userId);
 		const item = await getOwned(ctx, args.itemId);
 		if (!item) throw new ConvexError('item not found');
 		// `pending` is set in the same transaction as the enqueue and cleared only

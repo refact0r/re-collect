@@ -1,17 +1,9 @@
-import { MINUTE, RateLimiter } from '@convex-dev/rate-limiter';
 import { ConvexError, v } from 'convex/values';
-import { components } from './_generated/api';
 import { mutation } from './_generated/server';
+import { rateLimiter } from './lib/rateLimits';
 
 // Past this many rows the list stops taking new emails
 export const WAITLIST_CEILING = 2000;
-
-// Joins across everyone: room for a crowd signing up at once, while a script
-// takes over an hour to reach the ceiling
-export const JOIN_BURST = 60;
-const rateLimiter = new RateLimiter(components.rateLimiter, {
-	join: { kind: 'token bucket', rate: 30, period: MINUTE, capacity: JOIN_BURST }
-});
 
 const MAX_EMAIL_LENGTH = 254;
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

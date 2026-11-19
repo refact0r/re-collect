@@ -7,6 +7,7 @@ import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { RASTER_IMAGE_TYPES } from './lib/images';
 import { pixelLimit } from './lib/imageVariants';
+import { limitImageUpload } from './lib/rateLimits';
 import { isPublicWebUrl, isWebUrl } from './lib/urls';
 import { r2 } from './r2';
 import { taggingModeValidator } from './schema';
@@ -115,11 +116,12 @@ export async function decodeDataImage(dataUrl: string) {
 const markVerified = (ctx: ActionCtx, key: string, { contentType, width, height }: Image) =>
 	ctx.runMutation(internal.r2.markVerified, { key, contentType, width, height });
 
-// Same path as the app's uploads, so the key gets the caller's `uploads` row
-// that items.add requires; these bytes were checked already, so it's verified
-export async function upload(ctx: ActionCtx, image: Image, token: string) {
+// Same path as the app's uploads, so the key gets the user's `uploads` row
+// that items.add requires; these bytes were checked already, so it's verified.
+// The caller counts the upload first (limitImageUpload).
+export async function upload(ctx: ActionCtx, image: Image, userId: Id<'users'>) {
 	const { contentType } = image;
-	const { url, key } = await ctx.runMutation(api.r2.generateUploadUrl, { contentType, token });
+	const { url, key } = await ctx.runMutation(internal.r2.mintServerUpload, { userId, contentType });
 	const response = await fetch(url, {
 		method: 'PUT',
 		headers: { 'Content-Type': contentType },
@@ -172,7 +174,8 @@ export const addFromUrl = action({
 	handler: async (ctx, args): Promise<{ itemId: Id<'items'>; type: 'image' | 'url' }> => {
 		const { imageUrl, collections, token } = args;
 		// Check the caller before fetching anything; items.add re-checks on write
-		await ctx.runQuery(internal.users.userForToken, { token });
+		const userId = await ctx.runQuery(internal.users.userForToken, { token });
+		await limitImageUpload(ctx, userId);
 		// A file:// or view-source: page is no item link, so it's neither the
 		// image's source nor a fallback
 		const pageUrl = args.pageUrl && isWebUrl(args.pageUrl) ? args.pageUrl : undefined;
@@ -194,7 +197,7 @@ export const addFromUrl = action({
 			return { itemId, type: 'url' };
 		}
 
-		const imageKey = await upload(ctx, image, token);
+		const imageKey = await upload(ctx, image, userId);
 		const itemId = await ctx.runMutation(api.items.add, {
 			type: 'image',
 			url: pageUrl,
@@ -221,11 +224,12 @@ export const addPageWithImage = action({
 	returns: v.id('items'),
 	handler: async (ctx, args): Promise<Id<'items'>> => {
 		const { imageUrl, ...rest } = args;
-		await ctx.runQuery(internal.users.userForToken, { token: args.token });
+		const userId = await ctx.runQuery(internal.users.userForToken, { token: args.token });
 		// Checked before the upload, which items.add would otherwise leave behind
 		if (!isWebUrl(args.url)) throw new ConvexError('links must start with http:// or https://');
+		await limitImageUpload(ctx, userId);
 
-		const imageKey = await upload(ctx, await decodeDataImage(imageUrl), args.token);
+		const imageKey = await upload(ctx, await decodeDataImage(imageUrl), userId);
 		return await ctx.runMutation(api.items.add, { type: 'url', ...rest, imageKey });
 	}
 });

@@ -20,6 +20,7 @@ import {
 } from './lib/auth';
 import { buildSearchText, patchItem } from './lib/searchText';
 import { storedTaggingMode } from './lib/taggingModes';
+import { limitUser } from './lib/rateLimits';
 import { isWebUrl, normalizeUrl } from './lib/urls';
 import { deleteItemEmbeddings, scheduleEmbedding } from './embeddings';
 import { deleteImageObjects, scheduleImageVariants } from './imageVariants';
@@ -111,6 +112,7 @@ export const add = userMutation({
 		linkImageMode: v.optional(linkImageModeValidator)
 	},
 	handler: async (ctx, args) => {
+		await limitUser(ctx, 'save', ctx.userId);
 		// A URL item needs a link, and any link must be http(s)
 		if ((args.type === 'url' || args.url) && !isWebUrl(args.url ?? '')) {
 			throw new ConvexError(LINK_ERROR);
