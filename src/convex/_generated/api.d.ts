@@ -29,6 +29,7 @@ import type * as lib_fonts from "../lib/fonts.js";
 import type * as lib_imageVariants from "../lib/imageVariants.js";
 import type * as lib_images from "../lib/images.js";
 import type * as lib_searchText from "../lib/searchText.js";
+import type * as lib_sortItems from "../lib/sortItems.js";
 import type * as lib_tagger from "../lib/tagger.js";
 import type * as lib_taggingModes from "../lib/taggingModes.js";
 import type * as lib_urls from "../lib/urls.js";
@@ -69,6 +70,7 @@ declare const fullApi: ApiFromModules<{
   "lib/imageVariants": typeof lib_imageVariants;
   "lib/images": typeof lib_images;
   "lib/searchText": typeof lib_searchText;
+  "lib/sortItems": typeof lib_sortItems;
   "lib/tagger": typeof lib_tagger;
   "lib/taggingModes": typeof lib_taggingModes;
   "lib/urls": typeof lib_urls;

@@ -1,4 +1,5 @@
-import { ConvexError, v, type Infer } from 'convex/values';
+import { paginationOptsValidator } from 'convex/server';
+import { ConvexError, v } from 'convex/values';
 import type { Doc } from './_generated/dataModel';
 import { internal } from './_generated/api';
 import { internalMutation, type MutationCtx } from './_generated/server';
@@ -26,29 +27,12 @@ import { imageSrcset } from './lib/imageVariants';
 import { enqueueScreenshot } from './screenshots';
 import { enqueueTagging } from './tagging';
 import { getPreferences } from './viewPreferences';
+import { compareItems } from './lib/sortItems';
 import {
-	sortModeValidator,
 	collectionSortModeValidator,
 	taggingModeValidator,
 	linkImageModeValidator
 } from './schema';
-
-type Sortable = Pick<Doc<'items'>, 'title' | 'url' | 'dateAdded' | 'dateModified'>;
-
-// `||`: older rows may hold title: ''
-const sortTitle = (item: Sortable) => (item.title || item.url || '').toLowerCase();
-
-const compareItems: Record<
-	Infer<typeof sortModeValidator>,
-	(a: Sortable, b: Sortable) => number
-> = {
-	dateAddedNewest: (a, b) => b.dateAdded - a.dateAdded,
-	dateAddedOldest: (a, b) => a.dateAdded - b.dateAdded,
-	dateModifiedNewest: (a, b) => b.dateModified - a.dateModified,
-	dateModifiedOldest: (a, b) => a.dateModified - b.dateModified,
-	titleAsc: (a, b) => sortTitle(a).localeCompare(sortTitle(b)),
-	titleDesc: (a, b) => sortTitle(b).localeCompare(sortTitle(a))
-};
 
 // The item's image URL, and the srcset that lets a small display pick a
 // smaller copy of it (null until it has some)
@@ -314,34 +298,18 @@ export const removeFromCollection = userMutation({
 	}
 });
 
+// The caller's library, newest first, a page at a time. The client loads every
+// page (useAllPages), and sorts and filters it there; each page is its own
+// subscription, so a write to an item re-runs only the page holding it.
 export const list = userQuery({
-	args: {
-		sortBy: v.optional(sortModeValidator),
-		collectionIds: v.optional(v.array(v.id('collections'))),
-		includeUncollected: v.optional(v.boolean())
-	},
+	args: { paginationOpts: paginationOptsValidator },
 	handler: async (ctx, args) => {
-		const sortBy = args.sortBy ?? 'dateAddedNewest';
-		// Date sorts come straight off an index; title sorts re-sort oldest-first
-		const byUser = ctx.db.query('items');
-		const query = sortBy.startsWith('dateModified')
-			? byUser.withIndex('by_user_dateModified', (q) => q.eq('userId', ctx.userId))
-			: byUser.withIndex('by_user_dateAdded', (q) => q.eq('userId', ctx.userId));
-		let items = await query.order(sortBy.endsWith('Newest') ? 'desc' : 'asc').collect();
-		if (sortBy.startsWith('title')) items.sort(compareItems[sortBy]);
-
-		// Only the picked collections (and uncollected items, if picked); no picks is everything
-		const { collectionIds = [], includeUncollected = false } = args;
-		if (collectionIds.length > 0 || includeUncollected) {
-			const picked = new Set(collectionIds);
-			items = items.filter((item) =>
-				item.collections.length > 0
-					? item.collections.some((c) => picked.has(c))
-					: includeUncollected
-			);
-		}
-
-		return items.map(forOwner);
+		const result = await ctx.db
+			.query('items')
+			.withIndex('by_user_dateAdded', (q) => q.eq('userId', ctx.userId))
+			.order('desc')
+			.paginate(args.paginationOpts);
+		return { ...result, page: result.page.map(forOwner) };
 	}
 });
 

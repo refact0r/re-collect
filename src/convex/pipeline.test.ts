@@ -5,7 +5,7 @@ import { api, internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { MAX_ERROR_CHARS } from './lib/tagger';
 import { r2 } from './r2';
-import { makeUser, newTest, type Test } from './testing.helpers';
+import { listItems, makeUser, newTest, type Test } from './testing.helpers';
 
 function setup() {
 	vi.useFakeTimers(); // Scheduled work runs only when a test drains it
@@ -178,7 +178,7 @@ describe('screenshots', () => {
 			screenshotStatus: 'completed'
 		});
 		const shown = async () => {
-			const [item] = await t.query(api.items.list, { token });
+			const [item] = await listItems(t, token);
 			return {
 				status: item.screenshotStatus,
 				imageUrl: item.imageUrl,

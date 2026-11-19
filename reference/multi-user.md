@@ -247,4 +247,5 @@ to Better Auth through the seam above.
 - **Saving someone else's item.** Deleting an item deletes its R2 object, so a
   copy into your own collection needs its own copy of the image.
 - **Renaming a user** (do it by hand in the dashboard for now).
-- **Pagination.** `items.list` still collects all of a user's items, as before.
+- **Pagination.** `items.list` is paginated, but the client still loads every
+  page up front (`useAllPages`); there's no infinite scroll.

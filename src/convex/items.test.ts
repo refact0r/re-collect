@@ -4,7 +4,7 @@ import { expect, test, vi } from 'vitest';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { normalizeUrl } from './lib/urls';
-import { makeUser, newTest, type Test } from './testing.helpers';
+import { listItems, makeUser, newTest, type Test } from './testing.helpers';
 
 test('per-save overrides replace the collection’s ingestion defaults', async () => {
 	vi.useFakeTimers(); // Keep the scheduled tagging actions from running
@@ -153,14 +153,32 @@ test('update leaves omitted fields alone and clears blank ones', async () => {
 	expect(item?.searchText).toBe('notes https://b.co');
 });
 
-test('a stored empty title sorts by url, not first', async () => {
+test('the library pages newest first, only the caller’s items', async () => {
 	const t = newTest();
 	const { userId, token } = await makeUser(t);
-	const legacy = await insertUrlItem(t, userId, { url: 'https://zine.co', title: '' });
-	const titled = await insertUrlItem(t, userId, { url: 'https://b.co', title: 'apple' });
+	const other = await makeUser(t, 'b');
+	const insert = (userId: Id<'users'>, dateAdded: number) =>
+		t.run((ctx) =>
+			ctx.db.insert('items', {
+				userId,
+				type: 'text',
+				collections: [],
+				dateAdded,
+				dateModified: 0
+			})
+		);
+	await insert(other.userId, 5);
+	const ids: Id<'items'>[] = [];
+	for (const dateAdded of [3, 1, 4, 2]) ids[dateAdded] = await insert(userId, dateAdded);
 
-	const items = await t.query(api.items.list, { sortBy: 'titleAsc', token });
-	expect(items.map((i) => i._id)).toEqual([titled, legacy]);
+	const list = (cursor: string | null) =>
+		t.query(api.items.list, { paginationOpts: { numItems: 3, cursor }, token });
+	const first = await list(null);
+	expect(first.page.map((i) => i._id)).toEqual([ids[4], ids[3], ids[2]]);
+	expect(first.isDone).toBe(false);
+	const second = await list(first.continueCursor);
+	expect(second.page.map((i) => i._id)).toEqual([ids[1]]);
+	expect(second.isDone).toBe(true);
 });
 
 test('text items are searchable by their content', async () => {
@@ -205,7 +223,7 @@ test('an owner’s listings leave out the fields no page reads', async () => {
 	await t.mutation(api.items.addToCollection, { itemId, collectionId, token });
 
 	const listings = [
-		await t.query(api.items.list, { token }),
+		await listItems(t, token),
 		await t.query(api.items.search, { query: 'poster', token }),
 		await t.query(api.items.listByCollection, { collectionId, token }),
 		await t.query(api.items.searchCollection, { collectionId, query: 'poster', token })

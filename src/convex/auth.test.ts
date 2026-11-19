@@ -1,7 +1,7 @@
 // @vitest-environment edge-runtime
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { api, internal } from './_generated/api';
-import { makeUser, newTest, type Test } from './testing.helpers';
+import { listItems, makeUser, newTest, type Test } from './testing.helpers';
 
 // For tests that add items: their scheduled tagging and embedding runs never start
 function itemTest() {
@@ -69,7 +69,7 @@ describe('per-user isolation', () => {
 			token: a.token
 		});
 
-		expect(await t.query(api.items.list, { token: b.token })).toEqual([]);
+		expect(await listItems(t, b.token)).toEqual([]);
 		expect(await t.query(api.collections.listWithCounts, { token: b.token })).toEqual([]);
 		expect(await t.query(api.items.search, { query: 'secret', token: b.token })).toEqual([]);
 		expect(await t.query(api.items.listByCollection, { collectionId, token: b.token })).toEqual([]);
@@ -112,7 +112,7 @@ describe('per-user isolation', () => {
 
 	test('an unknown token is rejected', async () => {
 		const t = newTest();
-		await expect(t.query(api.items.list, { token: 'nope' })).rejects.toThrow('Unauthorized');
+		await expect(listItems(t, 'nope')).rejects.toThrow('Unauthorized');
 	});
 });
 

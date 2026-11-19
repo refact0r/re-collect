@@ -9,6 +9,7 @@
 		type CurrentItems
 	} from '#lib/context.js';
 	import { isUnauthorized } from '#lib/convex.js';
+	import { useAllPages } from '#lib/allPages.svelte.js';
 	import { page } from '$app/state';
 	import { afterNavigate, beforeNavigate, goto, snapshot } from '$app/navigation';
 	import { loginHref } from '#lib/login.js';
@@ -28,9 +29,13 @@
 	let { children, data } = $props();
 	setupConvex(PUBLIC_CONVEX_URL);
 
-	// The signed-in user's items and collections; a logged-out visitor has none
-	const items = useQuery(api.items.list, () =>
-		data.writeToken ? { token: data.writeToken } : 'skip'
+	// The signed-in user's items (the whole library, newest first) and
+	// collections; a logged-out visitor has none. ~2 KB an item, so a page stays
+	// far under a query's read limits.
+	const items = useAllPages(
+		api.items.list,
+		() => (data.writeToken ? { token: data.writeToken } : 'skip'),
+		200
 	);
 	const collections = useQuery(api.collections.listWithCounts, () =>
 		data.writeToken ? { token: data.writeToken } : 'skip'

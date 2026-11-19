@@ -2,6 +2,7 @@
 import { convexTest } from 'convex-test';
 import workpool from '@convex-dev/workpool/test';
 import { vi } from 'vitest';
+import { api } from './_generated/api';
 import { hashToken } from './lib/auth';
 import { r2 } from './r2';
 import schema from './schema';
@@ -28,6 +29,16 @@ export async function makeUser(t: Test, username = 'a') {
 		return userId;
 	});
 	return { userId, token };
+}
+
+// The user's whole library as items.list pages it, newest first
+export async function listItems(t: Test, token: string) {
+	const { page, isDone } = await t.query(api.items.list, {
+		paginationOpts: { numItems: 1000, cursor: null },
+		token
+	});
+	if (!isDone) throw new Error('library bigger than one test page');
+	return page;
 }
 
 // R2 credentials to sign with, a fake bucket URL to read from and stubbed

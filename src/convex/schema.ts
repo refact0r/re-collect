@@ -138,7 +138,6 @@ export default defineSchema({
 		dateModified: v.number()
 	})
 		.index('by_user_dateAdded', ['userId', 'dateAdded'])
-		.index('by_user_dateModified', ['userId', 'dateModified'])
 		.index('by_user_normUrl', ['userId', 'normUrl'])
 		.searchIndex('search_items', {
 			searchField: 'searchText',

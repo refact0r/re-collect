@@ -6,7 +6,7 @@ import { api, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { hashToken } from './lib/auth';
 import { r2 } from './r2';
-import { newTest, type Test } from './testing.helpers';
+import { listItems, newTest, type Test } from './testing.helpers';
 
 const MAKE_VARIANTS = 'imageVariantActions:makeVariants';
 const VARIANTS = [
@@ -64,7 +64,7 @@ describe('saving variants', () => {
 		});
 		expect((await getItem(t, itemId))?.imageVariants).toEqual(VARIANTS);
 
-		const [shown] = await t.query(api.items.list, { token });
+		const [shown] = await listItems(t, token);
 		expect(shown.imageUrl).toBe('https://img.test/a.png');
 		expect(shown.imageSrcset).toBe(
 			'https://img.test/variants/v-512w.webp 460w, https://img.test/variants/v-2048w.webp 1843w, https://img.test/a.png 3000w'

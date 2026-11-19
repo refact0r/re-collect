@@ -859,5 +859,7 @@ independent of each other.
 4. **Which Convex plan is prod on?** Everything here fits Free. The only
    line that gets close is database I/O, and that's because `items.list`
    collects the whole table on every change (about 170 KB per read today),
-   not because of embeddings. Worth knowing before the discovery feed
+   not because of embeddings. (Since 2026-11-19 `items.list` is paginated,
+   so a change re-reads only its page, and home no longer subscribes to the
+   library a second time for a sort or filter.) Worth knowing before the discovery feed
    multiplies writes.

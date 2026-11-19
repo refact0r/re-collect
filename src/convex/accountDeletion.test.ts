@@ -4,7 +4,7 @@ import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { hashToken } from './lib/auth';
 import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL } from './lib/embedder';
-import { makeUser, newTest, stubR2, type Test } from './testing.helpers';
+import { listItems, makeUser, newTest, stubR2, type Test } from './testing.helpers';
 
 let deleted: ReturnType<typeof stubR2>;
 
@@ -239,7 +239,7 @@ describe('deleting an account', () => {
 		await seedLibrary(t, a.userId, 'a', 120);
 		await seedLibrary(t, b.userId, 'b', 3);
 		const bBefore = await ownedRows(t, b.userId, 'b');
-		const bItems = await t.query(api.items.list, { token: b.token });
+		const bItems = await listItems(t, b.token);
 
 		await t.mutation(internal.users.startDeletion, { tokenHash: await hashToken(a.token) });
 		// 120 items in the first collection takes two runs, the second one, then
@@ -268,7 +268,7 @@ describe('deleting an account', () => {
 		expect(keys).toHaveLength(241);
 
 		expect(await ownedRows(t, b.userId, 'b')).toEqual(bBefore);
-		expect(await t.query(api.items.list, { token: b.token })).toEqual(bItems);
+		expect(await listItems(t, b.token)).toEqual(bItems);
 		const bCollections = await t.query(api.collections.listWithCounts, { token: b.token });
 		expect(bCollections.map((c) => c.itemCount)).toEqual([3, 1]);
 	});
@@ -289,7 +289,7 @@ describe('deleting an account', () => {
 		const t = newTest();
 		const a = await makeUser(t, 'a');
 		await seedLibrary(t, a.userId, 'a', 1);
-		const [{ _id: itemId }] = await t.query(api.items.list, { token: a.token });
+		const [{ _id: itemId }] = await listItems(t, a.token);
 		await t.mutation(internal.users.startDeletion, { tokenHash: await hashToken(a.token) });
 		await runBatches(t, a.userId);
 		deleted.mockClear();

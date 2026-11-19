@@ -1,6 +1,7 @@
 import { getContext, setContext } from 'svelte';
 import type { FunctionReturnType } from 'convex/server';
 import type { api } from '../convex/_generated/api';
+import type { PageItem } from './allPages.svelte';
 import type { DisplayItem } from './types';
 
 // Shape of a convex-svelte useQuery result as consumers see it
@@ -10,7 +11,7 @@ export interface QueryState<T> {
 	readonly isLoading: boolean;
 }
 
-type ItemsData = FunctionReturnType<typeof api.items.list>;
+type ItemsData = PageItem<typeof api.items.list>[];
 export type CollectionsData = FunctionReturnType<typeof api.collections.listWithCounts>;
 
 // Typed wrappers around the app layout's contexts, so setter and consumers
