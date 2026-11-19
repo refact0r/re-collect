@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { api } from '../../../convex/_generated/api.js';
+	import { confirmAction } from '#lib/confirm.svelte.js';
 	import { useAction, useMutation, useQuery } from '#lib/convex.js';
 	import { usePageTitle } from '#lib/pageTitle.svelte.js';
 
@@ -73,6 +74,36 @@
 			currentPassword = '';
 			newPassword = '';
 		}
+	}
+
+	let deletePassword = $state('');
+	let deleteStatus = $state('');
+	let deleting = $state(false);
+
+	async function deleteAccount(event: SubmitEvent) {
+		event.preventDefault();
+		const ok = await confirmAction({
+			title: 'delete your account?',
+			message: 'everything in it goes too, and this cannot be undone.',
+			action: 'delete account',
+			danger: true
+		});
+		if (!ok) return;
+		deleting = true;
+		deleteStatus = '';
+		const deleted = await act(
+			api.sessions.deleteAccount,
+			{ password: deletePassword },
+			{ onError: (message) => (deleteStatus = message) }
+		);
+		if (deleted === undefined) {
+			deleting = false;
+			return;
+		}
+		// Every session just ended, so the layout may already be heading to /login
+		// on its own; a full load wins over that navigation, and /login clears the
+		// dead cookie
+		location.replace('/login');
 	}
 </script>
 
@@ -147,6 +178,31 @@
 		</button>
 		<form method="POST" action="/logout">
 			<button>log out</button>
+		</form>
+	</section>
+
+	<section>
+		<h2>delete account</h2>
+		<p class="meta">
+			deletes your account and everything in it: items, images, collections and their shared links.
+			this cannot be undone.
+		</p>
+		<form class="form" onsubmit={deleteAccount}>
+			<input
+				type="password"
+				bind:value={deletePassword}
+				placeholder="Current password"
+				autocomplete="current-password"
+				disabled={deleting}
+				required
+			/>
+			<button
+				type="submit"
+				disabled={deleting}
+				class={{ danger: !deleteStatus, error: deleteStatus }}
+			>
+				{deleteStatus || (deleting ? 'deleting...' : 'delete account')}
+			</button>
 		</form>
 	</section>
 </div>

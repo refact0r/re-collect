@@ -4,6 +4,7 @@ import {
 	internalMutation,
 	internalQuery,
 	mutation,
+	type ActionCtx,
 	type QueryCtx
 } from './_generated/server';
 import { internal } from './_generated/api';
@@ -106,23 +107,43 @@ export const createExtensionToken = action({
 	}
 });
 
+// The session's user, once `password` is shown to be theirs, so a stolen session
+// alone can't change the account. Counted toward the lockout like a login.
+async function confirmPassword(
+	ctx: ActionCtx,
+	tokenHash: string,
+	password: string
+): Promise<Doc<'users'>> {
+	const user = await ctx.runQuery(internal.sessions.getUserBySession, { tokenHash });
+	if (!user) throw new ConvexError('Unauthorized');
+	await ctx.runMutation(internal.sessions.countAttempt, { username: user.username });
+	if (!(await verifyPassword(password, user.passwordHash))) {
+		throw new ConvexError('current password is wrong');
+	}
+	return user;
+}
+
 // Other sessions (other browsers, the extension) stay signed in; signOutOthers ends them
 export const changePassword = action({
 	args: { token: v.string(), currentPassword: v.string(), newPassword: v.string() },
 	handler: async (ctx, args) => {
 		checkNewPassword(args.newPassword);
-		const user = await ctx.runQuery(internal.sessions.getUserBySession, {
-			tokenHash: await hashToken(args.token)
-		});
-		if (!user) throw new ConvexError('Unauthorized');
-		await ctx.runMutation(internal.sessions.countAttempt, { username: user.username });
-		if (!(await verifyPassword(args.currentPassword, user.passwordHash))) {
-			throw new ConvexError('current password is wrong');
-		}
+		const user = await confirmPassword(ctx, await hashToken(args.token), args.currentPassword);
 		await ctx.runMutation(internal.users.setPasswordHash, {
 			username: user.username,
 			passwordHash: await hashPassword(args.newPassword)
 		});
+	}
+});
+
+// Deletes the caller's account and everything in it: every session ends now,
+// and users.deleteUserData deletes the data in batches after
+export const deleteAccount = action({
+	args: { token: v.string(), password: v.string() },
+	handler: async (ctx, args) => {
+		const tokenHash = await hashToken(args.token);
+		await confirmPassword(ctx, tokenHash, args.password);
+		await ctx.runMutation(internal.users.startDeletion, { tokenHash });
 	}
 });
 
