@@ -76,6 +76,13 @@
 				aria-hidden="true"
 			/>
 			<p class="error" aria-live="polite">{error}</p>
+			<p class="privacy">
+				<a
+					href="https://github.com/refact0r/re-collect/blob/main/PRIVACY.md"
+					target="_blank"
+					rel="noopener">privacy policy</a
+				>
+			</p>
 		</form>
 	</div>
 </div>
@@ -161,6 +168,14 @@
 	}
 	.error:empty {
 		display: none;
+	}
+
+	.privacy {
+		font-size: var(--text-sm);
+		color: var(--txt-3);
+	}
+	.privacy a:hover {
+		color: var(--txt-1);
 	}
 
 	.row button :global(svg) {

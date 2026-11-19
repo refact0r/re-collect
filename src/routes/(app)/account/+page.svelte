@@ -205,6 +205,14 @@
 			</button>
 		</form>
 	</section>
+
+	<p class="meta">
+		<a
+			href="https://github.com/refact0r/re-collect/blob/main/PRIVACY.md"
+			target="_blank"
+			rel="noopener">privacy policy</a
+		>
+	</p>
 </div>
 
 <style>
