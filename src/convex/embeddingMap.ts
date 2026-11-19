@@ -72,10 +72,7 @@ export const vectorPage = internalQuery({
 			.paginate({ numItems: VECTOR_PAGE_SIZE, cursor });
 		const shown = page.filter((row) => row.model === EMBEDDING_MODEL && isImageKey(row.inputKey));
 		const vectors = await Promise.all(
-			// A row embeddings:splitVectors hasn't reached holds its own vector
-			shown.map(async (row) =>
-				row.vectorId ? (await ctx.db.get(row.vectorId))?.embedding : row.embedding
-			)
+			shown.map(async (row) => (await ctx.db.get(row.vectorId))?.embedding)
 		);
 		const rows = shown.flatMap((row, i) => {
 			const embedding = vectors[i];

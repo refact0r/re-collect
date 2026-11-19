@@ -40,7 +40,7 @@ export async function scheduleEmbedding(ctx: MutationCtx, itemId: Id<'items'>) {
 
 // Deletes an embedding row with its vector
 export async function deleteEmbedding(ctx: MutationCtx, row: Doc<'itemEmbeddings'>) {
-	if (row.vectorId) await ctx.db.delete(row.vectorId);
+	await ctx.db.delete(row.vectorId);
 	await ctx.db.delete(row._id);
 }
 
@@ -88,13 +88,12 @@ export const saveEmbedding = internalMutation({
 		const existing = await findEmbedding(ctx, itemId);
 		// Patched in place, so the row keeps its spot in by_user for a map read
 		// paging past it
-		if (existing?.vectorId) {
+		if (existing) {
 			await ctx.db.patch(existing.vectorId, { embedding });
 			await ctx.db.patch(existing._id, fields);
 		} else {
 			const vectorId = await ctx.db.insert('embeddingVectors', { userId, embedding });
-			if (existing) await ctx.db.patch(existing._id, { ...fields, vectorId, embedding: undefined });
-			else await ctx.db.insert('itemEmbeddings', { itemId, userId, ...fields, vectorId });
+			await ctx.db.insert('itemEmbeddings', { itemId, userId, ...fields, vectorId });
 		}
 		// A text embedding leaves the map as it was, unless it replaced an image one
 		if (isImageKey(key) || (existing && isImageKey(existing.inputKey))) {
@@ -173,36 +172,5 @@ export const itemIdsForHits = internalQuery({
 			)
 		);
 		return rows.map((row) => (row?.model === EMBEDDING_MODEL ? row.itemId : null));
-	}
-});
-
-// One-off: moves the vectors of rows written before embeddingVectors existed
-// out into it, a page per transaction, without calling Workers AI. The map's
-// vectors are unchanged, so it isn't marked stale.
-// Run with `npx convex run embeddings:splitVectors` (add --prod for production)
-export const splitVectors = internalMutation({
-	args: { cursor: v.optional(v.string()), moved: v.optional(v.number()) },
-	handler: async (ctx, args) => {
-		const { page, isDone, continueCursor } = await ctx.db
-			.query('itemEmbeddings')
-			.paginate({ numItems: 100, cursor: args.cursor ?? null });
-		let moved = args.moved ?? 0;
-		for (const row of page) {
-			if (!row.embedding) continue;
-			const vectorId = await ctx.db.insert('embeddingVectors', {
-				userId: row.userId,
-				embedding: row.embedding
-			});
-			await ctx.db.patch(row._id, { vectorId, embedding: undefined });
-			moved++;
-		}
-		if (!isDone) {
-			await ctx.scheduler.runAfter(0, internal.embeddings.splitVectors, {
-				cursor: continueCursor,
-				moved
-			});
-		} else {
-			console.log(`embeddings splitVectors: ${moved} vectors moved`);
-		}
 	}
 });

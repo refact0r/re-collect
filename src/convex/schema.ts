@@ -218,10 +218,7 @@ export default defineSchema({
 		// What was embedded ('image:<imageKey>' or 'text:<hash>'), so an unchanged
 		// item isn't embedded again
 		inputKey: v.string(),
-		vectorId: v.optional(v.id('embeddingVectors')),
-		// Rows written before the vectors moved out hold their vector here until
-		// embeddings:splitVectors moves it (then this field goes and vectorId is required)
-		embedding: v.optional(v.array(v.float64()))
+		vectorId: v.id('embeddingVectors')
 	})
 		.index('by_item', ['itemId'])
 		.index('by_user', ['userId'])
