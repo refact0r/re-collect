@@ -35,7 +35,7 @@
 	const items = useAllPages(
 		api.items.list,
 		() => (data.writeToken ? { token: data.writeToken } : 'skip'),
-		200
+		{ firstPage: 50, page: 200 }
 	);
 	const collections = useQuery(api.collections.listWithCounts, () =>
 		data.writeToken ? { token: data.writeToken } : 'skip'
