@@ -4,7 +4,14 @@ import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { hashToken } from './lib/auth';
 import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL } from './lib/embedder';
-import { listItems, makeUser, newTest, stubR2, type Test } from './testing.helpers';
+import {
+	insertEmbedding,
+	listItems,
+	makeUser,
+	newTest,
+	stubR2,
+	type Test
+} from './testing.helpers';
 
 let deleted: ReturnType<typeof stubR2>;
 
@@ -59,10 +66,9 @@ async function seedLibrary(t: Test, userId: Id<'users'>, prefix: string, count: 
 					dateAdded: i
 				});
 			}
-			await ctx.db.insert('itemEmbeddings', {
+			await insertEmbedding(ctx, {
 				itemId,
 				userId,
-				model: EMBEDDING_MODEL,
 				inputKey: `image:${imageKey}`,
 				embedding: Array(EMBEDDING_DIMENSIONS).fill(0.1)
 			});
@@ -132,6 +138,10 @@ async function ownedRows(t: Test, userId: Id<'users'>, username: string) {
 			items: items.length,
 			itemCollectionPositions: positions.length,
 			itemEmbeddings: await byUser('itemEmbeddings'),
+			// No index by user: only the tests look for them that way
+			embeddingVectors: (await ctx.db.query('embeddingVectors').collect()).filter(
+				(row) => row.userId === userId
+			).length,
 			uploads: await byUser('uploads'),
 			viewPreferences: (
 				await ctx.db
@@ -253,6 +263,7 @@ describe('deleting an account', () => {
 			items: 0,
 			itemCollectionPositions: 0,
 			itemEmbeddings: 0,
+			embeddingVectors: 0,
 			uploads: 0,
 			viewPreferences: 0,
 			embeddingMapStates: 0,

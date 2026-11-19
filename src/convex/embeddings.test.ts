@@ -5,7 +5,7 @@ import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { r2 } from './r2';
 import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL, documentText, inputKey } from './lib/embedder';
-import { makeUser, newTest, type Test } from './testing.helpers';
+import { insertEmbedding, makeUser, newTest, type Test } from './testing.helpers';
 
 const vector = (x: number) => Array.from({ length: EMBEDDING_DIMENSIONS }, () => x);
 const NOTE = { title: 'note', content: 'risograph' };
@@ -40,6 +40,7 @@ async function setup() {
 				.withIndex('by_item', (q) => q.eq('itemId', id))
 				.collect()
 		);
+	const vectors = () => t.run((ctx) => ctx.db.query('embeddingVectors').collect());
 	// The map's two documents, as stored
 	const mapDocs = () =>
 		t.run(async (ctx) => ({
@@ -52,7 +53,7 @@ async function setup() {
 				.withIndex('by_user', (q) => q.eq('userId', userId))
 				.unique()
 		}));
-	return { t, token, userId, itemId, rows, mapDocs };
+	return { t, token, userId, itemId, rows, vectors, mapDocs };
 }
 
 const imageItem = (t: Test, userId: Id<'users'>, imageKey = 'a.jpg') =>
@@ -83,7 +84,7 @@ function stubWorkersAi(...statuses: number[]) {
 }
 
 test('saving an embedding replaces the item’s previous one', async () => {
-	const { t, userId, itemId, rows } = await setup();
+	const { t, userId, itemId, rows, vectors } = await setup();
 	const key = await noteKey();
 	await t.mutation(internal.embeddings.saveEmbedding, {
 		itemId,
@@ -98,7 +99,11 @@ test('saving an embedding replaces the item’s previous one', async () => {
 	const saved = await rows();
 	expect(saved).toHaveLength(1);
 	expect(saved[0]).toMatchObject({ userId, model: EMBEDDING_MODEL, inputKey: key });
-	expect(saved[0].embedding[0]).toBe(0.2);
+	expect(saved[0]).not.toHaveProperty('embedding');
+	const [stored] = await vectors();
+	expect(await vectors()).toHaveLength(1);
+	expect(stored).toMatchObject({ _id: saved[0].vectorId, userId });
+	expect(stored.embedding[0]).toBe(0.2);
 
 	// Embedded as it stands: nothing left to make
 	expect(await t.query(internal.embeddings.embeddingJob, { itemId })).toBeNull();
@@ -115,7 +120,7 @@ test('a run that read an older version of the item doesn’t save', async () => 
 });
 
 test('deleting an item deletes its embedding, and a late save is dropped', async () => {
-	const { t, token, itemId, rows } = await setup();
+	const { t, token, itemId, rows, vectors } = await setup();
 	const save = async () =>
 		t.mutation(internal.embeddings.saveEmbedding, {
 			itemId,
@@ -126,6 +131,7 @@ test('deleting an item deletes its embedding, and a late save is dropped', async
 	expect(await rows()).toHaveLength(1);
 	await t.mutation(api.items.remove, { id: itemId, token });
 	expect(await rows()).toHaveLength(0);
+	expect(await vectors()).toHaveLength(0);
 
 	await save();
 	expect(await rows()).toHaveLength(0);
@@ -136,13 +142,16 @@ test('a stale model’s row doesn’t count as embedded', async () => {
 	// The note's own input, so only the model differs
 	const key = await noteKey();
 	await t.run((ctx) =>
-		ctx.db.insert('itemEmbeddings', {
-			itemId,
-			userId,
-			model: 'some/older-model',
-			inputKey: key,
-			embedding: vector(0.1)
-		})
+		insertEmbedding(
+			ctx,
+			{
+				itemId,
+				userId,
+				inputKey: key,
+				embedding: vector(0.1)
+			},
+			'some/older-model'
+		)
 	);
 	expect(await t.query(internal.embeddings.embeddingJob, { itemId })).toMatchObject({ key });
 });
@@ -364,10 +373,9 @@ test('the backfill re-embeds items whose embedding is out of date, and only thos
 			dateAdded: 0,
 			dateModified: 0
 		});
-		await ctx.db.insert('itemEmbeddings', {
+		await insertEmbedding(ctx, {
 			itemId: id,
 			userId,
-			model: EMBEDDING_MODEL,
 			inputKey: await noteKey(),
 			embedding: vector(0.1)
 		});
@@ -379,4 +387,83 @@ test('the backfill re-embeds items whose embedding is out of date, and only thos
 	await t.finishAllScheduledFunctions(vi.runAllTimers);
 	expect(fetch).toHaveBeenCalledOnce();
 	expect((await rows(edited))[0].inputKey).not.toBe(await noteKey());
+});
+
+test('search maps its nearest vectors to the caller’s items, skipping a stale model’s', async () => {
+	const { t, token, userId, itemId } = await setup();
+	const stale = await imageItem(t, userId);
+	const other = await makeUser(t, 'b');
+	const theirs = await imageItem(t, other.userId);
+	await t.run(async (ctx) => {
+		await insertEmbedding(ctx, { itemId, userId, inputKey: 'text:x', embedding: vector(1) });
+		const row = { itemId: stale, userId, inputKey: 'image:a.jpg', embedding: vector(1) };
+		await insertEmbedding(ctx, row, 'some/older-model');
+		await insertEmbedding(ctx, {
+			itemId: theirs,
+			userId: other.userId,
+			inputKey: 'image:a.jpg',
+			embedding: vector(1)
+		});
+	});
+	stubWorkersAi();
+	expect(await t.action(api.embeddings.search, { token, query: 'risograph' })).toEqual([itemId]);
+});
+
+test('splitVectors moves a row’s own vector out, leaving the map alone', async () => {
+	const { t, userId, itemId, rows, vectors, mapDocs } = await setup();
+	const image = await imageItem(t, userId);
+	const key = await inputKey({ kind: 'image', imageKey: 'a.jpg' });
+	// Rows as written before embeddingVectors existed
+	await t.run(async (ctx) => {
+		for (const [id, inputKey, x] of [
+			[itemId, await noteKey(), 0.1],
+			[image, key, 0.2]
+		] as const) {
+			await ctx.db.insert('itemEmbeddings', {
+				itemId: id,
+				userId,
+				model: EMBEDDING_MODEL,
+				inputKey,
+				embedding: vector(x)
+			});
+		}
+	});
+	// The map reads a row's own vector until it moves
+	const mapped = () => t.query(internal.embeddingMap.vectorPage, { userId, cursor: null });
+	const before = await mapped();
+	expect(before.rows).toEqual([{ itemId: image, embedding: vector(0.2) }]);
+
+	await t.mutation(internal.embeddings.splitVectors, {});
+	await t.finishAllScheduledFunctions(vi.runAllTimers);
+	for (const id of [itemId, image]) {
+		const [row] = await rows(id);
+		expect(row).not.toHaveProperty('embedding');
+		expect(row.vectorId).toBeDefined();
+	}
+	expect((await vectors()).map((row) => row.embedding[0]).sort()).toEqual([0.1, 0.2]);
+	expect(await mapped()).toEqual(before);
+	expect((await mapDocs()).state).toBeNull();
+	expect(await t.query(internal.embeddings.embeddingJob, { itemId })).toBeNull();
+});
+
+test('re-embedding a row that still holds its vector moves it out', async () => {
+	const { t, userId, itemId, rows, vectors } = await setup();
+	await t.run(async (ctx) =>
+		ctx.db.insert('itemEmbeddings', {
+			itemId,
+			userId,
+			model: 'some/older-model',
+			inputKey: await noteKey(),
+			embedding: vector(0.1)
+		})
+	);
+	await t.mutation(internal.embeddings.saveEmbedding, {
+		itemId,
+		inputKey: await noteKey(),
+		embedding: vector(0.2)
+	});
+	const [row] = await rows();
+	expect(row).toMatchObject({ model: EMBEDDING_MODEL });
+	expect(row).not.toHaveProperty('embedding');
+	expect(await vectors()).toMatchObject([{ _id: row.vectorId }]);
 });

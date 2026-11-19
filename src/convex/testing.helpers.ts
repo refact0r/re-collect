@@ -3,7 +3,10 @@ import { convexTest } from 'convex-test';
 import workpool from '@convex-dev/workpool/test';
 import { vi } from 'vitest';
 import { api } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import type { MutationCtx } from './_generated/server';
 import { hashToken } from './lib/auth';
+import { EMBEDDING_MODEL } from './lib/embedder';
 import { r2 } from './r2';
 import schema from './schema';
 
@@ -39,6 +42,17 @@ export async function listItems(t: Test, token: string) {
 	});
 	if (!isDone) throw new Error('library bigger than one test page');
 	return page;
+}
+
+// An item's embedding row and its vector, as saveEmbedding writes them
+export async function insertEmbedding(
+	ctx: MutationCtx,
+	row: { itemId: Id<'items'>; userId: Id<'users'>; inputKey: string; embedding: number[] },
+	model = EMBEDDING_MODEL
+) {
+	const { embedding, ...fields } = row;
+	const vectorId = await ctx.db.insert('embeddingVectors', { userId: row.userId, embedding });
+	return ctx.db.insert('itemEmbeddings', { ...fields, model, vectorId });
 }
 
 // R2 credentials to sign with, a fake bucket URL to read from and stubbed

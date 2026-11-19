@@ -57,12 +57,12 @@ export const previousPoints = internalQuery({
 	handler: async (ctx, { userId }) => (await findLayout(ctx, userId))?.points ?? []
 });
 
-// ~6 KB a vector, so a page stays far under a query's read limits
+// Up to one ~6 KB vector a row, so a page stays far under a query's read limits
 const VECTOR_PAGE_SIZE = 256;
 
 // A page of the user's current-model image vectors: the map shows how things
 // look, so items read as words (notes, content links, failed captures) stay off
-// it. Rows from another model are stale.
+// it, and their vectors aren't read. Rows from another model are stale.
 export const vectorPage = internalQuery({
 	args: { userId: v.id('users'), cursor: v.union(v.string(), v.null()) },
 	handler: async (ctx, { userId, cursor }) => {
@@ -70,9 +70,17 @@ export const vectorPage = internalQuery({
 			.query('itemEmbeddings')
 			.withIndex('by_user', (q) => q.eq('userId', userId))
 			.paginate({ numItems: VECTOR_PAGE_SIZE, cursor });
-		const rows = page
-			.filter((row) => row.model === EMBEDDING_MODEL && isImageKey(row.inputKey))
-			.map(({ itemId, embedding }) => ({ itemId, embedding }));
+		const shown = page.filter((row) => row.model === EMBEDDING_MODEL && isImageKey(row.inputKey));
+		const vectors = await Promise.all(
+			// A row embeddings:splitVectors hasn't reached holds its own vector
+			shown.map(async (row) =>
+				row.vectorId ? (await ctx.db.get(row.vectorId))?.embedding : row.embedding
+			)
+		);
+		const rows = shown.flatMap((row, i) => {
+			const embedding = vectors[i];
+			return embedding ? [{ itemId: row.itemId, embedding }] : [];
+		});
 		return { rows, isDone, continueCursor };
 	}
 });

@@ -205,9 +205,12 @@ export default defineSchema({
 		.index('by_source_published', ['sourceKey', 'publishedAt'])
 		.index('by_source_externalId', ['sourceKey', 'externalId']),
 
-	// One vector per item (see embeddings.ts), kept apart from `items` so the
-	// item queries never ship vectors to the client. `model` names the model and
-	// size that made it, so a model change can re-embed alongside the old rows.
+	// One embedding per item (see embeddings.ts), kept apart from `items` so the
+	// item queries never ship vectors to the client. A row is small; its vector
+	// lives in embeddingVectors, so the reads that only need to know what was
+	// embedded (skipping unchanged inputs, mapping a search hit to its item)
+	// don't read 6 KB of floats. `model` names the model and size that made it,
+	// so a model change can re-embed alongside the old rows.
 	itemEmbeddings: defineTable({
 		itemId: v.id('items'),
 		userId: v.id('users'), // copied from the item
@@ -215,15 +218,23 @@ export default defineSchema({
 		// What was embedded ('image:<imageKey>' or 'text:<hash>'), so an unchanged
 		// item isn't embedded again
 		inputKey: v.string(),
-		embedding: v.array(v.float64())
+		vectorId: v.optional(v.id('embeddingVectors')),
+		// Rows written before the vectors moved out hold their vector here until
+		// embeddings:splitVectors moves it (then this field goes and vectorId is required)
+		embedding: v.optional(v.array(v.float64()))
 	})
 		.index('by_item', ['itemId'])
 		.index('by_user', ['userId'])
-		.vectorIndex('by_embedding', {
-			vectorField: 'embedding',
-			dimensions: EMBEDDING_DIMENSIONS,
-			filterFields: ['userId']
-		}),
+		.index('by_vector', ['vectorId']),
+	// The vectors themselves, each owned by one itemEmbeddings row
+	embeddingVectors: defineTable({
+		userId: v.id('users'), // for the search filter
+		embedding: v.array(v.float64())
+	}).vectorIndex('by_embedding', {
+		vectorField: 'embedding',
+		dimensions: EMBEDDING_DIMENSIONS,
+		filterFields: ['userId']
+	}),
 
 	// Each user's library map: a 2D layout of their image embeddings, cached
 	// because it's computed from every vector (embeddingMapActions.refresh). Its

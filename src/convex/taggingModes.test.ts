@@ -7,7 +7,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { buildSearchText } from './lib/searchText';
 import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL, inputKey } from './lib/embedder';
 import { r2 } from './r2';
-import { makeUser, newTest, type Test } from './testing.helpers';
+import { insertEmbedding, makeUser, newTest, type Test } from './testing.helpers';
 
 // How an item is understood (taggingMode: look / content / off) across every
 // item type, starting state and switch
@@ -136,10 +136,9 @@ describe('switching an item’s mode', () => {
 				...fields
 			};
 			const itemId = await ctx.db.insert('items', { ...base, searchText: buildSearchText(base) });
-			await ctx.db.insert('itemEmbeddings', {
+			await insertEmbedding(ctx, {
 				itemId,
 				userId,
-				model: EMBEDDING_MODEL,
 				inputKey: base.imageKey ? `image:${base.imageKey}` : 'text:x',
 				embedding: VECTOR
 			});
@@ -374,10 +373,9 @@ describe('an off item stays away from AI', () => {
 		const { t, userId } = await setup();
 		const itemId = await offLink(t, userId);
 		await t.run((ctx) =>
-			ctx.db.insert('itemEmbeddings', {
+			insertEmbedding(ctx, {
 				itemId,
 				userId,
-				model: EMBEDDING_MODEL,
 				inputKey: 'image:a.webp',
 				embedding: VECTOR
 			})
@@ -399,10 +397,9 @@ test('the library map lays out only items embedded as images', async () => {
 				dateAdded: 0,
 				dateModified: 0
 			});
-			await ctx.db.insert('itemEmbeddings', {
+			await insertEmbedding(ctx, {
 				itemId,
 				userId,
-				model: EMBEDDING_MODEL,
 				inputKey: key,
 				embedding: VECTOR
 			});

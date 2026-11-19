@@ -7,6 +7,7 @@ import {
 } from './_generated/server';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import { deleteEmbedding } from './embeddings';
 import { deleteItem } from './items';
 import { r2 } from './r2';
 import {
@@ -187,9 +188,13 @@ async function deleteUserBatch(ctx: MutationCtx, userId: Id<'users'>) {
 			.withIndex('by_user', (q) => q.eq('userId', userId))
 			.take(DELETE_BATCH)
 	]);
-	const [uploads] = rest;
-	for (const upload of uploads) await r2.deleteObject(ctx, upload.key);
-	for (const row of rest.flat()) await ctx.db.delete(row._id);
+	const [uploads, embeddings, ...others] = rest;
+	for (const upload of uploads) {
+		await r2.deleteObject(ctx, upload.key);
+		await ctx.db.delete(upload._id);
+	}
+	for (const row of embeddings) await deleteEmbedding(ctx, row);
+	for (const row of others.flat()) await ctx.db.delete(row._id);
 	if (rest.some((rows) => rows.length === DELETE_BATCH)) return true;
 
 	const user = await ctx.db.get(userId);

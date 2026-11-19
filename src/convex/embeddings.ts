@@ -1,7 +1,7 @@
 import { v } from 'convex/values';
 import { Workpool } from '@convex-dev/workpool';
 import { components, internal } from './_generated/api';
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import {
 	action,
 	internalMutation,
@@ -37,12 +37,18 @@ export async function scheduleEmbedding(ctx: MutationCtx, itemId: Id<'items'>) {
 	await embeddingPool.enqueueAction(ctx, internal.taggingActions.embedItem, { itemId });
 }
 
+// Deletes an embedding row with its vector
+export async function deleteEmbedding(ctx: MutationCtx, row: Doc<'itemEmbeddings'>) {
+	if (row.vectorId) await ctx.db.delete(row.vectorId);
+	await ctx.db.delete(row._id);
+}
+
 export async function deleteItemEmbeddings(ctx: MutationCtx, itemId: Id<'items'>) {
 	const rows = await ctx.db
 		.query('itemEmbeddings')
 		.withIndex('by_item', (q) => q.eq('itemId', itemId))
 		.collect();
-	for (const row of rows) await ctx.db.delete(row._id);
+	for (const row of rows) await deleteEmbedding(ctx, row);
 	if (rows.some((row) => isImageKey(row.inputKey))) await markMapStale(ctx, rows[0].userId);
 }
 
@@ -76,14 +82,22 @@ export const saveEmbedding = internalMutation({
 		const input = item && embeddingInput(item);
 		if (!item || !input || (await inputKey(input)) !== key) return;
 
-		const row = { model: EMBEDDING_MODEL, inputKey: key, embedding };
+		const { userId } = item;
+		const fields = { model: EMBEDDING_MODEL, inputKey: key };
 		const existing = await findEmbedding(ctx, itemId);
-		// Patched in place, so the row keeps its spot in by_user for a map read paging past it
-		if (existing) await ctx.db.patch(existing._id, row);
-		else await ctx.db.insert('itemEmbeddings', { itemId, userId: item.userId, ...row });
+		// Patched in place, so the row keeps its spot in by_user for a map read
+		// paging past it
+		if (existing?.vectorId) {
+			await ctx.db.patch(existing.vectorId, { embedding });
+			await ctx.db.patch(existing._id, fields);
+		} else {
+			const vectorId = await ctx.db.insert('embeddingVectors', { userId, embedding });
+			if (existing) await ctx.db.patch(existing._id, { ...fields, vectorId, embedding: undefined });
+			else await ctx.db.insert('itemEmbeddings', { itemId, userId, ...fields, vectorId });
+		}
 		// A text embedding leaves the map as it was, unless it replaced an image one
 		if (isImageKey(key) || (existing && isImageKey(existing.inputKey))) {
-			await markMapStale(ctx, item.userId);
+			await markMapStale(ctx, userId);
 		}
 	}
 });
@@ -131,7 +145,7 @@ export const search = action({
 	handler: async (ctx, { token, query }): Promise<Id<'items'>[]> => {
 		const userId = await ctx.runQuery(internal.users.userForToken, { token });
 		if (!query.trim()) return [];
-		const hits = await ctx.vectorSearch('itemEmbeddings', 'by_embedding', {
+		const hits = await ctx.vectorSearch('embeddingVectors', 'by_embedding', {
 			vector: await embedQuery(query),
 			limit: SEARCH_CANDIDATES,
 			filter: (q) => q.eq('userId', userId)
@@ -143,11 +157,50 @@ export const search = action({
 	}
 });
 
-// Vector search hits back to item ids, in hit order; null for a stale model's row
+// Vector search hits back to item ids, in hit order; null for a stale model's
+// row. Reads only the small itemEmbeddings rows, not the vectors.
 export const itemIdsForHits = internalQuery({
-	args: { ids: v.array(v.id('itemEmbeddings')) },
+	args: { ids: v.array(v.id('embeddingVectors')) },
 	handler: async (ctx, { ids }): Promise<(Id<'items'> | null)[]> => {
-		const rows = await Promise.all(ids.map((id) => ctx.db.get(id)));
+		const rows = await Promise.all(
+			ids.map((id) =>
+				ctx.db
+					.query('itemEmbeddings')
+					.withIndex('by_vector', (q) => q.eq('vectorId', id))
+					.unique()
+			)
+		);
 		return rows.map((row) => (row?.model === EMBEDDING_MODEL ? row.itemId : null));
+	}
+});
+
+// One-off: moves the vectors of rows written before embeddingVectors existed
+// out into it, a page per transaction, without calling Workers AI. The map's
+// vectors are unchanged, so it isn't marked stale.
+// Run with `npx convex run embeddings:splitVectors` (add --prod for production)
+export const splitVectors = internalMutation({
+	args: { cursor: v.optional(v.string()), moved: v.optional(v.number()) },
+	handler: async (ctx, args) => {
+		const { page, isDone, continueCursor } = await ctx.db
+			.query('itemEmbeddings')
+			.paginate({ numItems: 100, cursor: args.cursor ?? null });
+		let moved = args.moved ?? 0;
+		for (const row of page) {
+			if (!row.embedding) continue;
+			const vectorId = await ctx.db.insert('embeddingVectors', {
+				userId: row.userId,
+				embedding: row.embedding
+			});
+			await ctx.db.patch(row._id, { vectorId, embedding: undefined });
+			moved++;
+		}
+		if (!isDone) {
+			await ctx.scheduler.runAfter(0, internal.embeddings.splitVectors, {
+				cursor: continueCursor,
+				moved
+			});
+		} else {
+			console.log(`embeddings splitVectors: ${moved} vectors moved`);
+		}
 	}
 });

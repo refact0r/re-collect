@@ -71,7 +71,15 @@ each its own commit, so search or the map can be reverted alone:
     - Notes, text-mode links and links whose capture failed embed as
       `title: … | text: …` (subject, og description, notes, styles, tags,
       content, host).
-  - `taggingActions.embedItem` writes one `itemEmbeddings` row per item.
+  - `taggingActions.embedItem` writes one embedding per item, in two
+    tables (split out 2026-11-19 to cut database I/O): a small
+    `itemEmbeddings` row (`itemId`, `userId`, `model`, `inputKey`,
+    `vectorId`) and the vector itself in `embeddingVectors` (`userId`,
+    `embedding`), which holds the vector index. The `inputKey` check, the
+    backfill's scan and mapping a search hit to its item read only the small
+    row; before, each read the whole row, vector included (~7 KB stored,
+    ~17 KB as JSON). A re-embed patches both rows in place, and every delete
+    (`deleteEmbedding`: item delete, AI off, account deletion) takes both.
   - Every write that can change the input schedules it: add, update,
     screenshot settle and tagging settle. The run skips items that aren't
     ready and inputs it has already embedded (`inputKey`), so over-calling
@@ -90,6 +98,10 @@ each its own commit, so search or the map can be reverted alone:
 - **Hybrid search (`/search`):**
   - `embeddings.search` returns the 64 nearest item ids. Query embedding
     took 0.3–1.4 s, measured from a local backend on a laptop.
+  - It searches `embeddingVectors` and maps the hits back through the
+    `by_vector` index on `itemEmbeddings` (`itemIdsForHits`): ~320 bytes a
+    hit measured on a local backend, against ~7 KB when it read each vector
+    row, so ~20 KB a search instead of ~450 KB.
   - Keyword matches stay the results. They're re-ranked by reciprocal rank
     fusion (k = 60) with their nearest-neighbour rank, and up to 24
     unmatched nearest items follow as "+ N similar".
@@ -103,7 +115,8 @@ each its own commit, so search or the map can be reverted alone:
     `embeddingMapLayouts`, one doc per user, capped at 8,192 points.
   - Only image embeddings are laid out (`vectorPage`): the map shows how
     things look, so notes, content links and failed captures stay off it but
-    remain in search.
+    remain in search. It pages the small rows and reads only those items'
+    vectors.
   - Opening the atlas or patterns calls refresh. Every save or delete of an
     image embedding (`isImageKey`) bumps `version` in the user's small
     `embeddingMapStates` doc (`markMapStale`), and refresh records the
