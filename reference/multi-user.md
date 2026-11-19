@@ -17,10 +17,11 @@ the work.
 - **`sessions`**: `{ userId, tokenHash, extension? }`, one per signed-in
   browser plus at most one for the browser extension. Only the SHA-256 hash of
   each token is stored. Sessions don't expire; they end on logout, on
-  "sign out other devices", or via `users:signOut`.
+  "sign out other devices", via `users:signOut`, or when the account is
+  deleted.
 - **`invites`**: `{ codeHash }`, one-time signup codes. Deleted when used.
 - **`uploads`**: `{ userId, key }`, R2 keys from `r2.generateUploadUrl` not yet
-  attached to an item. `items.add` only takes an `imageKey` the caller uploaded,
+  attached to an item, indexed `by_key` and `by_user`. `items.add` only takes an `imageKey` the caller uploaded,
   and consumes the row, because deleting an item deletes its R2 object.
 - **`userId` on owned tables**: `items`, `collections`, `viewPreferences`.
   Indexes are user-first: `items.by_user_dateAdded` / `by_user_dateModified`,
@@ -60,10 +61,12 @@ The account page (`/account`, the "account" link in the top bar) shows who's
 signed in and lets the user copy an extension token (a new one ends the
 previous extension session), change their password (`sessions.changePassword`,
 which needs the current one and leaves other sessions signed in), sign out
-every other session (`sessions.signOutOthers`) and log out. Logging out deletes
-that browser's session.
+every other session (`sessions.signOutOthers`), log out, and delete the account
+(see [Deleting an account](#deleting-an-account)). Logging out deletes that
+browser's session.
 
-Every password check (at login, or the current password when changing it)
+Every password check (at login, or the current password when changing it or
+deleting the account)
 counts toward a lockout _before_ the slow hash runs, in one mutation
 (`sessions.countAttempt`), so parallel guesses can't race past it. After 10
 attempts without a success, that username gets one attempt per 15 minutes; a
@@ -138,6 +141,48 @@ Making a collection private again cuts every visitor off; sharing it again
 revives the same link. A random share key that can be rotated would be the
 next step if that ever matters.
 
+## Deleting an account
+
+"delete account" on the account page takes the current password and a confirm
+dialog, then calls `sessions.deleteAccount`. It checks the password like
+`changePassword` does (`confirmPassword`: counted toward the lockout first), so
+a stolen session alone can't wipe an account. Then, in one mutation
+(`users.startDeletion`), every session ends, the extension's included, the
+password hash becomes the dummy one (no password matches it, so nobody signs
+in while the data goes) and the first batch is scheduled. The page then loads
+`/login` in full, which clears the dead cookie; a full load because the app
+layout, seeing its queries turn `Unauthorized`, may already be navigating to
+`/login?next=…`.
+
+`users.deleteUserData` deletes a batch and schedules itself again until
+nothing is left:
+
+1. **Collections**, one per run with up to 100 of its membership rows (more
+   runs for a bigger one), so shared links stop working first. The members'
+   `collections` arrays aren't patched, as the items go next.
+2. **Items**, 25 a run, through `deleteItem` (what `items.remove` does): any
+   remaining membership rows, the embedding, and the image's R2 object with its
+   variant copies (`deleteImageObjects`).
+3. **The rest in one run with the user**: `uploads` rows and their R2 objects,
+   stray `itemEmbeddings`, `viewPreferences`, any session left, the
+   `embeddingMapStates` / `embeddingMapLayouts` rows, the username's
+   `loginAttempts` row, and last the `users` row. They're a few rows each, and
+   going in the same transaction as the user means a run that finishes late
+   finds the user gone instead of leaving a row behind. The username is free
+   for signup again.
+
+Work queued for the items before they went finds them missing and stops
+quietly: captures, tagging, palettes, embeddings and variant runs check the
+item (a capture or variant run that already stored an object deletes it), a
+map layout checks the user (`embeddingMap.save`), and an upload whose row went
+mid-check has its object deleted (`r2.markVerified`). A new table holding a
+user's rows needs a step in `deleteUserBatch` (`users.ts`).
+
+Never try it on the dev deployment with its copied data: dev's items point at
+prod's objects in the shared R2 bucket (`ops.md`), so deleting a dev account
+deletes prod's images. Tests cover it with a stubbed bucket
+(`accountDeletion.test.ts`).
+
 ## Managing users
 
 ```bash
@@ -201,5 +246,5 @@ to Better Auth through the seam above.
   there's no `/u/<username>` page listing them.
 - **Saving someone else's item.** Deleting an item deletes its R2 object, so a
   copy into your own collection needs its own copy of the image.
-- **Account settings, renaming or deleting a user and their data** (do it by hand in the dashboard for now).
+- **Renaming a user** (do it by hand in the dashboard for now).
 - **Pagination.** `items.list` still collects all of a user's items, as before.

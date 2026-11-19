@@ -87,6 +87,8 @@ export const save = internalMutation({
 		layoutVersion: v.number()
 	},
 	handler: async (ctx, { userId, model, points, layoutVersion }) => {
+		// The account was deleted while the layout ran
+		if (!(await ctx.db.get(userId))) return;
 		const state = await findState(ctx, userId);
 		// A slower run that started earlier mustn't overwrite a newer layout
 		if (state?.model === model && state.layoutVersion > layoutVersion) return;

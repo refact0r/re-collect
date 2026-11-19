@@ -112,7 +112,12 @@ export const markVerified = internalMutation({
 	args: { key: v.string(), contentType: v.string(), width: v.number(), height: v.number() },
 	handler: async (ctx, { key, contentType, width, height }) => {
 		const upload = await uploadByKey(ctx, key);
-		if (!upload) throw new ConvexError('upload not found');
+		// Deleted with its account (or swept) while the bytes were checked: the
+		// object, stored meanwhile, belongs to no one
+		if (!upload) {
+			await r2.deleteObject(ctx, key);
+			return;
+		}
 		await ctx.db.patch(upload._id, { verifiedType: contentType, width, height });
 	}
 });

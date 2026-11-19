@@ -87,7 +87,9 @@ export default defineSchema({
 		// The upright size those bytes decoded to, which items.add stores
 		width: v.optional(v.number()),
 		height: v.optional(v.number())
-	}).index('by_key', ['key']),
+	})
+		.index('by_key', ['key'])
+		.index('by_user', ['userId']),
 
 	items: defineTable({
 		userId: v.id('users'),

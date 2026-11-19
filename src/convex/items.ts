@@ -1,7 +1,7 @@
 import { ConvexError, v, type Infer } from 'convex/values';
 import type { Doc } from './_generated/dataModel';
 import { internal } from './_generated/api';
-import { internalMutation } from './_generated/server';
+import { internalMutation, type MutationCtx } from './_generated/server';
 import { getOwnUpload } from './r2';
 import {
 	addItemToCollection,
@@ -261,12 +261,17 @@ export const remove = userMutation({
 	handler: async (ctx, args) => {
 		const item = await getOwned(ctx, args.id);
 		if (!item) throw new ConvexError('item not found');
-		await deleteAllPositionsForItem(ctx, args.id);
-		await deleteItemEmbeddings(ctx, args.id);
-		await deleteImageObjects(ctx, item);
-		await ctx.db.delete(args.id);
+		await deleteItem(ctx, item);
 	}
 });
+
+// Deletes an item with what hangs off it: its memberships, embedding and image objects
+export async function deleteItem(ctx: MutationCtx, item: Doc<'items'>) {
+	await deleteAllPositionsForItem(ctx, item._id);
+	await deleteItemEmbeddings(ctx, item._id);
+	await deleteImageObjects(ctx, item);
+	await ctx.db.delete(item._id);
+}
 
 export const addToCollection = userMutation({
 	args: {
