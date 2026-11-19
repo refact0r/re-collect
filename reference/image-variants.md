@@ -105,9 +105,7 @@ their untouched originals.
   copy or the original; on a 1x screen a column up to 460px gets the 512 copy.
 - **Backfill**: `npx convex run imageVariants:backfill` queues every image
   without copies; `'{"remake": true}'` deletes every image's copies and makes
-  them again (after changing the tiers or the encoding). Run it on prod only:
-  on dev or a local copy of prod's data, capping would delete originals prod
-  still points at (`reference/ops.md`, the shared bucket).
+  them again (after changing the tiers or the encoding).
 
 Memory: Node actions get 512 MB, and a run must never need more for any image
 allowed in. Measured on the dev deployment (2026-11-16) with worst-case

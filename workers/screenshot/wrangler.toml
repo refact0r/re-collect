@@ -6,12 +6,23 @@ compatibility_flags = ["nodejs_compat"]
 [browser]
 binding = "BROWSER"
 
-# R2 bucket binding - update bucket_name with your actual bucket name
 [[r2_buckets]]
 binding = "R2_BUCKET"
 bucket_name = "re-collect"
 
 # API_KEY is a secret, not a var: wrangler secret put API_KEY
+
+# The dev deployment's own worker, writing to the dev bucket (deploy:screenshot-dev).
+# Bindings aren't inherited, so it repeats them; its API_KEY is set with --env dev.
+[env.dev]
+name = "screenshot-worker-dev"
+
+[env.dev.browser]
+binding = "BROWSER"
+
+[[env.dev.r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "re-collect-dev"
 
 [observability]
 enabled = false

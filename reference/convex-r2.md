@@ -65,8 +65,9 @@ default-src 'none'` and `X-Content-Type-Options: nosniff`.
 The component's `metadata` table isn't used (nothing syncs or reads it);
 `r2.deleteObject` deletes the object either way.
 
-The screenshot worker (`workers/screenshot`) writes to the same bucket
-directly via its R2 binding (keys under `screenshots/` and `og/`), bypassing
+The screenshot worker (`workers/screenshot`) writes to the deployment's bucket
+(prod's worker to `re-collect`, the dev worker to `re-collect-dev`) directly
+via its R2 binding (keys under `screenshots/` and `og/`), bypassing
 the component.
 
 ## Serving (no presigning)

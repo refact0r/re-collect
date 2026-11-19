@@ -178,10 +178,7 @@ map layout checks the user (`embeddingMap.save`), and an upload whose row went
 mid-check has its object deleted (`r2.markVerified`). A new table holding a
 user's rows needs a step in `deleteUserBatch` (`users.ts`).
 
-Never try it on the dev deployment with its copied data: dev's items point at
-prod's objects in the shared R2 bucket (`ops.md`), so deleting a dev account
-deletes prod's images. Tests cover it with a stubbed bucket
-(`accountDeletion.test.ts`).
+Tests cover it with a stubbed bucket (`accountDeletion.test.ts`).
 
 ## Managing users
 

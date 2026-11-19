@@ -11,6 +11,7 @@
 		"deploy:convex": "convex deploy",
 		"deploy:app": "vite build && wrangler deploy",
 		"deploy:screenshot": "pnpm -C workers/screenshot run deploy",
+		"deploy:screenshot-dev": "pnpm -C workers/screenshot run deploy:dev",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
